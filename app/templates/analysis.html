@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ d.symbol }} • ISK Radar</title><link rel="stylesheet" href="/static/style.css"></head>
 <body>
-<header class="topbar"><div><a class="back" href="/">← Dashboard</a><div class="eyebrow">FULL SYMBOL ANALYSIS</div><h1>{{ d.symbol }} <span class="price">${{ '%.2f'|format(d.price or 0) }}</span></h1></div><div class="top-actions"><span class="pill">{{ d.category or 'Watch' }}</span><span class="action-chip big">{{ d.action }}</span><a class="btn secondary" href="/analysis/{{ d.symbol }}?refresh=1">Refresh analysis</a></div></header>
+<header class="topbar"><div><a class="back" href="/">← Dashboard</a><div class="eyebrow">FULL SYMBOL ANALYSIS</div><h1>{{ d.symbol }} <span class="price">{{ ('%.2f SEK'|format(d.price or 0)) if d.currency == 'SEK' else ('$%.2f'|format(d.price or 0)) }}</span></h1></div><div class="top-actions"><span class="pill">{{ d.category or 'Watch' }}</span><span class="action-chip big">{{ d.action }}</span><a class="btn secondary" href="/analysis/{{ d.symbol }}?refresh=1">Refresh analysis</a></div></header>
 <main class="container">
   {% if d.error %}<section class="panel"><div class="error-box">{{ d.error }}</div></section>{% endif %}
   <section class="score-grid">
@@ -11,7 +11,18 @@
     <div class="panel score-card"><span>Risk / reward</span><strong>{{ '%.1f'|format(d.risk_reward or 0) }}×</strong><small>modeled</small></div>
   </section>
 
-  <section class="panel action-banner"><div><span class="kicker">POSITION-AWARE ACTION</span><h2>{{ d.action }}</h2><p>{{ d.action_reason }}</p>{% if d.get('action_plan') %}<p><b>Suggested size:</b> {% if d.get('action_plan').suggested_shares %}{{ d.get('action_plan').suggested_shares }} shares ({{ d.get('action_plan').actual_percent }}% of position), leaving {{ d.get('action_plan').remaining_shares }}{% else %}No partial quantity suggested{% endif %}. {{ d.get('action_plan').rationale }}</p>{% endif %}<p class="subtle">Evidence confidence: {{ d.get('decision_confidence') or 'unknown' }}{% if d.get('missing_inputs') %} • Missing: {{ d.get('missing_inputs')|join(', ') }}{% endif %}</p></div>{% if d.position %}<div class="position-mini"><b>Current holding</b><span>{{ d.position.shares }} shares</span><span>Avg {{ ('%.2f SEK'|format(d.position.avg_cost)) if d.currency == 'SEK' else ('$%.2f'|format(d.position.avg_cost)) }}</span><span>{{ d.position.account }}</span></div>{% else %}<span class="pill muted">No current position found</span>{% endif %}</section>
+  <section class="panel action-banner"><div><span class="kicker">POSITION-AWARE ACTION</span><h2>{{ d.action }}</h2><p>{{ d.action_reason }}</p>{% if d.get('action_plan') %}<p><b>Suggested size:</b> {% if d.get('action_plan').suggested_shares %}{{ d.get('action_plan').suggested_shares }} shares ({{ d.get('action_plan').actual_percent }}% of position), leaving {{ d.get('action_plan').remaining_shares }}{% else %}No partial quantity suggested{% endif %}. {{ d.get('action_plan').rationale }}</p>{% endif %}<p class="subtle">Evidence confidence: {{ d.get('decision_confidence') or 'unknown' }} • {{ d.get('data_quality_pct') or 0 }}% critical-evidence coverage{% if d.get('missing_inputs') %} • Missing critical: {{ d.get('missing_inputs')|join(', ') }}{% endif %}{% if d.get('optional_missing_inputs') %} • Optional unavailable: {{ d.get('optional_missing_inputs')|join(', ') }}{% endif %}</p></div>{% if d.position %}<div class="position-mini"><b>Current holding</b><span>{{ d.position.shares }} shares</span><span>Avg {{ ('%.2f SEK'|format(d.position.avg_cost)) if d.currency == 'SEK' else ('$%.2f'|format(d.position.avg_cost)) }}</span><span>{{ d.position.account }}</span></div>{% else %}<span class="pill muted">No current position found</span>{% endif %}</section>
+
+  <section class="panel">
+    <div class="section-title-row"><div><span class="kicker">EVIDENCE PROVENANCE</span><h2>What data actually powered this decision</h2></div><span class="pill">{{ d.get('decision_confidence') or 'unknown' }} confidence</span></div>
+    <div class="table-wrap"><table><thead><tr><th>Evidence</th><th>Source</th><th>Status</th><th>As of / detail</th></tr></thead><tbody>
+      {% for key,label in [('price','Price / history'),('fundamentals','Fundamentals'),('news','News'),('analyst','Analyst consensus'),('sector','Sector benchmark')] %}
+      {% set src=(d.get('evidence_sources') or {}).get(key,{}) %}
+      <tr><td>{{ label }}</td><td>{{ src.get('source') or 'unavailable' }}</td><td>{{ src.get('status') or 'unavailable' }}</td><td>{{ src.get('asof') or (src.get('benchmark') if src.get('benchmark') else (src.get('items') ~ ' items' if src.get('items') is not none else '—')) }}</td></tr>
+      {% endfor %}
+    </tbody></table></div>
+    <p class="footnote">Analyst consensus and price targets are optional confirmation inputs. Their absence does not by itself lower a position to DATA REVIEW.</p>
+  </section>
 
   <section class="three-col">
     <div class="panel"><span class="kicker">EXPECTED YIELD</span><h3>Deterministic</h3><div class="large-value">{{ '%.1f'|format(d.expected_yield_pct or 0) }}%</div><p>{{ d.deterministic_holding_period_min_days }}–{{ d.deterministic_holding_period_max_days }} days modeled horizon</p></div>

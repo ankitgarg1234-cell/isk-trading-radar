@@ -355,20 +355,40 @@ def score_bundle(bundle: dict) -> dict:
             pass
 
     a_score, a_reasons, analyst_yield = analyst_score(f, price)
+    # Evidence confidence is based on decision-critical evidence only. Analyst
+    # consensus is deliberately optional: lack of Wall Street coverage must not
+    # downgrade a well-evidenced company into DATA REVIEW.
     missing_inputs: list[str] = []
+    optional_missing_inputs: list[str] = []
     quality_points = 0
-    if fconf == "high": quality_points += 3
-    elif fconf == "medium": quality_points += 2
-    else: missing_inputs.append("complete fundamentals")
-    if a_score is not None: quality_points += 1
-    else: missing_inputs.append("analyst consensus")
-    if news.get("items"): quality_points += 1
-    else: missing_inputs.append("recent news")
-    if len(rows) >= 50: quality_points += 1
-    else: missing_inputs.append("price history")
-    if bundle.get("sector_benchmark"): quality_points += 1
-    else: missing_inputs.append("sector benchmark")
-    data_quality_pct = round(quality_points / 7 * 100, 1)
+    if fconf == "high":
+        quality_points += 4
+    elif fconf == "medium":
+        quality_points += 3
+    elif fconf == "low" and any(f.get(k) is not None for k in ("revenueGrowth", "earningsGrowth", "grossMargins", "operatingMargins", "returnOnEquity", "debtToEquity")):
+        quality_points += 1
+        missing_inputs.append("complete fundamentals")
+    else:
+        missing_inputs.append("complete fundamentals")
+    if news.get("items"):
+        quality_points += 1
+    else:
+        missing_inputs.append("recent news")
+    if len(rows) >= 100:
+        quality_points += 2
+    elif len(rows) >= 50:
+        quality_points += 1
+    else:
+        missing_inputs.append("price history")
+    if bundle.get("sector_benchmark"):
+        quality_points += 1
+    else:
+        missing_inputs.append("sector benchmark")
+    if a_score is None:
+        optional_missing_inputs.append("analyst consensus")
+    if f.get("targetMeanPrice") in (None, ""):
+        optional_missing_inputs.append("consensus price target")
+    data_quality_pct = round(quality_points / 8 * 100, 1)
     decision_confidence = "high" if data_quality_pct >= 75 else "medium" if data_quality_pct >= 50 else "low"
     rr_up = (levels["target"] - price) / price if price else 0
     rr_down = (price - levels["stop"]) / price if price else 1
@@ -419,6 +439,8 @@ def score_bundle(bundle: dict) -> dict:
         "data_quality_pct": data_quality_pct,
         "decision_confidence": decision_confidence,
         "missing_inputs": missing_inputs,
+        "optional_missing_inputs": optional_missing_inputs,
+        "evidence_sources": bundle.get("data_sources") or {},
         "sector_reasons": sector_reasons,
         "technicals": t,
         "levels": levels,

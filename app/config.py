@@ -14,6 +14,8 @@ class Settings:
     app_password: str = os.getenv("APP_PASSWORD", "")
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
     openai_model: str = os.getenv("OPENAI_MODEL", "gpt-5-mini")
+    finnhub_api_key: str = os.getenv("FINNHUB_API_KEY", "")
+    sec_user_agent: str = os.getenv("SEC_USER_AGENT", "ISK Trading Radar/1.0 contact@example.com")
     scan_interval_seconds: int = int(os.getenv("SCAN_INTERVAL_SECONDS", "120"))
     scan_batch_size: int = int(os.getenv("SCAN_BATCH_SIZE", "12"))
     disable_scanner: bool = _bool("DISABLE_SCANNER", False)
