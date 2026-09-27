@@ -152,3 +152,48 @@ def test_analyst_score_can_use_recommendation_counts_without_target():
     assert score is not None and score > 75
     assert upside is None
     assert any("Recommendation mix" in r for r in reasons)
+
+
+def test_primary_buy_zone_moderate_score_can_consider_buying_now():
+    result={
+        "deterministic_score":68,
+        "news":{"label":"Neutral","material_events":0,"high_negative_events":0},
+        "technicals":{"ema20":98,"rsi":54,"relative_volume":1.0,"change20_pct":1.0},
+        "levels":{"buy_low":95,"buy_high":100,"better_low":88,"better_high":92,"stop":80,"do_not_chase":120,"breakout":110},
+        "breakdown":{"Fundamentals":14},
+        "fundamental_confidence":"high",
+        "decision_confidence":"high",
+    }
+    action,reason=position_action(result,97,None)
+    assert action == "CONSIDER BUYING NOW"
+    assert "Primary buy zone reached" in reason
+
+
+def test_value_corridor_does_not_revert_to_wait_for_buy_zone():
+    result={
+        "deterministic_score":70,
+        "news":{"label":"Neutral","material_events":0,"high_negative_events":0},
+        "technicals":{"ema20":96,"rsi":52,"relative_volume":1.0,"change20_pct":0.5},
+        "levels":{"buy_low":95,"buy_high":100,"better_low":85,"better_high":90,"stop":75,"do_not_chase":120,"breakout":110},
+        "breakdown":{"Fundamentals":14},
+        "fundamental_confidence":"high",
+        "decision_confidence":"high",
+    }
+    action,reason=position_action(result,93,None)
+    assert action == "CONSIDER STARTER BUY"
+    assert "below the primary buy zone" in reason
+
+
+def test_value_corridor_waits_for_better_buy_when_falling():
+    result={
+        "deterministic_score":72,
+        "news":{"label":"Neutral","material_events":0,"high_negative_events":0},
+        "technicals":{"ema20":98,"rsi":45,"relative_volume":0.6,"change20_pct":-5.0},
+        "levels":{"buy_low":95,"buy_high":100,"better_low":85,"better_high":90,"stop":75,"do_not_chase":120,"breakout":110},
+        "breakdown":{"Fundamentals":14},
+        "fundamental_confidence":"high",
+        "decision_confidence":"high",
+    }
+    action,reason=position_action(result,93,None)
+    assert action == "WAIT FOR BETTER BUY"
+    assert "85.00" in reason and "90.00" in reason

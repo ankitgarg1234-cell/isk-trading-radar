@@ -1,40 +1,30 @@
-# ISK Radar — Data Resilience Patch
+# Entry-state decision patch
 
-## Why this patch exists
-The V1 safety rule correctly stopped the engine from issuing REDUCE decisions when evidence was incomplete, but Yahoo `quoteSummary` failures caused fundamentals, analyst metadata, and sector metadata to disappear together. That produced widespread `HOLD — DATA REVIEW` states.
+Fixes the entry engine so a stock does not revert to generic WATCH after trading below the primary buy zone.
 
-## Runtime changes
-- Adds official SEC EDGAR/XBRL fallback for U.S. company fundamentals.
-- Adds SEC ticker/CIK resolution and broad SIC-to-sector mapping.
-- Rebuilds the sector ETF benchmark even when Yahoo sector metadata is absent.
-- Makes analyst consensus and consensus price target **optional confirmation inputs**, not decision-confidence requirements.
-- Adds optional Finnhub recommendation-trend enrichment through `FINNHUB_API_KEY`.
-- Keeps Yahoo chart/history and Yahoo news for V1 pricing/news.
-- Adds an Evidence Provenance table to each full symbol analysis.
-- Exposes critical vs optional missing evidence separately.
+## Runtime files to replace
+- `app/analysis_engine.py`
+- `app/templates/analysis.html`
 
-## Environment variables
-### Recommended
-`SEC_USER_AGENT`
+## Test file to replace
+- `tests/test_analysis_engine.py`
 
-Set this in Render to a descriptive User-Agent containing a contact email, for example:
+## New entry states
+- PRIMARY_BUY
+- BETTER_BUY
+- VALUE_CORRIDOR
+- DEEP_VALUE
+- APPROACHING_BREAKOUT
+- BREAKOUT
+- DO_NOT_CHASE
+- INVALIDATED
 
-`ISK Trading Radar/1.0 your-email@example.com`
+## Decision behavior
+- Primary buy zone + high conviction -> BUY NOW
+- Primary buy zone + adequate conviction -> CONSIDER BUYING NOW
+- Primary zone + falling-risk signal -> WAIT MORE
+- Price below primary zone but above better-buy zone -> CONSIDER STARTER BUY or WAIT FOR BETTER BUY depending on momentum
+- Better-buy zone -> CONSIDER BUYING NOW if thesis is intact
+- Existing holdings can ADD at active entry levels when evidence and conviction are adequate
 
-### Optional
-`FINNHUB_API_KEY`
-
-If configured, the app uses Finnhub recommendation trends for Strong Buy / Buy / Hold / Sell counts. If it is absent, the analyst score may remain unavailable, but this no longer lowers decision confidence by itself.
-
-## Important limitation
-The patch does not invent analyst price targets. Consensus target remains blank when the current analyst-data source does not return one. This is displayed as an optional unavailable input rather than a sell-signal/data-quality failure.
-
-## Tests
-`35 passed / 0 failed`
-
-The new tests cover:
-- SEC SIC sector mapping
-- SEC Company Facts conversion into radar-compatible growth/margin/ROE/debt fields
-- Yahoo fundamental failure recovered by SEC fallback
-- optional analyst evidence not lowering otherwise high decision confidence
-- Evidence Provenance rendering
+Regression suite after patch: 38 passed, 0 failed.
