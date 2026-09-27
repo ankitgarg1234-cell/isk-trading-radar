@@ -444,6 +444,7 @@ def score_bundle(bundle: dict) -> dict:
         "sector_reasons": sector_reasons,
         "technicals": t,
         "levels": levels,
+        "entry_zone_status": entry_zone_state(levels, price),
         "news": news,
         "risk_reward": round(rr, 2),
         "momentum_reasons": mreasons,
@@ -451,21 +452,54 @@ def score_bundle(bundle: dict) -> dict:
     }
 
 
+def entry_zone_state(levels: dict, price: float) -> str:
+    """Classify price relative to the modeled entry ladder.
+
+    The primary buy zone is not a one-shot band: once price trades below it,
+    a cheaper price should not automatically revert to generic WATCH. The
+    corridor down to the better-buy zone remains entry-relevant until the stop
+    / invalidation level is threatened.
+    """
+    if price <= levels["stop"]:
+        return "INVALIDATED"
+    if price > levels["do_not_chase"]:
+        return "DO_NOT_CHASE"
+    if price >= levels["breakout"]:
+        return "BREAKOUT"
+    if levels["buy_low"] <= price <= levels["buy_high"]:
+        return "PRIMARY_BUY"
+    if levels["better_low"] <= price <= levels["better_high"]:
+        return "BETTER_BUY"
+    if levels["better_high"] < price < levels["buy_low"]:
+        return "VALUE_CORRIDOR"
+    if levels["stop"] < price < levels["better_low"]:
+        return "DEEP_VALUE"
+    if levels["buy_high"] < price < levels["breakout"]:
+        return "APPROACHING_BREAKOUT"
+    return "WATCH"
+
+
 def position_action(result: dict, price: float, position: dict | None) -> tuple[str, str]:
     s = result["deterministic_score"]
     n = result["news"]
     t = result["technicals"]
     lv = result["levels"]
-    momentum_weak = price < (t.get("ema20") or price) or (t.get("rsi") or 50) < 42
+    ema20 = t.get("ema20") or price
+    rsi = t.get("rsi") if t.get("rsi") is not None else 50
+    change20 = t.get("change20_pct") or 0
+    relvol = t.get("relative_volume") or 0
+    momentum_weak = price < ema20 or rsi < 42
+    falling_risk = (price < ema20 and change20 < -2) or rsi < 40
     bearish = n["label"] == "Bearish" and n["material_events"] > 0
     severe_bearish = n.get("high_negative_events", 0) >= 1 and bearish
-    in_buy = lv["buy_low"] <= price <= lv["buy_high"]
+    zone = entry_zone_state(lv, price)
+    in_buy = zone in {"PRIMARY_BUY", "BETTER_BUY", "VALUE_CORRIDOR", "DEEP_VALUE"}
     downside_to_better = ((price - lv["better_high"]) / price * 100) if price else 0
     fscore = float((result.get("breakdown") or {}).get("Fundamentals") or 0)
     fconf = result.get("fundamental_confidence") or "low"
     explicit_fundamental_weakness = fconf in {"medium", "high"} and fscore <= 8
     confidence = result.get("decision_confidence") or "medium"
-    thesis_invalid = price <= lv["stop"] or (s < 55 and bearish)
+    thesis_invalid = zone == "INVALIDATED" or (s < 55 and bearish)
 
     if position:
         avg = float(position.get("avg_cost") or 0)
@@ -493,8 +527,8 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
             return "HOLD — DON'T ADD", "Momentum has weakened, but there is not enough explicit negative evidence to justify reducing the position"
         if s < 65:
             return "HOLD — DON'T ADD", f"Score is only {s:.0f}, but a low score by itself is not a sell signal; wait for explicit thesis deterioration"
-        if in_buy and s >= 85 and not bearish and confidence != "low":
-            return "ADD", f"Existing position is in buy zone with score {s:.0f}, adequate evidence coverage, and thesis intact"
+        if zone in {"PRIMARY_BUY", "BETTER_BUY", "VALUE_CORRIDOR"} and s >= 75 and not bearish and confidence != "low":
+            return "ADD", f"Position is in an active entry zone ({zone.replace('_', ' ').title()}) with score {s:.0f}, adequate evidence coverage, and thesis intact"
         return "HOLD", f"Thesis intact; unrealized P&L {pnl:.1f}%"
 
     if thesis_invalid:
@@ -503,20 +537,52 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
         return "AVOID", "Material negative news overrides the numerical setup"
     if confidence == "low":
         return "WATCH — DATA REVIEW", "Evidence coverage is incomplete; wait for sufficient data before opening a new position"
-    if price > lv["do_not_chase"]:
+    if zone == "DO_NOT_CHASE":
         return "DON'T CHASE", "Price is above the do-not-chase threshold"
-    if in_buy:
-        if downside_to_better >= 4 and (momentum_weak or bearish):
-            return "WAIT MORE", f"Buy zone reached, but evidence supports waiting for {lv['better_low']:.2f}–{lv['better_high']:.2f}"
-        if s >= 80 and not bearish:
-            return "BUY NOW", "Buy zone reached with acceptable score and no material bearish override"
-        return "WAIT MORE", "Buy zone reached but conviction is not high enough"
-    if price >= lv["breakout"] and (t.get("relative_volume") or 0) >= 1.5 and s >= 82 and not bearish:
-        return "BREAKOUT BUY", "Breakout confirmed by relative volume and score"
-    if price < lv["buy_low"] and s >= 80 and not bearish:
-        return "REVIEW BUY", "Price is below the modeled buy zone; rerun support/invalidation checks"
-    return "WATCH", "Wait for buy zone, breakout confirmation, or stronger evidence"
 
+    # Primary buy zone: this is the user's explicit trigger. A score of 65+ is
+    # sufficient for a 'consider' signal when evidence is adequate and there is
+    # no material bearish override; falling-risk logic can still defer the trade.
+    if zone == "PRIMARY_BUY":
+        if (falling_risk or (bearish and momentum_weak)) and downside_to_better >= 3:
+            return "WAIT MORE", f"Buy level reached, but price is below EMA20 / recent momentum is weakening; better-buy zone is {lv['better_low']:.2f}–{lv['better_high']:.2f}"
+        if s >= 80 and not bearish:
+            return "BUY NOW", "Primary buy zone reached with high deterministic conviction and no material bearish override"
+        if s >= 65 and not bearish:
+            return "CONSIDER BUYING NOW", f"Primary buy zone reached; score {s:.0f}, evidence coverage is adequate, and no material bearish override is present"
+        return "WAIT MORE", f"Primary buy zone reached, but deterministic conviction is only {s:.0f}/100"
+
+    # Better-buy zone: price is at the more attractive ladder level. Still avoid
+    # catching a falling knife if trend deterioration is explicit.
+    if zone == "BETTER_BUY":
+        if falling_risk or (bearish and momentum_weak):
+            return "WAIT MORE", "Better-buy zone reached, but downside momentum is still deteriorating; wait for stabilization"
+        if s >= 65 and not bearish:
+            return "CONSIDER BUYING NOW", f"Better-buy zone reached with score {s:.0f} and thesis intact"
+        return "WATCH", f"Better-buy zone reached, but score {s:.0f}/100 is not yet sufficient"
+
+    # Once price has crossed below the primary zone, do not misleadingly say
+    # 'wait for buy zone'. It is already cheaper; decide between a starter entry
+    # and waiting for the better-buy zone.
+    if zone == "VALUE_CORRIDOR":
+        if falling_risk or (bearish and momentum_weak):
+            return "WAIT FOR BETTER BUY", f"Price has crossed below the primary buy zone, but momentum remains weak; next modeled better-buy zone is {lv['better_low']:.2f}–{lv['better_high']:.2f}"
+        if s >= 65 and not bearish:
+            return "CONSIDER STARTER BUY", f"Price is below the primary buy zone but above the better-buy zone; score {s:.0f} and thesis remain acceptable"
+        return "WATCH", f"Price is cheaper than the primary buy zone, but score {s:.0f}/100 does not justify an entry yet"
+
+    if zone == "DEEP_VALUE":
+        if s >= 70 and not bearish and not falling_risk:
+            return "REVIEW BUY", "Price is below the better-buy zone but still above invalidation; rerun support/thesis checks before entry"
+        return "WAIT MORE", "Price is below the better-buy zone and close enough to invalidation to require stabilization first"
+
+    if zone == "BREAKOUT" and relvol >= 1.5 and s >= 75 and not bearish:
+        return "BREAKOUT BUY", "Breakout confirmed by relative volume and adequate deterministic conviction"
+    if zone == "BREAKOUT":
+        return "WATCH BREAKOUT", "Price is above the breakout level, but volume/conviction confirmation is insufficient"
+    if zone == "APPROACHING_BREAKOUT":
+        return "WATCH", "Price is above the primary buy zone but has not confirmed a breakout; avoid chasing the middle"
+    return "WATCH", "No active entry trigger is present"
 
 def position_action_plan(action: str, result: dict, price: float, position: dict | None) -> dict | None:
     if not position:
