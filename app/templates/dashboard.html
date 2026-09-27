@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ISK Trading Radar</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <div><strong>ISK Trading Radar</strong><span class="badge">V1</span></div>
+    <div class="status"><span class="dot"></span> Dashboard online</div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <p class="eyebrow">US MARKET INTELLIGENCE</p>
+        <h1>Continuous Radar & Portfolio Control</h1>
+        <p class="muted">V1 shell: ledger, manual-symbol analysis queue, portfolio view and service health.</p>
+      </div>
+      <form class="analyze" method="post" action="/analyze">
+        <input name="symbol" placeholder="Analyze any symbol, e.g. CRDO" required />
+        <select name="source_note">
+          <option>Manual</option><option>Friend</option><option>eToro</option><option>News</option><option>Reddit/YouTube</option>
+        </select>
+        <button>Run Full Analysis</button>
+      </form>
+    </section>
+
+    <section class="grid metrics">
+      <article><span>Positions</span><strong>{{ positions|length }}</strong></article>
+      <article><span>Radar State</span><strong>Build phase</strong></article>
+      <article><span>Market Feed</span><strong>Not connected</strong></article>
+      <article><span>AI Engine</span><strong>Not connected</strong></article>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Trade Ledger / Current Positions</h2></div>
+      <form class="position-form" method="post" action="/positions">
+        <input name="symbol" placeholder="Ticker" required />
+        <input name="shares" type="number" step="0.0001" placeholder="Shares" required />
+        <input name="avg_cost" type="number" step="0.0001" placeholder="Average cost" required />
+        <input name="account" placeholder="Account (Avanza/IBKR/etc.)" />
+        <button>Add Position</button>
+      </form>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Symbol</th><th>Shares</th><th>Avg cost</th><th>Account</th><th>Current Action</th></tr></thead>
+          <tbody>
+          {% for p in positions %}
+            <tr><td><strong>{{ p.symbol }}</strong></td><td>{{ p.shares }}</td><td>{{ '%.2f'|format(p.avg_cost) }}</td><td>{{ p.account }}</td><td class="muted">Awaiting live engine</td></tr>
+          {% else %}
+            <tr><td colspan="5" class="empty">No positions yet. Add your first holding above.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="grid two">
+      <article class="panel"><h2>Live Alerts</h2><div class="empty">Buy-level, profit-review, news and risk alerts will appear here.</div></article>
+      <article class="panel"><h2>Recent Manual Analysis</h2>
+        {% for a in analyses %}<div class="item"><strong>{{ a.symbol }}</strong><span>{{ a.source_note }}</span></div>
+        {% else %}<div class="empty">No manual analysis requests yet.</div>{% endfor %}
+      </article>
+    </section>
+  </main>
+</body>
+</html>
