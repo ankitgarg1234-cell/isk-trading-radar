@@ -478,33 +478,121 @@ def heuristic_ai(result: dict) -> dict:
 
 
 def parse_positions_from_text(text: str) -> list[dict]:
-    """Parse OCR/copy-pasted broker rows. User must confirm/edit before saving."""
+    """Parse OCR/copy-pasted broker rows. User must confirm/edit before saving.
+
+    Supports both simple ``TICKER SHARES AVG_COST`` rows and Avanza-style OCR where
+    the account number appears before quantity and the purchase price appears after
+    the current/last price. The parser intentionally prefers returning nothing over
+    confidently saving a malformed position.
+    """
     rows: list[dict] = []
+
+    # Broker display names that can be resolved without guessing. Unknown names are
+    # left for manual confirmation rather than inventing a ticker.
+    name_aliases = [
+        (re.compile(r"alphabet\s+inc(?:\s+class\s+a)?", re.I), "GOOGL"),
+        (re.compile(r"credo\s+technology", re.I), "CRDO"),
+        (re.compile(r"investor\s+b", re.I), "INVE-B.ST"),
+        (re.compile(r"jaguar\s+health", re.I), "JAGX"),
+        # OCR can drop the initial M in Mirum.
+        (re.compile(r"(?:m|\\)?irum\s+pharmaceuticals", re.I), "MIRM"),
+    ]
+
+    def num(x: str) -> float:
+        x = x.replace(" ", "")
+        # Thousands separators in broker screenshots are usually commas; decimals
+        # are dots in the screenshots we currently support.
+        if "," in x and "." not in x:
+            parts=x.split(",")
+            if len(parts[-1]) == 3:
+                x="".join(parts)
+            else:
+                x=x.replace(",", ".")
+        else:
+            x=x.replace(",", "")
+        return float(x)
+
     for line in text.splitlines():
         clean = " ".join(line.strip().split())
         if not clean:
             continue
-        ticker_matches = re.findall(r"\b[A-Z]{1,5}(?:[.-][A-Z])?\b", clean)
+
+        # ---- Avanza / broker table OCR path ---------------------------------
+        account_match = re.search(r"\b\d{7,10}\b", clean)
+        if account_match and re.search(r"\b(?:Buy|Sell)\b", clean, re.I):
+            before = clean[:account_match.start()]
+            after = clean[account_match.end():].strip()
+
+            ticker = None
+            for pattern, symbol in name_aliases:
+                if pattern.search(before):
+                    ticker = symbol
+                    break
+
+            # If the broker actually displays a ticker, accept a sensible explicit
+            # symbol, but never one-character OCR/UI tokens such as O.
+            if ticker is None:
+                explicit = re.findall(r"\b[A-Z]{2,5}(?:[.-][A-Z]{1,3})?\b", before)
+                explicit = [x for x in explicit if x not in {"BUY", "SELL", "SEK", "USD", "ISK"}]
+                ticker = explicit[-1] if explicit else None
+
+            share_match = re.match(r"(\d+(?:[.,]\d+)?)\b", after)
+            if not ticker or not share_match:
+                continue
+            try:
+                shares = num(share_match.group(1))
+            except Exception:
+                continue
+            # Account numbers/OCR garbage must never become position quantities.
+            if not (0 < shares < 1_000_000):
+                continue
+
+            tail = after[share_match.end():]
+            avg = None
+            # For US Avanza rows the purchase price is explicitly prefixed with $;
+            # the current price immediately before it is not.
+            usd = re.search(r"\$\s*([0-9][0-9,.]*)", tail)
+            if usd:
+                try:
+                    avg = num(usd.group(1))
+                except Exception:
+                    avg = None
+            else:
+                # For SEK rows, use the first plain amount followed by SEK. Skip
+                # signed P/L values (+/-) and percentages.
+                for m in re.finditer(r"(?<![+\-])\b([0-9][0-9,.]*)\s*SEK\b", tail, re.I):
+                    try:
+                        candidate=num(m.group(1))
+                    except Exception:
+                        continue
+                    if candidate > 0:
+                        avg=candidate
+                        break
+
+            if avg and avg > 0:
+                rows.append({"symbol": ticker, "shares": shares, "avg_cost": avg, "account": "Avanza Screenshot"})
+            continue
+
+        # ---- Generic copy/paste path ----------------------------------------
+        ticker_matches = re.findall(r"\b[A-Z]{2,5}(?:[.-][A-Z]{1,3})?\b", clean)
         if not ticker_matches:
             continue
-        # Ignore obvious UI/header tokens that can appear in OCR.
-        ticker = next((x for x in ticker_matches if x not in {"USD", "SEK", "ISK", "BUY", "SELL", "P", "L"}), None)
+        ticker = next((x for x in ticker_matches if x not in {"USD", "SEK", "ISK", "BUY", "SELL"}), None)
         if not ticker:
             continue
         after = clean[clean.find(ticker) + len(ticker):]
         nums = re.findall(r"-?\d+(?:[.,]\d+)?", after)
         if len(nums) < 2:
             continue
-
-        def num(x: str) -> float:
-            return float(x.replace(" ", "").replace(",", "."))
-
         try:
             shares, avg = num(nums[0]), num(nums[1])
-            if shares > 0 and avg > 0:
+            if 0 < shares < 1_000_000 and avg > 0:
                 rows.append({"symbol": ticker, "shares": shares, "avg_cost": avg, "account": "Screenshot"})
         except Exception:
             pass
+
+    # Last occurrence wins, which is useful when a pasted statement contains an
+    # updated duplicate row for the same symbol.
     out: dict[str, dict] = {}
     for r in rows:
         out[r["symbol"]] = r

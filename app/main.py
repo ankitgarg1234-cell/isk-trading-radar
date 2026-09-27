@@ -183,7 +183,7 @@ async def import_confirm(request:Request):
         for r in rows:
             try:
                 sym=str(r["symbol"]).upper().strip(); shares=float(r["shares"]); avg=float(r["avg_cost"]); account=str(r.get("account") or "Screenshot")
-                if not sym or shares<=0 or avg<=0:continue
+                if not sym or shares<=0 or shares>=1_000_000 or avg<=0:continue
                 p=db.query(Position).filter(Position.symbol==sym,Position.account==account).first()
                 if p:p.shares=shares;p.avg_cost=avg
                 else:db.add(Position(symbol=sym,shares=shares,avg_cost=avg,account=account))
