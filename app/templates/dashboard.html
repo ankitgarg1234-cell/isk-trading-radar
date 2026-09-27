@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ISK Trading Radar</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script defer src="/static/app.js"></script>
+</head>
+<body data-live-poll="{{ live_poll_seconds }}">
+<header class="topbar">
+  <div>
+    <div class="eyebrow">ISK • US EQUITY INTELLIGENCE</div>
+    <h1>Trading Radar</h1>
+  </div>
+  <div class="top-actions">
+    <span id="marketBadge" class="pill {{ 'green' if market_open else 'muted' }}">{{ 'US MARKET OPEN' if market_open else 'US MARKET CLOSED' }}</span>
+    <span class="pill {{ 'green' if scanner.running else 'amber' }}">Scanner {{ 'active' if scanner.running else 'starting' }}</span>
+    {% if auth_enabled %}<form method="post" action="/logout"><button class="btn ghost">Log out</button></form>{% endif %}
+  </div>
+</header>
+
+<main class="container">
+  <section class="hero-grid">
+    <div class="panel hero-card span-2">
+      <div class="section-title-row"><div><span class="kicker">ANALYZE ANY SYMBOL</span><h2>Run the complete Radar pipeline</h2></div></div>
+      <form class="analyze-form" method="post" action="/analyze">
+        <input name="symbol" placeholder="Ticker e.g. SRRK" maxlength="12" required autocomplete="off">
+        <select name="source_note">
+          <option>Manual</option><option>Recommended by friend</option><option>eToro</option><option>Analyst upgrade</option><option>Reddit/YouTube</option><option>News story</option><option>Other</option>
+        </select>
+        <button class="btn primary" type="submit">Run full analysis</button>
+      </form>
+      <p class="subtle">Manual ideas use the same scoring, news, buy-level, risk and portfolio-aware rules as Radar-discovered stocks.</p>
+    </div>
+    <div class="panel metric-card"><span>Cash</span><strong>{{ '%.0f'|format(cash) }}</strong><small>all configured accounts</small></div>
+    <div class="panel metric-card"><span>Strategic reserve</span><strong>{{ '%.0f'|format(reserve) }}</strong><small>excluded from normal deployment</small></div>
+  </section>
+
+  <section class="panel alert-panel">
+    <div class="section-title-row">
+      <div><span class="kicker">LIVE DECISION ALERTS</span><h2>What needs attention now</h2></div>
+      <button id="scanNow" class="btn secondary">Run scan now</button>
+    </div>
+    <div id="alertsList" class="alert-list">
+      {% if alerts %}
+        {% for a in alerts %}
+          <article class="alert-card {{ a.severity }}" data-alert-id="{{ a.id }}">
+            <div><b>{{ a.title }}</b><p>{{ a.message }}</p></div>
+            <div class="alert-actions"><span class="action-chip">{{ a.action }}</span><button class="btn ghost ack-alert" data-id="{{ a.id }}">Acknowledge</button></div>
+          </article>
+        {% endfor %}
+      {% else %}<div class="empty">No unacknowledged alerts yet.</div>{% endif %}
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="section-title-row">
+      <div><span class="kicker">CONTINUOUS CROSS-SECTOR RADAR</span><h2>Qualified / monitored candidates</h2></div>
+      <div class="status-line">Last scan: <span id="lastScan">{{ scanner.last_scan or 'not yet' }}</span></div>
+    </div>
+    <div class="table-wrap"><table id="candidateTable"><thead><tr><th>Ticker</th><th>Price</th><th>Category</th><th>System</th><th>AI</th><th>Action</th><th></th></tr></thead><tbody>
+      {% for c in candidates %}<tr><td class="ticker">{{ c.symbol }}</td><td>${{ '%.2f'|format(c.price or 0) }}</td><td>{{ c.category }}</td><td>{{ '%.0f'|format(c.score or 0) }}</td><td>{{ '%.0f'|format(c.ai_score or 0) }}</td><td><span class="action-chip">{{ c.action }}</span></td><td><a class="text-link" href="/analysis/{{ c.symbol }}">Details</a></td></tr>{% endfor %}
+      {% if not candidates %}<tr><td colspan="7" class="empty">Radar will populate after analysis/scan runs.</td></tr>{% endif %}
+    </tbody></table></div>
+    <p class="footnote">V1 uses a no-key prototype market feed and broad US screeners. It is cross-sector, but not an exchange-grade exhaustive tick-by-tick universe feed.</p>
+  </section>
+
+  <section class="two-col">
+    <div class="panel">
+      <div class="section-title-row"><div><span class="kicker">CURRENT POSITIONS</span><h2>Position-aware decisions</h2></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Ticker</th><th>Shares</th><th>Avg</th><th>Last</th><th>P&amp;L</th><th>AI</th><th>Action</th><th></th></tr></thead><tbody>
+        {% for p in positions %}<tr><td class="ticker"><a href="/analysis/{{ p.symbol }}">{{ p.symbol }}</a></td><td>{{ p.shares }}</td><td>${{ '%.2f'|format(p.avg_cost) }}</td><td>{{ ('$%.2f'|format(p.price)) if p.price else '—' }}</td><td class="{{ 'pos' if p.pnl is not none and p.pnl >= 0 else 'neg' }}">{{ ('%.1f%%'|format(p.pnl)) if p.pnl is not none else '—' }}</td><td>{{ ('%.0f'|format(p.ai_score)) if p.ai_score is not none else '—' }}</td><td><span class="action-chip">{{ p.action }}</span></td><td><form method="post" action="/positions/{{ p.id }}/delete"><button class="icon-btn" title="Delete">×</button></form></td></tr>{% endfor %}
+        {% if not positions %}<tr><td colspan="8" class="empty">No positions saved yet.</td></tr>{% endif %}
+      </tbody></table></div>
+      <details><summary>Add / update position manually</summary><form class="grid-form" method="post" action="/positions"><input name="symbol" placeholder="Ticker" required><input name="shares" type="number" step="any" min="0.0001" placeholder="Shares" required><input name="avg_cost" type="number" step="any" min="0.0001" placeholder="Avg cost" required><input name="account" value="Manual" placeholder="Account"><button class="btn secondary">Save position</button></form></details>
+    </div>
+
+    <div class="panel">
+      <div class="section-title-row"><div><span class="kicker">PORTFOLIO OPTIMIZER</span><h2>Capital movement proposals</h2></div></div>
+      {% if proposals %}
+        <div class="proposal-list">{% for p in proposals %}<article class="proposal"><span class="pill amber">{{ p.type }}</span><h3>{{ p.title }}</h3><p>{{ p.detail }}</p><div class="proposal-buttons"><button class="btn secondary" disabled title="Execution comes after broker integration">Review only</button></div></article>{% endfor %}</div>
+      {% else %}<div class="empty">No rotation/deployment proposal meets the current thresholds.</div>{% endif %}
+      <details><summary>Set cash and strategic reserve</summary><form class="grid-form" method="post" action="/cash"><input name="account" value="Main"><input name="cash" type="number" step="any" placeholder="Cash" required><input name="reserve_cash" type="number" step="any" value="0" placeholder="Reserve"><input name="currency" value="SEK"><button class="btn secondary">Save cash</button></form></details>
+    </div>
+  </section>
+
+  <section class="panel" id="screenshotImport">
+    <div class="section-title-row"><div><span class="kicker">SCREENSHOT / OCR POSITION IMPORT</span><h2>Import an Avanza / broker screenshot</h2></div></div>
+    <div class="upload-grid">
+      <div class="upload-box">
+        <input id="positionScreenshot" type="file" accept="image/png,image/jpeg,image/webp">
+        <button id="uploadScreenshot" class="btn primary">Extract positions</button>
+        <div id="ocrStatus" class="subtle">Server AI extraction is used when configured; otherwise the browser performs free OCR locally.</div>
+      </div>
+      <div>
+        <label for="ocrText">Or paste broker/OCR text</label>
+        <textarea id="ocrText" rows="5" placeholder="CRDO 10 176.00 ..."></textarea>
+        <button id="parseText" class="btn secondary">Parse pasted text</button>
+      </div>
+    </div>
+    <div id="importPreview" class="hidden">
+      <h3>Confirm or edit before saving</h3>
+      <div class="table-wrap"><table><thead><tr><th>Ticker</th><th>Shares</th><th>Average cost</th><th>Account</th><th></th></tr></thead><tbody id="importRows"></tbody></table></div>
+      <button id="confirmImport" class="btn primary">Confirm positions</button>
+    </div>
+  </section>
+
+  <section class="two-col">
+    <div class="panel">
+      <div class="section-title-row"><div><span class="kicker">TRADE LEDGER</span><h2>Recent trades</h2></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Date</th><th>Ticker</th><th>Side</th><th>Qty</th><th>Price</th><th>Fees</th><th>Reason</th></tr></thead><tbody>{% for t in trades %}<tr><td>{{ t.created_at.strftime('%Y-%m-%d') if t.created_at else '' }}</td><td class="ticker">{{ t.symbol }}</td><td>{{ t.side }}</td><td>{{ t.shares }}</td><td>${{ '%.2f'|format(t.price) }}</td><td>{{ '%.2f'|format(t.fees) }}</td><td>{{ t.reason }}</td></tr>{% endfor %}{% if not trades %}<tr><td colspan="7" class="empty">No trades recorded.</td></tr>{% endif %}</tbody></table></div>
+      <details><summary>Record trade</summary><form class="grid-form" method="post" action="/trades"><input name="symbol" placeholder="Ticker" required><select name="side"><option>BUY</option><option>SELL</option></select><input name="shares" type="number" step="any" min="0.0001" placeholder="Qty" required><input name="price" type="number" step="any" min="0.0001" placeholder="Price" required><input name="fees" type="number" step="any" value="0" placeholder="Fees"><input name="account" value="Manual"><input name="reason" placeholder="Why / thesis"><button class="btn secondary">Record</button></form></details>
+    </div>
+    <div class="panel">
+      <div class="section-title-row"><div><span class="kicker">MANUAL RESEARCH QUEUE</span><h2>Recently requested symbols</h2></div></div>
+      <div class="queue">{% for a in analyses %}<a href="/analysis/{{ a.symbol }}"><b>{{ a.symbol }}</b><span>{{ a.source_note }}</span><small>{{ a.created_at.strftime('%Y-%m-%d %H:%M') if a.created_at else '' }}</small></a>{% endfor %}{% if not analyses %}<div class="empty">No manual analyses yet.</div>{% endif %}</div>
+    </div>
+  </section>
+</main>
+<div id="toast" class="toast hidden"></div>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ d.symbol }} • ISK Radar</title><link rel="stylesheet" href="/static/style.css"></head>
+<body>
+<header class="topbar"><div><a class="back" href="/">← Dashboard</a><div class="eyebrow">FULL SYMBOL ANALYSIS</div><h1>{{ d.symbol }} <span class="price">${{ '%.2f'|format(d.price or 0) }}</span></h1></div><div class="top-actions"><span class="pill">{{ d.category or 'Watch' }}</span><span class="action-chip big">{{ d.action }}</span><a class="btn secondary" href="/analysis/{{ d.symbol }}?refresh=1">Refresh analysis</a></div></header>
+<main class="container">
+  {% if d.error %}<section class="panel"><div class="error-box">{{ d.error }}</div></section>{% endif %}
+  <section class="score-grid">
+    <div class="panel score-card"><span>Deterministic score</span><strong>{{ '%.0f'|format(d.deterministic_score or 0) }}</strong><small>/100</small></div>
+    <div class="panel score-card"><span>Analyst score</span><strong>{{ ('%.0f'|format(d.analyst_score)) if d.analyst_score is not none else '—' }}</strong><small>external consensus</small></div>
+    <div class="panel score-card"><span>AI contextual score</span><strong>{{ '%.0f'|format(d.ai_score or 0) }}</strong><small>{{ d.mode or '' }}</small></div>
+    <div class="panel score-card"><span>Risk / reward</span><strong>{{ '%.1f'|format(d.risk_reward or 0) }}×</strong><small>modeled</small></div>
+  </section>
+
+  <section class="panel action-banner"><div><span class="kicker">POSITION-AWARE ACTION</span><h2>{{ d.action }}</h2><p>{{ d.action_reason }}</p></div>{% if d.position %}<div class="position-mini"><b>Current holding</b><span>{{ d.position.shares }} shares</span><span>Avg ${{ '%.2f'|format(d.position.avg_cost) }}</span><span>{{ d.position.account }}</span></div>{% else %}<span class="pill muted">No current position found</span>{% endif %}</section>
+
+  <section class="three-col">
+    <div class="panel"><span class="kicker">EXPECTED YIELD</span><h3>Deterministic</h3><div class="large-value">{{ '%.1f'|format(d.expected_yield_pct or 0) }}%</div><p>{{ d.deterministic_holding_period_min_days }}–{{ d.deterministic_holding_period_max_days }} days modeled horizon</p></div>
+    <div class="panel"><span class="kicker">ANALYST VIEW</span><h3>Consensus target</h3><div class="large-value">{{ ('%.1f%%'|format(d.analyst_expected_yield_pct)) if d.analyst_expected_yield_pct is not none else '—' }}</div><p>{% if d.analyst_holding_period_min_days %}{{ d.analyst_holding_period_min_days }}–{{ d.analyst_holding_period_max_days }} days conventional target horizon{% else %}Analyst target not available{% endif %}</p></div>
+    <div class="panel"><span class="kicker">AI VIEW</span><h3>Contextual scenario</h3><div class="large-value">{{ '%.1f'|format(d.ai_expected_yield_pct or 0) }}%</div><p>{{ d.holding_period_min_days }}–{{ d.holding_period_max_days }} days</p></div>
+  </section>
+
+  <section class="two-col">
+    <div class="panel">
+      <div class="section-title-row"><div><span class="kicker">ENTRY ENGINE</span><h2>Buying and risk levels</h2></div></div>
+      <div class="levels-grid"><div><span>Buy zone</span><b>${{ '%.2f'|format(d.levels.buy_low or 0) }}–${{ '%.2f'|format(d.levels.buy_high or 0) }}</b></div><div><span>Better buy</span><b>${{ '%.2f'|format(d.levels.better_low or 0) }}–${{ '%.2f'|format(d.levels.better_high or 0) }}</b></div><div><span>Breakout buy</span><b>&gt; ${{ '%.2f'|format(d.levels.breakout or 0) }}</b></div><div><span>Do not chase</span><b>&gt; ${{ '%.2f'|format(d.levels.do_not_chase or 0) }}</b></div><div><span>Stop / invalidation</span><b>${{ '%.2f'|format(d.levels.stop or 0) }}</b></div><div><span>Modeled target</span><b>${{ '%.2f'|format(d.levels.target or 0) }}</b></div></div>
+    </div>
+    <div class="panel">
+      <div class="section-title-row"><div><span class="kicker">TECHNICAL STATE</span><h2>Momentum context</h2></div></div>
+      <div class="kv"><span>EMA20</span><b>{{ '%.2f'|format(d.technicals.ema20 or 0) }}</b><span>EMA50</span><b>{{ '%.2f'|format(d.technicals.ema50 or 0) }}</b><span>EMA200</span><b>{{ '%.2f'|format(d.technicals.ema200 or 0) }}</b><span>RSI</span><b>{{ '%.1f'|format(d.technicals.rsi or 0) }}</b><span>Relative volume</span><b>{{ '%.2f'|format(d.technicals.relative_volume or 0) }}×</b><span>20d change</span><b>{{ '%.1f'|format(d.technicals.change20_pct or 0) }}%</b></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="section-title-row"><div><span class="kicker">DETERMINISTIC VS AI</span><h2>Why the scores were given</h2></div>{% if d.negative_news_override %}<span class="pill red">NEWS OVERRIDE</span>{% endif %}</div>
+    <div class="table-wrap"><table><thead><tr><th>Factor</th><th>Points</th><th>Maximum</th></tr></thead><tbody>{% set maxmap={'Fundamentals':20,'Catalyst':15,'News':15,'Momentum':15,'Sector':10,'Valuation':10,'Analyst confirmation':5,'Risk/Reward':10} %}{% for k,v in d.breakdown.items() %}<tr><td>{{ k }}</td><td>{{ '%.1f'|format(v) }}</td><td>{{ maxmap.get(k,'') }}</td></tr>{% endfor %}</tbody></table></div>
+    {% if d.negative_news_override %}<div class="warning-box">{{ d.negative_news_override }}</div>{% endif %}
+    <div class="explain-grid"><div><h3>Fundamental calculation</h3><ul>{% for x in d.fundamental_reasons %}<li>{{ x }}</li>{% endfor %}</ul></div><div><h3>Momentum calculation</h3><ul>{% for x in d.momentum_reasons %}<li>{{ x }}</li>{% endfor %}{% if not d.momentum_reasons %}<li>No momentum points currently qualified.</li>{% endif %}</ul></div><div><h3>Analyst calculation</h3><ul>{% for x in d.analyst_reasons %}<li>{{ x }}</li>{% endfor %}</ul></div><div><h3>Sector calculation</h3><ul>{% for x in d.sector_reasons %}<li>{{ x }}</li>{% endfor %}</ul></div></div>
+  </section>
+
+  <section class="two-col">
+    <div class="panel"><span class="kicker">WHY AI THINKS THIS</span><h2>Contextual adjustments</h2><div class="adjustments">{% for a in d.adjustments %}<div><b class="{{ 'pos' if a.points > 0 else 'neg' if a.points < 0 else '' }}">{{ '%+g'|format(a.points) }}</b><span>{{ a.reason }}</span></div>{% endfor %}{% if not d.adjustments %}<div class="empty">No AI adjustment beyond the deterministic evidence.</div>{% endif %}</div><h3>Supporting rationale</h3><ul>{% for x in d.reasons %}<li>{{ x }}</li>{% endfor %}</ul></div>
+    <div class="panel"><span class="kicker">WHAT COULD CHANGE THE SCORE</span><h2>Sensitivity / invalidation</h2><div class="sensitivity">{% for x in d.sensitivity %}<div><span>{{ x.condition }}</span><b>→ {{ '%.0f'|format(x.new_score) }}</b></div>{% endfor %}</div><h3>Risks / contrary evidence</h3><ul>{% for x in d.risks %}<li>{{ x }}</li>{% endfor %}</ul></div>
+  </section>
+
+  <section class="panel">
+    <div class="section-title-row"><div><span class="kicker">NEWS INTELLIGENCE</span><h2>{{ d.news.label }} • {{ '%.1f'|format(d.news.score or 0) }}/15</h2></div><span class="pill">{{ d.news.material_events }} material signals</span></div>
+    <div class="table-wrap"><table><thead><tr><th>Headline</th><th>Source</th><th>Sentiment</th><th>Materiality</th><th>Credibility</th><th>Priced-in heuristic</th><th>Thesis</th></tr></thead><tbody>{% for n in d.news['items'] %}<tr><td>{% if n.link %}<a class="text-link" href="{{ n.link }}" target="_blank" rel="noopener">{{ n.title }}</a>{% else %}{{ n.title }}{% endif %}</td><td>{{ n.publisher }}</td><td>{{ n.sentiment }}</td><td>{{ n.materiality }}</td><td>{{ n.credibility }}</td><td>{{ n.priced_in }}</td><td>{{ n.thesis_impact }}</td></tr>{% endfor %}{% if not d.news['items'] %}<tr><td colspan="7" class="empty">No news returned by the V1 feed.</td></tr>{% endif %}</tbody></table></div>
+    <p class="footnote">“Priced-in” is explicitly a heuristic based on recency, not a factual determination.</p>
+  </section>
+
+  <section class="panel footer-note"><b>Data:</b> {{ d.provider or 'unknown' }} • as of {{ d.asof or 'unknown' }}. Scores and return scenarios are research aids, not guarantees. Final decisions remain with the user.</section>
+</main></body></html>
