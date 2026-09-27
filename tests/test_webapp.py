@@ -18,6 +18,8 @@ def full_payload(symbol="TEST"):
         "breakdown":{"Fundamentals":18,"Catalyst":12,"News":12,"Momentum":12,"Sector":8,"Valuation":8,"Analyst confirmation":4,"Risk/Reward":10},
         "fundamental_reasons":["Revenue growth 30.0% → 4/4"],"fundamental_confidence":"high","analyst_reasons":["Mean analyst target implies 20.0% upside"],"sector_reasons":["Sector benchmark above EMA20 +3"],"momentum_reasons":["Above EMA20 +3"],
         "negative_news_override":None,"mode":"test","adjustments":[{"points":4,"reason":"positive catalyst"}],"reasons":["positive catalyst"],"risks":["test risk"],"sensitivity":[{"condition":"break support","new_score":70}],
+        "decision_confidence":"high","data_quality_pct":100,"missing_inputs":[],"optional_missing_inputs":[],
+        "evidence_sources":{"price":{"source":"Yahoo Finance chart","status":"available"},"fundamentals":{"source":"SEC EDGAR/XBRL","status":"available"},"news":{"source":"Yahoo Finance search","status":"available","items":1},"analyst":{"source":"Finnhub recommendation trends","status":"available"},"sector":{"source":"SEC SIC mapping","status":"available","benchmark":"XLK"}},
         "news":{"label":"Bullish","score":12,"material_events":1,"items":[{"title":"Good news","publisher":"Reuters","link":"","sentiment":"positive","materiality":"high","credibility":"high","priced_in":"fresh","thesis_impact":"supports"}]}
     }
 
@@ -84,6 +86,8 @@ def test_analysis_page_contains_explainability_and_levels():
     assert "WHAT COULD CHANGE THE SCORE" in body
     assert "NEWS INTELLIGENCE" in body
     assert "Analyst score" in body
+    assert "EVIDENCE PROVENANCE" in body
+    assert "SEC EDGAR/XBRL" in body
 
 
 def test_manual_analysis_symbol_field_queues_request(monkeypatch):
