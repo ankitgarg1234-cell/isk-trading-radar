@@ -59,9 +59,14 @@ class YahooMarketProvider:
                 {"modules": modules},
             )
             result = (((data.get("quoteSummary") or {}).get("result") or [{}])[0])
-            return self._flatten_summary(result)
-        except Exception:
-            return {}
+            out = self._flatten_summary(result)
+            out["_status"] = "available"
+            out["_analyst_status"] = "available" if any(out.get(k) not in (None, "") for k in ("targetMeanPrice", "recommendationMean", "strongBuy", "buy", "hold", "sell", "strongSell")) else "not returned by Yahoo quoteSummary"
+            return out
+        except Exception as exc:
+            # Yahoo's quoteSummary endpoint is not guaranteed for server-side/no-key access.
+            # Keep the failure explicit so the decision engine does not interpret missing data as deterioration.
+            return {"_status": f"unavailable ({type(exc).__name__})", "_analyst_status": "unavailable from current no-key feed"}
 
     def _flatten_summary(self, result: dict) -> dict:
         fd = result.get("financialData") or {}

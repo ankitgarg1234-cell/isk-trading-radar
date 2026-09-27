@@ -2,7 +2,7 @@ from __future__ import annotations
 import asyncio, json, os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from fastapi import FastAPI, Request, Form, UploadFile, File, HTTPException
+from fastapi import FastAPI, Request, Form, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -75,18 +75,25 @@ def dashboard(request:Request):
     for p in positions:
         a=payloads.get(p.symbol,{})
         price=a.get("price") or 0; pnl=(price/p.avg_cost-1)*100 if price and p.avg_cost else None
-        pos_views.append({"id":p.id,"symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account,"price":price,"pnl":pnl,"action":a.get("action","Awaiting analysis"),"ai_score":a.get("ai_score")})
+        currency=a.get("currency") or ("SEK" if p.symbol.endswith(".ST") else "USD")
+        pos_views.append({"id":p.id,"symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account,"price":price,"pnl":pnl,"action":a.get("action","ANALYSIS QUEUED"),"ai_score":a.get("ai_score"),"action_plan":a.get("action_plan"),"action_reason":a.get("action_reason"),"currency":currency,"decision_confidence":a.get("decision_confidence")})
     analyses_for_prop={s:a for s,a in payloads.items() if a}; props=portfolio_proposals([{"symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost} for p in positions],analyses_for_prop,cash,reserve)
     return templates.TemplateResponse(request,"dashboard.html",{"positions":pos_views,"trades":trades,"analyses":analyses_req,"alerts":alerts,"candidates":candidates,"cash":cash,"reserve":reserve,"proposals":props,"market_open":radar.market_open(),"scanner":radar,"now":datetime.now(timezone.utc),"auth_enabled":settings.auth_enabled,"live_poll_seconds":settings.live_poll_seconds})
 
+def _analyze_symbols(symbols:list[str]):
+    for symbol in symbols:
+        try: radar.analyze_symbol(symbol, True)
+        except Exception: pass
+
 @app.post("/positions")
-def add_position(symbol:str=Form(...),shares:float=Form(...),avg_cost:float=Form(...),account:str=Form("Manual")):
+def add_position(background_tasks:BackgroundTasks,symbol:str=Form(...),shares:float=Form(...),avg_cost:float=Form(...),account:str=Form("Manual")):
     symbol=symbol.upper().strip(); account=account.strip() or "Manual"
     with SessionLocal() as db:
         p=db.query(Position).filter(Position.symbol==symbol,Position.account==account).first()
         if p:p.shares=shares;p.avg_cost=avg_cost
         else:db.add(Position(symbol=symbol,shares=shares,avg_cost=avg_cost,account=account))
         db.commit()
+    background_tasks.add_task(_analyze_symbols,[symbol])
     return RedirectResponse("/",303)
 
 @app.post("/positions/{position_id}/delete")
@@ -177,8 +184,8 @@ async def import_parse_text(request:Request):
     data=await request.json(); return {"positions":parse_positions_from_text(data.get("text", ""))}
 
 @app.post("/api/import/confirm")
-async def import_confirm(request:Request):
-    data=await request.json(); rows=data.get("positions") or []; saved=0
+async def import_confirm(request:Request, background_tasks:BackgroundTasks):
+    data=await request.json(); rows=data.get("positions") or []; saved=0; saved_symbols=[]
     with SessionLocal() as db:
         for r in rows:
             try:
@@ -187,10 +194,11 @@ async def import_confirm(request:Request):
                 p=db.query(Position).filter(Position.symbol==sym,Position.account==account).first()
                 if p:p.shares=shares;p.avg_cost=avg
                 else:db.add(Position(symbol=sym,shares=shares,avg_cost=avg,account=account))
-                saved+=1
+                saved+=1; saved_symbols.append(sym)
             except:continue
         db.commit()
-    return {"ok":True,"saved":saved}
+    if saved_symbols: background_tasks.add_task(_analyze_symbols, list(dict.fromkeys(saved_symbols)))
+    return {"ok":True,"saved":saved,"analysis_queued":len(set(saved_symbols))}
 
 @app.post("/api/import/screenshot")
 async def import_screenshot(file:UploadFile=File(...)):

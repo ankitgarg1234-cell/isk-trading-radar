@@ -210,8 +210,33 @@ def analyst_score(f: dict, price: float) -> tuple[float | None, list[str], float
             parts.append(f"Recommendation mean {r:.2f} (1=strong buy, 5=sell)")
         except Exception:
             pass
+    # Some feeds return recommendation counts even when recommendationMean is absent.
+    counts = {k: f.get(k) for k in ("strongBuy", "buy", "hold", "sell", "strongSell")}
+    try:
+        total = sum(float(v or 0) for v in counts.values())
+    except Exception:
+        total = 0
+    if total > 0 and not rec:
+        weighted = (
+            float(counts.get("strongBuy") or 0) * 100
+            + float(counts.get("buy") or 0) * 80
+            + float(counts.get("hold") or 0) * 50
+            + float(counts.get("sell") or 0) * 20
+            + float(counts.get("strongSell") or 0) * 0
+        ) / total
+        raw_points += weighted * 0.5
+        available_weight += 50
+        parts.append(
+            "Recommendation mix: "
+            f"{int(float(counts.get('strongBuy') or 0))} strong buy / "
+            f"{int(float(counts.get('buy') or 0))} buy / "
+            f"{int(float(counts.get('hold') or 0))} hold / "
+            f"{int(float(counts.get('sell') or 0))} sell / "
+            f"{int(float(counts.get('strongSell') or 0))} strong sell"
+        )
     if not available_weight:
-        return None, ["Analyst data unavailable"], target_upside
+        status = f.get("_analyst_status") or f.get("_status") or "unavailable"
+        return None, [f"Analyst data unavailable from current provider ({status})"], target_upside
     return round(raw_points / available_weight * 100, 1), parts, target_upside
 
 
@@ -330,6 +355,21 @@ def score_bundle(bundle: dict) -> dict:
             pass
 
     a_score, a_reasons, analyst_yield = analyst_score(f, price)
+    missing_inputs: list[str] = []
+    quality_points = 0
+    if fconf == "high": quality_points += 3
+    elif fconf == "medium": quality_points += 2
+    else: missing_inputs.append("complete fundamentals")
+    if a_score is not None: quality_points += 1
+    else: missing_inputs.append("analyst consensus")
+    if news.get("items"): quality_points += 1
+    else: missing_inputs.append("recent news")
+    if len(rows) >= 50: quality_points += 1
+    else: missing_inputs.append("price history")
+    if bundle.get("sector_benchmark"): quality_points += 1
+    else: missing_inputs.append("sector benchmark")
+    data_quality_pct = round(quality_points / 7 * 100, 1)
+    decision_confidence = "high" if data_quality_pct >= 75 else "medium" if data_quality_pct >= 50 else "low"
     rr_up = (levels["target"] - price) / price if price else 0
     rr_down = (price - levels["stop"]) / price if price else 1
     rr = (rr_up / rr_down) if rr_down > 0 else 0
@@ -370,6 +410,15 @@ def score_bundle(bundle: dict) -> dict:
         "fundamental_reasons": freasons,
         "fundamental_confidence": fconf,
         "analyst_reasons": a_reasons,
+        "analyst_target_mean_price": float(f.get("targetMeanPrice")) if f.get("targetMeanPrice") not in (None, "") else None,
+        "analyst_target_high_price": float(f.get("targetHighPrice")) if f.get("targetHighPrice") not in (None, "") else None,
+        "analyst_target_low_price": float(f.get("targetLowPrice")) if f.get("targetLowPrice") not in (None, "") else None,
+        "analyst_opinion_count": int(float(f.get("numberOfAnalystOpinions"))) if f.get("numberOfAnalystOpinions") not in (None, "") else None,
+        "analyst_recommendation_key": f.get("recommendationKey"),
+        "analyst_data_status": f.get("_analyst_status") or f.get("_status") or ("available" if a_score is not None else "unavailable"),
+        "data_quality_pct": data_quality_pct,
+        "decision_confidence": decision_confidence,
+        "missing_inputs": missing_inputs,
         "sector_reasons": sector_reasons,
         "technicals": t,
         "levels": levels,
@@ -390,29 +439,48 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
     severe_bearish = n.get("high_negative_events", 0) >= 1 and bearish
     in_buy = lv["buy_low"] <= price <= lv["buy_high"]
     downside_to_better = ((price - lv["better_high"]) / price * 100) if price else 0
+    fscore = float((result.get("breakdown") or {}).get("Fundamentals") or 0)
+    fconf = result.get("fundamental_confidence") or "low"
+    explicit_fundamental_weakness = fconf in {"medium", "high"} and fscore <= 8
+    confidence = result.get("decision_confidence") or "medium"
     thesis_invalid = price <= lv["stop"] or (s < 55 and bearish)
 
     if position:
         avg = float(position.get("avg_cost") or 0)
         pnl = (price / avg - 1) * 100 if avg else 0
+        shares = float(position.get("shares") or 0)
+        whole_share_account = "avanza" in str(position.get("account") or "").lower()
         if thesis_invalid:
             return "EXIT", f"Thesis invalidation/stop condition triggered; unrealized P&L {pnl:.1f}%"
+        # Missing analyst/fundamental/news evidence is not deterioration. Never reduce only because the score is low.
+        if confidence == "low" and not severe_bearish and not explicit_fundamental_weakness:
+            return "HOLD — DATA REVIEW", "Evidence coverage is incomplete; missing data is not treated as a sell signal"
         if severe_bearish and pnl >= 5:
-            return "TAKE PARTIAL PROFIT", f"Profitable position ({pnl:.1f}%) faces material negative news; protect capital while thesis is reassessed"
-        if (bearish or momentum_weak) and pnl >= 8 and downside_to_better >= 3:
-            return "TAKE PARTIAL PROFIT", f"Profitable position ({pnl:.1f}%) with weakening evidence and a lower re-entry zone"
-        if s < 65 or (bearish and momentum_weak):
-            return "REDUCE", f"Score/evidence deteriorated; P&L {pnl:.1f}%"
-        if in_buy and s >= 85 and not bearish:
-            return "ADD", f"Existing position is in buy zone with score {s:.0f} and thesis intact"
-        if momentum_weak or bearish:
-            return "HOLD — DON'T ADD", "Thesis not invalidated, but near-term evidence does not support adding"
+            if whole_share_account and shares <= 1:
+                return "HOLD — REVIEW EXIT", "Material negative news detected, but a one-share whole-share position cannot be partially reduced; review the exit threshold instead"
+            return "TAKE PARTIAL PROFIT", f"Profitable position ({pnl:.1f}%) faces material negative news; protect part of the gain while the thesis is reassessed"
+        if bearish and momentum_weak:
+            if pnl >= 5:
+                if whole_share_account and shares <= 1:
+                    return "HOLD — REVIEW EXIT", "Bearish evidence and weak momentum detected, but partial reduction is not possible for a one-share whole-share position"
+                return "TAKE PARTIAL PROFIT", f"Profitable position ({pnl:.1f}%) has both bearish evidence and weakening momentum"
+            return "REDUCE", f"Bearish evidence and weakening momentum are both present; P&L {pnl:.1f}%"
+        if explicit_fundamental_weakness and s < 60:
+            return "REDUCE", f"Verified fundamentals are weak ({fscore:.1f}/20) and the overall score is {s:.0f}; P&L {pnl:.1f}%"
+        if momentum_weak:
+            return "HOLD — DON'T ADD", "Momentum has weakened, but there is not enough explicit negative evidence to justify reducing the position"
+        if s < 65:
+            return "HOLD — DON'T ADD", f"Score is only {s:.0f}, but a low score by itself is not a sell signal; wait for explicit thesis deterioration"
+        if in_buy and s >= 85 and not bearish and confidence != "low":
+            return "ADD", f"Existing position is in buy zone with score {s:.0f}, adequate evidence coverage, and thesis intact"
         return "HOLD", f"Thesis intact; unrealized P&L {pnl:.1f}%"
 
     if thesis_invalid:
         return "AVOID", "Price/evidence invalidates the setup"
     if severe_bearish:
         return "AVOID", "Material negative news overrides the numerical setup"
+    if confidence == "low":
+        return "WATCH — DATA REVIEW", "Evidence coverage is incomplete; wait for sufficient data before opening a new position"
     if price > lv["do_not_chase"]:
         return "DON'T CHASE", "Price is above the do-not-chase threshold"
     if in_buy:
@@ -426,6 +494,45 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
     if price < lv["buy_low"] and s >= 80 and not bearish:
         return "REVIEW BUY", "Price is below the modeled buy zone; rerun support/invalidation checks"
     return "WATCH", "Wait for buy zone, breakout confirmation, or stronger evidence"
+
+
+def position_action_plan(action: str, result: dict, price: float, position: dict | None) -> dict | None:
+    if not position:
+        return None
+    shares = float(position.get("shares") or 0)
+    if shares <= 0:
+        return None
+    account = str(position.get("account") or "")
+    whole_share_account = "avanza" in account.lower()
+    if action == "EXIT":
+        pct_to_reduce = 100
+        rationale = "Full exit because the modeled thesis/stop is invalidated"
+    elif action == "TAKE PARTIAL PROFIT":
+        severe = (result.get("news") or {}).get("high_negative_events", 0) >= 1
+        pct_to_reduce = 50 if severe else 25
+        rationale = "Take part of the position off while retaining exposure if the thesis recovers"
+    elif action == "REDUCE":
+        pct_to_reduce = 50 if result.get("deterministic_score", 100) < 60 else 25
+        rationale = "Reduce risk while keeping a smaller position for reassessment"
+    else:
+        return None
+    raw_qty = shares * pct_to_reduce / 100
+    if whole_share_account:
+        if pct_to_reduce < 100 and shares <= 1:
+            qty = 0
+            rationale = "Partial reduction is not practical for a one-share whole-share position; review HOLD versus EXIT"
+        else:
+            qty = min(shares, float(math.ceil(raw_qty)))
+    else:
+        qty = min(shares, round(raw_qty, 4))
+    actual_pct = round((qty / shares * 100), 1) if shares and qty else 0.0
+    return {
+        "requested_percent": pct_to_reduce,
+        "suggested_shares": qty,
+        "actual_percent": actual_pct,
+        "remaining_shares": round(max(0.0, shares - qty), 4),
+        "rationale": rationale,
+    }
 
 
 def heuristic_ai(result: dict) -> dict:

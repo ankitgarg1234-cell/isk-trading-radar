@@ -49,7 +49,8 @@ def test_manual_position_and_trade_ledger_persist():
         assert t.side == "BUY" and t.reason == "Radar"
 
 
-def test_confirm_screenshot_import_saves_positions():
+def test_confirm_screenshot_import_saves_positions(monkeypatch):
+    monkeypatch.setattr(mainmod.radar,"analyze_symbol",lambda symbol,persist=True: full_payload(symbol))
     r=client.post('/api/import/confirm',json={"positions":[{"symbol":"SRRK","shares":2,"avg_cost":26.4,"account":"Screenshot"}]})
     assert r.status_code == 200 and r.json()["saved"] == 1
     with SessionLocal() as db:
@@ -134,3 +135,25 @@ def test_analysis_json_uses_saved_snapshot():
     r=client.get('/api/analysis/JSONX')
     assert r.status_code == 200
     assert r.json()["ai_score"] == 92
+
+
+def test_confirm_import_rejects_account_number_as_share_count(monkeypatch):
+    monkeypatch.setattr(mainmod.radar,"analyze_symbol",lambda symbol,persist=True: full_payload(symbol))
+    r=client.post('/api/import/confirm',json={"positions":[{"symbol":"O","shares":40262928,"avg_cost":4,"account":"Screenshot"}]})
+    assert r.status_code == 200
+    assert r.json()["saved"] == 0
+
+
+def test_dashboard_shows_reason_for_position_action():
+    payload=full_payload("WHYX")
+    payload["action"]="REDUCE"
+    payload["action_reason"]="Bearish evidence and weakening momentum are both present; P&L 4.2%"
+    payload["action_plan"]={"suggested_shares":2,"actual_percent":25.0,"remaining_shares":6,"rationale":"Reduce risk while keeping a smaller position for reassessment"}
+    with SessionLocal() as db:
+        db.add(Position(symbol="WHYX",shares=8,avg_cost=95,account="Avanza"))
+        db.add(AnalysisSnapshot(symbol="WHYX",price=99,deterministic_score=58,analyst_score=60,ai_score=55,expected_yield_pct=10,ai_expected_yield_pct=8,category="Core",action="REDUCE",payload_json=json.dumps(payload)))
+        db.commit()
+    r=client.get('/')
+    assert r.status_code == 200
+    assert "Why:" in r.text
+    assert "Bearish evidence and weakening momentum are both present" in r.text

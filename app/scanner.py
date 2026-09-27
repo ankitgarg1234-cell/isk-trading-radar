@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from .config import settings
 from .db import SessionLocal, Position, AnalysisRequest, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert
 from .market import YahooMarketProvider
-from .analysis_engine import score_bundle, position_action
+from .analysis_engine import score_bundle, position_action, position_action_plan
 from .ai_engine import AIEngine
 
 NY = ZoneInfo("America/New_York")
@@ -42,8 +42,9 @@ class RadarService:
             p = db.query(Position).filter(Position.symbol == symbol).order_by(Position.created_at.desc()).first()
             pd = {"shares": p.shares, "avg_cost": p.avg_cost, "account": p.account} if p else None
         action, reason = position_action(result, bundle["price"], pd)
+        plan = position_action_plan(action, result, bundle["price"], pd)
         ai = self.ai.analyze(symbol, bundle, result)
-        full = {**bundle, **result, **ai, "action": action, "action_reason": reason, "position": pd}
+        full = {**bundle, **result, **ai, "action": action, "action_reason": reason, "action_plan": plan, "position": pd}
         if persist:
             self.persist(full)
         return full
@@ -87,9 +88,13 @@ class RadarService:
             elif full.get("action") == "WAIT MORE" and full.get("levels", {}).get("buy_low", 0) <= full.get("price", 0) <= full.get("levels", {}).get("buy_high", 0):
                 alert_type, severity, title = "wait_more", "medium", f"{symbol}: Buy level reached — WAIT MORE"
             if alert_type and old_action != full.get("action"):
+                plan = full.get("action_plan") or {}
+                qty_text = ""
+                if plan.get("suggested_shares"):
+                    qty_text = f" Suggested: {plan['suggested_shares']:g} shares ({plan.get('actual_percent', 0):.1f}% of position)."
                 db.add(Alert(
                     symbol=symbol, alert_type=alert_type, severity=severity, title=title,
-                    message=full.get("action_reason", ""), action=full.get("action", "REVIEW"),
+                    message=(full.get("action_reason", "") + qty_text).strip(), action=full.get("action", "REVIEW"),
                 ))
             db.commit()
 
