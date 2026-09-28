@@ -197,3 +197,45 @@ def test_manual_analysis_accepts_company_name(monkeypatch):
         req=db.query(mainmod.AnalysisRequest).filter(mainmod.AnalysisRequest.symbol=="CRDO").one()
         assert "Credo Technology" in req.source_note
 
+
+
+def test_dashboard_has_actionable_filters_risk_profile_and_visible_levels(monkeypatch):
+    from app.db import RadarCandidate, AnalysisSnapshot
+    p=full_payload("FILTERX")
+    p["currency"]="USD"
+    p["entry_zone_status"]="PRIMARY_BUY"
+    p["fundamentals"]={"companyName":"Filter Example Inc","sector":"Technology"}
+    monkeypatch.setattr(mainmod.radar.provider,"fx_rate",lambda a,b:1.0)
+    with SessionLocal() as db:
+        db.add(RadarCandidate(symbol="FILTERX",category="Core",action="BUY NOW",score=88,ai_score=92,price=100))
+        db.add(AnalysisSnapshot(symbol="FILTERX",price=100,deterministic_score=88,analyst_score=80,ai_score=92,expected_yield_pct=25,ai_expected_yield_pct=30,category="Core",action="BUY NOW",payload_json=json.dumps(p)))
+        db.commit()
+    r=client.get('/')
+    assert r.status_code == 200
+    for text in ["Search ticker or company name","Target risk","Active level","Distance","Suggested size","STRONG BUY","Filter Example Inc"]:
+        assert text in r.text
+
+
+def test_risk_profile_selection_persists():
+    from app.db import PortfolioPreference
+    r=client.post('/risk-profile',data={"risk_profile":"HIGH"},follow_redirects=False)
+    assert r.status_code == 303
+    with SessionLocal() as db:
+        pref=db.query(PortfolioPreference).filter(PortfolioPreference.account=="Main").one()
+        assert pref.risk_profile == "HIGH"
+
+
+def test_live_api_exposes_decision_surface_fields(monkeypatch):
+    from app.db import RadarCandidate, AnalysisSnapshot
+    p=full_payload("LIVEUI")
+    p["currency"]="USD";p["entry_zone_status"]="PRIMARY_BUY";p["fundamentals"]={"companyName":"Live UI Inc","sector":"Industrials"}
+    monkeypatch.setattr(mainmod.radar.provider,"fx_rate",lambda a,b:1.0)
+    with SessionLocal() as db:
+        db.add(RadarCandidate(symbol="LIVEUI",category="Core",action="BUY NOW",score=88,ai_score=92,price=100))
+        db.add(AnalysisSnapshot(symbol="LIVEUI",price=100,deterministic_score=88,analyst_score=80,ai_score=92,expected_yield_pct=25,ai_expected_yield_pct=30,category="Core",action="BUY NOW",payload_json=json.dumps(p)))
+        db.commit()
+    d=client.get('/api/live').json(); row=next(x for x in d["candidates"] if x["symbol"]=="LIVEUI")
+    assert row["system_signal"] == "STRONG BUY"
+    assert row["level_label"] == "Primary Buy"
+    assert row["distance"] == "NOW"
+    assert "risk_fit" in row and "suggested_shares" in row
