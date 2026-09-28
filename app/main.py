@@ -9,8 +9,9 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy import text
 from .config import settings
-from .db import engine, SessionLocal, Position, AnalysisRequest, Trade, PortfolioCash, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, storage_status
+from .db import engine, SessionLocal, Position, AnalysisRequest, Trade, PortfolioCash, PortfolioPreference, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, storage_status
 from .analysis_engine import parse_positions_from_text, portfolio_proposals
+from .portfolio_engine import RISK_PROFILES, ACTION_RANK, normalise_profile, stock_risk_score, system_signal, active_level, analyst_label, suggested_position_size, account_risk, projected_risk, risk_band
 from .scanner import radar
 from .ai_engine import AIEngine
 
@@ -66,19 +67,149 @@ def latest_payloads(db, symbols=None):
             except:out[s.symbol]={"symbol":s.symbol,"price":s.price,"deterministic_score":s.deterministic_score,"ai_score":s.ai_score,"action":s.action}
     return out
 
-@app.get("/",response_class=HTMLResponse)
-def dashboard(request:Request):
-    with SessionLocal() as db:
-        positions=db.query(Position).order_by(Position.symbol).all(); trades=db.query(Trade).order_by(Trade.created_at.desc()).limit(20).all(); analyses_req=db.query(AnalysisRequest).order_by(AnalysisRequest.created_at.desc()).limit(8).all(); alerts=db.query(Alert).filter(Alert.acknowledged==False).order_by(Alert.created_at.desc()).limit(12).all(); candidates=db.query(RadarCandidate).order_by(RadarCandidate.ai_score.desc()).limit(20).all(); cash_rows=db.query(PortfolioCash).all(); payloads=latest_payloads(db)
-    cash=sum(c.cash for c in cash_rows); reserve=sum(c.reserve_cash for c in cash_rows)
-    pos_views=[]
+def _latest_and_previous(db, symbols: list[str] | None = None):
+    q=db.query(AnalysisSnapshot).order_by(AnalysisSnapshot.created_at.desc())
+    if symbols:q=q.filter(AnalysisSnapshot.symbol.in_(symbols))
+    latest={}; previous={}
+    for snap in q.limit(600).all():
+        try: payload=json.loads(snap.payload_json)
+        except Exception: payload={"symbol":snap.symbol,"price":snap.price,"deterministic_score":snap.deterministic_score,"ai_score":snap.ai_score,"action":snap.action}
+        if snap.symbol not in latest: latest[snap.symbol]=payload
+        elif snap.symbol not in previous: previous[snap.symbol]=payload
+    return latest, previous
+
+
+def _portfolio_profile(db) -> str:
+    pref=db.query(PortfolioPreference).filter(PortfolioPreference.account=="Main").first()
+    return normalise_profile(pref.risk_profile if pref else "MEDIUM")
+
+
+def _currency_for(symbol: str, payload: dict) -> str:
+    return str(payload.get("currency") or ("SEK" if symbol.endswith(".ST") else "USD")).upper()
+
+
+def _fx_map(currencies: set[str], base_currency: str) -> dict[str,float|None]:
+    out={base_currency:1.0}
+    for cur in currencies:
+        if cur==base_currency:continue
+        try:out[cur]=radar.provider.fx_rate(cur,base_currency)
+        except Exception:out[cur]=None
+    return out
+
+
+def _sum_cash(cash_rows, base_currency: str, fx: dict[str,float|None]):
+    cash=0.0; reserve=0.0
+    for c in cash_rows:
+        cur=str(c.currency or base_currency).upper(); rate=fx.get(cur)
+        if rate is None:continue
+        cash += float(c.cash or 0)*rate; reserve += float(c.reserve_cash or 0)*rate
+    return cash,reserve
+
+
+def _actionable_sort(v: dict):
+    signal=v.get("system_signal") or "WATCH"
+    fit_rank={"GOOD FIT":0,"STRETCH":1,"ABOVE TARGET":2,"UNKNOWN":3}.get(v.get("risk_fit"),3)
+    return (ACTION_RANK.get(signal,99), fit_rank, -float(v.get("ai_score") or 0), float(v.get("distance_pct") or 999))
+
+
+def _dashboard_state(db):
+    positions=db.query(Position).order_by(Position.symbol).all()
+    trades=db.query(Trade).order_by(Trade.created_at.desc()).limit(20).all()
+    analyses_req=db.query(AnalysisRequest).order_by(AnalysisRequest.created_at.desc()).limit(8).all()
+    alerts=db.query(Alert).filter(Alert.acknowledged==False).order_by(Alert.created_at.desc()).limit(12).all()
+    candidates=db.query(RadarCandidate).order_by(RadarCandidate.updated_at.desc()).limit(150).all()
+    cash_rows=db.query(PortfolioCash).all()
+    payloads, previous=_latest_and_previous(db)
+    risk_profile=_portfolio_profile(db)
+
+    # Use configured cash currency as account base. Without cash configuration,
+    # use the first holding currency so tests/read-only views never need FX.
+    if cash_rows:
+        base_currency=str(cash_rows[0].currency or "SEK").upper()
+    elif positions:
+        first_payload=payloads.get(positions[0].symbol,{})
+        base_currency=_currency_for(positions[0].symbol,first_payload)
+    elif candidates:
+        base_currency=_currency_for(candidates[0].symbol,payloads.get(candidates[0].symbol,{}))
+    else:
+        base_currency="SEK"
+    currencies={str(c.currency or base_currency).upper() for c in cash_rows}
+    for p in positions:currencies.add(_currency_for(p.symbol,payloads.get(p.symbol,{})))
+    for c in candidates:
+        a=payloads.get(c.symbol,{})
+        if a:currencies.add(_currency_for(c.symbol,a))
+    fx=_fx_map(currencies,base_currency)
+    cash,reserve=_sum_cash(cash_rows,base_currency,fx)
+
+    pos_views=[]; risk_rows=[]; owned={}
     for p in positions:
         a=payloads.get(p.symbol,{})
-        price=a.get("price") or 0; pnl=(price/p.avg_cost-1)*100 if price and p.avg_cost else None
-        currency=a.get("currency") or ("SEK" if p.symbol.endswith(".ST") else "USD")
-        pos_views.append({"id":p.id,"symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account,"price":price,"pnl":pnl,"action":a.get("action","ANALYSIS QUEUED"),"ai_score":a.get("ai_score"),"action_plan":a.get("action_plan"),"action_reason":a.get("action_reason"),"currency":currency,"decision_confidence":a.get("decision_confidence")})
-    analyses_for_prop={s:a for s,a in payloads.items() if a}; props=portfolio_proposals([{"symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost} for p in positions],analyses_for_prop,cash,reserve)
-    return templates.TemplateResponse(request,"dashboard.html",{"positions":pos_views,"trades":trades,"analyses":analyses_req,"alerts":alerts,"candidates":candidates,"cash":cash,"reserve":reserve,"proposals":props,"market_open":radar.market_open(),"scanner":radar,"now":datetime.now(timezone.utc),"auth_enabled":settings.auth_enabled,"live_poll_seconds":settings.live_poll_seconds,"storage":storage_status()})
+        price=float(a.get("price") or 0); pnl=(price/p.avg_cost-1)*100 if price and p.avg_cost else None
+        currency=_currency_for(p.symbol,a); rate=fx.get(currency)
+        value_base=(price*p.shares*rate) if price and rate else 0.0
+        srisk=stock_risk_score(a) if a else 50.0
+        sector=(a.get("fundamentals") or {}).get("sector") or "Unknown"
+        row={"id":p.id,"symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account,"price":price,"pnl":pnl,"action":a.get("action","ANALYSIS QUEUED"),"ai_score":a.get("ai_score"),"action_plan":a.get("action_plan"),"action_reason":a.get("action_reason"),"currency":currency,"decision_confidence":a.get("decision_confidence"),"value_base":value_base,"stock_risk":srisk,"sector":sector,"category":a.get("category"),"material_events":(a.get("news") or {}).get("material_events",0),"system_signal":system_signal(a,True) if a else "WATCH"}
+        pos_views.append(row); risk_rows.append(row); owned[p.symbol]=row
+
+    account=account_risk(risk_rows,cash,target_profile=risk_profile)
+    portfolio_value=float(account.get("total") or cash)
+
+    radar_views=[]
+    for c in candidates:
+        a=payloads.get(c.symbol) or {"symbol":c.symbol,"price":c.price,"deterministic_score":c.score,"ai_score":c.ai_score,"category":c.category,"action":c.action,"levels":{},"technicals":{},"news":{}}
+        is_owned=c.symbol in owned
+        level=active_level(a,is_owned)
+        currency=_currency_for(c.symbol,a); rate=fx.get(currency)
+        existing_value=owned.get(c.symbol,{}).get("value_base",0.0)
+        sizing=suggested_position_size(a,cash=cash,reserve_cash=reserve,portfolio_value=portfolio_value,profile=risk_profile,fx_rate_to_base=rate or 0,existing_value=existing_value,whole_shares=True)
+        projected=projected_risk(risk_rows,cash,a,sizing,rate or 0,risk_profile) if rate else None
+        prev=previous.get(c.symbol) or {}
+        changed=None
+        if prev and prev.get("action") and prev.get("action")!=a.get("action"):
+            changed=f"{prev.get('action')} → {a.get('action')}"
+        fundamentals=a.get("fundamentals") or {}
+        name=fundamentals.get("companyName") or a.get("company_name") or c.symbol
+        signal=system_signal(a,is_owned)
+        view={
+            "symbol":c.symbol,"name":name,"price":float(a.get("price") or c.price or 0),"currency":currency,
+            "category":a.get("category") or c.category,"score":float(a.get("deterministic_score") or c.score or 0),"ai_score":float(a.get("ai_score") or c.ai_score or 0),
+            "analyst_score":a.get("analyst_score"),"analyst_label":analyst_label(a),"action":a.get("action") or c.action,"action_reason":a.get("action_reason") or "",
+            "system_signal":signal,"owned":is_owned,"owned_shares":owned.get(c.symbol,{}).get("shares"),"owned_avg":owned.get(c.symbol,{}).get("avg_cost"),
+            "level_label":level["label"],"level_value":level["value"],"distance":level["distance"],"distance_pct":level["distance_pct"],
+            "target":(a.get("levels") or {}).get("target"),"stop":(a.get("levels") or {}).get("stop"),"risk_reward":a.get("risk_reward"),
+            "expected_yield_pct":a.get("ai_expected_yield_pct") if a.get("ai_expected_yield_pct") is not None else a.get("expected_yield_pct"),
+            "stock_risk":sizing.get("stock_risk",stock_risk_score(a)),"risk_band":risk_band(sizing.get("stock_risk",stock_risk_score(a))),"risk_fit":sizing.get("fit","UNKNOWN"),
+            "suggested_shares":sizing.get("shares",0),"suggested_capital":sizing.get("capital",0),"sizing_reason":sizing.get("reason",""),
+            "projected_risk":projected.get("score") if projected else None,"changed":changed,
+            "updated_at":c.updated_at.isoformat() if c.updated_at else None,
+        }
+        radar_views.append(view)
+    radar_views.sort(key=_actionable_sort)
+    analyses_for_prop={s:a for s,a in payloads.items() if a}
+    props=portfolio_proposals([{"symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost} for p in positions],analyses_for_prop,cash,reserve)
+    summary={
+        "buy_now":sum(v["system_signal"] in {"STRONG BUY","BUY","STARTER BUY"} and not v["owned"] for v in radar_views),
+        "portfolio_actions":sum(v["system_signal"] in {"SELL","STRONG SELL","TAKE PROFIT"} and v["owned"] for v in radar_views),
+        "deployable_cash":max(0,cash-reserve),
+        "best_candidate":next((v for v in radar_views if v["system_signal"] in {"STRONG BUY","BUY","STARTER BUY"} and v.get("suggested_shares",0)>0 and not v["owned"]),None),
+    }
+    return {"positions":pos_views,"trades":trades,"analyses":analyses_req,"alerts":alerts,"candidates":radar_views,"cash":cash,"reserve":reserve,"proposals":props,"risk_profile":risk_profile,"risk_profiles":RISK_PROFILES,"account_risk":account,"base_currency":base_currency,"summary":summary}
+
+
+@app.get("/",response_class=HTMLResponse)
+def dashboard(request:Request):
+    with SessionLocal() as db:state=_dashboard_state(db)
+    return templates.TemplateResponse(request,"dashboard.html",{**state,"market_open":radar.market_open(),"scanner":radar,"now":datetime.now(timezone.utc),"auth_enabled":settings.auth_enabled,"live_poll_seconds":settings.live_poll_seconds,"storage":storage_status()})
+
+@app.post("/risk-profile")
+def set_risk_profile(risk_profile:str=Form(...)):
+    profile=normalise_profile(risk_profile)
+    with SessionLocal() as db:
+        pref=db.query(PortfolioPreference).filter(PortfolioPreference.account=="Main").first()
+        if not pref:pref=PortfolioPreference(account="Main");db.add(pref)
+        pref.risk_profile=profile;pref.updated_at=datetime.now(timezone.utc);db.commit()
+    return RedirectResponse("/",303)
 
 def _analyze_symbols(symbols:list[str]):
     for symbol in symbols:
@@ -177,8 +308,8 @@ def scan_now():return radar.scan_once(force=True)
 @app.get("/api/live")
 def live():
     with SessionLocal() as db:
-        alerts=db.query(Alert).filter(Alert.acknowledged==False).order_by(Alert.created_at.desc()).limit(10).all(); cands=db.query(RadarCandidate).order_by(RadarCandidate.ai_score.desc()).limit(15).all()
-        return {"market_open":radar.market_open(),"scanner_running":radar.running,"last_scan":radar.last_scan,"last_error":radar.last_error,"universe_size":radar.universe_size,"universe_prefiltered":radar.last_universe_prefiltered,"universe_deep_candidates":radar.last_universe_candidates,"deep_analyzed":radar.last_deep_analyzed,"alerts":[{"id":a.id,"symbol":a.symbol,"title":a.title,"message":a.message,"severity":a.severity,"action":a.action} for a in alerts],"candidates":[{"symbol":c.symbol,"price":c.price,"score":c.score,"ai_score":c.ai_score,"category":c.category,"action":c.action} for c in cands]}
+        state=_dashboard_state(db)
+        return {"market_open":radar.market_open(),"scanner_running":radar.running,"last_scan":radar.last_scan,"last_error":radar.last_error,"universe_size":radar.universe_size,"universe_prefiltered":radar.last_universe_prefiltered,"universe_deep_candidates":radar.last_universe_candidates,"deep_analyzed":radar.last_deep_analyzed,"risk_profile":state["risk_profile"],"account_risk":state["account_risk"],"summary":state["summary"],"base_currency":state["base_currency"],"alerts":[{"id":a.id,"symbol":a.symbol,"title":a.title,"message":a.message,"severity":a.severity,"action":a.action} for a in state["alerts"]],"candidates":state["candidates"]}
 
 @app.post("/alerts/{alert_id}/ack")
 def ack_alert(alert_id:int):

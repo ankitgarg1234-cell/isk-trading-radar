@@ -328,6 +328,8 @@ class FinnhubAnalystProvider:
 
 
 class YahooMarketProvider:
+    _fx_cache: dict[str, tuple[float, float]] = {}
+
     """No-key prototype price/news provider with SEC fundamentals fallback.
 
     Yahoo chart/search remain convenient for V1 pricing/news. Fundamental evidence is
@@ -758,6 +760,51 @@ class YahooMarketProvider:
             "relative_volume": rel_vol, "dollar_volume": dollar_volume,
             "near_20d_high": near_high, "scan_score": scan_score, "qualifies": qualifies,
         }
+
+
+    def fx_rate(self, from_currency: str, to_currency: str) -> float | None:
+        """Return a recent FX conversion rate using Yahoo chart data.
+
+        The method is deliberately cached because portfolio sizing needs one
+        account-level conversion, not a request per row.
+        """
+        src = str(from_currency or "").upper().strip()
+        dst = str(to_currency or "").upper().strip()
+        if not src or not dst or src == dst:
+            return 1.0
+        key = f"{src}{dst}"
+        now = time.time()
+        cached = self.__class__._fx_cache.get(key)
+        if cached and now - cached[1] < 600:
+            return cached[0]
+        try:
+            ch = self.chart(f"{src}{dst}=X", "5d", "1d")
+            meta = ch.get("meta") or {}
+            rate = _safe_float(meta.get("regularMarketPrice"))
+            if rate is None:
+                rows, price, *_ = self._rows_from_chart(ch)
+                rate = price
+            if rate and rate > 0:
+                self.__class__._fx_cache[key] = (float(rate), now)
+                return float(rate)
+        except Exception:
+            pass
+        # Try the inverse pair before giving up.
+        inv_key = f"{dst}{src}"
+        try:
+            ch = self.chart(f"{dst}{src}=X", "5d", "1d")
+            meta = ch.get("meta") or {}
+            inv = _safe_float(meta.get("regularMarketPrice"))
+            if inv is None:
+                rows, price, *_ = self._rows_from_chart(ch)
+                inv = price
+            if inv and inv > 0:
+                rate = 1.0 / float(inv)
+                self.__class__._fx_cache[key] = (rate, now)
+                return rate
+        except Exception:
+            pass
+        return None
 
     def discover(self, count: int = 50) -> list[dict]:
         """Broad cross-sector candidate discovery from multiple US market screeners."""

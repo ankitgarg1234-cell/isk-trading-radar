@@ -53,6 +53,14 @@ class PortfolioCash(Base):
     currency: Mapped[str] = mapped_column(String(8), default="SEK")
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+
+class PortfolioPreference(Base):
+    __tablename__ = "portfolio_preferences"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    account: Mapped[str] = mapped_column(String(64), unique=True, index=True, default="Main")
+    risk_profile: Mapped[str] = mapped_column(String(16), default="MEDIUM")
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
 class WatchlistItem(Base):
     __tablename__ = "watchlist"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
