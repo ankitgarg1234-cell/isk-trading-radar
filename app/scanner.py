@@ -10,10 +10,54 @@ from zoneinfo import ZoneInfo
 from .config import settings
 from .db import SessionLocal, Position, AnalysisRequest, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert
 from .market import YahooMarketProvider
-from .analysis_engine import score_bundle, position_action, position_action_plan
+from .analysis_engine import score_bundle, position_action, position_action_plan, portfolio_proposals
 from .ai_engine import AIEngine
 
 NY = ZoneInfo("America/New_York")
+
+
+
+def _attention_buy_signal(full: dict, has_position: bool = False) -> tuple[str | None, str | None]:
+    """Return the attention-queue buy signal for an active primary/better-buy zone.
+
+    The attention queue is intentionally stricter than the general Radar. Price
+    reaching an entry band is not itself actionable. Only the agreed deterministic
+    conviction ladder is surfaced:
+      85-100 -> STRONG BUY
+      75-84  -> BUY
+      68-74 in BETTER_BUY -> STARTER BUY
+      68-74 in PRIMARY_BUY -> CONSIDER BUY
+    Monitoring states below 68 stay in the Radar and never become attention alerts.
+    Material bearish/thesis-invalidated setups are blocked from buy attention.
+    """
+    if bool((full.get("thesis_assessment") or {}).get("invalidated")):
+        return None, None
+    if full.get("negative_news_override"):
+        return None, None
+    if str(full.get("decision_confidence") or "medium").lower() == "low":
+        return None, None
+    zone = str(full.get("entry_zone_status") or "").upper()
+    if not zone:
+        price=float(full.get("price") or 0)
+        levels=full.get("levels") or {}
+        better_low=float(levels.get("better_low") or 0); better_high=float(levels.get("better_high") or 0)
+        buy_low=float(levels.get("buy_low") or 0); buy_high=float(levels.get("buy_high") or 0)
+        if better_low and better_low <= price <= better_high:
+            zone="BETTER_BUY"
+        elif buy_low and buy_low <= price <= buy_high:
+            zone="PRIMARY_BUY"
+    if zone not in {"PRIMARY_BUY", "BETTER_BUY"}:
+        return None, None
+    score = float(full.get("deterministic_score") or 0)
+    if score >= 85:
+        return "STRONG BUY", f"{zone.replace('_', ' ').title()} reached with deterministic conviction {score:.0f}/100"
+    if score >= 75:
+        return "BUY", f"{zone.replace('_', ' ').title()} reached with deterministic conviction {score:.0f}/100"
+    if score >= 68 and zone == "BETTER_BUY":
+        return "STARTER BUY", f"Better Buy reached with deterministic conviction {score:.0f}/100"
+    if score >= 68 and zone == "PRIMARY_BUY":
+        return "CONSIDER BUY", f"Primary Buy reached with deterministic conviction {score:.0f}/100"
+    return None, None
 
 
 def _compact_payload(full: dict) -> dict:
@@ -186,35 +230,101 @@ class RadarService:
                 cand.last_snapshot_at = now
                 cand.last_snapshot_key = key
 
+            # Attention queue: actionable events only. WAIT/WATCH/HOLD states remain
+            # visible in the Radar but are deliberately excluded from the interruptive
+            # "What needs attention now" queue.
             alert_type = None
             severity = "info"
             title = ""
-            if full.get("action") in {"BUY NOW", "BREAKOUT BUY", "ADD"}:
-                alert_type, severity, title = "buy_level", "high", f"{symbol}: {full['action']}"
+            alert_action = None
+            buy_action, buy_reason = _attention_buy_signal(full, has_position=bool(full.get("position")))
+            if buy_action:
+                alert_type, severity, alert_action = "buy_level", "high", buy_action
+                prefix = "Add level reached" if full.get("position") else "Entry level reached"
+                title = f"{symbol}: {prefix} — {buy_action}"
             elif full.get("action") in {"TAKE PARTIAL PROFIT", "REDUCE", "EXIT"}:
-                alert_type, severity, title = "position_review", "high", f"{symbol}: {full['action']}"
-            elif full.get("action") == "WAIT MORE" and full.get("levels", {}).get("buy_low", 0) <= full.get("price", 0) <= full.get("levels", {}).get("buy_high", 0):
-                alert_type, severity, title = "wait_more", "medium", f"{symbol}: Buy level reached — WAIT MORE"
-            if alert_type:
+                # REDUCE/EXIT are already thesis-gated by position_action().
+                alert_type, severity, alert_action = "position_review", "high", full.get("action")
+                title = f"{symbol}: {alert_action}"
+            if alert_type and alert_action:
                 plan = full.get("action_plan") or {}
                 qty_text = ""
                 if plan.get("suggested_shares"):
                     qty_text = f" Suggested: {plan['suggested_shares']:g} shares ({plan.get('actual_percent', 0):.1f}% of position)."
-                message=(full.get("action_reason", "") + qty_text).strip()
+                message=((buy_reason if buy_action else full.get("action_reason", "")) + qty_text).strip()
                 active = db.query(Alert).filter(
                     Alert.symbol == symbol, Alert.alert_type == alert_type,
-                    Alert.action == full.get("action", "REVIEW"), Alert.acknowledged == False,
+                    Alert.action == alert_action, Alert.acknowledged == False,
                 ).order_by(Alert.created_at.desc()).first()
                 if active:
                     active.severity=severity; active.title=title; active.message=message
                     active.created_at=now; active.snoozed_until=None
-                elif old_action != full.get("action"):
+                else:
+                    # One active attention state per symbol. Old WAIT and superseded
+                    # attention states are retained historically as acknowledged rows.
                     for stale in db.query(Alert).filter(Alert.symbol==symbol, Alert.acknowledged==False).all():
                         stale.acknowledged=True
                     db.add(Alert(
                         symbol=symbol, alert_type=alert_type, severity=severity, title=title,
-                        message=message, action=full.get("action", "REVIEW"),
+                        message=message, action=alert_action,
                     ))
+            else:
+                # If the symbol is no longer actionable, close any stale live alerts
+                # (including legacy WAIT MORE alerts) without deleting their history.
+                for stale in db.query(Alert).filter(Alert.symbol==symbol, Alert.acknowledged==False).all():
+                    stale.acknowledged=True
+            db.commit()
+
+    def _sync_rotation_alerts(self):
+        """Surface only actionable portfolio ROTATE/SWAP proposals in attention.
+
+        Rotation does not imply that the source holding is a sell. It means a
+        materially stronger candidate may justify reallocating part of the capital.
+        """
+        with SessionLocal() as db:
+            position_rows=db.query(Position).all()
+            positions=[{"symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost} for p in position_rows]
+            position_symbols=[p.symbol for p in position_rows]
+            # Keep the rotation check cheap: load only high-conviction candidate
+            # states plus the user's holdings, never the entire market universe.
+            buy_rows=db.query(RadarCandidate).filter(
+                RadarCandidate.action.in_(["BUY NOW","BREAKOUT BUY","REVIEW BUY","ADD"]),
+                RadarCandidate.ai_score >= 82,
+            ).order_by(RadarCandidate.ai_score.desc()).limit(25).all()
+            held_rows=(db.query(RadarCandidate).filter(RadarCandidate.symbol.in_(position_symbols)).all() if position_symbols else [])
+            rows={c.symbol:c for c in (buy_rows+held_rows)}.values()
+            analyses={}
+            for c in rows:
+                if not c.current_json:
+                    continue
+                try:
+                    a=json.loads(c.current_json)
+                    if isinstance(a,dict) and a.get("symbol"):
+                        analyses[c.symbol]=a
+                except Exception:
+                    continue
+            proposals=portfolio_proposals(positions, analyses, 0, 0)
+            rotations=[p for p in proposals if p.get("type") == "ROTATE"]
+            current_titles=set()
+            now=datetime.now(timezone.utc)
+            for p in rotations:
+                src=str(p.get("symbol_from") or "").upper(); dst=str(p.get("symbol_to") or "").upper()
+                if not src or not dst:
+                    continue
+                title=f"SWAP CANDIDATE: {src} → {dst}"
+                current_titles.add(title)
+                message=str(p.get("detail") or "")
+                active=db.query(Alert).filter(
+                    Alert.symbol==src, Alert.alert_type=="portfolio_swap", Alert.action=="ROTATE",
+                    Alert.acknowledged==False,
+                ).order_by(Alert.created_at.desc()).first()
+                if active:
+                    active.title=title; active.message=message; active.severity="high"; active.created_at=now; active.snoozed_until=None
+                else:
+                    db.add(Alert(symbol=src,alert_type="portfolio_swap",severity="high",title=title,message=message,action="ROTATE"))
+            for stale in db.query(Alert).filter(Alert.alert_type=="portfolio_swap",Alert.acknowledged==False).all():
+                if stale.title not in current_titles:
+                    stale.acknowledged=True
             db.commit()
 
     def priority_symbols(self) -> list[str]:
@@ -299,6 +409,10 @@ class RadarService:
                 ok += 1
             except Exception as e:
                 errors.append(f"{sym}: {type(e).__name__}")
+        try:
+            self._sync_rotation_alerts()
+        except Exception as e:
+            errors.append(f"portfolio rotation: {type(e).__name__}")
         self.last_scan = datetime.now(timezone.utc)
         self.scan_count += 1
         self.last_deep_analyzed = ok

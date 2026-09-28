@@ -131,13 +131,24 @@ def _actionable_sort(v: dict):
     return (ACTION_RANK.get(signal,99), fit_rank, -float(v.get("ai_score") or 0), float(v.get("distance_pct") or 999))
 
 
+ATTENTION_ACTIONS={
+    "STRONG BUY","BUY","STARTER BUY","CONSIDER BUY",
+    # Backward-compatible names from pre-ladder alerts; a fresh scan rewrites
+    # them to the four explicit attention-buy labels above.
+    "BUY NOW","BREAKOUT BUY","ADD","CONSIDER BUYING NOW","CONSIDER STARTER BUY",
+    "TAKE PARTIAL PROFIT","TAKE PROFIT","REBALANCE","ROTATE",
+    "REDUCE","EXIT","SELL","STRONG SELL",
+}
+
+def _attentionworthy_alert(a: Alert) -> bool:
+    return str(a.action or "").upper() in ATTENTION_ACTIONS
+
 def _alert_priority(a: Alert) -> tuple[int, float]:
     action=str(a.action or "").upper()
-    if action in {"EXIT","REDUCE"}: rank=0
-    elif action in {"BUY NOW","BREAKOUT BUY","ADD","CONSIDER BUYING NOW","CONSIDER STARTER BUY"}: rank=1
-    elif action in {"TAKE PARTIAL PROFIT","REBALANCE"}: rank=2
-    elif action in {"WAIT MORE","WAIT FOR BETTER BUY","HOLD — THESIS REVIEW","HOLD — DON'T ADD"}: rank=3
-    else: rank=4
+    if action in {"EXIT","REDUCE","STRONG SELL","SELL"}: rank=0
+    elif action in {"STRONG BUY","BUY","STARTER BUY","CONSIDER BUY"}: rank=1
+    elif action in {"ROTATE","REBALANCE","TAKE PARTIAL PROFIT","TAKE PROFIT"}: rank=2
+    else: rank=9
     ts=a.created_at.timestamp() if a.created_at else 0
     return (rank,-ts)
 
@@ -153,7 +164,7 @@ def _dashboard_state(db):
     trades=db.query(Trade).order_by(Trade.created_at.desc()).limit(20).all()
     analyses_req=db.query(AnalysisRequest).order_by(AnalysisRequest.created_at.desc()).limit(8).all()
     raw_alerts=db.query(Alert).filter(Alert.acknowledged==False).order_by(Alert.created_at.desc()).limit(100).all()
-    alerts=[a for a in raw_alerts if not _is_snoozed(a)]
+    alerts=[a for a in raw_alerts if not _is_snoozed(a) and _attentionworthy_alert(a)]
     alerts=sorted(alerts,key=_alert_priority)[:20]
     candidates=db.query(RadarCandidate).order_by(RadarCandidate.updated_at.desc()).limit(150).all()
     # Ensure current holdings are always represented even if they fall outside the

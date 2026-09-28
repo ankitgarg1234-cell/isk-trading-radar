@@ -174,7 +174,7 @@ async function refreshLive(){
     const d=await jsonFetch('/api/live');
     const mb=$('#marketBadge'); if(mb){mb.textContent=d.market_open?'US MARKET OPEN':'US MARKET CLOSED';mb.className=`pill ${d.market_open?'green':'muted'}`}
     const ls=$('#lastScan');if(ls)ls.textContent=d.last_scan||'not yet';const us=$('#universeSize');if(us)us.textContent=d.universe_size||'loading';
-    const list=$('#alertsList');if(list){list.innerHTML=d.alerts.length?d.alerts.map(alertCardHtml).join(''):'<div class="empty">No unacknowledged alerts yet.</div>';bindAlerts()}
+    const list=$('#alertsList');if(list){list.innerHTML=d.alerts.length?d.alerts.map(alertCardHtml).join(''):'<div class="empty">No action required right now.</div>';bindAlerts()}
     const tb=$('#candidateTable tbody');if(tb){tb.innerHTML=candidateRowsHtml(d.candidates,d.base_currency||'SEK');bindRadarRows();sortRadar()}
     if($('#buyNowCount'))$('#buyNowCount').textContent=d.summary?.buy_now??0;if($('#portfolioActionCount'))$('#portfolioActionCount').textContent=d.summary?.portfolio_actions??0;if($('#deployableCash'))$('#deployableCash').textContent=Math.round(num(d.summary?.deployable_cash));if($('#accountRiskScore'))$('#accountRiskScore').textContent=Math.round(num(d.account_risk?.score));if($('#accountRiskBand'))$('#accountRiskBand').textContent=`${d.account_risk?.band||'—'} • target ${d.account_risk?.target_label||''}`;
   }catch(e){console.debug('live refresh',e)}

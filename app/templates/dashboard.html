@@ -71,7 +71,7 @@
   </section>
 
   <section class="panel alert-panel">
-    <div class="section-title-row"><div><span class="kicker">LIVE DECISION ALERTS</span><h2>What needs attention now</h2><p class="subtle">Prioritized by thesis risk and actionability. Click an alert to drill into the evidence.</p></div><button id="scanNow" class="btn secondary">Run scan now</button></div>
+    <div class="section-title-row"><div><span class="kicker">LIVE DECISION ALERTS</span><h2>What needs attention now</h2><p class="subtle">Actionable entries and portfolio actions only — no WAIT/WATCH/HOLD noise. Click an item to drill into the evidence.</p></div><button id="scanNow" class="btn secondary">Run scan now</button></div>
     <div id="alertsList" class="alert-list">
       {% if alerts %}{% for a in alerts %}
       <article class="alert-card {{ a.severity }}" data-alert-id="{{ a.id }}">
@@ -86,7 +86,7 @@
         <div class="alert-drilldown hidden" data-alert-detail="{{ a.id }}"><div class="alert-loading">Loading evidence…</div></div>
       </article>
       {% endfor %}
-      {% else %}<div class="empty">No unacknowledged alerts yet.</div>{% endif %}
+      {% else %}<div class="empty">No action required right now.</div>{% endif %}
     </div>
   </section>
 
