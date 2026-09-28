@@ -17,7 +17,14 @@ class Settings:
     finnhub_api_key: str = os.getenv("FINNHUB_API_KEY", "")
     sec_user_agent: str = os.getenv("SEC_USER_AGENT", "ISK Trading Radar/1.0 contact@example.com")
     scan_interval_seconds: int = int(os.getenv("SCAN_INTERVAL_SECONDS", "120"))
-    scan_batch_size: int = int(os.getenv("SCAN_BATCH_SIZE", "12"))
+    # Maximum number of symbols sent through the expensive full-analysis pipeline per cycle.
+    # Broad-market coverage is handled separately by the rotating universe prefilter.
+    scan_batch_size: int = int(os.getenv("SCAN_BATCH_SIZE", "28"))
+    universe_prefilter_batch_size: int = int(os.getenv("UNIVERSE_PREFILTER_BATCH_SIZE", "120"))
+    universe_deep_candidates: int = int(os.getenv("UNIVERSE_DEEP_CANDIDATES", "10"))
+    discovery_deep_candidates: int = int(os.getenv("DISCOVERY_DEEP_CANDIDATES", "8"))
+    priority_deep_limit: int = int(os.getenv("PRIORITY_DEEP_LIMIT", "12"))
+    quick_scan_workers: int = int(os.getenv("QUICK_SCAN_WORKERS", "8"))
     disable_scanner: bool = _bool("DISABLE_SCANNER", False)
     max_upload_mb: int = int(os.getenv("MAX_UPLOAD_MB", "8"))
     live_poll_seconds: int = int(os.getenv("LIVE_POLL_SECONDS", "15"))
@@ -25,7 +32,7 @@ class Settings:
         s.strip().upper()
         for s in os.getenv(
             "RADAR_SYMBOLS",
-            "CRDO,SRRK,NVDA,AMD,AVGO,GOOGL,AMZN,META,UBER,PLTR,SMCI,TSLA",
+            "",
         ).split(",")
         if s.strip()
     )

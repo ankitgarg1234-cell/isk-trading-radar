@@ -37,15 +37,15 @@
 
   <section class="hero-grid">
     <div class="panel hero-card span-2">
-      <div class="section-title-row"><div><span class="kicker">ANALYZE ANY SYMBOL</span><h2>Run the complete Radar pipeline</h2></div></div>
+      <div class="section-title-row"><div><span class="kicker">ANALYZE ANY COMPANY OR SYMBOL</span><h2>Run the complete Radar pipeline</h2></div></div>
       <form class="analyze-form" method="post" action="/analyze">
-        <input name="symbol" placeholder="Ticker e.g. SRRK" maxlength="12" required autocomplete="off">
+        <input name="symbol" placeholder="Ticker or company name — e.g. CRDO or Credo Technology" maxlength="120" required autocomplete="off">
         <select name="source_note">
           <option>Manual</option><option>Recommended by friend</option><option>eToro</option><option>Analyst upgrade</option><option>Reddit/YouTube</option><option>News story</option><option>Other</option>
         </select>
         <button class="btn primary" type="submit">Run full analysis</button>
       </form>
-      <p class="subtle">Manual ideas use the same scoring, news, buy-level, risk and portfolio-aware rules as Radar-discovered stocks.</p>
+      <p class="subtle">Enter either a ticker or company name. The resolver maps the company to its listed symbol, then runs the same scoring, news, buy-level, risk and portfolio-aware rules as Radar-discovered stocks.</p>
     </div>
     <div class="panel metric-card"><span>Cash</span><strong>{{ '%.0f'|format(cash) }}</strong><small>all configured accounts</small></div>
     <div class="panel metric-card"><span>Strategic reserve</span><strong>{{ '%.0f'|format(reserve) }}</strong><small>excluded from normal deployment</small></div>
@@ -71,13 +71,13 @@
   <section class="panel">
     <div class="section-title-row">
       <div><span class="kicker">CONTINUOUS CROSS-SECTOR RADAR</span><h2>Qualified / monitored candidates</h2></div>
-      <div class="status-line">Last scan: <span id="lastScan">{{ scanner.last_scan or 'not yet' }}</span></div>
+      <div class="status-line">Universe: <b id="universeSize">{{ scanner.universe_size or 'loading' }}</b> eligible U.S. equities • Last scan: <span id="lastScan">{{ scanner.last_scan or 'not yet' }}</span></div>
     </div>
     <div class="table-wrap"><table id="candidateTable"><thead><tr><th>Ticker</th><th>Price</th><th>Category</th><th>System</th><th>AI</th><th>Action</th><th></th></tr></thead><tbody>
       {% for c in candidates %}<tr><td class="ticker">{{ c.symbol }}</td><td>${{ '%.2f'|format(c.price or 0) }}</td><td>{{ c.category }}</td><td>{{ '%.0f'|format(c.score or 0) }}</td><td>{{ '%.0f'|format(c.ai_score or 0) }}</td><td><span class="action-chip">{{ c.action }}</span></td><td><a class="text-link" href="/analysis/{{ c.symbol }}">Details</a></td></tr>{% endfor %}
       {% if not candidates %}<tr><td colspan="7" class="empty">Radar will populate after analysis/scan runs.</td></tr>{% endif %}
     </tbody></table></div>
-    <p class="footnote">V1 uses a no-key prototype market feed and broad US screeners. It is cross-sector, but not an exchange-grade exhaustive tick-by-tick universe feed.</p>
+    <p class="footnote">The scanner rotates across the official Nasdaq Trader U.S.-listed equity universe during market hours. Each cycle applies a lightweight whole-market prefilter, then sends the strongest candidates plus your holdings/watchlist through the full fundamentals, news, analyst and AI pipeline. It is market-wide coverage, not an exchange-grade tick-by-tick feed.</p>
   </section>
 
   <section class="two-col">

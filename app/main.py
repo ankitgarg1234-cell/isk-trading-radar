@@ -128,8 +128,16 @@ def add_watchlist(symbol:str=Form(...),source:str=Form("Manual")):
 
 @app.post("/analyze")
 def analyze_symbol(symbol:str=Form(...),source_note:str=Form("Manual")):
-    symbol=symbol.upper().strip()
-    with SessionLocal() as db:db.add(AnalysisRequest(symbol=symbol,source_note=source_note.strip() or "Manual"));db.commit()
+    raw=symbol.strip()
+    try:
+        resolved=radar.provider.resolve_symbol(raw)
+        symbol=resolved["symbol"].upper().strip()
+    except Exception as exc:
+        raise HTTPException(400,f"Could not resolve company name or ticker: {raw}") from exc
+    note=(source_note.strip() or "Manual")
+    if raw.upper()!=symbol:
+        note=f"{note} | entered: {raw} | resolved: {resolved.get('name') or symbol}"
+    with SessionLocal() as db:db.add(AnalysisRequest(symbol=symbol,source_note=note));db.commit()
     try:radar.analyze_symbol(symbol,True)
     except Exception:pass
     return RedirectResponse(f"/analysis/{symbol}",303)
@@ -170,7 +178,7 @@ def scan_now():return radar.scan_once(force=True)
 def live():
     with SessionLocal() as db:
         alerts=db.query(Alert).filter(Alert.acknowledged==False).order_by(Alert.created_at.desc()).limit(10).all(); cands=db.query(RadarCandidate).order_by(RadarCandidate.ai_score.desc()).limit(15).all()
-        return {"market_open":radar.market_open(),"scanner_running":radar.running,"last_scan":radar.last_scan,"last_error":radar.last_error,"alerts":[{"id":a.id,"symbol":a.symbol,"title":a.title,"message":a.message,"severity":a.severity,"action":a.action} for a in alerts],"candidates":[{"symbol":c.symbol,"price":c.price,"score":c.score,"ai_score":c.ai_score,"category":c.category,"action":c.action} for c in cands]}
+        return {"market_open":radar.market_open(),"scanner_running":radar.running,"last_scan":radar.last_scan,"last_error":radar.last_error,"universe_size":radar.universe_size,"universe_prefiltered":radar.last_universe_prefiltered,"universe_deep_candidates":radar.last_universe_candidates,"deep_analyzed":radar.last_deep_analyzed,"alerts":[{"id":a.id,"symbol":a.symbol,"title":a.title,"message":a.message,"severity":a.severity,"action":a.action} for a in alerts],"candidates":[{"symbol":c.symbol,"price":c.price,"score":c.score,"ai_score":c.ai_score,"category":c.category,"action":c.action} for c in cands]}
 
 @app.post("/alerts/{alert_id}/ack")
 def ack_alert(alert_id:int):

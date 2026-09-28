@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
@@ -22,6 +23,11 @@ class RadarService:
         self.last_scan = None
         self.last_error = None
         self.scan_count = 0
+        self.universe_size = 0
+        self.last_universe_prefiltered = 0
+        self.last_universe_candidates = 0
+        self.last_deep_analyzed = 0
+        self.last_universe_start = 0
 
     def market_open(self, now=None):
         """Regular-session V1 gate: Mon-Fri, 09:30-16:00 America/New_York.
@@ -98,23 +104,78 @@ class RadarService:
                 ))
             db.commit()
 
-    def candidate_symbols(self):
-        """Prioritize current holdings/watchlist, then continuously add cross-sector discovered names."""
+    def priority_symbols(self) -> list[str]:
+        """Symbols that deserve full analysis every cycle before broad-market candidates."""
         with SessionLocal() as db:
             positions = [p.symbol for p in db.query(Position).all()]
             watch = [w.symbol for w in db.query(WatchlistItem).all()]
-            manual = [a.symbol for a in db.query(AnalysisRequest).order_by(AnalysisRequest.created_at.desc()).limit(30).all()]
-        discovered = self.provider.discover(60)
-        ranked = [
-            d["symbol"]
-            for d in sorted(discovered, key=lambda x: abs(float(x.get("change_pct") or 0)), reverse=True)
-        ]
-        ordered = positions + watch + manual + list(settings.radar_symbols) + ranked
+            manual = [a.symbol for a in db.query(AnalysisRequest).order_by(AnalysisRequest.created_at.desc()).limit(20).all()]
+        ordered = positions + manual + watch + list(settings.radar_symbols)
+        return list(dict.fromkeys(s.upper() for s in ordered if s))
+
+    def _universe_slice(self) -> list[dict]:
+        universe = self.provider.us_equity_universe()
+        self.universe_size = len(universe)
+        if not universe:
+            self.last_universe_start = 0
+            return []
+        batch_size = max(1, min(settings.universe_prefilter_batch_size, len(universe)))
+        now = datetime.now(timezone.utc).astimezone(NY)
+        if self.market_open(now):
+            seconds_from_open = max(0, (now.hour * 60 + now.minute - 570) * 60 + now.second)
+            slot = seconds_from_open // max(30, settings.scan_interval_seconds)
+        else:
+            slot = self.scan_count
+        start = int((slot * batch_size) % len(universe))
+        self.last_universe_start = start
+        if start + batch_size <= len(universe):
+            return universe[start:start + batch_size]
+        return universe[start:] + universe[:(start + batch_size) % len(universe)]
+
+    def _prefilter_universe(self, entries: list[dict]) -> list[dict]:
+        if not entries:
+            self.last_universe_prefiltered = 0
+            self.last_universe_candidates = 0
+            return []
+        results: list[dict] = []
+        workers = max(1, min(settings.quick_scan_workers, 16))
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {pool.submit(self.provider.quick_scan, e["symbol"]): e for e in entries}
+            for fut in as_completed(futures):
+                try:
+                    q = fut.result()
+                    q["name"] = futures[fut].get("name")
+                    results.append(q)
+                except Exception:
+                    continue
+        self.last_universe_prefiltered = len(results)
+        qualified = [r for r in results if r.get("qualifies")]
+        qualified.sort(key=lambda r: float(r.get("scan_score") or 0), reverse=True)
+        # Always retain a few highest-ranked names even if hard thresholds are narrowly missed.
+        if len(qualified) < settings.universe_deep_candidates:
+            seen = {r["symbol"] for r in qualified}
+            for r in sorted(results, key=lambda x: float(x.get("scan_score") or 0), reverse=True):
+                if r["symbol"] not in seen:
+                    qualified.append(r); seen.add(r["symbol"])
+                if len(qualified) >= settings.universe_deep_candidates:
+                    break
+        self.last_universe_candidates = min(len(qualified), settings.universe_deep_candidates)
+        return qualified[: settings.universe_deep_candidates]
+
+    def candidate_symbols(self):
+        """Return the current deep-analysis queue, including a rotating whole-market slice."""
+        priority = self.priority_symbols()[: settings.priority_deep_limit]
+        discovered = self.provider.discover(100)
+        discovered.sort(key=lambda x: abs(float(x.get("change_pct") or 0)), reverse=True)
+        discovery_symbols = [d["symbol"] for d in discovered[: settings.discovery_deep_candidates]]
+        broad = self._prefilter_universe(self._universe_slice())
+        broad_symbols = [q["symbol"] for q in broad]
+        ordered = priority + discovery_symbols + broad_symbols
         return list(dict.fromkeys(s.upper() for s in ordered if s))
 
     def scan_once(self, force: bool = False):
         if not force and not self.market_open():
-            return {"status": "market_closed", "analyzed": 0}
+            return {"status": "market_closed", "analyzed": 0, "universe_size": self.universe_size}
         syms = self.candidate_symbols()
         batch = syms[: settings.scan_batch_size]
         ok = 0
@@ -127,8 +188,15 @@ class RadarService:
                 errors.append(f"{sym}: {type(e).__name__}")
         self.last_scan = datetime.now(timezone.utc)
         self.scan_count += 1
+        self.last_deep_analyzed = ok
         self.last_error = "; ".join(errors[:5]) if errors else None
-        return {"status": "ok", "analyzed": ok, "errors": errors, "candidates": len(syms)}
+        return {
+            "status": "ok", "analyzed": ok, "errors": errors, "candidates": len(syms),
+            "universe_size": self.universe_size,
+            "universe_prefiltered": self.last_universe_prefiltered,
+            "universe_deep_candidates": self.last_universe_candidates,
+            "universe_start": self.last_universe_start,
+        }
 
     async def loop(self):
         self.running = True

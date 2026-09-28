@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 import time
+import re
+from difflib import SequenceMatcher
 import httpx
 
 from .config import settings
@@ -554,6 +556,207 @@ class YahooMarketProvider:
             "data_sources": data_sources,
             "provider": "Yahoo price/news + SEC EDGAR fundamentals + optional Finnhub analysts",
             "asof": datetime.now(timezone.utc).isoformat(),
+        }
+
+    _universe_cache: list[dict] = []
+    _universe_cache_at: float = 0.0
+
+    @staticmethod
+    def _normalise_company_name(value: str) -> str:
+        value = re.sub(r"[^a-z0-9 ]+", " ", (value or "").lower())
+        tokens = [
+            t for t in value.split()
+            if t not in {"inc", "incorporated", "corp", "corporation", "company", "co", "ltd", "limited", "plc", "common", "stock", "class", "ordinary", "shares"}
+        ]
+        return " ".join(tokens).strip()
+
+    @staticmethod
+    def _eligible_equity(symbol: str, name: str, *, test_issue: str = "N", etf: str = "N", financial_status: str = "N") -> bool:
+        symbol = (symbol or "").strip().upper()
+        name_l = (name or "").lower()
+        if not symbol or test_issue == "Y" or etf == "Y":
+            return False
+        if financial_status and financial_status not in {"N", ""}:
+            return False
+        if any(x in symbol for x in ("$", "^", "/", "=")) or len(symbol) > 8:
+            return False
+        # Exclude non-common-equity structures from the trading universe. ADRs remain eligible.
+        if any(x in name_l for x in (" warrant", " warrants", " right", " rights", " unit", " units", " preferred", " preference", " note due", " bond")):
+            return False
+        return True
+
+    def us_equity_universe(self, force_refresh: bool = False) -> list[dict]:
+        """Return a cached, exchange-wide U.S. equity universe.
+
+        Nasdaq Trader publishes separate symbol-directory files for Nasdaq-listed and
+        other U.S.-exchange-listed securities. We merge them, remove test issues,
+        ETFs and obvious non-common-equity structures, and retain issuer names for
+        company-name search.
+        """
+        now = time.time()
+        cls = self.__class__
+        if cls._universe_cache and not force_refresh and now - cls._universe_cache_at < 6 * 3600:
+            return list(cls._universe_cache)
+
+        rows: dict[str, dict] = {}
+        sources = (
+            ("https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt", "nasdaq"),
+            ("https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt", "other"),
+        )
+        for url, kind in sources:
+            try:
+                r = self.client.get(url, headers={"Accept": "text/plain,*/*"})
+                r.raise_for_status()
+                lines = [line for line in r.text.splitlines() if line and not line.startswith("File Creation Time")]
+                if not lines:
+                    continue
+                headers = [h.strip() for h in lines[0].split("|")]
+                for line in lines[1:]:
+                    parts = line.split("|")
+                    if len(parts) < len(headers):
+                        continue
+                    rec = dict(zip(headers, parts))
+                    if kind == "nasdaq":
+                        symbol = (rec.get("Symbol") or "").strip().upper()
+                        name = (rec.get("Security Name") or "").strip()
+                        if not self._eligible_equity(
+                            symbol, name,
+                            test_issue=(rec.get("Test Issue") or "N").strip(),
+                            etf=(rec.get("ETF") or "N").strip(),
+                            financial_status=(rec.get("Financial Status") or "N").strip(),
+                        ):
+                            continue
+                        exchange = "NASDAQ"
+                    else:
+                        symbol = (rec.get("ACT Symbol") or rec.get("CQS Symbol") or "").strip().upper()
+                        name = (rec.get("Security Name") or "").strip()
+                        if not self._eligible_equity(
+                            symbol, name,
+                            test_issue=(rec.get("Test Issue") or "N").strip(),
+                            etf=(rec.get("ETF") or "N").strip(),
+                            financial_status="N",
+                        ):
+                            continue
+                        exchange = {
+                            "N": "NYSE", "A": "NYSE American", "P": "NYSE Arca",
+                            "Z": "Cboe", "V": "IEX",
+                        }.get((rec.get("Exchange") or "").strip(), (rec.get("Exchange") or "OTHER").strip())
+                    yahoo_symbol = symbol.replace(".", "-")
+                    rows[yahoo_symbol] = {
+                        "symbol": yahoo_symbol,
+                        "name": name,
+                        "exchange": exchange,
+                        "name_key": self._normalise_company_name(name),
+                    }
+            except Exception:
+                continue
+
+        if not rows:
+            try:
+                for ticker, rec in self.sec._ticker_map().items():
+                    symbol = ticker.replace(".", "-")
+                    name = str(rec.get("title") or ticker)
+                    if self._eligible_equity(symbol, name):
+                        rows[symbol] = {"symbol": symbol, "name": name, "exchange": "US", "name_key": self._normalise_company_name(name)}
+            except Exception:
+                pass
+        if rows:
+            cls._universe_cache = sorted(rows.values(), key=lambda x: x["symbol"])
+            cls._universe_cache_at = now
+        return list(cls._universe_cache)
+
+    def resolve_symbol(self, query: str) -> dict:
+        """Resolve either a ticker or a company name to a tradable symbol."""
+        raw = (query or "").strip()
+        if not raw:
+            raise MarketDataError("Enter a ticker or company name")
+        universe = self.us_equity_universe()
+        upper = raw.upper()
+        by_symbol = {r["symbol"]: r for r in universe}
+        if upper in by_symbol:
+            return {**by_symbol[upper], "query": raw, "source": "Nasdaq Trader symbol directory"}
+
+        key = self._normalise_company_name(raw)
+        if key:
+            exact = [r for r in universe if r.get("name_key") == key]
+            if exact:
+                return {**exact[0], "query": raw, "source": "Nasdaq Trader company-name match"}
+            prefix = [r for r in universe if r.get("name_key", "").startswith(key) or key.startswith(r.get("name_key", ""))]
+            if prefix:
+                prefix.sort(key=lambda r: abs(len(r.get("name_key", "")) - len(key)))
+                return {**prefix[0], "query": raw, "source": "Nasdaq Trader company-name match"}
+            scored = []
+            for r in universe:
+                nk = r.get("name_key") or ""
+                if not nk:
+                    continue
+                ratio = SequenceMatcher(None, key, nk).ratio()
+                if key in nk or nk in key:
+                    ratio += 0.2
+                if ratio >= 0.68:
+                    scored.append((ratio, r))
+            if scored:
+                scored.sort(key=lambda x: x[0], reverse=True)
+                return {**scored[0][1], "query": raw, "source": "Nasdaq Trader fuzzy company-name match"}
+
+        # If the user typed an all-caps ticker-like token, accept it directly after
+        # exact/name resolution. The full market-data request remains the final validation.
+        if raw == upper and " " not in raw and re.fullmatch(r"[A-Z0-9.\-]{1,15}", raw):
+            return {"symbol": upper, "name": upper, "exchange": "", "query": raw, "source": "Direct ticker input"}
+
+        # Last-resort search helps with brands/renamed issuers not represented cleanly in directory names.
+        try:
+            data = self._json(
+                "https://query1.finance.yahoo.com/v1/finance/search",
+                {"q": raw, "quotesCount": 10, "newsCount": 0, "enableFuzzyQuery": "true"},
+            )
+            quotes = [q for q in (data.get("quotes") or []) if q.get("quoteType") == "EQUITY"]
+            if quotes:
+                q = quotes[0]
+                return {
+                    "symbol": (q.get("symbol") or "").upper(),
+                    "name": q.get("longname") or q.get("shortname") or q.get("symbol"),
+                    "exchange": q.get("exchange") or q.get("exchDisp") or "",
+                    "query": raw, "source": "Yahoo Finance search",
+                }
+        except Exception:
+            pass
+        raise MarketDataError(f"Could not resolve company or symbol: {raw}")
+
+    def quick_scan(self, symbol: str) -> dict:
+        """Low-cost first-pass market scan used across the whole U.S. universe."""
+        chart = self.chart(symbol, "1mo", "1d")
+        rows, current, previous, currency, exchange = self._rows_from_chart(chart)
+        closes = [float(r["close"]) for r in rows if r.get("close") is not None]
+        vols = [float(r.get("volume") or 0) for r in rows if r.get("close") is not None]
+        if not current or len(closes) < 3:
+            raise MarketDataError(f"Insufficient quick-scan history for {symbol}")
+        change_5 = ((current / closes[-6]) - 1) * 100 if len(closes) >= 6 and closes[-6] else 0.0
+        change_20 = ((current / closes[0]) - 1) * 100 if closes and closes[0] else 0.0
+        baseline_vols = [v for v in vols[-21:-1] if v > 0]
+        avg_vol = sum(baseline_vols) / len(baseline_vols) if baseline_vols else 0.0
+        rel_vol = (vols[-1] / avg_vol) if vols and avg_vol else 0.0
+        dollar_volume = current * (vols[-1] if vols else 0.0)
+        high20 = max(closes[-20:]) if closes else current
+        near_high = current / high20 if high20 else 0.0
+        # Cheap ranking only. Full qualification still requires fundamentals/news/sector analysis.
+        scan_score = (
+            min(abs(change_5), 20) * 2.0
+            + min(abs(change_20), 40) * 0.7
+            + min(rel_vol, 5) * 8.0
+            + (8.0 if near_high >= 0.98 else 0.0)
+            + (5.0 if dollar_volume >= 5_000_000 else 0.0)
+        )
+        qualifies = bool(
+            dollar_volume >= 1_000_000
+            and (abs(change_5) >= 3.0 or abs(change_20) >= 7.0 or rel_vol >= 1.35 or near_high >= 0.985)
+        )
+        return {
+            "symbol": symbol, "price": current, "previous_close": previous,
+            "currency": currency, "exchange": exchange,
+            "change_5_pct": change_5, "change_20_pct": change_20,
+            "relative_volume": rel_vol, "dollar_volume": dollar_volume,
+            "near_20d_high": near_high, "scan_score": scan_score, "qualifies": qualifies,
         }
 
     def discover(self, count: int = 50) -> list[dict]:
