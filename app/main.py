@@ -1,7 +1,7 @@
 from __future__ import annotations
 import asyncio, json, os
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, Request, Form, UploadFile, File, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -112,11 +112,30 @@ def _actionable_sort(v: dict):
     return (ACTION_RANK.get(signal,99), fit_rank, -float(v.get("ai_score") or 0), float(v.get("distance_pct") or 999))
 
 
+def _alert_priority(a: Alert) -> tuple[int, float]:
+    action=str(a.action or "").upper()
+    if action in {"EXIT","REDUCE"}: rank=0
+    elif action in {"BUY NOW","BREAKOUT BUY","ADD","CONSIDER BUYING NOW","CONSIDER STARTER BUY"}: rank=1
+    elif action in {"TAKE PARTIAL PROFIT","REBALANCE"}: rank=2
+    elif action in {"WAIT MORE","WAIT FOR BETTER BUY","HOLD — THESIS REVIEW","HOLD — DON'T ADD"}: rank=3
+    else: rank=4
+    ts=a.created_at.timestamp() if a.created_at else 0
+    return (rank,-ts)
+
+def _is_snoozed(a: Alert, now: datetime | None = None) -> bool:
+    if not a.snoozed_until:return False
+    now=now or datetime.now(timezone.utc)
+    su=a.snoozed_until
+    if su.tzinfo is None:su=su.replace(tzinfo=timezone.utc)
+    return su > now
+
 def _dashboard_state(db):
     positions=db.query(Position).order_by(Position.symbol).all()
     trades=db.query(Trade).order_by(Trade.created_at.desc()).limit(20).all()
     analyses_req=db.query(AnalysisRequest).order_by(AnalysisRequest.created_at.desc()).limit(8).all()
-    alerts=db.query(Alert).filter(Alert.acknowledged==False).order_by(Alert.created_at.desc()).limit(12).all()
+    raw_alerts=db.query(Alert).filter(Alert.acknowledged==False).order_by(Alert.created_at.desc()).limit(100).all()
+    alerts=[a for a in raw_alerts if not _is_snoozed(a)]
+    alerts=sorted(alerts,key=_alert_priority)[:20]
     candidates=db.query(RadarCandidate).order_by(RadarCandidate.updated_at.desc()).limit(150).all()
     cash_rows=db.query(PortfolioCash).all()
     payloads, previous=_latest_and_previous(db)
@@ -309,7 +328,40 @@ def scan_now():return radar.scan_once(force=True)
 def live():
     with SessionLocal() as db:
         state=_dashboard_state(db)
-        return {"market_open":radar.market_open(),"scanner_running":radar.running,"last_scan":radar.last_scan,"last_error":radar.last_error,"universe_size":radar.universe_size,"universe_prefiltered":radar.last_universe_prefiltered,"universe_deep_candidates":radar.last_universe_candidates,"deep_analyzed":radar.last_deep_analyzed,"risk_profile":state["risk_profile"],"account_risk":state["account_risk"],"summary":state["summary"],"base_currency":state["base_currency"],"alerts":[{"id":a.id,"symbol":a.symbol,"title":a.title,"message":a.message,"severity":a.severity,"action":a.action} for a in state["alerts"]],"candidates":state["candidates"]}
+        return {"market_open":radar.market_open(),"scanner_running":radar.running,"last_scan":radar.last_scan,"last_error":radar.last_error,"universe_size":radar.universe_size,"universe_prefiltered":radar.last_universe_prefiltered,"universe_deep_candidates":radar.last_universe_candidates,"deep_analyzed":radar.last_deep_analyzed,"risk_profile":state["risk_profile"],"account_risk":state["account_risk"],"summary":state["summary"],"base_currency":state["base_currency"],"alerts":[{"id":a.id,"symbol":a.symbol,"title":a.title,"message":a.message,"severity":a.severity,"action":a.action,"alert_type":a.alert_type,"created_at":a.created_at.isoformat() if a.created_at else None} for a in state["alerts"]],"candidates":state["candidates"]}
+
+@app.get("/api/alerts/{alert_id}")
+def alert_detail(alert_id:int):
+    with SessionLocal() as db:
+        a=db.get(Alert,alert_id)
+        if not a:raise HTTPException(404,"Alert not found")
+        snap=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol==a.symbol).order_by(AnalysisSnapshot.created_at.desc()).first()
+        payload={}
+        if snap:
+            try:payload=json.loads(snap.payload_json)
+            except Exception:payload={}
+        p=db.query(Position).filter(Position.symbol==a.symbol).order_by(Position.created_at.desc()).first()
+        pd={"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account} if p else None
+        level=active_level(payload,bool(p)) if payload else {"label":"—","value":"—","distance":"—"}
+        price=float(payload.get("price") or (snap.price if snap else 0) or 0)
+        pnl=((price/p.avg_cost-1)*100) if p and p.avg_cost and price else None
+        thesis=payload.get("thesis_assessment") or {}
+        news=payload.get("news") or {}
+        return {
+            "alert":{"id":a.id,"symbol":a.symbol,"title":a.title,"message":a.message,"severity":a.severity,"action":a.action,"created_at":a.created_at.isoformat() if a.created_at else None},
+            "analysis":{
+                "price":price,"system_score":payload.get("deterministic_score"),"ai_score":payload.get("ai_score"),
+                "analyst_score":payload.get("analyst_score"),"analyst_label":analyst_label(payload) if payload else "No consensus",
+                "action":payload.get("action") or a.action,"reason":payload.get("action_reason") or a.message,
+                "confidence":payload.get("decision_confidence"),"active_level":level,
+                "news_label":news.get("label"),"material_events":news.get("material_events",0),
+                "fundamental_score":(payload.get("breakdown") or {}).get("Fundamentals"),
+                "fundamental_confidence":payload.get("fundamental_confidence"),
+                "thesis_invalidated":bool(thesis.get("invalidated")),"thesis_reasons":thesis.get("reasons") or [],
+                "sensitivity":payload.get("sensitivity") or [],"position":pd,"pnl":pnl,"action_plan":payload.get("action_plan"),
+                "latest_news":[{"title":n.get("title"),"sentiment":n.get("sentiment"),"materiality":n.get("materiality"),"publisher":n.get("publisher")} for n in (news.get("items") or [])[:5]],
+            }
+        }
 
 @app.post("/alerts/{alert_id}/ack")
 def ack_alert(alert_id:int):
@@ -317,6 +369,26 @@ def ack_alert(alert_id:int):
         a=db.get(Alert,alert_id)
         if a:a.acknowledged=True;db.commit()
     return JSONResponse({"ok":True})
+
+@app.post("/alerts/{alert_id}/dismiss")
+def dismiss_alert(alert_id:int):
+    # Dismiss removes the alert from the active queue but preserves it as reviewed history.
+    with SessionLocal() as db:
+        a=db.get(Alert,alert_id)
+        if a:a.acknowledged=True;db.commit()
+    return JSONResponse({"ok":True})
+
+@app.post("/alerts/{alert_id}/snooze")
+async def snooze_alert(alert_id:int, request:Request):
+    try:data=await request.json()
+    except Exception:data={}
+    minutes=max(15,min(480,int(data.get("minutes") or 60)))
+    with SessionLocal() as db:
+        a=db.get(Alert,alert_id)
+        if not a:raise HTTPException(404,"Alert not found")
+        a.snoozed_until=datetime.now(timezone.utc).replace(tzinfo=None)+timedelta(minutes=minutes)
+        db.commit()
+    return JSONResponse({"ok":True,"minutes":minutes})
 
 @app.post("/api/import/parse-text")
 async def import_parse_text(request:Request):

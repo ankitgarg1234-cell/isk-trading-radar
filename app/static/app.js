@@ -124,17 +124,62 @@ function bindRadarControls(){
   bindRadarRows();applyRadarFilters();
 }
 
+function alertCardHtml(a){
+  return `<article class="alert-card ${esc(a.severity)}" data-alert-id="${a.id}">
+    <div class="alert-main alert-toggle" tabindex="0" role="button" aria-expanded="false">
+      <div class="alert-copy"><b>${esc(a.title)}</b><p>${esc(a.message)}</p></div>
+      <div class="alert-actions"><span class="action-chip">${esc(a.action)}</span><button class="btn ghost ack-alert" data-id="${a.id}" type="button">Acknowledge</button><button class="icon-btn dismiss-alert" data-id="${a.id}" type="button" title="Dismiss alert" aria-label="Dismiss alert">×</button></div>
+    </div>
+    <div class="alert-drilldown hidden" data-alert-detail="${a.id}"><div class="alert-loading">Loading evidence…</div></div>
+  </article>`
+}
+function alertDetailHtml(d){
+  const a=d.alert||{},x=d.analysis||{},level=x.active_level||{},position=x.position;
+  const thesis=x.thesis_invalidated?`<span class="pill red">INVALIDATED</span>`:`<span class="pill green">INTACT / NOT INVALIDATED</span>`;
+  const thesisReasons=(x.thesis_reasons||[]).length?`<ul>${x.thesis_reasons.map(r=>`<li>${esc(r)}</li>`).join('')}</ul>`:'<p class="subtle">No explicit thesis/fundamental invalidation signal is recorded.</p>';
+  const news=(x.latest_news||[]).length?`<ul>${x.latest_news.map(n=>`<li><b>${esc(n.sentiment||'neutral')}</b> · ${esc(n.title||'')} <small>${esc(n.publisher||'')}</small></li>`).join('')}</ul>`:'<p class="subtle">No recent news items in the evidence pack.</p>';
+  const sens=(x.sensitivity||[]).length?`<ul>${x.sensitivity.slice(0,4).map(r=>`<li>${esc(r.condition)} → modeled AI ${esc(r.new_score)}</li>`).join('')}</ul>`:'<p class="subtle">No sensitivity scenarios available.</p>';
+  const pos=position?`${esc(position.shares)} shares @ ${esc(position.avg_cost)}${x.pnl!=null?` · P&L ${num(x.pnl).toFixed(1)}%`:''}`:'No current position';
+  const plan=x.action_plan?.suggested_shares?`${esc(x.action_plan.suggested_shares)} shares (${esc(x.action_plan.actual_percent)}%) · ${esc(x.action_plan.rationale||'')}`:'No reduction/size plan attached';
+  return `<div class="alert-detail-grid">
+    <div><span>Price</span><b>${x.price?num(x.price).toFixed(2):'—'}</b></div>
+    <div><span>System conviction</span><b>${x.system_score??'—'}/100</b></div>
+    <div><span>AI conviction</span><b>${x.ai_score??'—'}/100</b></div>
+    <div><span>Analyst</span><b>${esc(x.analyst_label||'No consensus')} ${x.analyst_score!=null?`· ${esc(x.analyst_score)}/100`:''}</b></div>
+    <div><span>Active level</span><b>${esc(level.label||'—')} · ${esc(level.value||'—')}</b></div>
+    <div><span>Evidence confidence</span><b>${esc(x.confidence||'—')}</b></div>
+  </div>
+  <div class="alert-detail-columns">
+    <div><h4>Why this alert</h4><p>${esc(x.reason||a.message||'')}</p><h4>Thesis state</h4>${thesis}${thesisReasons}<p><b>Position:</b> ${pos}</p><p><b>Action plan:</b> ${plan}</p></div>
+    <div><h4>Latest relevant news</h4>${news}<h4>What would change the score/action</h4>${sens}</div>
+  </div>
+  <div class="alert-detail-footer"><button class="btn ghost snooze-alert" data-id="${a.id}" data-minutes="60" type="button">Snooze 1h</button><a class="btn secondary" href="/analysis/${encodeURIComponent(a.symbol||'')}">Open full analysis</a></div>`
+}
+async function toggleAlertDetail(card){
+  const body=card.querySelector('.alert-drilldown'),main=card.querySelector('.alert-toggle');if(!body)return;
+  const opening=body.classList.contains('hidden');body.classList.toggle('hidden');main?.setAttribute('aria-expanded',opening?'true':'false');
+  if(!opening||body.dataset.loaded==='1')return;
+  try{const d=await jsonFetch(`/api/alerts/${card.dataset.alertId}`);body.innerHTML=alertDetailHtml(d);body.dataset.loaded='1';bindAlertActions(body)}catch(e){body.innerHTML='<div class="error-box">Could not load alert evidence.</div>'}
+}
+function bindAlertActions(scope=document){
+  scope.querySelectorAll?.('.ack-alert').forEach(b=>b.onclick=async(e)=>{e.stopPropagation();try{await jsonFetch(`/alerts/${b.dataset.id}/ack`,{method:'POST'});b.closest('.alert-card')?.remove();toast('Alert acknowledged')}catch(e){toast('Could not acknowledge alert')}});
+  scope.querySelectorAll?.('.dismiss-alert').forEach(b=>b.onclick=async(e)=>{e.stopPropagation();try{await jsonFetch(`/alerts/${b.dataset.id}/dismiss`,{method:'POST'});b.closest('.alert-card')?.remove();toast('Alert dismissed')}catch(e){toast('Could not dismiss alert')}});
+  scope.querySelectorAll?.('.snooze-alert').forEach(b=>b.onclick=async(e)=>{e.stopPropagation();const mins=Number(b.dataset.minutes||60);try{await jsonFetch(`/alerts/${b.dataset.id}/snooze`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({minutes:mins})});b.closest('.alert-card')?.remove();toast(`Alert snoozed for ${mins} minutes`)}catch(e){toast('Could not snooze alert')}});
+}
+function bindAlerts(){
+  $$('.alert-card').forEach(card=>{const main=card.querySelector('.alert-toggle');if(main){main.onclick=(e)=>{if(e.target.closest('button,a'))return;toggleAlertDetail(card)};main.onkeydown=(e)=>{if((e.key==='Enter'||e.key===' ')&&!e.target.closest('button,a')){e.preventDefault();toggleAlertDetail(card)}}}});bindAlertActions(document)
+}
 async function refreshLive(){
   try{
     const d=await jsonFetch('/api/live');
     const mb=$('#marketBadge'); if(mb){mb.textContent=d.market_open?'US MARKET OPEN':'US MARKET CLOSED';mb.className=`pill ${d.market_open?'green':'muted'}`}
     const ls=$('#lastScan');if(ls)ls.textContent=d.last_scan||'not yet';const us=$('#universeSize');if(us)us.textContent=d.universe_size||'loading';
-    const list=$('#alertsList');if(list){list.innerHTML=d.alerts.length?d.alerts.map(a=>`<article class="alert-card ${esc(a.severity)}" data-alert-id="${a.id}"><div><b>${esc(a.title)}</b><p>${esc(a.message)}</p></div><div class="alert-actions"><span class="action-chip">${esc(a.action)}</span><button class="btn ghost ack-alert" data-id="${a.id}">Acknowledge</button></div></article>`).join(''):'<div class="empty">No unacknowledged alerts yet.</div>';bindAck()}
+    const list=$('#alertsList');if(list){list.innerHTML=d.alerts.length?d.alerts.map(alertCardHtml).join(''):'<div class="empty">No unacknowledged alerts yet.</div>';bindAlerts()}
     const tb=$('#candidateTable tbody');if(tb){tb.innerHTML=candidateRowsHtml(d.candidates,d.base_currency||'SEK');bindRadarRows();sortRadar()}
     if($('#buyNowCount'))$('#buyNowCount').textContent=d.summary?.buy_now??0;if($('#portfolioActionCount'))$('#portfolioActionCount').textContent=d.summary?.portfolio_actions??0;if($('#deployableCash'))$('#deployableCash').textContent=Math.round(num(d.summary?.deployable_cash));if($('#accountRiskScore'))$('#accountRiskScore').textContent=Math.round(num(d.account_risk?.score));if($('#accountRiskBand'))$('#accountRiskBand').textContent=`${d.account_risk?.band||'—'} • target ${d.account_risk?.target_label||''}`;
   }catch(e){console.debug('live refresh',e)}
 }
-function bindAck(){$$('.ack-alert').forEach(b=>b.onclick=async()=>{try{await jsonFetch(`/alerts/${b.dataset.id}/ack`,{method:'POST'});b.closest('.alert-card')?.remove();toast('Alert acknowledged')}catch(e){toast('Could not acknowledge alert')}})}bindAck();
+bindAlerts();
 const scan=$('#scanNow');if(scan)scan.onclick=async()=>{scan.disabled=true;scan.textContent='Scanning…';try{const d=await jsonFetch('/api/scan-now',{method:'POST'});toast(`Scan finished: ${d.analyzed||0} deep analyses; ${d.universe_prefiltered||0}/${d.universe_size||0} universe names prefiltered this cycle`);await refreshLive()}catch(e){toast('Scan failed: '+e.message)}finally{scan.disabled=false;scan.textContent='Run scan now'}};
 
 let importPositions=[];

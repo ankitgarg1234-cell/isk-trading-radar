@@ -71,9 +71,21 @@
   </section>
 
   <section class="panel alert-panel">
-    <div class="section-title-row"><div><span class="kicker">LIVE DECISION ALERTS</span><h2>What needs attention now</h2></div><button id="scanNow" class="btn secondary">Run scan now</button></div>
+    <div class="section-title-row"><div><span class="kicker">LIVE DECISION ALERTS</span><h2>What needs attention now</h2><p class="subtle">Prioritized by thesis risk and actionability. Click an alert to drill into the evidence.</p></div><button id="scanNow" class="btn secondary">Run scan now</button></div>
     <div id="alertsList" class="alert-list">
-      {% if alerts %}{% for a in alerts %}<article class="alert-card {{ a.severity }}" data-alert-id="{{ a.id }}"><div><b>{{ a.title }}</b><p>{{ a.message }}</p></div><div class="alert-actions"><span class="action-chip">{{ a.action }}</span><button class="btn ghost ack-alert" data-id="{{ a.id }}">Acknowledge</button></div></article>{% endfor %}
+      {% if alerts %}{% for a in alerts %}
+      <article class="alert-card {{ a.severity }}" data-alert-id="{{ a.id }}">
+        <div class="alert-main alert-toggle" tabindex="0" role="button" aria-expanded="false">
+          <div class="alert-copy"><b>{{ a.title }}</b><p>{{ a.message }}</p></div>
+          <div class="alert-actions">
+            <span class="action-chip">{{ a.action }}</span>
+            <button class="btn ghost ack-alert" data-id="{{ a.id }}" type="button">Acknowledge</button>
+            <button class="icon-btn dismiss-alert" data-id="{{ a.id }}" type="button" title="Dismiss alert" aria-label="Dismiss alert">×</button>
+          </div>
+        </div>
+        <div class="alert-drilldown hidden" data-alert-detail="{{ a.id }}"><div class="alert-loading">Loading evidence…</div></div>
+      </article>
+      {% endfor %}
       {% else %}<div class="empty">No unacknowledged alerts yet.</div>{% endif %}
     </div>
   </section>
@@ -106,12 +118,13 @@
         <input id="radarPriceValue" class="sn-filter-value" type="number" step="any" min="0" placeholder="Value">
       </th>
       <th class="sn-filter-th sticky-system">
-        <div class="sn-th-title"><span>System view</span><details class="sn-more"><summary title="More System filters" aria-label="More System filters">▼</summary><div class="sn-more-panel">
-          <label>System score ≥<input id="radarSystemMin" type="number" min="0" max="100" placeholder="0–100"></label>
-          <label>AI score ≥<input id="radarAiMin" type="number" min="0" max="100" placeholder="0–100"></label>
-        </div></details></div>
+        <div class="sn-th-title"><span>System view</span></div>
         <div class="sn-filter-line"><span>Operator</span><select id="radarSignalOperator"><option value="is">is</option><option value="is_not">is not</option></select></div>
         <select id="radarSignalFilter" class="sn-filter-value"><option value="">Any action</option><option>STRONG BUY</option><option>BUY</option><option>STARTER BUY</option><option>WAIT</option><option>WATCH</option><option>HOLD</option><option>TAKE PROFIT</option><option>SELL</option><option>STRONG SELL</option></select>
+        <div class="sn-conviction-row">
+          <label>System ≥<input id="radarSystemMin" type="number" min="0" max="100" placeholder="0–100"></label>
+          <label>AI ≥<input id="radarAiMin" type="number" min="0" max="100" placeholder="0–100"></label>
+        </div>
       </th>
       <th class="sn-filter-th">
         <div class="sn-th-title"><span>Active level</span></div>

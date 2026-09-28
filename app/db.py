@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import create_engine, String, Integer, Float, DateTime, Boolean, Text, UniqueConstraint
+from sqlalchemy import create_engine, String, Integer, Float, DateTime, Boolean, Text, UniqueConstraint, inspect
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from .config import settings
 
@@ -104,6 +104,7 @@ class Alert(Base):
     message: Mapped[str] = mapped_column(Text, default="")
     action: Mapped[str] = mapped_column(String(40), default="REVIEW")
     acknowledged: Mapped[bool] = mapped_column(Boolean, default=False)
+    snoozed_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
 
@@ -127,3 +128,21 @@ def storage_status() -> dict:
     }
 
 Base.metadata.create_all(engine)
+
+def _ensure_runtime_columns():
+    """Tiny additive migration layer for incremental V1 patches.
+
+    SQLAlchemy create_all does not add columns to an existing table, so older
+    Render/Neon databases need the alert snooze column added explicitly.
+    """
+    try:
+        cols={c["name"] for c in inspect(engine).get_columns("alerts")}
+        if "snoozed_until" not in cols:
+            with engine.begin() as conn:
+                conn.exec_driver_sql("ALTER TABLE alerts ADD COLUMN snoozed_until TIMESTAMP NULL")
+    except Exception:
+        # Do not prevent app startup if the database account cannot run DDL; the
+        # health/tests will surface the issue and alerts still work without snooze.
+        pass
+
+_ensure_runtime_columns()

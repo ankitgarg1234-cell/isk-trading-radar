@@ -33,6 +33,13 @@ CREDIBLE_HIGH = {
 }
 CREDIBLE_PRIMARY = {"Business Wire", "GlobeNewswire", "PR Newswire"}
 
+THESIS_BREAKING_TERMS = {
+    "bankruptcy", "fraud", "restatement", "fda rejection", "rejected",
+    "guidance cut", "cuts guidance", "withdraws guidance", "recall",
+    "trial failure", "failed trial", "clinical hold", "default"
+}
+SEVERE_EXIT_TERMS = {"bankruptcy", "fraud", "fda rejection", "trial failure", "failed trial", "default"}
+
 
 def clamp(x: float, lo: float = 0.0, hi: float = 100.0) -> float:
     return max(lo, min(hi, x))
@@ -479,6 +486,46 @@ def entry_zone_state(levels: dict, price: float) -> str:
     return "WATCH"
 
 
+
+def thesis_assessment(result: dict) -> dict:
+    """Evidence-gated thesis state for existing-position sell decisions.
+
+    Short-term price/momentum weakness is deliberately excluded. REDUCE/EXIT can
+    only come from explicit thesis-breaking news or verified fundamental
+    deterioration relative to a prior saved snapshot.
+    """
+    news=result.get("news") or {}
+    breakdown=result.get("breakdown") or {}
+    fscore=float(breakdown.get("Fundamentals") or 0)
+    fconf=result.get("fundamental_confidence") or "low"
+    prior=result.get("previous_snapshot") or {}
+    prior_fscore=None
+    try:
+        prior_fscore=float((prior.get("breakdown") or {}).get("Fundamentals"))
+    except Exception:
+        prior_fscore=None
+    titles=[str(i.get("title") or "").lower() for i in (news.get("items") or []) if i.get("sentiment") == "negative"]
+    breaking_terms=sorted({term for title in titles for term in THESIS_BREAKING_TERMS if term in title})
+    severe_terms=sorted({term for title in titles for term in SEVERE_EXIT_TERMS if term in title})
+    fundamental_deterioration=(
+        fconf in {"medium","high"}
+        and fscore <= 8
+        and prior_fscore is not None
+        and (prior_fscore >= 12 or prior_fscore - fscore >= 4)
+    )
+    material_negative=bool(news.get("high_negative_events",0))
+    invalidated=bool(breaking_terms) or fundamental_deterioration
+    severe=bool(severe_terms) and (fundamental_deterioration or material_negative)
+    reasons=[]
+    if breaking_terms: reasons.append("Thesis-breaking event: " + ", ".join(breaking_terms))
+    if fundamental_deterioration: reasons.append(f"Verified fundamentals deteriorated from {prior_fscore:.1f}/20 to {fscore:.1f}/20")
+    return {
+        "invalidated": invalidated, "severe": severe, "reasons": reasons,
+        "fundamental_deterioration": fundamental_deterioration,
+        "breaking_terms": breaking_terms, "prior_fundamental_score": prior_fscore,
+        "current_fundamental_score": fscore,
+    }
+
 def position_action(result: dict, price: float, position: dict | None) -> tuple[str, str]:
     s = result["deterministic_score"]
     n = result["news"]
@@ -489,74 +536,64 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
     change20 = t.get("change20_pct") or 0
     relvol = t.get("relative_volume") or 0
     momentum_weak = price < ema20 or rsi < 42
-    # Keep the general falling-risk rule for primary/value-corridor logic.
     falling_risk = (price < ema20 and change20 < -2) or rsi < 40
-    # Better Buy needs a stricter falling-knife test: reaching a discounted
-    # level will often mean price is below EMA20, so one mild warning alone
-    # should not veto the entry. Require converging weakness instead.
     ema_gap_pct = ((price / ema20) - 1) * 100 if ema20 else 0
-    better_buy_weak_flags = [
-        rsi < 40,
-        change20 < -6,
-        ema_gap_pct < -2.5,
-        relvol >= 1.5 and change20 < -4,
-    ]
+    better_buy_weak_flags = [rsi < 40, change20 < -6, ema_gap_pct < -2.5, relvol >= 1.5 and change20 < -4]
     better_buy_weakness_count = sum(bool(x) for x in better_buy_weak_flags)
     better_buy_falling_risk = rsi < 34 or better_buy_weakness_count >= 2
     mild_better_buy_weakness = better_buy_weakness_count == 1
     bearish = n["label"] == "Bearish" and n["material_events"] > 0
     severe_bearish = n.get("high_negative_events", 0) >= 1 and bearish
     zone = entry_zone_state(lv, price)
-    in_buy = zone in {"PRIMARY_BUY", "BETTER_BUY", "VALUE_CORRIDOR", "DEEP_VALUE"}
     downside_to_better = ((price - lv["better_high"]) / price * 100) if price else 0
-    fscore = float((result.get("breakdown") or {}).get("Fundamentals") or 0)
-    fconf = result.get("fundamental_confidence") or "low"
-    explicit_fundamental_weakness = fconf in {"medium", "high"} and fscore <= 8
     confidence = result.get("decision_confidence") or "medium"
-    thesis_invalid = zone == "INVALIDATED" or (s < 55 and bearish)
+    thesis = thesis_assessment(result)
+    # Expose the assessment to downstream alert/detail rendering.
+    result["thesis_assessment"] = thesis
 
     if position:
         avg = float(position.get("avg_cost") or 0)
         pnl = (price / avg - 1) * 100 if avg else 0
         shares = float(position.get("shares") or 0)
         whole_share_account = "avanza" in str(position.get("account") or "").lower()
-        if thesis_invalid:
-            return "EXIT", f"Thesis invalidation/stop condition triggered; unrealized P&L {pnl:.1f}%"
-        # Missing analyst/fundamental/news evidence is not deterioration. Never reduce only because the score is low.
-        if confidence == "low" and not severe_bearish and not explicit_fundamental_weakness:
+
+        # Hard rule: no panic sell. REDUCE/EXIT require explicit thesis/fundamental invalidation.
+        if thesis["severe"]:
+            why = "; ".join(thesis["reasons"]) or "Severe thesis invalidation confirmed"
+            return "EXIT", f"{why}; unrealized P&L {pnl:.1f}%"
+        if thesis["invalidated"]:
+            why = "; ".join(thesis["reasons"]) or "Investment thesis/fundamentals materially invalidated"
+            return "REDUCE", f"{why}; unrealized P&L {pnl:.1f}%"
+
+        if confidence == "low" and not severe_bearish:
             return "HOLD — DATA REVIEW", "Evidence coverage is incomplete; missing data is not treated as a sell signal"
         if severe_bearish and pnl >= 5:
             if whole_share_account and shares <= 1:
-                return "HOLD — REVIEW EXIT", "Material negative news detected, but a one-share whole-share position cannot be partially reduced; review the exit threshold instead"
-            return "TAKE PARTIAL PROFIT", f"Profitable position ({pnl:.1f}%) faces material negative news; protect part of the gain while the thesis is reassessed"
-        if bearish and momentum_weak:
-            if pnl >= 5:
-                if whole_share_account and shares <= 1:
-                    return "HOLD — REVIEW EXIT", "Bearish evidence and weak momentum detected, but partial reduction is not possible for a one-share whole-share position"
-                return "TAKE PARTIAL PROFIT", f"Profitable position ({pnl:.1f}%) has both bearish evidence and weakening momentum"
-            return "REDUCE", f"Bearish evidence and weakening momentum are both present; P&L {pnl:.1f}%"
-        if explicit_fundamental_weakness and s < 60:
-            return "REDUCE", f"Verified fundamentals are weak ({fscore:.1f}/20) and the overall score is {s:.0f}; P&L {pnl:.1f}%"
-        if momentum_weak:
-            return "HOLD — DON'T ADD", "Momentum has weakened, but there is not enough explicit negative evidence to justify reducing the position"
+                return "HOLD — THESIS REVIEW", "Material negative news detected, but the thesis has not been invalidated and a one-share position cannot be partially trimmed"
+            return "TAKE PARTIAL PROFIT", f"Profitable position ({pnl:.1f}%) faces material negative news; trim gains only, not because the thesis is broken"
+        if bearish and momentum_weak and pnl >= 5:
+            if whole_share_account and shares <= 1:
+                return "HOLD — DON'T ADD", "Bearish evidence and weak momentum are present, but the thesis remains intact and partial trimming is impractical"
+            return "TAKE PARTIAL PROFIT", f"Profitable position ({pnl:.1f}%) has bearish near-term evidence; thesis remains intact, so only optional profit protection is warranted"
+        if zone == "INVALIDATED":
+            return "HOLD — THESIS REVIEW", "Price crossed the modeled technical invalidation level, but technical weakness alone is not a sell signal; re-check the investment thesis/fundamentals"
+        if momentum_weak or bearish:
+            return "HOLD — DON'T ADD", "Near-term evidence has weakened, but the thesis/fundamentals are not invalidated; do not panic sell"
         if s < 65:
             return "HOLD — DON'T ADD", f"Score is only {s:.0f}, but a low score by itself is not a sell signal; wait for explicit thesis deterioration"
         if zone in {"PRIMARY_BUY", "BETTER_BUY", "VALUE_CORRIDOR"} and s >= 75 and not bearish and confidence != "low":
             return "ADD", f"Position is in an active entry zone ({zone.replace('_', ' ').title()}) with score {s:.0f}, adequate evidence coverage, and thesis intact"
         return "HOLD", f"Thesis intact; unrealized P&L {pnl:.1f}%"
 
-    if thesis_invalid:
-        return "AVOID", "Price/evidence invalidates the setup"
+    # New-position logic remains entry/risk oriented.
+    if zone == "INVALIDATED":
+        return "AVOID", "Price is below the modeled invalidation level; wait for the setup to rebuild"
     if severe_bearish:
         return "AVOID", "Material negative news overrides the numerical setup"
     if confidence == "low":
         return "WATCH — DATA REVIEW", "Evidence coverage is incomplete; wait for sufficient data before opening a new position"
     if zone == "DO_NOT_CHASE":
         return "DON'T CHASE", "Price is above the do-not-chase threshold"
-
-    # Primary buy zone: this is the user's explicit trigger. A score of 65+ is
-    # sufficient for a 'consider' signal when evidence is adequate and there is
-    # no material bearish override; falling-risk logic can still defer the trade.
     if zone == "PRIMARY_BUY":
         if (falling_risk or (bearish and momentum_weak)) and downside_to_better >= 3:
             return "WAIT MORE", f"Buy level reached, but price is below EMA20 / recent momentum is weakening; better-buy zone is {lv['better_low']:.2f}–{lv['better_high']:.2f}"
@@ -565,9 +602,6 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
         if s >= 65 and not bearish:
             return "CONSIDER BUYING NOW", f"Primary buy zone reached; score {s:.0f}, evidence coverage is adequate, and no material bearish override is present"
         return "WAIT MORE", f"Primary buy zone reached, but deterministic conviction is only {s:.0f}/100"
-
-    # Better-buy zone: price is at the more attractive ladder level. Still avoid
-    # catching a falling knife if trend deterioration is explicit.
     if zone == "BETTER_BUY":
         technical_context = f"RSI {rsi:.1f}, 20d {change20:.1f}%, price vs EMA20 {ema_gap_pct:.1f}%"
         if better_buy_falling_risk or (bearish and momentum_weak):
@@ -579,22 +613,16 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
                 return "CONSIDER STARTER BUY", f"Better-buy zone reached and score is {s:.0f}; only one moderate weakness flag remains ({technical_context}), so consider a staged starter position rather than waiting for a lower price"
             return "CONSIDER BUYING NOW", f"Better-buy zone reached with score {s:.0f}, adequate evidence, and thesis intact ({technical_context})"
         return "WATCH", f"Better-buy zone reached, but score {s:.0f}/100 is not yet sufficient despite the attractive price"
-
-    # Once price has crossed below the primary zone, do not misleadingly say
-    # 'wait for buy zone'. It is already cheaper; decide between a starter entry
-    # and waiting for the better-buy zone.
     if zone == "VALUE_CORRIDOR":
         if falling_risk or (bearish and momentum_weak):
             return "WAIT FOR BETTER BUY", f"Price has crossed below the primary buy zone, but momentum remains weak; next modeled better-buy zone is {lv['better_low']:.2f}–{lv['better_high']:.2f}"
         if s >= 65 and not bearish:
             return "CONSIDER STARTER BUY", f"Price is below the primary buy zone but above the better-buy zone; score {s:.0f} and thesis remain acceptable"
         return "WATCH", f"Price is cheaper than the primary buy zone, but score {s:.0f}/100 does not justify an entry yet"
-
     if zone == "DEEP_VALUE":
         if s >= 70 and not bearish and not falling_risk:
             return "REVIEW BUY", "Price is below the better-buy zone but still above invalidation; rerun support/thesis checks before entry"
         return "WAIT MORE", "Price is below the better-buy zone and close enough to invalidation to require stabilization first"
-
     if zone == "BREAKOUT" and relvol >= 1.5 and s >= 75 and not bearish:
         return "BREAKOUT BUY", "Breakout confirmed by relative volume and adequate deterministic conviction"
     if zone == "BREAKOUT":

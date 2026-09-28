@@ -47,6 +47,19 @@ class RadarService:
         with SessionLocal() as db:
             p = db.query(Position).filter(Position.symbol == symbol).order_by(Position.created_at.desc()).first()
             pd = {"shares": p.shares, "avg_cost": p.avg_cost, "account": p.account} if p else None
+            prior = db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol == symbol).order_by(AnalysisSnapshot.created_at.desc()).first()
+            if prior:
+                try:
+                    prior_payload=json.loads(prior.payload_json)
+                    # Keep only the fields needed for deterioration detection; do
+                    # not recursively embed the entire previous snapshot.
+                    result["previous_snapshot"]={
+                        "breakdown": prior_payload.get("breakdown") or {},
+                        "deterministic_score": prior_payload.get("deterministic_score"),
+                        "action": prior_payload.get("action"),
+                    }
+                except Exception:
+                    result["previous_snapshot"] = {}
         action, reason = position_action(result, bundle["price"], pd)
         plan = position_action_plan(action, result, bundle["price"], pd)
         ai = self.ai.analyze(symbol, bundle, result)
@@ -93,15 +106,30 @@ class RadarService:
                 alert_type, severity, title = "position_review", "high", f"{symbol}: {full['action']}"
             elif full.get("action") == "WAIT MORE" and full.get("levels", {}).get("buy_low", 0) <= full.get("price", 0) <= full.get("levels", {}).get("buy_high", 0):
                 alert_type, severity, title = "wait_more", "medium", f"{symbol}: Buy level reached — WAIT MORE"
-            if alert_type and old_action != full.get("action"):
+            if alert_type:
                 plan = full.get("action_plan") or {}
                 qty_text = ""
                 if plan.get("suggested_shares"):
                     qty_text = f" Suggested: {plan['suggested_shares']:g} shares ({plan.get('actual_percent', 0):.1f}% of position)."
-                db.add(Alert(
-                    symbol=symbol, alert_type=alert_type, severity=severity, title=title,
-                    message=(full.get("action_reason", "") + qty_text).strip(), action=full.get("action", "REVIEW"),
-                ))
+                message=(full.get("action_reason", "") + qty_text).strip()
+                # One active alert per ticker + condition. Repeated scans refresh the
+                # existing alert instead of growing the list with duplicates.
+                active = db.query(Alert).filter(
+                    Alert.symbol == symbol, Alert.alert_type == alert_type,
+                    Alert.action == full.get("action", "REVIEW"), Alert.acknowledged == False,
+                ).order_by(Alert.created_at.desc()).first()
+                if active:
+                    active.severity=severity; active.title=title; active.message=message
+                    active.created_at=datetime.now(timezone.utc); active.snoozed_until=None
+                elif old_action != full.get("action"):
+                    # Supersede stale active conditions for the same symbol while
+                    # preserving them as acknowledged history.
+                    for stale in db.query(Alert).filter(Alert.symbol==symbol, Alert.acknowledged==False).all():
+                        stale.acknowledged=True
+                    db.add(Alert(
+                        symbol=symbol, alert_type=alert_type, severity=severity, title=title,
+                        message=message, action=full.get("action", "REVIEW"),
+                    ))
             db.commit()
 
     def priority_symbols(self) -> list[str]:
