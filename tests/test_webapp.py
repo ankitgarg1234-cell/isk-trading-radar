@@ -239,3 +239,28 @@ def test_live_api_exposes_decision_surface_fields(monkeypatch):
     assert row["level_label"] == "Primary Buy"
     assert row["distance"] == "NOW"
     assert "risk_fit" in row and "suggested_shares" in row
+
+
+def test_dashboard_has_filters_for_every_radar_decision_column(monkeypatch):
+    from app.db import RadarCandidate, AnalysisSnapshot
+    p=full_payload("COLFLT")
+    p["currency"]="USD";p["entry_zone_status"]="PRIMARY_BUY";p["fundamentals"]={"companyName":"Column Filter Inc","sector":"Technology"}
+    monkeypatch.setattr(mainmod.radar.provider,"fx_rate",lambda a,b:1.0)
+    with SessionLocal() as db:
+        db.add(RadarCandidate(symbol="COLFLT",category="Core",action="BUY NOW",score=88,ai_score=92,price=100))
+        db.add(AnalysisSnapshot(symbol="COLFLT",price=100,deterministic_score=88,analyst_score=80,ai_score=92,expected_yield_pct=25,ai_expected_yield_pct=30,category="Core",action="BUY NOW",payload_json=json.dumps(p)))
+        db.commit()
+    r=client.get('/')
+    assert r.status_code == 200
+    body=r.text
+    for element_id in [
+        'radarSearch','radarPriceMin','radarPriceMax','radarSystemMin','radarAiMin',
+        'radarLevelFilter','radarDistanceMax','radarYieldMin','radarRRMin','radarStopRiskMax',
+        'radarAnalystFilter','radarAnalystMin','radarFitFilter','radarStockRiskMax',
+        'radarSizeFilter','radarSharesMin','radarCapitalMin','columnFilterCount','radarResultCount'
+    ]:
+        assert f'id="{element_id}"' in body
+    for attr in ['data-price=','data-level=','data-target=','data-stop=','data-rr=',
+                 'data-analyst-label=','data-analyst-score=','data-risk-fit=',
+                 'data-stock-risk=','data-suggested-shares=','data-suggested-capital=']:
+        assert attr in body
