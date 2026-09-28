@@ -59,3 +59,20 @@ def test_marketwide_universe_is_not_limited_to_seed_symbols(monkeypatch):
     assert any(s.startswith("U") for s in syms)
     assert "DISC" in syms
 
+
+
+def test_persist_refreshes_same_active_alert_instead_of_duplicating():
+    from app.db import Alert
+    r=RadarService(provider=FakeProvider(),ai=FakeAI())
+    payload={
+        "symbol":"DEDUP","price":100,"deterministic_score":90,"analyst_score":80,"ai_score":93,
+        "expected_yield_pct":25,"ai_expected_yield_pct":30,"category":"Core","action":"BUY NOW",
+        "action_reason":"first reason","levels":{"buy_low":98,"buy_high":101},
+    }
+    r.persist(payload)
+    payload["action_reason"]="updated reason"
+    r.persist(payload)
+    with SessionLocal() as db:
+        alerts=db.query(Alert).filter(Alert.symbol=="DEDUP",Alert.acknowledged==False).all()
+        assert len(alerts)==1
+        assert alerts[0].message=="updated reason"

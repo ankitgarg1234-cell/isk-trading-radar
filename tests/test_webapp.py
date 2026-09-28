@@ -282,3 +282,35 @@ def test_dashboard_uses_servicenow_style_inline_column_filters():
     assert 'column-filter-panel' not in body
     assert 'Clear filters' in body
 
+
+
+def test_alert_drilldown_dismiss_and_snooze_endpoints():
+    from app.db import Alert, AnalysisSnapshot, SessionLocal
+    payload=full_payload("ALRT")
+    payload["action_reason"]="Primary buy zone reached"
+    payload["thesis_assessment"]={"invalidated":False,"reasons":[]}
+    payload["sensitivity"]=[{"condition":"Bad guidance","new_score":55}]
+    with SessionLocal() as db:
+        db.add(AnalysisSnapshot(symbol="ALRT",price=100,deterministic_score=80,analyst_score=75,ai_score=84,expected_yield_pct=20,ai_expected_yield_pct=22,category="Core",action="BUY NOW",payload_json=json.dumps(payload)))
+        a=Alert(symbol="ALRT",alert_type="buy_level",severity="high",title="ALRT: BUY NOW",message="Primary buy zone reached",action="BUY NOW")
+        db.add(a);db.commit();aid=a.id
+    r=client.get(f'/api/alerts/{aid}')
+    assert r.status_code==200
+    d=r.json();assert d["analysis"]["system_score"] is not None
+    assert d["analysis"]["thesis_invalidated"] is False
+    r=client.post(f'/alerts/{aid}/snooze',json={"minutes":60});assert r.status_code==200
+    live=client.get('/api/live').json();assert all(a["id"]!=aid for a in live["alerts"])
+    r=client.post(f'/alerts/{aid}/dismiss');assert r.status_code==200
+
+
+def test_dashboard_alerts_are_clickable_and_have_cross_and_direct_conviction_filters():
+    from app.db import Alert, SessionLocal
+    with SessionLocal() as db:
+        db.add(Alert(symbol="CLICK",alert_type="buy_level",severity="high",title="CLICK: BUY NOW",message="reason",action="BUY NOW"));db.commit()
+    r=client.get('/')
+    body=r.text
+    assert 'class="alert-main alert-toggle"' in body
+    assert 'class="icon-btn dismiss-alert"' in body
+    assert 'data-alert-detail=' in body
+    assert 'class="sn-conviction-row"' in body
+    assert 'id="radarSystemMin"' in body and 'id="radarAiMin"' in body

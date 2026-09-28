@@ -128,10 +128,10 @@ def test_low_score_missing_evidence_does_not_force_reduce():
     assert "missing data" in reason.lower() or "incomplete" in reason.lower()
 
 
-def test_reduce_action_has_explicit_quantity_plan():
+def test_weak_price_momentum_and_low_score_do_not_trigger_panic_reduce():
     result={
         "deterministic_score":59,
-        "news":{"label":"Bearish","material_events":1,"high_negative_events":0},
+        "news":{"label":"Bearish","material_events":1,"high_negative_events":0,"items":[]},
         "technicals":{"ema20":105,"rsi":35},
         "levels":{"buy_low":90,"buy_high":95,"better_low":85,"better_high":88,"stop":70,"do_not_chase":120,"breakout":110},
         "breakdown":{"Fundamentals":7},
@@ -139,11 +139,42 @@ def test_reduce_action_has_explicit_quantity_plan():
         "decision_confidence":"high",
     }
     position={"shares":6,"avg_cost":110,"account":"Avanza Screenshot"}
-    action,_=position_action(result,100,position)
+    action,reason=position_action(result,100,position)
+    assert action == "HOLD — DON'T ADD"
+    assert "thesis" in reason.lower() or "panic sell" in reason.lower()
+
+def test_reduce_requires_verified_fundamental_invalidation_and_has_quantity_plan():
+    result={
+        "deterministic_score":57,
+        "news":{"label":"Bearish","material_events":1,"high_negative_events":1,"items":[{"title":"Company cuts guidance after demand deterioration","sentiment":"negative"}]},
+        "technicals":{"ema20":105,"rsi":35},
+        "levels":{"buy_low":90,"buy_high":95,"better_low":85,"better_high":88,"stop":70,"do_not_chase":120,"breakout":110},
+        "breakdown":{"Fundamentals":7},
+        "fundamental_confidence":"high",
+        "decision_confidence":"high",
+        "previous_snapshot":{"breakdown":{"Fundamentals":14}},
+    }
+    position={"shares":6,"avg_cost":110,"account":"Avanza Screenshot"}
+    action,reason=position_action(result,100,position)
     assert action == "REDUCE"
+    assert "deteriorated" in reason.lower() or "thesis-breaking" in reason.lower()
     plan=position_action_plan(action,result,100,position)
     assert plan["suggested_shares"] == 3
     assert plan["remaining_shares"] == 3
+
+def test_technical_stop_break_alone_does_not_auto_exit():
+    result={
+        "deterministic_score":70,
+        "news":{"label":"Neutral","material_events":0,"high_negative_events":0,"items":[]},
+        "technicals":{"ema20":105,"rsi":35},
+        "levels":{"buy_low":90,"buy_high":95,"better_low":85,"better_high":88,"stop":101,"do_not_chase":120,"breakout":110},
+        "breakdown":{"Fundamentals":14},
+        "fundamental_confidence":"high",
+        "decision_confidence":"high",
+    }
+    action,reason=position_action(result,100,{"shares":6,"avg_cost":110,"account":"Avanza Screenshot"})
+    assert action == "HOLD — THESIS REVIEW"
+    assert "technical" in reason.lower()
 
 
 def test_analyst_score_can_use_recommendation_counts_without_target():
