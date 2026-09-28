@@ -254,13 +254,31 @@ def test_dashboard_has_filters_for_every_radar_decision_column(monkeypatch):
     assert r.status_code == 200
     body=r.text
     for element_id in [
-        'radarSearch','radarPriceMin','radarPriceMax','radarSystemMin','radarAiMin',
-        'radarLevelFilter','radarDistanceMax','radarYieldMin','radarRRMin','radarStopRiskMax',
-        'radarAnalystFilter','radarAnalystMin','radarFitFilter','radarStockRiskMax',
-        'radarSizeFilter','radarSharesMin','radarCapitalMin','columnFilterCount','radarResultCount'
+        'radarSearch','radarStockOperator','radarStockValue','radarCategoryFilter','radarOwnedFilter',
+        'radarPriceOperator','radarPriceValue','radarSignalOperator','radarSignalFilter','radarSystemMin','radarAiMin',
+        'radarLevelOperator','radarLevelFilter','radarDistanceOperator','radarDistanceValue',
+        'radarTargetMetric','radarTargetOperator','radarTargetValue',
+        'radarAnalystOperator','radarAnalystFilter','radarAnalystMin',
+        'radarFitOperator','radarFitFilter','radarRiskFilter','radarStockRiskMax',
+        'radarSizeFilter','radarSizeMetric','radarSizeOperator','radarSizeValue',
+        'columnFilterCount','radarResultCount'
     ]:
         assert f'id="{element_id}"' in body
-    for attr in ['data-price=','data-level=','data-target=','data-stop=','data-rr=',
+    for attr in ['data-price=','data-level=','data-distance-label=','data-target=','data-stop=','data-rr=',
                  'data-analyst-label=','data-analyst-score=','data-risk-fit=',
                  'data-stock-risk=','data-suggested-shares=','data-suggested-capital=']:
         assert attr in body
+
+
+def test_dashboard_uses_servicenow_style_inline_column_filters():
+    r=client.get('/')
+    assert r.status_code == 200
+    body=r.text
+    assert 'class="sn-filter-th' in body
+    assert 'class="sn-filter-line"' in body
+    assert '>Operator<' in body
+    assert '>Metric<' in body
+    assert 'class="sn-more"' in body
+    assert 'column-filter-panel' not in body
+    assert 'Clear filters' in body
+

@@ -1,6 +1,13 @@
-# Test Results
+# Test Results — ServiceNow Inline Filters
 
-- Automated regression suite: **53 passed / 0 failed**
-- JavaScript syntax check: **passed** (`node --check app/static/app.js`)
+- Full pytest regression suite: **54 passed / 0 failed**
+- Overall Python coverage: **69%**
+- `app/main.py`: **82%**
+- `app/analysis_engine.py`: **79%**
+- `app/portfolio_engine.py`: **76%**
+- `app/db.py`: **98%**
+- `python -m compileall -q app tests`: **PASS**
+- `node --check app/static/app.js`: **PASS**
+- Direct JavaScript assertions for text/discrete/numeric filter operators: **PASS**
 
-New regression coverage verifies that the dashboard exposes filter controls and row metadata for every surfaced Radar decision column.
+The tests include prior regression coverage for persistence, scanner behavior, company-name analysis resolution, screenshot import, risk-profile persistence, position sizing, entry-state decisions and decision-surface rendering.

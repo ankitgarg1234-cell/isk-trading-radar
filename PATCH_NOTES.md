@@ -1,34 +1,30 @@
-# Radar Column Filter Patch
+# ServiceNow-style inline Radar filter patch
 
-Incremental patch for the ISK Trading Radar dashboard.
+This incremental patch replaces the previous expandable/bulk column-filter panel with inline filters directly inside each Radar table header.
 
-## What changed
-
-Every decision column on the main Radar now has a useful filter path:
-
-- **Stock** — ticker/company search, category, owned/new.
-- **Price** — minimum and maximum price.
-- **System view** — action plus minimum deterministic and AI scores.
-- **Active level** — Primary Buy, Better Buy, Breakout, Position action.
-- **Distance** — maximum percent distance to the active trigger; `NOW` is 0%.
-- **Target / Stop** — minimum expected return, minimum risk/reward, maximum downside to stop.
-- **Analyst** — analyst view and minimum analyst score; supports No consensus.
-- **Risk fit** — risk band, portfolio fit and maximum stock-risk score.
-- **Suggested size** — has/no suggested sizing, minimum shares and minimum capital.
-
-Additional usability changes:
-
-- Expandable **Column filters** panel keeps the main toolbar compact.
-- Active column-filter counter.
-- Visible-result counter.
-- More sort options: price, analyst score, stock risk, R/R and suggested capital.
-- All filters continue to apply after live Radar refreshes.
-
-## Files to replace
-
+## Changed runtime files
 - `app/templates/dashboard.html`
 - `app/static/app.js`
 - `app/static/style.css`
-- `tests/test_webapp.py` (test update; optional in production but recommended)
 
-No database migration or environment-variable change is required.
+## Test file
+- `tests/test_webapp.py`
+
+## UX changes
+- Each surfaced Radar column has an inline `Operator + Value` filter.
+- Stock supports contains / starts-with / exact / does-not-contain.
+- Stock funnel adds Category and Ownership filters.
+- Price supports >=, <=, >, < and exact.
+- System View supports is / is-not plus System-score and AI-score thresholds in the funnel.
+- Active Level supports is / is-not.
+- Distance supports within %, at-least %, and `is NOW`.
+- Target / Stop supports Expected Return, R/R, Stop Downside, or Target Price with numeric operators.
+- Analyst supports rating is / is-not, No Consensus, and analyst-score threshold.
+- Risk Fit supports fit is / is-not, plus Risk Band and stock-risk threshold.
+- Suggested Size supports Shares or Capital with numeric operators plus sized/unsized state.
+- Global Radar search, sorting, result count and clear-filters remain available.
+- Filter header is sticky inside the Radar table; Stock remains pinned on desktop.
+- Only one funnel menu is kept open at a time.
+
+## Compatibility
+No database schema, backend API, environment-variable, scanner, persistence, portfolio-risk or trade-decision changes are included in this patch.
