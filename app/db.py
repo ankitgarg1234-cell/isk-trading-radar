@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from typing import Optional
 from sqlalchemy import create_engine, String, Integer, Float, DateTime, Boolean, Text, UniqueConstraint, inspect
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from .config import settings
@@ -105,7 +104,7 @@ class Alert(Base):
     message: Mapped[str] = mapped_column(Text, default="")
     action: Mapped[str] = mapped_column(String(40), default="REVIEW")
     acknowledged: Mapped[bool] = mapped_column(Boolean, default=False)
-    snoozed_until: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    snoozed_until: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
 
