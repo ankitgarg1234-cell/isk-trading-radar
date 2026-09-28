@@ -197,3 +197,34 @@ def test_value_corridor_waits_for_better_buy_when_falling():
     action,reason=position_action(result,93,None)
     assert action == "WAIT FOR BETTER BUY"
     assert "85.00" in reason and "90.00" in reason
+
+
+def test_better_buy_zone_mild_weakness_does_not_force_wait():
+    """A Better Buy zone is expected to coincide with some weakness; one flag should stage, not veto."""
+    result={
+        "deterministic_score":72,
+        "news":{"label":"Neutral","material_events":0,"high_negative_events":0},
+        "technicals":{"ema20":71.0,"rsi":46,"relative_volume":0.8,"change20_pct":-3.0},
+        "levels":{"buy_low":71.14,"buy_high":72.31,"better_low":69.04,"better_high":70.12,"stop":67.87,"do_not_chase":80.80,"breakout":79.00},
+        "breakdown":{"Fundamentals":15},
+        "fundamental_confidence":"high",
+        "decision_confidence":"high",
+    }
+    action,reason=position_action(result,69.62,None)
+    assert action in {"CONSIDER STARTER BUY","CONSIDER BUYING NOW"}
+    assert "Better-buy zone reached" in reason
+
+
+def test_better_buy_zone_strong_converging_weakness_can_still_wait():
+    result={
+        "deterministic_score":74,
+        "news":{"label":"Neutral","material_events":0,"high_negative_events":0},
+        "technicals":{"ema20":73.0,"rsi":36,"relative_volume":1.7,"change20_pct":-8.0},
+        "levels":{"buy_low":71.14,"buy_high":72.31,"better_low":69.04,"better_high":70.12,"stop":67.87,"do_not_chase":80.80,"breakout":79.00},
+        "breakdown":{"Fundamentals":15},
+        "fundamental_confidence":"high",
+        "decision_confidence":"high",
+    }
+    action,reason=position_action(result,69.62,None)
+    assert action == "WAIT MORE"
+    assert "falling-knife" in reason
