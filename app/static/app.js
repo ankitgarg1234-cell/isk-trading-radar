@@ -15,7 +15,7 @@ function candidateRowsHtml(candidates,baseCurrency='SEK'){
     const isBuy=['STRONG BUY','BUY','STARTER BUY'].includes(c.system_signal);const sizing=c.suggested_shares?`<b>${isBuy?`${esc(c.suggested_shares)} shares`:`Plan ${esc(c.suggested_shares)} @ trigger`}</b><small>≈ ${Math.round(num(c.suggested_capital))} ${esc(baseCurrency)}${c.projected_risk!=null?` • acct risk → ${Math.round(num(c.projected_risk))}`:''}</small>`:`<b>—</b><small>${esc(c.sizing_reason||'')}</small>`;
     const analyst=c.analyst_score!=null?`${Math.round(num(c.analyst_score))}/100`:'No consensus score';
     const exp=c.expected_yield_pct!=null?`${num(c.expected_yield_pct).toFixed(1)}%`:'—';
-    return `<tr class="radar-row" data-symbol="${esc(c.symbol)}" data-search="${esc(`${c.symbol} ${c.name||''}`.toLowerCase())}" data-signal="${esc(c.system_signal)}" data-category="${esc(c.category)}" data-risk="${esc(c.risk_band)}" data-owned="${c.owned?'owned':'new'}" data-ai="${num(c.ai_score)}" data-system="${num(c.score)}" data-distance="${num(c.distance_pct,999)}" data-yield="${num(c.expected_yield_pct,-999)}">
+    return `<tr class="radar-row" data-symbol="${esc(c.symbol)}" data-search="${esc(`${c.symbol} ${c.name||''}`.toLowerCase())}" data-signal="${esc(c.system_signal)}" data-category="${esc(c.category)}" data-risk="${esc(c.risk_band)}" data-owned="${c.owned?'owned':'new'}" data-ai="${num(c.ai_score)}" data-system="${num(c.score)}" data-distance="${num(c.distance_pct,999)}" data-yield="${c.expected_yield_pct==null?'':num(c.expected_yield_pct)}" data-price="${num(c.price)}" data-level="${esc(c.level_label)}" data-target="${c.target==null?'':num(c.target)}" data-stop="${c.stop==null?'':num(c.stop)}" data-rr="${c.risk_reward==null?'':num(c.risk_reward)}" data-analyst-label="${esc(c.analyst_label)}" data-analyst-score="${c.analyst_score==null?'':num(c.analyst_score)}" data-risk-fit="${esc(c.risk_fit)}" data-stock-risk="${num(c.stock_risk)}" data-suggested-shares="${num(c.suggested_shares)}" data-suggested-capital="${num(c.suggested_capital)}">
       <td><div class="stock-cell"><b class="ticker">${esc(c.symbol)}</b><small>${esc((c.name&&c.name!==c.symbol)?c.name:c.category)}</small>${ownedBadge}${changed}</div></td>
       <td><b>${money(c.price,c.currency)}</b><small>${esc(c.category)} • Sys ${Math.round(num(c.score))} / AI ${Math.round(num(c.ai_score))}</small></td>
       <td><span class="signal-chip ${signalClass(c.system_signal)}">${esc(c.system_signal)}</span><small>${esc(c.action)}</small></td>
@@ -47,28 +47,59 @@ function bindRadarRows(){
   $$('.row-expand').forEach(btn=>btn.onclick=(e)=>{e.stopPropagation();const row=btn.closest('.radar-row');const detail=document.querySelector(`[data-detail-for="${CSS.escape(row.dataset.symbol)}"]`);if(detail){detail.classList.toggle('hidden');row.classList.toggle('expanded')}});
 }
 
+function optionalNumber(selector){const el=$(selector);if(!el||String(el.value).trim()==='')return null;const n=Number(el.value);return Number.isFinite(n)?n:null}
+function optionalDatasetNumber(row,key){const raw=row.dataset[key];if(raw==null||raw==='')return null;const n=Number(raw);return Number.isFinite(n)?n:null}
+function inRange(value,min,max){if(min!=null&&(value==null||value<min))return false;if(max!=null&&(value==null||value>max))return false;return true}
+function activeColumnFilterCount(){const ids=['#radarPriceMin','#radarPriceMax','#radarSystemMin','#radarAiMin','#radarLevelFilter','#radarDistanceMax','#radarYieldMin','#radarRRMin','#radarStopRiskMax','#radarAnalystFilter','#radarAnalystMin','#radarFitFilter','#radarStockRiskMax','#radarSizeFilter','#radarSharesMin','#radarCapitalMin'];return ids.reduce((n,sel)=>n+(($(sel)?.value||'').trim()!==''?1:0),0)}
+
 function applyRadarFilters(){
   const q=($('#radarSearch')?.value||'').trim().toLowerCase();
   const sig=$('#radarSignalFilter')?.value||'';const cat=$('#radarCategoryFilter')?.value||'';const risk=$('#radarRiskFilter')?.value||'';const owned=$('#radarOwnedFilter')?.value||'';
+  const priceMin=optionalNumber('#radarPriceMin'),priceMax=optionalNumber('#radarPriceMax');
+  const systemMin=optionalNumber('#radarSystemMin'),aiMin=optionalNumber('#radarAiMin');
+  const level=$('#radarLevelFilter')?.value||'',distanceMax=optionalNumber('#radarDistanceMax');
+  const yieldMin=optionalNumber('#radarYieldMin'),rrMin=optionalNumber('#radarRRMin'),stopRiskMax=optionalNumber('#radarStopRiskMax');
+  const analyst=$('#radarAnalystFilter')?.value||'',analystMin=optionalNumber('#radarAnalystMin');
+  const fit=$('#radarFitFilter')?.value||'',stockRiskMax=optionalNumber('#radarStockRiskMax');
+  const sizeState=$('#radarSizeFilter')?.value||'',sharesMin=optionalNumber('#radarSharesMin'),capitalMin=optionalNumber('#radarCapitalMin');
   const tbody=$('#candidateTable tbody');if(!tbody)return;
   const mains=$$('.radar-row');let visible=0;
-  mains.forEach(row=>{const ok=(!q||(row.dataset.search||'').includes(q))&&(!sig||row.dataset.signal===sig)&&(!cat||row.dataset.category===cat)&&(!risk||row.dataset.risk===risk)&&(!owned||row.dataset.owned===owned);row.classList.toggle('hidden',!ok);const det=document.querySelector(`[data-detail-for="${CSS.escape(row.dataset.symbol)}"]`);if(det&&!ok)det.classList.add('hidden');if(ok)visible++});
+  mains.forEach(row=>{
+    const price=optionalDatasetNumber(row,'price'),system=optionalDatasetNumber(row,'system'),ai=optionalDatasetNumber(row,'ai'),distance=optionalDatasetNumber(row,'distance');
+    const expectedYield=optionalDatasetNumber(row,'yield'),rr=optionalDatasetNumber(row,'rr'),target=optionalDatasetNumber(row,'target'),stop=optionalDatasetNumber(row,'stop');
+    const analystScore=optionalDatasetNumber(row,'analystScore'),stockRisk=optionalDatasetNumber(row,'stockRisk'),shares=optionalDatasetNumber(row,'suggestedShares')||0,capital=optionalDatasetNumber(row,'suggestedCapital')||0;
+    const stopRisk=(price!=null&&stop!=null&&price>0&&stop<price)?((price-stop)/price*100):null;
+    const analystOk=!analyst||(analyst==='__NONE__'?(row.dataset.analystScore==null||row.dataset.analystScore===''):row.dataset.analystLabel===analyst);
+    const sizeOk=!sizeState||(sizeState==='sized'?shares>0:shares<=0);
+    const ok=(!q||(row.dataset.search||'').includes(q))&&(!sig||row.dataset.signal===sig)&&(!cat||row.dataset.category===cat)&&(!risk||row.dataset.risk===risk)&&(!owned||row.dataset.owned===owned)
+      &&inRange(price,priceMin,priceMax)&&(systemMin==null||(system!=null&&system>=systemMin))&&(aiMin==null||(ai!=null&&ai>=aiMin))
+      &&(!level||row.dataset.level===level)&&(distanceMax==null||(distance!=null&&distance<=distanceMax))
+      &&(yieldMin==null||(expectedYield!=null&&expectedYield>=yieldMin))&&(rrMin==null||(rr!=null&&rr>=rrMin))&&(stopRiskMax==null||(stopRisk!=null&&stopRisk<=stopRiskMax))
+      &&analystOk&&(analystMin==null||(analystScore!=null&&analystScore>=analystMin))
+      &&(!fit||row.dataset.riskFit===fit)&&(stockRiskMax==null||(stockRisk!=null&&stockRisk<=stockRiskMax))
+      &&sizeOk&&(sharesMin==null&&capitalMin==null||((sharesMin==null||shares>=sharesMin)&&(capitalMin==null||capital>=capitalMin)));
+    row.classList.toggle('hidden',!ok);const det=document.querySelector(`[data-detail-for="${CSS.escape(row.dataset.symbol)}"]`);if(det&&!ok)det.classList.add('hidden');if(ok)visible++;
+  });
   $('#radarNoResults')?.classList.toggle('hidden',visible!==0);
+  if($('#radarResultCount'))$('#radarResultCount').textContent=`${visible} shown`;
+  const active=activeColumnFilterCount();if($('#columnFilterCount'))$('#columnFilterCount').textContent=`${active} active`;
 }
 
 function sortRadar(){
   const tbody=$('#candidateTable tbody');if(!tbody)return;const mode=$('#radarSort')?.value||'actionable';
   const actionRank={'STRONG BUY':0,'BUY':1,'STARTER BUY':2,'BREAKOUT BUY':3,'TAKE PROFIT':4,'SELL':5,'STRONG SELL':6,'HOLD':7,'WAIT':8,'WATCH':9};
   const rows=$$('.radar-row').map(row=>({row,detail:document.querySelector(`[data-detail-for="${CSS.escape(row.dataset.symbol)}"]`)}));
-  rows.sort((a,b)=>{if(mode==='ai')return num(b.row.dataset.ai)-num(a.row.dataset.ai);if(mode==='system')return num(b.row.dataset.system)-num(a.row.dataset.system);if(mode==='distance')return num(a.row.dataset.distance,999)-num(b.row.dataset.distance,999);if(mode==='yield')return num(b.row.dataset.yield,-999)-num(a.row.dataset.yield,-999);return (actionRank[a.row.dataset.signal]??99)-(actionRank[b.row.dataset.signal]??99)||num(b.row.dataset.ai)-num(a.row.dataset.ai)});
+  rows.sort((a,b)=>{if(mode==='ai')return num(b.row.dataset.ai)-num(a.row.dataset.ai);if(mode==='system')return num(b.row.dataset.system)-num(a.row.dataset.system);if(mode==='distance')return num(a.row.dataset.distance,999)-num(b.row.dataset.distance,999);if(mode==='yield')return num(b.row.dataset.yield,-999)-num(a.row.dataset.yield,-999);if(mode==='price-low')return num(a.row.dataset.price,Infinity)-num(b.row.dataset.price,Infinity);if(mode==='price-high')return num(b.row.dataset.price,-Infinity)-num(a.row.dataset.price,-Infinity);if(mode==='analyst')return num(b.row.dataset.analystScore,-1)-num(a.row.dataset.analystScore,-1);if(mode==='risk-low')return num(a.row.dataset.stockRisk,999)-num(b.row.dataset.stockRisk,999);if(mode==='rr')return num(b.row.dataset.rr,-1)-num(a.row.dataset.rr,-1);if(mode==='size')return num(b.row.dataset.suggestedCapital,0)-num(a.row.dataset.suggestedCapital,0);return (actionRank[a.row.dataset.signal]??99)-(actionRank[b.row.dataset.signal]??99)||num(b.row.dataset.ai)-num(a.row.dataset.ai)});
   rows.forEach(x=>{tbody.appendChild(x.row);if(x.detail)tbody.appendChild(x.detail)});applyRadarFilters();
 }
 
 function bindRadarControls(){
-  ['#radarSearch','#radarSignalFilter','#radarCategoryFilter','#radarRiskFilter','#radarOwnedFilter'].forEach(sel=>{const el=$(sel);if(el)el.addEventListener(sel==='#radarSearch'?'input':'change',applyRadarFilters)});
+  const quick=['#radarSearch','#radarSignalFilter','#radarCategoryFilter','#radarRiskFilter','#radarOwnedFilter'];
+  const columns=['#radarPriceMin','#radarPriceMax','#radarSystemMin','#radarAiMin','#radarLevelFilter','#radarDistanceMax','#radarYieldMin','#radarRRMin','#radarStopRiskMax','#radarAnalystFilter','#radarAnalystMin','#radarFitFilter','#radarStockRiskMax','#radarSizeFilter','#radarSharesMin','#radarCapitalMin'];
+  [...quick,...columns].forEach(sel=>{const el=$(sel);if(el)el.addEventListener((el.tagName==='INPUT')?'input':'change',applyRadarFilters)});
   $('#radarSort')?.addEventListener('change',sortRadar);
-  $('#clearRadarFilters')?.addEventListener('click',()=>{['#radarSearch','#radarSignalFilter','#radarCategoryFilter','#radarRiskFilter','#radarOwnedFilter'].forEach(sel=>{const el=$(sel);if(el)el.value=''});if($('#radarSort'))$('#radarSort').value='actionable';sortRadar()});
-  bindRadarRows();
+  $('#clearRadarFilters')?.addEventListener('click',()=>{[...quick,...columns].forEach(sel=>{const el=$(sel);if(el)el.value=''});if($('#radarSort'))$('#radarSort').value='actionable';sortRadar()});
+  bindRadarRows();applyRadarFilters();
 }
 
 async function refreshLive(){
