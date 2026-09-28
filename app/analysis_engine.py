@@ -489,7 +489,21 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
     change20 = t.get("change20_pct") or 0
     relvol = t.get("relative_volume") or 0
     momentum_weak = price < ema20 or rsi < 42
+    # Keep the general falling-risk rule for primary/value-corridor logic.
     falling_risk = (price < ema20 and change20 < -2) or rsi < 40
+    # Better Buy needs a stricter falling-knife test: reaching a discounted
+    # level will often mean price is below EMA20, so one mild warning alone
+    # should not veto the entry. Require converging weakness instead.
+    ema_gap_pct = ((price / ema20) - 1) * 100 if ema20 else 0
+    better_buy_weak_flags = [
+        rsi < 40,
+        change20 < -6,
+        ema_gap_pct < -2.5,
+        relvol >= 1.5 and change20 < -4,
+    ]
+    better_buy_weakness_count = sum(bool(x) for x in better_buy_weak_flags)
+    better_buy_falling_risk = rsi < 34 or better_buy_weakness_count >= 2
+    mild_better_buy_weakness = better_buy_weakness_count == 1
     bearish = n["label"] == "Bearish" and n["material_events"] > 0
     severe_bearish = n.get("high_negative_events", 0) >= 1 and bearish
     zone = entry_zone_state(lv, price)
@@ -555,11 +569,16 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
     # Better-buy zone: price is at the more attractive ladder level. Still avoid
     # catching a falling knife if trend deterioration is explicit.
     if zone == "BETTER_BUY":
-        if falling_risk or (bearish and momentum_weak):
-            return "WAIT MORE", "Better-buy zone reached, but downside momentum is still deteriorating; wait for stabilization"
+        technical_context = f"RSI {rsi:.1f}, 20d {change20:.1f}%, price vs EMA20 {ema_gap_pct:.1f}%"
+        if better_buy_falling_risk or (bearish and momentum_weak):
+            return "WAIT MORE", f"Better-buy zone reached, but multiple downside signals still point to falling-knife risk ({technical_context}); wait for stabilization"
+        if s >= 75 and not bearish and not mild_better_buy_weakness:
+            return "BUY NOW", f"Better-buy zone reached with strong score {s:.0f}, adequate evidence, and stable momentum ({technical_context})"
         if s >= 65 and not bearish:
-            return "CONSIDER BUYING NOW", f"Better-buy zone reached with score {s:.0f} and thesis intact"
-        return "WATCH", f"Better-buy zone reached, but score {s:.0f}/100 is not yet sufficient"
+            if mild_better_buy_weakness:
+                return "CONSIDER STARTER BUY", f"Better-buy zone reached and score is {s:.0f}; only one moderate weakness flag remains ({technical_context}), so consider a staged starter position rather than waiting for a lower price"
+            return "CONSIDER BUYING NOW", f"Better-buy zone reached with score {s:.0f}, adequate evidence, and thesis intact ({technical_context})"
+        return "WATCH", f"Better-buy zone reached, but score {s:.0f}/100 is not yet sufficient despite the attractive price"
 
     # Once price has crossed below the primary zone, do not misleadingly say
     # 'wait for buy zone'. It is already cheaper; decide between a starter entry
