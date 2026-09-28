@@ -98,4 +98,24 @@ class Alert(Base):
     acknowledged: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
+
+def storage_status() -> dict:
+    """Return a safe summary of the configured database backend.
+
+    Render's local filesystem is ephemeral, so the default SQLite fallback must
+    never be presented as durable account storage. A remote Postgres URL is
+    treated as persistent storage for the V1 ledger.
+    """
+    backend = engine.url.get_backend_name()
+    persistent = backend.startswith("postgresql")
+    return {
+        "backend": backend,
+        "persistent": persistent,
+        "label": "Persistent Postgres" if persistent else "Local SQLite",
+        "warning": None if persistent else (
+            "Account data is stored in local SQLite. On Render this filesystem is ephemeral, "
+            "so positions, cash, trades and analysis history can disappear after a restart or redeploy."
+        ),
+    }
+
 Base.metadata.create_all(engine)

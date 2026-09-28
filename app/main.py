@@ -9,7 +9,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy import text
 from .config import settings
-from .db import engine, SessionLocal, Position, AnalysisRequest, Trade, PortfolioCash, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert
+from .db import engine, SessionLocal, Position, AnalysisRequest, Trade, PortfolioCash, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, storage_status
 from .analysis_engine import parse_positions_from_text, portfolio_proposals
 from .scanner import radar
 from .ai_engine import AIEngine
@@ -53,7 +53,7 @@ def logout(request:Request):request.session.clear();return RedirectResponse("/lo
 def health():
     try:
         with engine.connect() as conn:conn.execute(text("SELECT 1"))
-        return {"status":"ok","database":"connected","scanner_running":radar.running,"last_scan":radar.last_scan,"market_open":radar.market_open()}
+        return {"status":"ok","database":"connected","storage":storage_status(),"scanner_running":radar.running,"last_scan":radar.last_scan,"market_open":radar.market_open()}
     except Exception as exc:return JSONResponse({"status":"degraded","database":str(exc)},status_code=503)
 
 def latest_payloads(db, symbols=None):
@@ -78,7 +78,7 @@ def dashboard(request:Request):
         currency=a.get("currency") or ("SEK" if p.symbol.endswith(".ST") else "USD")
         pos_views.append({"id":p.id,"symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account,"price":price,"pnl":pnl,"action":a.get("action","ANALYSIS QUEUED"),"ai_score":a.get("ai_score"),"action_plan":a.get("action_plan"),"action_reason":a.get("action_reason"),"currency":currency,"decision_confidence":a.get("decision_confidence")})
     analyses_for_prop={s:a for s,a in payloads.items() if a}; props=portfolio_proposals([{"symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost} for p in positions],analyses_for_prop,cash,reserve)
-    return templates.TemplateResponse(request,"dashboard.html",{"positions":pos_views,"trades":trades,"analyses":analyses_req,"alerts":alerts,"candidates":candidates,"cash":cash,"reserve":reserve,"proposals":props,"market_open":radar.market_open(),"scanner":radar,"now":datetime.now(timezone.utc),"auth_enabled":settings.auth_enabled,"live_poll_seconds":settings.live_poll_seconds})
+    return templates.TemplateResponse(request,"dashboard.html",{"positions":pos_views,"trades":trades,"analyses":analyses_req,"alerts":alerts,"candidates":candidates,"cash":cash,"reserve":reserve,"proposals":props,"market_open":radar.market_open(),"scanner":radar,"now":datetime.now(timezone.utc),"auth_enabled":settings.auth_enabled,"live_poll_seconds":settings.live_poll_seconds,"storage":storage_status()})
 
 def _analyze_symbols(symbols:list[str]):
     for symbol in symbols:
