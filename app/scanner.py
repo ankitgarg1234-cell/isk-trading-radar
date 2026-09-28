@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -13,6 +14,56 @@ from .analysis_engine import score_bundle, position_action, position_action_plan
 from .ai_engine import AIEngine
 
 NY = ZoneInfo("America/New_York")
+
+
+def _compact_payload(full: dict) -> dict:
+    """Return the current decision state without heavy historical arrays.
+
+    The live dashboard, alert drill-down and portfolio engine only need the
+    latest scores/levels/evidence summary. One-year price histories and sector
+    benchmark histories can be re-fetched on an explicit full-analysis refresh.
+    Keeping them out of Postgres cuts network egress by orders of magnitude.
+    """
+    compact = dict(full)
+    compact.pop("history", None)
+    sector = compact.get("sector_benchmark")
+    if isinstance(sector, dict):
+        sector = dict(sector)
+        sector.pop("history", None)
+        compact["sector_benchmark"] = sector
+    news = compact.get("news")
+    if isinstance(news, dict):
+        news = dict(news)
+        items = news.get("items")
+        if isinstance(items, list):
+            news["items"] = items[:5]
+        compact["news"] = news
+    # This is used only for deterioration comparison and should never chain
+    # historical snapshots recursively.
+    prior = compact.get("previous_snapshot")
+    if isinstance(prior, dict):
+        compact["previous_snapshot"] = {
+            "breakdown": prior.get("breakdown") or {},
+            "deterministic_score": prior.get("deterministic_score"),
+            "action": prior.get("action"),
+        }
+    return compact
+
+
+def _snapshot_key(payload: dict) -> str:
+    thesis = payload.get("thesis_assessment") or {}
+    news = payload.get("news") or {}
+    material = {
+        "action": payload.get("action"),
+        "deterministic_score": round(float(payload.get("deterministic_score") or 0), 1),
+        "ai_score": round(float(payload.get("ai_score") or 0), 1),
+        "fundamentals": (payload.get("breakdown") or {}).get("Fundamentals"),
+        "news_label": news.get("label"),
+        "material_events": news.get("material_events", 0),
+        "thesis_invalidated": bool(thesis.get("invalidated")),
+    }
+    raw = json.dumps(material, sort_keys=True, default=str).encode("utf-8")
+    return hashlib.sha1(raw).hexdigest()
 
 
 class RadarService:
@@ -47,12 +98,10 @@ class RadarService:
         with SessionLocal() as db:
             p = db.query(Position).filter(Position.symbol == symbol).order_by(Position.created_at.desc()).first()
             pd = {"shares": p.shares, "avg_cost": p.avg_cost, "account": p.account} if p else None
-            prior = db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol == symbol).order_by(AnalysisSnapshot.created_at.desc()).first()
-            if prior:
+            prior = db.query(RadarCandidate).filter(RadarCandidate.symbol == symbol).first()
+            if prior and prior.current_json:
                 try:
-                    prior_payload=json.loads(prior.payload_json)
-                    # Keep only the fields needed for deterioration detection; do
-                    # not recursively embed the entire previous snapshot.
+                    prior_payload=json.loads(prior.current_json)
                     result["previous_snapshot"]={
                         "breakdown": prior_payload.get("breakdown") or {},
                         "deterministic_score": prior_payload.get("deterministic_score"),
@@ -70,32 +119,72 @@ class RadarService:
 
     def persist(self, full: dict):
         symbol = full["symbol"]
-        payload = json.dumps(full, default=str)
+        compact = _compact_payload(full)
+        compact_json = json.dumps(compact, default=str, separators=(",", ":"))
+        now = datetime.now(timezone.utc)
         with SessionLocal() as db:
-            snap = AnalysisSnapshot(
-                symbol=symbol,
-                price=full.get("price", 0),
-                deterministic_score=full.get("deterministic_score", 0),
-                analyst_score=full.get("analyst_score") or 0,
-                ai_score=full.get("ai_score", 0),
-                expected_yield_pct=full.get("expected_yield_pct", 0),
-                ai_expected_yield_pct=full.get("ai_expected_yield_pct", 0),
-                category=full.get("category", "Watch"),
-                action=full.get("action", "WATCH"),
-                payload_json=payload,
-            )
-            db.add(snap)
             cand = db.query(RadarCandidate).filter(RadarCandidate.symbol == symbol).first()
             old_action = cand.action if cand else None
+            old_score = float(cand.score or 0) if cand else 0.0
+            old_ai = float(cand.ai_score or 0) if cand else 0.0
+            old_payload = {}
+            if cand and cand.current_json:
+                try: old_payload = json.loads(cand.current_json)
+                except Exception: old_payload = {}
             if not cand:
                 cand = RadarCandidate(symbol=symbol)
                 db.add(cand)
+            if old_action and old_action != full.get("action", "WATCH"):
+                cand.previous_action = old_action
             cand.category = full.get("category", "Watch")
             cand.action = full.get("action", "WATCH")
             cand.score = full.get("deterministic_score", 0)
             cand.ai_score = full.get("ai_score", 0)
             cand.price = full.get("price", 0)
-            cand.updated_at = datetime.now(timezone.utc)
+            cand.current_json = compact_json
+            cand.updated_at = now
+
+            # Historical snapshots are compact and throttled. Priority names
+            # (holdings/watchlist/manual requests) get an hourly checkpoint; broad
+            # market candidates get a six-hour checkpoint unless something material
+            # changes first.
+            is_priority = bool(
+                db.query(Position.id).filter(Position.symbol == symbol).first()
+                or db.query(WatchlistItem.id).filter(WatchlistItem.symbol == symbol).first()
+                or db.query(AnalysisRequest.id).filter(AnalysisRequest.symbol == symbol).first()
+            )
+            interval = settings.snapshot_interval_seconds if is_priority else settings.snapshot_interval_seconds * 6
+            last_at = cand.last_snapshot_at
+            if last_at and last_at.tzinfo is None:
+                last_at = last_at.replace(tzinfo=timezone.utc)
+            due = last_at is None or (now - last_at).total_seconds() >= interval
+            score_changed = abs(float(cand.score or 0) - old_score) >= settings.snapshot_score_delta or abs(float(cand.ai_score or 0) - old_ai) >= settings.snapshot_score_delta
+            old_news = old_payload.get("news") or {}
+            new_news = compact.get("news") or {}
+            old_thesis = old_payload.get("thesis_assessment") or {}
+            new_thesis = compact.get("thesis_assessment") or {}
+            material_change = bool(
+                old_action != cand.action
+                or score_changed
+                or old_news.get("material_events", 0) != new_news.get("material_events", 0)
+                or bool(old_thesis.get("invalidated")) != bool(new_thesis.get("invalidated"))
+            )
+            key = _snapshot_key(compact)
+            if due or material_change or not cand.last_snapshot_key:
+                db.add(AnalysisSnapshot(
+                    symbol=symbol,
+                    price=full.get("price", 0),
+                    deterministic_score=full.get("deterministic_score", 0),
+                    analyst_score=full.get("analyst_score") or 0,
+                    ai_score=full.get("ai_score", 0),
+                    expected_yield_pct=full.get("expected_yield_pct", 0),
+                    ai_expected_yield_pct=full.get("ai_expected_yield_pct", 0),
+                    category=full.get("category", "Watch"),
+                    action=full.get("action", "WATCH"),
+                    payload_json=compact_json,
+                ))
+                cand.last_snapshot_at = now
+                cand.last_snapshot_key = key
 
             alert_type = None
             severity = "info"
@@ -112,18 +201,14 @@ class RadarService:
                 if plan.get("suggested_shares"):
                     qty_text = f" Suggested: {plan['suggested_shares']:g} shares ({plan.get('actual_percent', 0):.1f}% of position)."
                 message=(full.get("action_reason", "") + qty_text).strip()
-                # One active alert per ticker + condition. Repeated scans refresh the
-                # existing alert instead of growing the list with duplicates.
                 active = db.query(Alert).filter(
                     Alert.symbol == symbol, Alert.alert_type == alert_type,
                     Alert.action == full.get("action", "REVIEW"), Alert.acknowledged == False,
                 ).order_by(Alert.created_at.desc()).first()
                 if active:
                     active.severity=severity; active.title=title; active.message=message
-                    active.created_at=datetime.now(timezone.utc); active.snoozed_until=None
+                    active.created_at=now; active.snoozed_until=None
                 elif old_action != full.get("action"):
-                    # Supersede stale active conditions for the same symbol while
-                    # preserving them as acknowledged history.
                     for stale in db.query(Alert).filter(Alert.symbol==symbol, Alert.acknowledged==False).all():
                         stale.acknowledged=True
                     db.add(Alert(

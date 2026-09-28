@@ -32,8 +32,8 @@
 
   <section class="two-col">
     <div class="panel">
-      <div class="section-title-row"><div><span class="kicker">ENTRY ENGINE</span><h2>Buying and risk levels</h2><p class="subtle">Current entry state: <b>{{ (d.get('entry_zone_status') or 'WATCH')|replace('_', ' ') }}</b></p></div></div>
-      <div class="levels-grid"><div><span>Buy zone (primary)</span><b>${{ '%.2f'|format(d.levels.buy_low or 0) }}–${{ '%.2f'|format(d.levels.buy_high or 0) }}</b></div><div><span>Better buy</span><b>${{ '%.2f'|format(d.levels.better_low or 0) }}–${{ '%.2f'|format(d.levels.better_high or 0) }}</b></div><div><span>Breakout buy</span><b>&gt; ${{ '%.2f'|format(d.levels.breakout or 0) }}</b></div><div><span>Do not chase</span><b>&gt; ${{ '%.2f'|format(d.levels.do_not_chase or 0) }}</b></div><div><span>Stop / invalidation</span><b>${{ '%.2f'|format(d.levels.stop or 0) }}</b></div><div><span>Modeled target</span><b>${{ '%.2f'|format(d.levels.target or 0) }}</b></div></div>
+      <div class="section-title-row"><div><span class="kicker">ENTRY ENGINE</span><h2>Buying and risk levels</h2></div></div>
+      <div class="levels-grid"><div><span>Buy zone</span><b>${{ '%.2f'|format(d.levels.buy_low or 0) }}–${{ '%.2f'|format(d.levels.buy_high or 0) }}</b></div><div><span>Better buy</span><b>${{ '%.2f'|format(d.levels.better_low or 0) }}–${{ '%.2f'|format(d.levels.better_high or 0) }}</b></div><div><span>Breakout buy</span><b>&gt; ${{ '%.2f'|format(d.levels.breakout or 0) }}</b></div><div><span>Do not chase</span><b>&gt; ${{ '%.2f'|format(d.levels.do_not_chase or 0) }}</b></div><div><span>Stop / invalidation</span><b>${{ '%.2f'|format(d.levels.stop or 0) }}</b></div><div><span>Modeled target</span><b>${{ '%.2f'|format(d.levels.target or 0) }}</b></div></div>
     </div>
     <div class="panel">
       <div class="section-title-row"><div><span class="kicker">TECHNICAL STATE</span><h2>Momentum context</h2></div></div>

@@ -1,5 +1,5 @@
 from __future__ import annotations
-import asyncio, json, os
+import asyncio, json, os, threading, time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, Request, Form, UploadFile, File, HTTPException, BackgroundTasks
@@ -54,29 +54,48 @@ def logout(request:Request):request.session.clear();return RedirectResponse("/lo
 def health():
     try:
         with engine.connect() as conn:conn.execute(text("SELECT 1"))
-        return {"status":"ok","database":"connected","storage":storage_status(),"scanner_running":radar.running,"last_scan":radar.last_scan,"market_open":radar.market_open()}
+        return {"status":"ok","database":"connected","storage":storage_status(),"scanner_running":radar.running,"last_scan":radar.last_scan,"market_open":radar.market_open(),"live_poll_seconds":settings.live_poll_seconds,"dashboard_cache_seconds":settings.dashboard_cache_seconds}
     except Exception as exc:return JSONResponse({"status":"degraded","database":str(exc)},status_code=503)
 
-def latest_payloads(db, symbols=None):
-    q=db.query(AnalysisSnapshot).order_by(AnalysisSnapshot.created_at.desc())
-    if symbols:q=q.filter(AnalysisSnapshot.symbol.in_(symbols))
-    out={}
-    for s in q.limit(250).all():
-        if s.symbol not in out:
-            try:out[s.symbol]=json.loads(s.payload_json)
-            except:out[s.symbol]={"symbol":s.symbol,"price":s.price,"deterministic_score":s.deterministic_score,"ai_score":s.ai_score,"action":s.action}
-    return out
+def _candidate_payload(c: RadarCandidate) -> dict:
+    if getattr(c, "current_json", None):
+        try:
+            data=json.loads(c.current_json)
+            if isinstance(data,dict) and data.get("symbol"):return data
+        except Exception:
+            pass
+    return {
+        "symbol":c.symbol,"price":c.price,"deterministic_score":c.score,"ai_score":c.ai_score,
+        "category":c.category,"action":c.action,"levels":{},"technicals":{},"news":{},
+    }
 
-def _latest_and_previous(db, symbols: list[str] | None = None):
-    q=db.query(AnalysisSnapshot).order_by(AnalysisSnapshot.created_at.desc())
-    if symbols:q=q.filter(AnalysisSnapshot.symbol.in_(symbols))
-    latest={}; previous={}
-    for snap in q.limit(600).all():
-        try: payload=json.loads(snap.payload_json)
-        except Exception: payload={"symbol":snap.symbol,"price":snap.price,"deterministic_score":snap.deterministic_score,"ai_score":snap.ai_score,"action":snap.action}
-        if snap.symbol not in latest: latest[snap.symbol]=payload
-        elif snap.symbol not in previous: previous[snap.symbol]=payload
-    return latest, previous
+
+_LIVE_CACHE={"expires":0.0,"state":None,"scan_marker":None}
+_LIVE_CACHE_LOCK=threading.Lock()
+
+def _invalidate_live_cache():
+    with _LIVE_CACHE_LOCK:
+        _LIVE_CACHE["expires"]=0.0
+        _LIVE_CACHE["state"]=None
+        _LIVE_CACHE["scan_marker"]=None
+
+def _cached_live_state():
+    now=time.monotonic()
+    marker=radar.last_scan.isoformat() if radar.last_scan else None
+    with _LIVE_CACHE_LOCK:
+        if (
+            _LIVE_CACHE["state"] is not None
+            and _LIVE_CACHE.get("scan_marker")==marker
+            and now < _LIVE_CACHE["expires"]
+        ):
+            return _LIVE_CACHE["state"]
+    with SessionLocal() as db:
+        state=_dashboard_state(db)
+    with _LIVE_CACHE_LOCK:
+        _LIVE_CACHE["state"]=state
+        _LIVE_CACHE["scan_marker"]=marker
+        _LIVE_CACHE["expires"]=time.monotonic()+max(60,settings.dashboard_cache_seconds)
+    return state
 
 
 def _portfolio_profile(db) -> str:
@@ -137,8 +156,51 @@ def _dashboard_state(db):
     alerts=[a for a in raw_alerts if not _is_snoozed(a)]
     alerts=sorted(alerts,key=_alert_priority)[:20]
     candidates=db.query(RadarCandidate).order_by(RadarCandidate.updated_at.desc()).limit(150).all()
+    # Ensure current holdings are always represented even if they fall outside the
+    # most recently updated 150 Radar rows. This query returns compact current-state
+    # rows, never historical payloads.
+    have={c.symbol for c in candidates}
+    missing=[p.symbol for p in positions if p.symbol not in have]
+    if missing:
+        candidates += db.query(RadarCandidate).filter(RadarCandidate.symbol.in_(missing)).all()
     cash_rows=db.query(PortfolioCash).all()
-    payloads, previous=_latest_and_previous(db)
+    payloads={}
+    missing_current=[]
+    for c in candidates:
+        has_compact=False
+        if getattr(c,"current_json",None):
+            try:
+                parsed=json.loads(c.current_json)
+                if isinstance(parsed,dict) and parsed.get("symbol"):
+                    payloads[c.symbol]=parsed;has_compact=True
+            except Exception:
+                pass
+        if not has_compact:
+            payloads[c.symbol]={
+                "symbol":c.symbol,"price":c.price,"deterministic_score":c.score,"ai_score":c.ai_score,
+                "category":c.category,"action":c.action,"levels":{},"technicals":{},"news":{},
+            }
+            missing_current.append(c.symbol)
+    # Backward-compatibility bridge for a database created before ``current_json``.
+    # It is used only until the next scan populates compact current-state rows.
+    if missing_current:
+        latest={}
+        q=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol.in_(missing_current)).order_by(AnalysisSnapshot.created_at.desc())
+        for snap in q.limit(max(10,len(missing_current)*2)).all():
+            if snap.symbol in latest:continue
+            try:latest[snap.symbol]=json.loads(snap.payload_json)
+            except Exception:continue
+        payloads.update(latest)
+    # Holdings must remain position-aware even during the brief migration window
+    # before a RadarCandidate current-state row exists. This fallback is bounded
+    # to the user's holdings, not the broad market universe.
+    missing_holdings=[p.symbol for p in positions if p.symbol not in payloads]
+    for sym in missing_holdings:
+        snap=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol==sym).order_by(AnalysisSnapshot.created_at.desc()).first()
+        if snap:
+            try:payloads[sym]=json.loads(snap.payload_json)
+            except Exception:pass
+    previous={c.symbol:{"action":c.previous_action} for c in candidates if getattr(c,"previous_action","")}
     risk_profile=_portfolio_profile(db)
 
     # Use configured cash currency as account base. Without cash configuration,
@@ -228,12 +290,14 @@ def set_risk_profile(risk_profile:str=Form(...)):
         pref=db.query(PortfolioPreference).filter(PortfolioPreference.account=="Main").first()
         if not pref:pref=PortfolioPreference(account="Main");db.add(pref)
         pref.risk_profile=profile;pref.updated_at=datetime.now(timezone.utc);db.commit()
+    _invalidate_live_cache()
     return RedirectResponse("/",303)
 
 def _analyze_symbols(symbols:list[str]):
     for symbol in symbols:
         try: radar.analyze_symbol(symbol, True)
         except Exception: pass
+    _invalidate_live_cache()
 
 @app.post("/positions")
 def add_position(background_tasks:BackgroundTasks,symbol:str=Form(...),shares:float=Form(...),avg_cost:float=Form(...),account:str=Form("Manual")):
@@ -243,6 +307,7 @@ def add_position(background_tasks:BackgroundTasks,symbol:str=Form(...),shares:fl
         if p:p.shares=shares;p.avg_cost=avg_cost
         else:db.add(Position(symbol=symbol,shares=shares,avg_cost=avg_cost,account=account))
         db.commit()
+    _invalidate_live_cache()
     background_tasks.add_task(_analyze_symbols,[symbol])
     return RedirectResponse("/",303)
 
@@ -251,6 +316,7 @@ def delete_position(position_id:int):
     with SessionLocal() as db:
         p=db.get(Position,position_id)
         if p:db.delete(p);db.commit()
+    _invalidate_live_cache()
     return RedirectResponse("/",303)
 
 @app.post("/cash")
@@ -259,6 +325,7 @@ def set_cash(account:str=Form("Main"),cash:float=Form(...),reserve_cash:float=Fo
         c=db.query(PortfolioCash).filter(PortfolioCash.account==account).first()
         if not c:c=PortfolioCash(account=account);db.add(c)
         c.cash=cash;c.reserve_cash=reserve_cash;c.currency=currency.upper();c.updated_at=datetime.now(timezone.utc);db.commit()
+    _invalidate_live_cache()
     return RedirectResponse("/",303)
 
 @app.post("/trades")
@@ -267,6 +334,7 @@ def add_trade(symbol:str=Form(...),side:str=Form(...),shares:float=Form(...),pri
     if side not in {"BUY","SELL"}:raise HTTPException(400,"side must be BUY or SELL")
     with SessionLocal() as db:
         db.add(Trade(symbol=symbol,side=side,shares=shares,price=price,fees=fees,account=account,reason=reason));db.commit()
+    _invalidate_live_cache()
     return RedirectResponse("/",303)
 
 @app.post("/watchlist")
@@ -274,6 +342,7 @@ def add_watchlist(symbol:str=Form(...),source:str=Form("Manual")):
     symbol=symbol.upper().strip()
     with SessionLocal() as db:
         if not db.query(WatchlistItem).filter(WatchlistItem.symbol==symbol).first():db.add(WatchlistItem(symbol=symbol,source=source));db.commit()
+    _invalidate_live_cache()
     return RedirectResponse("/",303)
 
 @app.post("/analyze")
@@ -290,6 +359,7 @@ def analyze_symbol(symbol:str=Form(...),source_note:str=Form("Manual")):
     with SessionLocal() as db:db.add(AnalysisRequest(symbol=symbol,source_note=note));db.commit()
     try:radar.analyze_symbol(symbol,True)
     except Exception:pass
+    _invalidate_live_cache()
     return RedirectResponse(f"/analysis/{symbol}",303)
 
 @app.get("/analysis/{symbol}",response_class=HTMLResponse)
@@ -300,10 +370,14 @@ def analysis_page(request:Request,symbol:str,refresh:int=0):
         except Exception:data=None
     if data is None:
         with SessionLocal() as db:
-            s=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol==symbol).order_by(AnalysisSnapshot.created_at.desc()).first()
-            if s:
-                try:data=json.loads(s.payload_json)
-                except:data=None
+            c=db.query(RadarCandidate).filter(RadarCandidate.symbol==symbol).first()
+            if c:
+                data=_candidate_payload(c)
+            if not data or not data.get("symbol"):
+                s=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol==symbol).order_by(AnalysisSnapshot.created_at.desc()).first()
+                if s:
+                    try:data=json.loads(s.payload_json)
+                    except:data=None
     if data is None:
         try:data=radar.analyze_symbol(symbol,True)
         except Exception as exc:data={"symbol":symbol,"error":str(exc),"deterministic_score":0,"analyst_score":None,"ai_score":0,"action":"DATA UNAVAILABLE","price":0,"breakdown":{},"levels":{},"technicals":{},"news":{"items":[],"label":"Unknown","score":0},"reasons":[],"risks":["Market-data request failed"],"sensitivity":[]}
@@ -315,6 +389,9 @@ def analysis_json(symbol:str, refresh:int=0):
     if refresh:
         return radar.analyze_symbol(symbol,True)
     with SessionLocal() as db:
+        c=db.query(RadarCandidate).filter(RadarCandidate.symbol==symbol).first()
+        if c and c.current_json:
+            return _candidate_payload(c)
         s=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol==symbol).order_by(AnalysisSnapshot.created_at.desc()).first()
         if s:
             try:return json.loads(s.payload_json)
@@ -322,24 +399,29 @@ def analysis_json(symbol:str, refresh:int=0):
     return radar.analyze_symbol(symbol,True)
 
 @app.post("/api/scan-now")
-def scan_now():return radar.scan_once(force=True)
+def scan_now():
+    result=radar.scan_once(force=True)
+    _invalidate_live_cache()
+    return result
 
 @app.get("/api/live")
 def live():
-    with SessionLocal() as db:
-        state=_dashboard_state(db)
-        return {"market_open":radar.market_open(),"scanner_running":radar.running,"last_scan":radar.last_scan,"last_error":radar.last_error,"universe_size":radar.universe_size,"universe_prefiltered":radar.last_universe_prefiltered,"universe_deep_candidates":radar.last_universe_candidates,"deep_analyzed":radar.last_deep_analyzed,"risk_profile":state["risk_profile"],"account_risk":state["account_risk"],"summary":state["summary"],"base_currency":state["base_currency"],"alerts":[{"id":a.id,"symbol":a.symbol,"title":a.title,"message":a.message,"severity":a.severity,"action":a.action,"alert_type":a.alert_type,"created_at":a.created_at.isoformat() if a.created_at else None} for a in state["alerts"]],"candidates":state["candidates"]}
+    state=_cached_live_state()
+    return {"market_open":radar.market_open(),"scanner_running":radar.running,"last_scan":radar.last_scan,"last_error":radar.last_error,"universe_size":radar.universe_size,"universe_prefiltered":radar.last_universe_prefiltered,"universe_deep_candidates":radar.last_universe_candidates,"deep_analyzed":radar.last_deep_analyzed,"risk_profile":state["risk_profile"],"account_risk":state["account_risk"],"summary":state["summary"],"base_currency":state["base_currency"],"alerts":[{"id":a.id,"symbol":a.symbol,"title":a.title,"message":a.message,"severity":a.severity,"action":a.action,"alert_type":a.alert_type,"created_at":a.created_at.isoformat() if a.created_at else None} for a in state["alerts"]],"candidates":state["candidates"],"cache_seconds":settings.dashboard_cache_seconds}
 
 @app.get("/api/alerts/{alert_id}")
 def alert_detail(alert_id:int):
     with SessionLocal() as db:
         a=db.get(Alert,alert_id)
         if not a:raise HTTPException(404,"Alert not found")
-        snap=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol==a.symbol).order_by(AnalysisSnapshot.created_at.desc()).first()
-        payload={}
-        if snap:
-            try:payload=json.loads(snap.payload_json)
-            except Exception:payload={}
+        cand=db.query(RadarCandidate).filter(RadarCandidate.symbol==a.symbol).first()
+        payload=_candidate_payload(cand) if cand else {}
+        snap=None
+        if not payload or not payload.get("symbol"):
+            snap=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol==a.symbol).order_by(AnalysisSnapshot.created_at.desc()).first()
+            if snap:
+                try:payload=json.loads(snap.payload_json)
+                except Exception:payload={}
         p=db.query(Position).filter(Position.symbol==a.symbol).order_by(Position.created_at.desc()).first()
         pd={"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account} if p else None
         level=active_level(payload,bool(p)) if payload else {"label":"—","value":"—","distance":"—"}
@@ -368,6 +450,7 @@ def ack_alert(alert_id:int):
     with SessionLocal() as db:
         a=db.get(Alert,alert_id)
         if a:a.acknowledged=True;db.commit()
+    _invalidate_live_cache()
     return JSONResponse({"ok":True})
 
 @app.post("/alerts/{alert_id}/dismiss")
@@ -376,6 +459,7 @@ def dismiss_alert(alert_id:int):
     with SessionLocal() as db:
         a=db.get(Alert,alert_id)
         if a:a.acknowledged=True;db.commit()
+    _invalidate_live_cache()
     return JSONResponse({"ok":True})
 
 @app.post("/alerts/{alert_id}/snooze")
@@ -388,6 +472,7 @@ async def snooze_alert(alert_id:int, request:Request):
         if not a:raise HTTPException(404,"Alert not found")
         a.snoozed_until=datetime.now(timezone.utc).replace(tzinfo=None)+timedelta(minutes=minutes)
         db.commit()
+    _invalidate_live_cache()
     return JSONResponse({"ok":True,"minutes":minutes})
 
 @app.post("/api/import/parse-text")
@@ -408,6 +493,7 @@ async def import_confirm(request:Request, background_tasks:BackgroundTasks):
                 saved+=1; saved_symbols.append(sym)
             except:continue
         db.commit()
+    _invalidate_live_cache()
     if saved_symbols: background_tasks.add_task(_analyze_symbols, list(dict.fromkeys(saved_symbols)))
     return {"ok":True,"saved":saved,"analysis_queued":len(set(saved_symbols))}
 

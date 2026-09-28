@@ -92,6 +92,12 @@ class RadarCandidate(Base):
     score: Mapped[float] = mapped_column(Float, default=0.0)
     ai_score: Mapped[float] = mapped_column(Float, default=0.0)
     price: Mapped[float] = mapped_column(Float, default=0.0)
+    # Compact current-state payload used by the live dashboard. Heavy one-year
+    # price arrays are intentionally excluded to keep managed-Postgres egress low.
+    current_json: Mapped[str] = mapped_column(Text, default="{}")
+    previous_action: Mapped[str] = mapped_column(String(40), default="")
+    last_snapshot_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    last_snapshot_key: Mapped[str] = mapped_column(String(128), default="")
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class Alert(Base):
@@ -130,10 +136,11 @@ def storage_status() -> dict:
 Base.metadata.create_all(engine)
 
 def _ensure_runtime_columns():
-    """Tiny additive migration layer for incremental V1 patches.
+    """Small additive migration layer for incremental V1 patches.
 
-    SQLAlchemy create_all does not add columns to an existing table, so older
-    Render/Neon databases need the alert snooze column added explicitly.
+    SQLAlchemy ``create_all`` does not add columns to existing tables, so older
+    Render/Neon databases need new optional columns added explicitly. These
+    migrations are additive only; they never delete ledger/history data.
     """
     try:
         cols={c["name"] for c in inspect(engine).get_columns("alerts")}
@@ -141,8 +148,20 @@ def _ensure_runtime_columns():
             with engine.begin() as conn:
                 conn.exec_driver_sql("ALTER TABLE alerts ADD COLUMN snoozed_until TIMESTAMP NULL")
     except Exception:
-        # Do not prevent app startup if the database account cannot run DDL; the
-        # health/tests will surface the issue and alerts still work without snooze.
+        pass
+    try:
+        cols={c["name"] for c in inspect(engine).get_columns("radar_candidates")}
+        additions={
+            "current_json": "TEXT DEFAULT '{}'",
+            "previous_action": "VARCHAR(40) DEFAULT ''",
+            "last_snapshot_at": "TIMESTAMP NULL",
+            "last_snapshot_key": "VARCHAR(128) DEFAULT ''",
+        }
+        for name, ddl in additions.items():
+            if name not in cols:
+                with engine.begin() as conn:
+                    conn.exec_driver_sql(f"ALTER TABLE radar_candidates ADD COLUMN {name} {ddl}")
+    except Exception:
         pass
 
 _ensure_runtime_columns()

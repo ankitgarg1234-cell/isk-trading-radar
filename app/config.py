@@ -27,7 +27,13 @@ class Settings:
     quick_scan_workers: int = int(os.getenv("QUICK_SCAN_WORKERS", "8"))
     disable_scanner: bool = _bool("DISABLE_SCANNER", False)
     max_upload_mb: int = int(os.getenv("MAX_UPLOAD_MB", "8"))
-    live_poll_seconds: int = int(os.getenv("LIVE_POLL_SECONDS", "15"))
+    # Browser live polling is intentionally slower than the scanner cadence.
+    # The scanner already refreshes market decisions every ~2 minutes; polling
+    # managed Postgres every 15 seconds wasted egress without improving decisions.
+    live_poll_seconds: int = int(os.getenv("LIVE_POLL_SECONDS", "60"))
+    dashboard_cache_seconds: int = int(os.getenv("DASHBOARD_CACHE_SECONDS", "600"))
+    snapshot_interval_seconds: int = int(os.getenv("SNAPSHOT_INTERVAL_SECONDS", "3600"))
+    snapshot_score_delta: float = float(os.getenv("SNAPSHOT_SCORE_DELTA", "5"))
     radar_symbols: tuple[str, ...] = tuple(
         s.strip().upper()
         for s in os.getenv(
