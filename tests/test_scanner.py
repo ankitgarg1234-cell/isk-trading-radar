@@ -76,3 +76,44 @@ def test_persist_refreshes_same_active_alert_instead_of_duplicating():
         alerts=db.query(Alert).filter(Alert.symbol=="DEDUP",Alert.acknowledged==False).all()
         assert len(alerts)==1
         assert alerts[0].message=="updated reason"
+
+
+def test_persist_current_state_strips_heavy_history_and_throttles_snapshots():
+    import json
+    from app.db import AnalysisSnapshot, RadarCandidate
+    r=RadarService(provider=FakeProvider(),ai=FakeAI())
+    payload={
+        "symbol":"LEAN","price":100,"deterministic_score":80,"analyst_score":75,"ai_score":84,
+        "expected_yield_pct":20,"ai_expected_yield_pct":22,"category":"Core","action":"BUY NOW",
+        "action_reason":"test","levels":{"buy_low":95,"buy_high":101,"target":125,"stop":90},
+        "technicals":{"rsi":55},"breakdown":{"Fundamentals":18},"news":{"label":"Neutral","material_events":0,"items":[]},
+        "history":[{"date":f"2026-01-{(i%28)+1:02d}","close":100+i} for i in range(250)],
+        "sector_benchmark":{"symbol":"XLK","history":[{"date":"2026-01-01","close":1} for _ in range(120)]},
+    }
+    r.persist(payload)
+    r.persist(payload)
+    with SessionLocal() as db:
+        cand=db.query(RadarCandidate).filter(RadarCandidate.symbol=="LEAN").one()
+        current=json.loads(cand.current_json)
+        assert "history" not in current
+        assert "history" not in (current.get("sector_benchmark") or {})
+        assert db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol=="LEAN").count() == 1
+
+
+def test_material_action_change_writes_new_compact_snapshot():
+    import json
+    from app.db import AnalysisSnapshot
+    r=RadarService(provider=FakeProvider(),ai=FakeAI())
+    payload={
+        "symbol":"CHANGE","price":100,"deterministic_score":80,"analyst_score":75,"ai_score":84,
+        "expected_yield_pct":20,"ai_expected_yield_pct":22,"category":"Core","action":"WATCH",
+        "action_reason":"test","levels":{},"technicals":{},"breakdown":{"Fundamentals":18},
+        "news":{"label":"Neutral","material_events":0,"items":[]},"history":[{"close":1} for _ in range(100)],
+    }
+    r.persist(payload)
+    payload["action"]="BUY NOW"
+    r.persist(payload)
+    with SessionLocal() as db:
+        rows=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol=="CHANGE").all()
+        assert len(rows) == 2
+        assert all("\"history\"" not in row.payload_json for row in rows)

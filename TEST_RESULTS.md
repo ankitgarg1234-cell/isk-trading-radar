@@ -1,23 +1,24 @@
-# Test Results
+# Test Results — Database Egress Optimization
 
-Final verification after the alert-management/no-panic-sell patch:
+Final verification:
 
-- Pytest: **59 passed / 0 failed**
+- Pytest: **60 passed / 0 failed**
 - Python compile check: **PASS**
-- JavaScript syntax check (`node --check app/static/app.js`): **PASS**
-- Overall Python coverage: **70%**
+- JavaScript syntax check: **PASS**
+- Overall Python coverage: **65%**
 - `analysis_engine.py`: **81%**
-- `main.py`: **83%**
-- `db.py`: **94%**
+- `main.py`: **84%**
+- `db.py`: **92%**
 - `portfolio_engine.py`: **76%**
-- `scanner.py`: **65%**
+- `scanner.py`: **73%**
 
-Targeted regression coverage includes:
-- no panic REDUCE from weak momentum / low score alone
-- technical stop break does not auto-exit an intact thesis
-- verified fundamental deterioration can trigger REDUCE with an explicit share plan
-- duplicate active alerts are refreshed rather than duplicated
-- alert drill-down endpoint
-- dismiss and snooze actions
-- clickable alert UI with dismiss cross
-- visible System/AI conviction filters
+New targeted regression tests verify:
+- current-state payloads exclude heavy price-history arrays;
+- sector-benchmark history is excluded from current-state payloads;
+- repeated unchanged scans do not create duplicate historical snapshots;
+- material action changes create a new historical snapshot immediately;
+- historical snapshot payloads are compact;
+- the dashboard renders from `RadarCandidate.current_json` with no `AnalysisSnapshot` required;
+- repeated `/api/live` calls reuse the server-side cache;
+- live browser polling is no longer configured at an aggressive 15-second cadence;
+- existing persistence, screenshot import, portfolio risk, alert management, no-panic-sell logic, ServiceNow filters and company-name analysis tests remain green.

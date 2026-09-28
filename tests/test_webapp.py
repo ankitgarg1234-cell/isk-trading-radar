@@ -314,3 +314,37 @@ def test_dashboard_alerts_are_clickable_and_have_cross_and_direct_conviction_fil
     assert 'data-alert-detail=' in body
     assert 'class="sn-conviction-row"' in body
     assert 'id="radarSystemMin"' in body and 'id="radarAiMin"' in body
+
+
+def test_dashboard_can_render_from_compact_current_state_without_snapshot(monkeypatch):
+    from app.db import RadarCandidate
+    p=full_payload("COMPACT")
+    p["currency"]="USD";p["fundamentals"]={"companyName":"Compact State Inc","sector":"Technology"}
+    monkeypatch.setattr(mainmod.radar.provider,"fx_rate",lambda a,b:1.0)
+    with SessionLocal() as db:
+        db.add(RadarCandidate(symbol="COMPACT",category="Core",action="BUY NOW",score=88,ai_score=92,price=100,current_json=json.dumps(p)))
+        db.commit()
+    r=client.get('/')
+    assert r.status_code==200
+    assert "Compact State Inc" in r.text
+    with SessionLocal() as db:
+        assert db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol=="COMPACT").count()==0
+
+
+def test_live_endpoint_uses_short_server_cache(monkeypatch):
+    calls={"n":0}
+    original=mainmod._dashboard_state
+    def wrapped(db):
+        calls["n"]+=1
+        return original(db)
+    monkeypatch.setattr(mainmod,"_dashboard_state",wrapped)
+    mainmod._invalidate_live_cache()
+    assert client.get('/api/live').status_code==200
+    assert client.get('/api/live').status_code==200
+    assert calls["n"]==1
+
+
+def test_live_polling_default_is_not_aggressive():
+    from app.config import settings
+    assert settings.live_poll_seconds >= 60
+    assert settings.dashboard_cache_seconds >= 60
