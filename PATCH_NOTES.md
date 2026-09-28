@@ -1,37 +1,50 @@
-# Database Egress Optimization Patch
+# Actionable Attention Queue Patch
 
-## Why this patch exists
-The previous live dashboard polled `/api/live` every 15 seconds. Each request rebuilt dashboard state from historical `AnalysisSnapshot` rows and could deserialize hundreds of large payloads containing one-year price history and sector benchmark history. On managed Postgres this created unnecessary outbound database traffic and exhausted the free Neon network-transfer quota.
+Apply this patch after the latest ServiceNow-filter / alert-management / DB-egress optimization changes. It is cumulative for the files it replaces and preserves those prior changes.
 
-## Changes
-- Adds a compact `RadarCandidate.current_json` current-state payload.
-- Current state excludes one-year `history` arrays and sector-benchmark history arrays.
-- Dashboard/current-position logic uses current-state rows instead of scanning historical snapshots.
-- Existing databases receive additive `radar_candidates` columns automatically; no ledger tables are dropped or recreated.
-- Historical snapshots now store compact payloads only.
-- Snapshot writes are throttled:
-  - priority symbols (holdings/watchlist/manual analysis): normal checkpoint interval defaults to 1 hour;
-  - broad-market candidates: default checkpoint interval is 6 hours;
-  - action changes, meaningful score changes, material-news-count changes, or thesis invalidation changes still create a snapshot immediately.
-- Scanner deterioration comparison uses the compact current-state record instead of downloading the prior full historical snapshot.
-- Browser live polling defaults to 60 seconds instead of 15 seconds.
-- `/api/live` keeps a server-side cache and rebuilds database state after a completed scanner cycle, explicit invalidation, or safety timeout; multiple browser polls/tabs reuse the same state between scans.
-- Full-analysis and alert-drill-down routes prefer compact current state and fall back to historical snapshots only for pre-migration records.
-- Restores the Evidence Provenance section on the symbol analysis page so functionality is not lost.
+## What changes
 
-## New defaults
-- `LIVE_POLL_SECONDS=60`
-- `DASHBOARD_CACHE_SECONDS=600` (scanner completion changes the cache marker, so a new completed scan is surfaced without waiting 10 minutes)
-- `SNAPSHOT_INTERVAL_SECONDS=3600`
-- `SNAPSHOT_SCORE_DELTA=5`
+### `What needs attention now` is action-only
+Monitoring states no longer enter the attention queue:
+- WAIT MORE
+- WAIT FOR BETTER BUY
+- WATCH
+- HOLD
+- HOLD — DON'T ADD
+- other non-actionable monitoring states
 
-You do not need to set these variables unless you want to override the defaults.
+They remain visible in the main Radar.
 
-## Database safety
-The runtime migration is additive only. It adds these columns to `radar_candidates` if missing:
-- `current_json`
-- `previous_action`
-- `last_snapshot_at`
-- `last_snapshot_key`
+### Buy attention ladder
+A new-position entry alert is created only when price is in Primary Buy or Better Buy and the deterministic conviction meets the agreed ladder (with normal evidence/thesis safety gates):
+- 85–100 + Primary/Better Buy -> STRONG BUY
+- 75–84 + Primary/Better Buy -> BUY
+- 68–74 + Better Buy -> STARTER BUY
+- 68–74 + Primary Buy -> CONSIDER BUY
+- below 68 -> no attention alert
 
-No positions, trades, cash, alerts, preferences or historical snapshots are deleted.
+### Portfolio actions kept
+The attention queue still surfaces:
+- TAKE PARTIAL PROFIT / TAKE PROFIT
+- REDUCE / EXIT (only after the existing thesis/fundamental invalidation gate)
+- ROTATE / SWAP candidates
+- REBALANCE-compatible actions
+
+### Swap alerts
+Portfolio rotation proposals are synced into the alert lifecycle as `ROTATE` alerts. They can be drilled into, acknowledged, snoozed or dismissed like other alerts.
+
+The swap check is intentionally low-egress: it reads only high-conviction candidate rows plus the user's holdings, not the entire U.S. Radar universe.
+
+### Legacy alert cleanup
+Old WAIT/WATCH/HOLD alerts already stored in the database are filtered out of `What needs attention now` immediately. Scanner refreshes also acknowledge stale non-actionable live alerts without deleting historical rows.
+
+## Files
+- `app/scanner.py`
+- `app/main.py`
+- `app/templates/dashboard.html`
+- `app/static/app.js`
+- `tests/conftest.py`
+- `tests/test_scanner.py`
+- `tests/test_webapp.py`
+
+No database schema or environment-variable change is required.

@@ -1,24 +1,26 @@
-# Test Results — Database Egress Optimization
+# Test Results
 
-Final verification:
+Final verification on the cumulative project state used to build this patch:
 
-- Pytest: **60 passed / 0 failed**
-- Python compile check: **PASS**
-- JavaScript syntax check: **PASS**
-- Overall Python coverage: **65%**
+- Pytest: **69 passed / 0 failed**
+- Python compileall: **PASS**
+- JavaScript syntax (`node --check app/static/app.js`): **PASS**
+- Overall Python coverage: **72%**
 - `analysis_engine.py`: **81%**
-- `main.py`: **84%**
+- `main.py`: **85%**
 - `db.py`: **92%**
 - `portfolio_engine.py`: **76%**
-- `scanner.py`: **73%**
+- `scanner.py`: **75%**
 
-New targeted regression tests verify:
-- current-state payloads exclude heavy price-history arrays;
-- sector-benchmark history is excluded from current-state payloads;
-- repeated unchanged scans do not create duplicate historical snapshots;
-- material action changes create a new historical snapshot immediately;
-- historical snapshot payloads are compact;
-- the dashboard renders from `RadarCandidate.current_json` with no `AnalysisSnapshot` required;
-- repeated `/api/live` calls reuse the server-side cache;
-- live browser polling is no longer configured at an aggressive 15-second cadence;
-- existing persistence, screenshot import, portfolio risk, alert management, no-panic-sell logic, ServiceNow filters and company-name analysis tests remain green.
+Targeted regression coverage includes:
+- score 53 in Primary Buy does not create an attention alert
+- 68 Primary Buy -> CONSIDER BUY
+- 68–74 Better Buy -> STARTER BUY
+- 75–84 Primary/Better -> BUY
+- 85+ Primary/Better -> STRONG BUY
+- legacy WAIT alerts are hidden from the attention queue
+- actionable BUY remains visible
+- duplicate active alerts are suppressed/refreshed
+- portfolio ROTATE/SWAP proposal becomes an attention alert
+- swap scan does not load the full market payload universe
+- existing no-panic-sell thesis gates remain covered by the full suite

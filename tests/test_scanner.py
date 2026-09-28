@@ -75,7 +75,7 @@ def test_persist_refreshes_same_active_alert_instead_of_duplicating():
     with SessionLocal() as db:
         alerts=db.query(Alert).filter(Alert.symbol=="DEDUP",Alert.acknowledged==False).all()
         assert len(alerts)==1
-        assert alerts[0].message=="updated reason"
+        assert "deterministic conviction 90/100" in alerts[0].message
 
 
 def test_persist_current_state_strips_heavy_history_and_throttles_snapshots():
@@ -117,3 +117,80 @@ def test_material_action_change_writes_new_compact_snapshot():
         rows=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol=="CHANGE").all()
         assert len(rows) == 2
         assert all("\"history\"" not in row.payload_json for row in rows)
+
+
+def test_attention_buy_ladder_only_surfaces_agreed_entry_scores():
+    from app.scanner import _attention_buy_signal
+    base={"price":100,"decision_confidence":"high","negative_news_override":False,"thesis_assessment":{"invalidated":False}}
+    cases=[
+        (53,"PRIMARY_BUY",None),
+        (67,"BETTER_BUY",None),
+        (68,"PRIMARY_BUY","CONSIDER BUY"),
+        (68,"BETTER_BUY","STARTER BUY"),
+        (74,"BETTER_BUY","STARTER BUY"),
+        (75,"PRIMARY_BUY","BUY"),
+        (84,"BETTER_BUY","BUY"),
+        (85,"PRIMARY_BUY","STRONG BUY"),
+        (100,"BETTER_BUY","STRONG BUY"),
+    ]
+    for score,zone,expected in cases:
+        payload={**base,"deterministic_score":score,"entry_zone_status":zone}
+        action,_=_attention_buy_signal(payload)
+        assert action == expected
+
+
+def test_wait_more_buy_zone_does_not_create_attention_alert():
+    from app.db import Alert
+    r=RadarService(provider=FakeProvider(),ai=FakeAI())
+    payload={
+        "symbol":"WAIT53","price":100,"deterministic_score":53,"analyst_score":70,"ai_score":60,
+        "expected_yield_pct":15,"ai_expected_yield_pct":16,"category":"Watch","action":"WAIT MORE",
+        "action_reason":"Primary buy zone reached, but deterministic conviction is only 53/100",
+        "entry_zone_status":"PRIMARY_BUY","decision_confidence":"high","negative_news_override":False,
+        "thesis_assessment":{"invalidated":False},"levels":{"buy_low":98,"buy_high":101},
+    }
+    r.persist(payload)
+    with SessionLocal() as db:
+        assert db.query(Alert).filter(Alert.symbol=="WAIT53",Alert.acknowledged==False).count() == 0
+
+
+def test_agreed_buy_attention_actions_are_persisted():
+    from app.db import Alert
+    r=RadarService(provider=FakeProvider(),ai=FakeAI())
+    for symbol,score,zone,expected in [
+        ("SB85",85,"PRIMARY_BUY","STRONG BUY"),
+        ("BUY75",75,"BETTER_BUY","BUY"),
+        ("ST74",74,"BETTER_BUY","STARTER BUY"),
+        ("CB68",68,"PRIMARY_BUY","CONSIDER BUY"),
+    ]:
+        r.persist({
+            "symbol":symbol,"price":100,"deterministic_score":score,"analyst_score":80,"ai_score":82,
+            "expected_yield_pct":20,"ai_expected_yield_pct":22,"category":"Core","action":"WAIT MORE",
+            "action_reason":"underlying radar state","entry_zone_status":zone,"decision_confidence":"high",
+            "negative_news_override":False,"thesis_assessment":{"invalidated":False},"levels":{},
+        })
+        with SessionLocal() as db:
+            a=db.query(Alert).filter(Alert.symbol==symbol,Alert.acknowledged==False).one()
+            assert a.action == expected
+
+
+def test_rotation_proposal_is_synced_into_attention_alert_without_marketwide_payload_scan():
+    import json
+    from app.db import Alert, RadarCandidate
+    with SessionLocal() as db:
+        db.add(Position(symbol="WEAK",shares=10,avg_cost=100,account="Test"))
+        db.add(RadarCandidate(
+            symbol="WEAK",action="HOLD — DON'T ADD",score=60,ai_score=60,price=95,
+            current_json=json.dumps({"symbol":"WEAK","action":"HOLD — DON'T ADD","ai_score":60,"ai_expected_yield_pct":8}),
+        ))
+        db.add(RadarCandidate(
+            symbol="BEST",action="BUY NOW",score=82,ai_score=94,price=50,
+            current_json=json.dumps({"symbol":"BEST","action":"BUY NOW","ai_score":94,"ai_expected_yield_pct":35}),
+        ))
+        db.commit()
+    r=RadarService(provider=FakeProvider(),ai=FakeAI())
+    r._sync_rotation_alerts()
+    with SessionLocal() as db:
+        a=db.query(Alert).filter(Alert.alert_type=="portfolio_swap",Alert.acknowledged==False).one()
+        assert a.action == "ROTATE"
+        assert "WEAK" in a.title and "BEST" in a.title

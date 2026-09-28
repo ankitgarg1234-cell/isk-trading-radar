@@ -348,3 +348,15 @@ def test_live_polling_default_is_not_aggressive():
     from app.config import settings
     assert settings.live_poll_seconds >= 60
     assert settings.dashboard_cache_seconds >= 60
+
+
+def test_attention_queue_hides_legacy_wait_watch_hold_alerts():
+    from app.db import SessionLocal, Alert
+    with SessionLocal() as db:
+        db.add(Alert(symbol="OLDWAIT",alert_type="wait_more",severity="medium",title="OLDWAIT: WAIT MORE",message="legacy",action="WAIT MORE"))
+        db.add(Alert(symbol="ACTION",alert_type="buy_level",severity="high",title="ACTION: BUY",message="actionable",action="BUY"))
+        db.commit()
+    live=client.get('/api/live').json()
+    actions=[a['action'] for a in live['alerts']]
+    assert 'WAIT MORE' not in actions
+    assert 'BUY' in actions

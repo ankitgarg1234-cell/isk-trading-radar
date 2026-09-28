@@ -16,7 +16,17 @@ from app.db import Base, engine
 def clean_db():
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
+    try:
+        from app.main import _invalidate_live_cache
+        _invalidate_live_cache()
+    except Exception:
+        pass
     yield
+    try:
+        from app.main import _invalidate_live_cache
+        _invalidate_live_cache()
+    except Exception:
+        pass
 
 
 def pytest_sessionfinish(session, exitstatus):
