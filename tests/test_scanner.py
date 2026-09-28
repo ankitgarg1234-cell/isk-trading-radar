@@ -7,6 +7,11 @@ from app.db import SessionLocal, Position, WatchlistItem
 class FakeProvider:
     def discover(self,count=60):
         return [{"symbol":"DISC","change_pct":25},{"symbol":"OTHER","change_pct":5}]
+    def us_equity_universe(self):
+        return [{"symbol":f"U{i:03d}","name":f"Universe {i}"} for i in range(150)]
+    def quick_scan(self,symbol):
+        i=int(symbol[1:])
+        return {"symbol":symbol,"scan_score":100-i,"qualifies":i < 20,"price":10+i,"change_5_pct":5,"change_20_pct":8,"relative_volume":1.5,"dollar_volume":2_000_000}
 
 
 class FakeAI: pass
@@ -44,3 +49,13 @@ def test_persist_generates_buy_alert_without_duplicate_on_same_action():
     with SessionLocal() as db:
         assert db.query(RadarCandidate).filter(RadarCandidate.symbol=="BUYME").one().action == "BUY NOW"
         assert db.query(Alert).filter(Alert.symbol=="BUYME").count() == 1
+
+
+def test_marketwide_universe_is_not_limited_to_seed_symbols(monkeypatch):
+    r=RadarService(provider=FakeProvider(),ai=FakeAI())
+    syms=r.candidate_symbols()
+    assert r.universe_size == 150
+    assert r.last_universe_prefiltered > 12
+    assert any(s.startswith("U") for s in syms)
+    assert "DISC" in syms
+

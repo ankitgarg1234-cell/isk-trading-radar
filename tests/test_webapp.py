@@ -36,7 +36,7 @@ def test_dashboard_renders_shell_and_import_features():
     body=r.text
     assert "CONTINUOUS CROSS-SECTOR RADAR" in body
     assert "SCREENSHOT / OCR POSITION IMPORT" in body
-    assert "ANALYZE ANY SYMBOL" in body
+    assert "ANALYZE ANY COMPANY OR SYMBOL" in body
     assert "TRADE LEDGER" in body
 
 
@@ -161,3 +161,39 @@ def test_dashboard_shows_reason_for_position_action():
     assert r.status_code == 200
     assert "Why:" in r.text
     assert "Bearish evidence and weakening momentum are both present" in r.text
+
+
+def test_health_reports_storage_backend():
+    r=client.get('/health')
+    assert r.status_code == 200
+    storage=r.json()["storage"]
+    assert "backend" in storage and "persistent" in storage
+
+
+def test_dashboard_warns_when_using_local_sqlite():
+    r=client.get('/')
+    assert r.status_code == 200
+    assert "Account history is not durable yet" in r.text
+
+
+def test_position_survives_new_database_session():
+    client.post('/positions',data={"symbol":"PERSIST","shares":"3","avg_cost":"42","account":"Avanza"},follow_redirects=False)
+    with SessionLocal() as first:
+        assert first.query(Position).filter(Position.symbol=="PERSIST").one().shares == 3
+    # A page refresh/new request opens a completely new SQLAlchemy session.
+    r=client.get('/')
+    assert r.status_code == 200
+    with SessionLocal() as second:
+        assert second.query(Position).filter(Position.symbol=="PERSIST").one().avg_cost == 42
+
+
+def test_manual_analysis_accepts_company_name(monkeypatch):
+    monkeypatch.setattr(mainmod.radar.provider,"resolve_symbol",lambda q:{"symbol":"CRDO","name":"Credo Technology Group Holding Ltd","source":"test"})
+    monkeypatch.setattr(mainmod.radar,"analyze_symbol",lambda symbol,persist=True: full_payload(symbol))
+    r=client.post('/analyze',data={"symbol":"Credo Technology","source_note":"Recommended by friend"},follow_redirects=False)
+    assert r.status_code == 303
+    assert r.headers['location'] == '/analysis/CRDO'
+    with SessionLocal() as db:
+        req=db.query(mainmod.AnalysisRequest).filter(mainmod.AnalysisRequest.symbol=="CRDO").one()
+        assert "Credo Technology" in req.source_note
+

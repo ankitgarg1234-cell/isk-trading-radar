@@ -1,30 +1,27 @@
-# Entry-state decision patch
+# Market-wide scanner + company-name analysis patch
 
-Fixes the entry engine so a stock does not revert to generic WATCH after trading below the primary buy zone.
+## Fixes
 
-## Runtime files to replace
-- `app/analysis_engine.py`
-- `app/templates/analysis.html`
+1. Removes the old 12-symbol default seed universe.
+2. Loads the eligible U.S. listed-equity universe from Nasdaq Trader symbol-directory files, with SEC ticker-map fallback.
+3. Rotates through the full universe continuously during the U.S. regular session.
+4. Uses a lightweight first-pass price/volume/momentum screen across each universe slice, then deep-analyzes only promising names plus positions/watchlist/manual requests.
+5. Exposes universe size and per-cycle prefilter counts in the live API/dashboard.
+6. Manual Analyze input now accepts either ticker or company name.
+7. Company-name resolver uses exchange directories, fuzzy issuer-name matching, direct ticker input, and Yahoo search fallback.
 
-## Test file to replace
-- `tests/test_analysis_engine.py`
+## Default scan settings
 
-## New entry states
-- PRIMARY_BUY
-- BETTER_BUY
-- VALUE_CORRIDOR
-- DEEP_VALUE
-- APPROACHING_BREAKOUT
-- BREAKOUT
-- DO_NOT_CHASE
-- INVALIDATED
+- SCAN_INTERVAL_SECONDS=120
+- UNIVERSE_PREFILTER_BATCH_SIZE=120
+- SCAN_BATCH_SIZE=28 (max full/deep analyses per cycle)
+- UNIVERSE_DEEP_CANDIDATES=10
+- DISCOVERY_DEEP_CANDIDATES=8
+- PRIORITY_DEEP_LIMIT=12
+- QUICK_SCAN_WORKERS=8
 
-## Decision behavior
-- Primary buy zone + high conviction -> BUY NOW
-- Primary buy zone + adequate conviction -> CONSIDER BUYING NOW
-- Primary zone + falling-risk signal -> WAIT MORE
-- Price below primary zone but above better-buy zone -> CONSIDER STARTER BUY or WAIT FOR BETTER BUY depending on momentum
-- Better-buy zone -> CONSIDER BUYING NOW if thesis is intact
-- Existing holdings can ADD at active entry levels when evidence and conviction are adequate
+These are environment-overridable. The broad market scan is intentionally two-stage so thousands of stocks are not sent through SEC/news/AI calls every two minutes.
 
-Regression suite after patch: 38 passed, 0 failed.
+## Tests
+
+43 passed / 0 failed on the cumulative V1 codebase after this patch.
