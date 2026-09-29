@@ -1,11 +1,14 @@
-# Paper Position Visibility UI Patch
+# Event-driven paper-entry patch
 
-## What changed
-- Shows every current paper position directly inside the $10,000 shadow-portfolio card.
-- Each position shows ticker, shares, average entry, current value, current P&L %, weight, entry rank and optimizer reason.
-- Ticker links open the stock analysis.
-- Adds a recent paper-trade journal immediately below the position cards.
-- Expands the full paper ledger with P&L, portfolio weight, entry rank and reason.
-- `/api/live` now carries the compact recent paper-trade list so the display remains live without a page reload.
+This incremental patch changes the $10,000 shadow portfolio from a blanket 24-hour entry cadence to a two-speed model:
 
-No trading/optimizer logic was changed. This is a visibility/auditability patch only.
+- New STRONG BUY / BUY / STARTER BUY signals are evaluated immediately after the scanner cycle that detects them.
+- Multiple actionable changes in one scanner cycle are coalesced into one optimizer run.
+- Material rank changes are bucketed to avoid re-running on tiny intraday noise.
+- Thesis-gated paper EXIT / REDUCE / TAKE PARTIAL PROFIT remains immediate.
+- Portfolio rotations/swaps remain daily (or manually forced) to prevent churn.
+- Event-driven entries do not move the daily rotation clock.
+- Paper holdings are added to scanner priority symbols so held names receive fresh thesis/risk checks.
+- Neon egress is reduced: normal cycles read only current paper holdings (max 7); the Top-20 compact candidate payloads are loaded only when an optimizer event/daily rebalance is actually due.
+
+No live broker execution and no change to the deterministic score or optimizer ranking formula.

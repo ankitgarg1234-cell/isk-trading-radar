@@ -1,11 +1,13 @@
 import json
+from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
 
 from app.db import SessionLocal, RadarCandidate, PaperAccount, PaperPosition
 from app.main import app
-from app.paper_engine import run_paper_cycle, paper_status
+from app.paper_engine import run_paper_cycle, paper_status, _candidate_payloads
 from app.portfolio_engine import build_optimizer_plan, candidate_rank_score
+from app.scanner import RadarService
 
 client=TestClient(app)
 
@@ -95,3 +97,46 @@ def test_paper_status_exposes_position_identity_pnl_and_recent_trades():
             trade = status["trades"][0]
             for key in ("symbol", "side", "shares", "price", "rank_score", "reason", "created_at"):
                 assert key in trade
+
+
+def test_entry_event_buys_immediately_without_resetting_daily_rotation_clock():
+    p = payload("EVT", score=82, sector="Healthcare", expected=30, price=100)
+    rank = candidate_rank_score(p)["score"]
+    now = datetime.now(timezone.utc)
+    with SessionLocal() as db:
+        db.add(PaperAccount(account="Optimizer Paper", starting_cash=10000, cash=10000, benchmark_symbol="SPY", enabled=True, last_rebalance_at=now))
+        db.add(RadarCandidate(symbol="EVT", category="Core", action="BUY NOW", score=82, ai_score=88, price=100, portfolio_rank_score=rank, current_json=json.dumps(p)))
+        db.commit()
+    result = run_paper_cycle(BenchProvider(), entry_event=True)
+    assert result["rebalanced"] is True
+    assert result["entry_event"] is True
+    assert result["daily_rebalance"] is False
+    with SessionLocal() as db:
+        pos = db.query(PaperPosition).filter(PaperPosition.symbol == "EVT").first()
+        acct = db.query(PaperAccount).one()
+        assert pos is not None
+        # Event-driven entries must not postpone the separate daily rotation clock.
+        assert abs(acct.last_rebalance_at.replace(tzinfo=timezone.utc).timestamp() - now.timestamp()) < 1
+
+
+def test_normal_cycle_can_load_only_current_holdings_without_top20_egress():
+    with SessionLocal() as db:
+        for i in range(30):
+            p = payload(f"E{i:02d}", score=90, sector=f"S{i%5}")
+            db.add(RadarCandidate(symbol=p["symbol"], category="Core", action="BUY NOW", score=90, ai_score=88, price=100, portfolio_rank_score=90-i, current_json=json.dumps(p)))
+        db.commit()
+        rows = _candidate_payloads(db, ["E29"], ranked_limit=0)
+        assert set(rows) == {"E29"}
+        ranked = _candidate_payloads(db, ["E29"], ranked_limit=20)
+        assert len(ranked) <= 21
+        assert "E29" in ranked
+
+
+def test_scanner_entry_event_is_material_and_not_repeated_for_same_state():
+    radar = RadarService(provider=object(), ai=object())
+    p = payload("MAT", score=80, sector="Technology", expected=25, price=100)
+    assert radar._paper_entry_event(p) is True
+    assert radar._paper_entry_event(dict(p)) is False
+    changed = dict(p)
+    changed["expected_yield_pct"] = 5
+    assert radar._paper_entry_event(changed) is True
