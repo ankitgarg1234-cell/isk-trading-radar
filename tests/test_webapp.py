@@ -121,14 +121,15 @@ def test_screenshot_rejects_non_image_file():
 def test_live_api_returns_candidates_and_alerts():
     from app.db import RadarCandidate, Alert
     with SessionLocal() as db:
-        db.add(RadarCandidate(symbol="XYZ",category="Core",action="BUY NOW",score=90,ai_score=93,price=50))
-        db.add(Alert(symbol="XYZ",alert_type="buy_level",severity="high",title="XYZ: BUY NOW",message="buy level",action="BUY NOW"))
+        payload=full_payload("XYZ"); payload["price"]=50; payload["entry_zone_status"]="PRIMARY_BUY"; payload["levels"].update({"buy_low":48,"buy_high":52,"stop":44,"target":70})
+        db.add(RadarCandidate(symbol="XYZ",category="Core",action="BUY NOW",score=90,ai_score=93,price=50,portfolio_rank_score=90,current_json=json.dumps(payload)))
+        db.add(Alert(symbol="XYZ",alert_type="buy_level",severity="high",title="XYZ: BUY",message="buy level",action="BUY"))
         db.commit()
     r=client.get('/api/live')
     assert r.status_code == 200
     d=r.json()
     assert d["candidates"][0]["symbol"] == "XYZ"
-    assert d["alerts"][0]["action"] == "BUY NOW"
+    assert d["alerts"][0]["action"] == "BUY"
 
 
 def test_analysis_json_uses_saved_snapshot():
@@ -304,9 +305,11 @@ def test_alert_drilldown_dismiss_and_snooze_endpoints():
 
 
 def test_dashboard_alerts_are_clickable_and_have_cross_and_direct_conviction_filters():
-    from app.db import Alert, SessionLocal
+    from app.db import Alert, RadarCandidate, SessionLocal
     with SessionLocal() as db:
-        db.add(Alert(symbol="CLICK",alert_type="buy_level",severity="high",title="CLICK: BUY NOW",message="reason",action="BUY NOW"));db.commit()
+        payload=full_payload("CLICK"); payload["entry_zone_status"]="PRIMARY_BUY"
+        db.add(RadarCandidate(symbol="CLICK",category="Core",action="BUY NOW",score=88,ai_score=92,price=100,portfolio_rank_score=88,current_json=json.dumps(payload)))
+        db.add(Alert(symbol="CLICK",alert_type="buy_level",severity="high",title="CLICK: BUY",message="reason",action="BUY"));db.commit()
     r=client.get('/')
     body=r.text
     assert 'class="alert-main alert-toggle"' in body
@@ -351,9 +354,11 @@ def test_live_polling_default_is_not_aggressive():
 
 
 def test_attention_queue_hides_legacy_wait_watch_hold_alerts():
-    from app.db import SessionLocal, Alert
+    from app.db import SessionLocal, Alert, RadarCandidate
     with SessionLocal() as db:
         db.add(Alert(symbol="OLDWAIT",alert_type="wait_more",severity="medium",title="OLDWAIT: WAIT MORE",message="legacy",action="WAIT MORE"))
+        payload=full_payload("ACTION"); payload["entry_zone_status"]="PRIMARY_BUY"
+        db.add(RadarCandidate(symbol="ACTION",category="Core",action="BUY NOW",score=88,ai_score=92,price=100,portfolio_rank_score=88,current_json=json.dumps(payload)))
         db.add(Alert(symbol="ACTION",alert_type="buy_level",severity="high",title="ACTION: BUY",message="actionable",action="BUY"))
         db.commit()
     live=client.get('/api/live').json()

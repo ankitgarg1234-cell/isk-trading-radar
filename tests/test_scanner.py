@@ -174,23 +174,24 @@ def test_agreed_buy_attention_actions_are_persisted():
             assert a.action == expected
 
 
-def test_rotation_proposal_is_synced_into_attention_alert_without_marketwide_payload_scan():
+def test_rotation_proposal_is_synced_into_attention_alert_without_marketwide_payload_scan(monkeypatch):
     import json
     from app.db import Alert, RadarCandidate
     with SessionLocal() as db:
-        db.add(Position(symbol="WEAK",shares=10,avg_cost=100,account="Test"))
-        db.add(RadarCandidate(
-            symbol="WEAK",action="HOLD — DON'T ADD",score=60,ai_score=60,price=95,
-            current_json=json.dumps({"symbol":"WEAK","action":"HOLD — DON'T ADD","ai_score":60,"ai_expected_yield_pct":8}),
-        ))
-        db.add(RadarCandidate(
-            symbol="BEST",action="BUY NOW",score=82,ai_score=94,price=50,
-            current_json=json.dumps({"symbol":"BEST","action":"BUY NOW","ai_score":94,"ai_expected_yield_pct":35}),
-        ))
+        for sym in ["WEAK","H2","H3","H4","H5","H6"]:
+            db.add(Position(symbol=sym,shares=10,avg_cost=100,account="Test"))
+        weak={"symbol":"WEAK","price":95,"action":"HOLD — DON'T ADD","deterministic_score":50,"ai_score":55,"expected_yield_pct":4,"risk_reward":1.0,"decision_confidence":"high","entry_zone_status":"WATCH","levels":{},"fundamentals":{"sector":"Industrials"},"news":{"material_events":0}}
+        best={"symbol":"BEST","price":50,"action":"BUY NOW","deterministic_score":90,"ai_score":94,"expected_yield_pct":35,"risk_reward":3.2,"decision_confidence":"high","entry_zone_status":"PRIMARY_BUY","levels":{"buy_low":48,"buy_high":52,"stop":42,"target":70},"fundamentals":{"sector":"Technology"},"news":{"material_events":0},"thesis_assessment":{"invalidated":False}}
+        db.add(RadarCandidate(symbol="WEAK",action="HOLD — DON'T ADD",score=50,ai_score=55,price=95,portfolio_rank_score=30,current_json=json.dumps(weak)))
+        db.add(RadarCandidate(symbol="BEST",action="BUY NOW",score=90,ai_score=94,price=50,portfolio_rank_score=90,current_json=json.dumps(best)))
         db.commit()
+    from dataclasses import replace
+    import app.scanner as scanmod
+    monkeypatch.setattr(scanmod,"settings",replace(scanmod.settings,optimizer_live_gating=True))
     r=RadarService(provider=FakeProvider(),ai=FakeAI())
     r._sync_rotation_alerts()
     with SessionLocal() as db:
         a=db.query(Alert).filter(Alert.alert_type=="portfolio_swap",Alert.acknowledged==False).one()
         assert a.action == "ROTATE"
         assert "WEAK" in a.title and "BEST" in a.title
+
