@@ -10,8 +10,9 @@ from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy import text
 from .config import settings
 from .db import engine, SessionLocal, Position, AnalysisRequest, Trade, PortfolioCash, PortfolioPreference, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, storage_status
-from .analysis_engine import parse_positions_from_text, portfolio_proposals
-from .portfolio_engine import RISK_PROFILES, ACTION_RANK, normalise_profile, stock_risk_score, system_signal, active_level, analyst_label, suggested_position_size, account_risk, projected_risk, risk_band
+from .analysis_engine import parse_positions_from_text
+from .portfolio_engine import RISK_PROFILES, ACTION_RANK, normalise_profile, stock_risk_score, system_signal, active_level, analyst_label, suggested_position_size, account_risk, projected_risk, risk_band, build_optimizer_plan, candidate_rank_score
+from .paper_engine import paper_status, reset_paper, run_paper_cycle
 from .scanner import radar
 from .ai_engine import AIEngine
 
@@ -164,19 +165,24 @@ def _dashboard_state(db):
     trades=db.query(Trade).order_by(Trade.created_at.desc()).limit(20).all()
     analyses_req=db.query(AnalysisRequest).order_by(AnalysisRequest.created_at.desc()).limit(8).all()
     raw_alerts=db.query(Alert).filter(Alert.acknowledged==False).order_by(Alert.created_at.desc()).limit(100).all()
-    alerts=[a for a in raw_alerts if not _is_snoozed(a) and _attentionworthy_alert(a)]
-    alerts=sorted(alerts,key=_alert_priority)[:20]
-    candidates=db.query(RadarCandidate).order_by(RadarCandidate.updated_at.desc()).limit(150).all()
-    # Ensure current holdings are always represented even if they fall outside the
-    # most recently updated 150 Radar rows. This query returns compact current-state
-    # rows, never historical payloads.
+
+    # Read only the strongest/freshest compact rows. Full-market scanning continues
+    # in the background; the dashboard is intentionally capped at 20 opportunities.
+    fresh_cutoff=datetime.now(timezone.utc)-timedelta(days=4)
+    candidates=(db.query(RadarCandidate)
+        .filter(RadarCandidate.updated_at >= fresh_cutoff)
+        .order_by(RadarCandidate.portfolio_rank_score.desc(),RadarCandidate.updated_at.desc())
+        .limit(120).all())
+    if not candidates or max((float(getattr(c,"portfolio_rank_score",0) or 0) for c in candidates),default=0)<=0:
+        candidates=db.query(RadarCandidate).order_by(RadarCandidate.updated_at.desc()).limit(150).all()
     have={c.symbol for c in candidates}
     missing=[p.symbol for p in positions if p.symbol not in have]
     if missing:
         candidates += db.query(RadarCandidate).filter(RadarCandidate.symbol.in_(missing)).all()
+    candidate_map={c.symbol:c for c in candidates}
+
     cash_rows=db.query(PortfolioCash).all()
-    payloads={}
-    missing_current=[]
+    payloads={};missing_current=[]
     for c in candidates:
         has_compact=False
         if getattr(c,"current_json",None):
@@ -184,16 +190,10 @@ def _dashboard_state(db):
                 parsed=json.loads(c.current_json)
                 if isinstance(parsed,dict) and parsed.get("symbol"):
                     payloads[c.symbol]=parsed;has_compact=True
-            except Exception:
-                pass
+            except Exception:pass
         if not has_compact:
-            payloads[c.symbol]={
-                "symbol":c.symbol,"price":c.price,"deterministic_score":c.score,"ai_score":c.ai_score,
-                "category":c.category,"action":c.action,"levels":{},"technicals":{},"news":{},
-            }
+            payloads[c.symbol]={"symbol":c.symbol,"price":c.price,"deterministic_score":c.score,"ai_score":c.ai_score,"category":c.category,"action":c.action,"levels":{},"technicals":{},"news":{}}
             missing_current.append(c.symbol)
-    # Backward-compatibility bridge for a database created before ``current_json``.
-    # It is used only until the next scan populates compact current-state rows.
     if missing_current:
         latest={}
         q=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol.in_(missing_current)).order_by(AnalysisSnapshot.created_at.desc())
@@ -202,9 +202,6 @@ def _dashboard_state(db):
             try:latest[snap.symbol]=json.loads(snap.payload_json)
             except Exception:continue
         payloads.update(latest)
-    # Holdings must remain position-aware even during the brief migration window
-    # before a RadarCandidate current-state row exists. This fallback is bounded
-    # to the user's holdings, not the broad market universe.
     missing_holdings=[p.symbol for p in positions if p.symbol not in payloads]
     for sym in missing_holdings:
         snap=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol==sym).order_by(AnalysisSnapshot.created_at.desc()).first()
@@ -214,17 +211,10 @@ def _dashboard_state(db):
     previous={c.symbol:{"action":c.previous_action} for c in candidates if getattr(c,"previous_action","")}
     risk_profile=_portfolio_profile(db)
 
-    # Use configured cash currency as account base. Without cash configuration,
-    # use the first holding currency so tests/read-only views never need FX.
-    if cash_rows:
-        base_currency=str(cash_rows[0].currency or "SEK").upper()
-    elif positions:
-        first_payload=payloads.get(positions[0].symbol,{})
-        base_currency=_currency_for(positions[0].symbol,first_payload)
-    elif candidates:
-        base_currency=_currency_for(candidates[0].symbol,payloads.get(candidates[0].symbol,{}))
-    else:
-        base_currency="SEK"
+    if cash_rows:base_currency=str(cash_rows[0].currency or "SEK").upper()
+    elif positions:base_currency=_currency_for(positions[0].symbol,payloads.get(positions[0].symbol,{}))
+    elif candidates:base_currency=_currency_for(candidates[0].symbol,payloads.get(candidates[0].symbol,{}))
+    else:base_currency="SEK"
     currencies={str(c.currency or base_currency).upper() for c in cash_rows}
     for p in positions:currencies.add(_currency_for(p.symbol,payloads.get(p.symbol,{})))
     for c in candidates:
@@ -233,60 +223,98 @@ def _dashboard_state(db):
     fx=_fx_map(currencies,base_currency)
     cash,reserve=_sum_cash(cash_rows,base_currency,fx)
 
-    pos_views=[]; risk_rows=[]; owned={}
+    pos_views=[];risk_rows=[];owned={}
     for p in positions:
         a=payloads.get(p.symbol,{})
-        price=float(a.get("price") or 0); pnl=(price/p.avg_cost-1)*100 if price and p.avg_cost else None
-        currency=_currency_for(p.symbol,a); rate=fx.get(currency)
+        price=float(a.get("price") or 0);pnl=(price/p.avg_cost-1)*100 if price and p.avg_cost else None
+        currency=_currency_for(p.symbol,a);rate=fx.get(currency)
         value_base=(price*p.shares*rate) if price and rate else 0.0
         srisk=stock_risk_score(a) if a else 50.0
         sector=(a.get("fundamentals") or {}).get("sector") or "Unknown"
-        row={"id":p.id,"symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account,"price":price,"pnl":pnl,"action":a.get("action","ANALYSIS QUEUED"),"ai_score":a.get("ai_score"),"action_plan":a.get("action_plan"),"action_reason":a.get("action_reason"),"currency":currency,"decision_confidence":a.get("decision_confidence"),"value_base":value_base,"stock_risk":srisk,"sector":sector,"category":a.get("category"),"material_events":(a.get("news") or {}).get("material_events",0),"system_signal":system_signal(a,True) if a else "WATCH"}
-        pos_views.append(row); risk_rows.append(row); owned[p.symbol]=row
+        rank=candidate_rank_score(a) if a else {"score":0}
+        row={"id":p.id,"symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account,"price":price,"pnl":pnl,"action":a.get("action","ANALYSIS QUEUED"),"ai_score":a.get("ai_score"),"action_plan":a.get("action_plan"),"action_reason":a.get("action_reason"),"currency":currency,"decision_confidence":a.get("decision_confidence"),"value_base":value_base,"stock_risk":srisk,"sector":sector,"category":a.get("category"),"material_events":(a.get("news") or {}).get("material_events",0),"system_signal":system_signal(a,True) if a else "WATCH","portfolio_rank_score":rank.get("score",0)}
+        pos_views.append(row);risk_rows.append(row);owned[p.symbol]=row
 
     account=account_risk(risk_rows,cash,target_profile=risk_profile)
     portfolio_value=float(account.get("total") or cash)
+    optimizer=build_optimizer_plan(
+        payloads,set(owned),profile=risk_profile,
+        visible_limit=settings.optimizer_visible_limit,
+        shortlist_limit=settings.optimizer_shortlist_limit,
+        target_positions=settings.optimizer_target_positions,
+        max_positions=settings.optimizer_max_positions,
+        min_rank_score=settings.optimizer_min_rank_score,
+        max_same_sector=settings.optimizer_max_same_sector,
+        rotation_gap=settings.optimizer_rotation_gap,
+        rotation_yield_gap=settings.optimizer_rotation_yield_gap,
+    )
+    plan_by_symbol={r["symbol"]:r for r in optimizer["visible"]}
 
     radar_views=[]
-    for c in candidates:
-        a=payloads.get(c.symbol) or {"symbol":c.symbol,"price":c.price,"deterministic_score":c.score,"ai_score":c.ai_score,"category":c.category,"action":c.action,"levels":{},"technicals":{},"news":{}}
-        is_owned=c.symbol in owned
+    for rankrow in optimizer["visible"]:
+        sym=rankrow["symbol"]
+        c=candidate_map.get(sym)
+        a=payloads.get(sym) or {}
+        is_owned=sym in owned
         level=active_level(a,is_owned)
-        currency=_currency_for(c.symbol,a); rate=fx.get(currency)
-        existing_value=owned.get(c.symbol,{}).get("value_base",0.0)
-        sizing=suggested_position_size(a,cash=cash,reserve_cash=reserve,portfolio_value=portfolio_value,profile=risk_profile,fx_rate_to_base=rate or 0,existing_value=existing_value,whole_shares=True)
-        projected=projected_risk(risk_rows,cash,a,sizing,rate or 0,risk_profile) if rate else None
-        prev=previous.get(c.symbol) or {}
-        changed=None
-        if prev and prev.get("action") and prev.get("action")!=a.get("action"):
-            changed=f"{prev.get('action')} → {a.get('action')}"
-        fundamentals=a.get("fundamentals") or {}
-        name=fundamentals.get("companyName") or a.get("company_name") or c.symbol
+        currency=_currency_for(sym,a);rate=fx.get(currency)
+        existing_value=owned.get(sym,{}).get("value_base",0.0)
+        optimizer_approved=rankrow.get("bucket") in {"INVEST NOW","ROTATE IN"}
+        if optimizer_approved or is_owned:
+            sizing=suggested_position_size(a,cash=cash,reserve_cash=reserve,portfolio_value=portfolio_value,profile=risk_profile,fx_rate_to_base=rate or 0,existing_value=existing_value,whole_shares=True)
+        else:
+            sizing={"shares":0,"capital":0,"fit":rankrow.get("risk_fit","UNKNOWN"),"stock_risk":rankrow.get("stock_risk",stock_risk_score(a)),"reason":"No capital allocated: optimizer did not select this candidate for the 5–7 stock portfolio"}
+        projected=projected_risk(risk_rows,cash,a,sizing,rate or 0,risk_profile) if rate and sizing.get("shares") else None
+        prev=previous.get(sym) or {};changed=None
+        if prev and prev.get("action") and prev.get("action")!=a.get("action"):changed=f"{prev.get('action')} → {a.get('action')}"
+        fundamentals=a.get("fundamentals") or {};name=fundamentals.get("companyName") or a.get("company_name") or sym
         signal=system_signal(a,is_owned)
         view={
-            "symbol":c.symbol,"name":name,"price":float(a.get("price") or c.price or 0),"currency":currency,
-            "category":a.get("category") or c.category,"score":float(a.get("deterministic_score") or c.score or 0),"ai_score":float(a.get("ai_score") or c.ai_score or 0),
-            "analyst_score":a.get("analyst_score"),"analyst_label":analyst_label(a),"action":a.get("action") or c.action,"action_reason":a.get("action_reason") or "",
-            "system_signal":signal,"owned":is_owned,"owned_shares":owned.get(c.symbol,{}).get("shares"),"owned_avg":owned.get(c.symbol,{}).get("avg_cost"),
+            "symbol":sym,"name":name,"price":float(a.get("price") or (c.price if c else 0) or 0),"currency":currency,
+            "category":a.get("category") or (c.category if c else "Watch"),"score":float(a.get("deterministic_score") or (c.score if c else 0) or 0),"ai_score":float(a.get("ai_score") or (c.ai_score if c else 0) or 0),
+            "analyst_score":a.get("analyst_score"),"analyst_label":analyst_label(a),"action":a.get("action") or (c.action if c else "WATCH"),"action_reason":a.get("action_reason") or "",
+            "system_signal":signal,"owned":is_owned,"owned_shares":owned.get(sym,{}).get("shares"),"owned_avg":owned.get(sym,{}).get("avg_cost"),
             "level_label":level["label"],"level_value":level["value"],"distance":level["distance"],"distance_pct":level["distance_pct"],
             "target":(a.get("levels") or {}).get("target"),"stop":(a.get("levels") or {}).get("stop"),"risk_reward":a.get("risk_reward"),
-            "expected_yield_pct":a.get("ai_expected_yield_pct") if a.get("ai_expected_yield_pct") is not None else a.get("expected_yield_pct"),
-            "stock_risk":sizing.get("stock_risk",stock_risk_score(a)),"risk_band":risk_band(sizing.get("stock_risk",stock_risk_score(a))),"risk_fit":sizing.get("fit","UNKNOWN"),
+            "expected_yield_pct":a.get("expected_yield_pct"),
+            "stock_risk":sizing.get("stock_risk",stock_risk_score(a)),"risk_band":risk_band(sizing.get("stock_risk",stock_risk_score(a))),"risk_fit":sizing.get("fit",rankrow.get("risk_fit","UNKNOWN")),
             "suggested_shares":sizing.get("shares",0),"suggested_capital":sizing.get("capital",0),"sizing_reason":sizing.get("reason",""),
             "projected_risk":projected.get("score") if projected else None,"changed":changed,
-            "updated_at":c.updated_at.isoformat() if c.updated_at else None,
+            "updated_at":c.updated_at.isoformat() if c and c.updated_at else None,
+            "market_rank":rankrow.get("market_rank"),"portfolio_rank_score":rankrow.get("rank_score"),"optimizer_bucket":rankrow.get("bucket"),"optimizer_action":rankrow.get("optimizer_action"),
+            "rank_components":rankrow.get("rank_components"),"ai_confirmation":rankrow.get("ai_confirmation"),"analyst_confirmation":rankrow.get("analyst_confirmation"),
         }
         radar_views.append(view)
-    radar_views.sort(key=_actionable_sort)
-    analyses_for_prop={s:a for s,a in payloads.items() if a}
-    props=portfolio_proposals([{"symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost} for p in positions],analyses_for_prop,cash,reserve)
+
+    approved_buy_symbols={r["symbol"] for r in optimizer["selected_new"]}
+    alerts=[]
+    for a in raw_alerts:
+        if _is_snoozed(a) or not _attentionworthy_alert(a):continue
+        if settings.optimizer_live_gating and a.alert_type=="buy_level" and a.symbol not in approved_buy_symbols:continue
+        alerts.append(a)
+    alerts=sorted(alerts,key=_alert_priority)[:20]
+
+    view_by_symbol={v["symbol"]:v for v in radar_views}
+    props=[]
+    for r in optimizer["selected_new"]:
+        v=view_by_symbol.get(r["symbol"],{})
+        detail=f"Portfolio rank #{r['market_rank']} • priority {r['rank_score']:.1f}/100 • {r['entry_signal']} • deterministic expected return {r['expected_yield_pct']:.1f}%."
+        if v.get("suggested_shares"):
+            detail += f" Suggested {v['suggested_shares']} shares (≈ {v.get('suggested_capital',0):.0f} {base_currency})."
+        props.append({"type":"INVEST NOW" if settings.optimizer_live_gating else "SHADOW INVEST","title":f"Optimizer selects {r['symbol']}","detail":detail,"symbol_to":r["symbol"]})
+    for rot in optimizer["rotations"]:
+        props.append({"type":"ROTATE","title":rot["title"],"detail":rot["detail"],"symbol_from":rot["symbol_from"],"symbol_to":rot["symbol_to"]})
+
+    paper=paper_status(db)
     summary={
-        "buy_now":sum(v["system_signal"] in {"STRONG BUY","BUY","STARTER BUY"} and not v["owned"] for v in radar_views),
+        "buy_now":len(optimizer["selected_new"]),
         "portfolio_actions":sum(v["system_signal"] in {"SELL","STRONG SELL","TAKE PROFIT"} and v["owned"] for v in radar_views),
         "deployable_cash":max(0,cash-reserve),
-        "best_candidate":next((v for v in radar_views if v["system_signal"] in {"STRONG BUY","BUY","STARTER BUY"} and v.get("suggested_shares",0)>0 and not v["owned"]),None),
+        "best_candidate":next((v for v in radar_views if v.get("optimizer_bucket")=="INVEST NOW"),None),
+        "visible_candidates":len(radar_views),"shortlist_count":len(optimizer["shortlist"]),"target_positions":optimizer["target_positions"],"max_positions":optimizer["max_positions"],
     }
-    return {"positions":pos_views,"trades":trades,"analyses":analyses_req,"alerts":alerts,"candidates":radar_views,"cash":cash,"reserve":reserve,"proposals":props,"risk_profile":risk_profile,"risk_profiles":RISK_PROFILES,"account_risk":account,"base_currency":base_currency,"summary":summary}
+    optimizer_summary={"version":optimizer["version"],"live_gating":settings.optimizer_live_gating,"visible":len(radar_views),"shortlist":len(optimizer["shortlist"]),"invest_now":len(optimizer["selected_new"]),"owned":optimizer["owned_count"],"target_positions":optimizer["target_positions"],"max_positions":optimizer["max_positions"],"rotations":len(optimizer["rotations"])}
+    return {"positions":pos_views,"trades":trades,"analyses":analyses_req,"alerts":alerts,"candidates":radar_views,"cash":cash,"reserve":reserve,"proposals":props,"risk_profile":risk_profile,"risk_profiles":RISK_PROFILES,"account_risk":account,"base_currency":base_currency,"summary":summary,"optimizer":optimizer_summary,"paper":paper}
 
 
 @app.get("/",response_class=HTMLResponse)
@@ -415,10 +443,22 @@ def scan_now():
     _invalidate_live_cache()
     return result
 
+@app.post("/paper/run-now")
+def paper_run_now():
+    result=run_paper_cycle(radar.provider,force_rebalance=True)
+    _invalidate_live_cache()
+    return RedirectResponse("/",303)
+
+@app.post("/paper/reset")
+def paper_reset():
+    with SessionLocal() as db:reset_paper(db)
+    _invalidate_live_cache()
+    return RedirectResponse("/",303)
+
 @app.get("/api/live")
 def live():
     state=_cached_live_state()
-    return {"market_open":radar.market_open(),"scanner_running":radar.running,"last_scan":radar.last_scan,"last_error":radar.last_error,"universe_size":radar.universe_size,"universe_prefiltered":radar.last_universe_prefiltered,"universe_deep_candidates":radar.last_universe_candidates,"deep_analyzed":radar.last_deep_analyzed,"risk_profile":state["risk_profile"],"account_risk":state["account_risk"],"summary":state["summary"],"base_currency":state["base_currency"],"alerts":[{"id":a.id,"symbol":a.symbol,"title":a.title,"message":a.message,"severity":a.severity,"action":a.action,"alert_type":a.alert_type,"created_at":a.created_at.isoformat() if a.created_at else None} for a in state["alerts"]],"candidates":state["candidates"],"cache_seconds":settings.dashboard_cache_seconds}
+    return {"market_open":radar.market_open(),"scanner_running":radar.running,"last_scan":radar.last_scan,"last_error":radar.last_error,"universe_size":radar.universe_size,"universe_prefiltered":radar.last_universe_prefiltered,"universe_deep_candidates":radar.last_universe_candidates,"deep_analyzed":radar.last_deep_analyzed,"risk_profile":state["risk_profile"],"account_risk":state["account_risk"],"summary":state["summary"],"optimizer":state["optimizer"],"paper":{k:v for k,v in state["paper"].items() if k not in {"trades"}},"base_currency":state["base_currency"],"alerts":[{"id":a.id,"symbol":a.symbol,"title":a.title,"message":a.message,"severity":a.severity,"action":a.action,"alert_type":a.alert_type,"created_at":a.created_at.isoformat() if a.created_at else None} for a in state["alerts"]],"candidates":state["candidates"],"cache_seconds":settings.dashboard_cache_seconds}
 
 @app.get("/api/alerts/{alert_id}")
 def alert_detail(alert_id:int):

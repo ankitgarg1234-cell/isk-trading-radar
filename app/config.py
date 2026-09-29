@@ -34,6 +34,22 @@ class Settings:
     dashboard_cache_seconds: int = int(os.getenv("DASHBOARD_CACHE_SECONDS", "600"))
     snapshot_interval_seconds: int = int(os.getenv("SNAPSHOT_INTERVAL_SECONDS", "3600"))
     snapshot_score_delta: float = float(os.getenv("SNAPSHOT_SCORE_DELTA", "5"))
+    # Portfolio funnel: scan the full market internally, show at most 20 names,
+    # seriously shortlist 10, and hold at most 7 paper/live-model positions.
+    optimizer_live_gating: bool = _bool("OPTIMIZER_LIVE_GATING", False)
+    optimizer_visible_limit: int = int(os.getenv("OPTIMIZER_VISIBLE_LIMIT", "20"))
+    optimizer_shortlist_limit: int = int(os.getenv("OPTIMIZER_SHORTLIST_LIMIT", "10"))
+    optimizer_target_positions: int = int(os.getenv("OPTIMIZER_TARGET_POSITIONS", "6"))
+    optimizer_max_positions: int = int(os.getenv("OPTIMIZER_MAX_POSITIONS", "7"))
+    optimizer_min_rank_score: float = float(os.getenv("OPTIMIZER_MIN_RANK_SCORE", "62"))
+    optimizer_rotation_gap: float = float(os.getenv("OPTIMIZER_ROTATION_GAP", "12"))
+    optimizer_rotation_yield_gap: float = float(os.getenv("OPTIMIZER_ROTATION_YIELD_GAP", "8"))
+    optimizer_max_same_sector: int = int(os.getenv("OPTIMIZER_MAX_SAME_SECTOR", "2"))
+    paper_trading_enabled: bool = _bool("PAPER_TRADING_ENABLED", True)
+    paper_starting_cash: float = float(os.getenv("PAPER_STARTING_CASH", "10000"))
+    paper_trade_cost_bps: float = float(os.getenv("PAPER_TRADE_COST_BPS", "10"))
+    paper_rebalance_seconds: int = int(os.getenv("PAPER_REBALANCE_SECONDS", "86400"))
+    paper_snapshot_seconds: int = int(os.getenv("PAPER_SNAPSHOT_SECONDS", "1800"))
     radar_symbols: tuple[str, ...] = tuple(
         s.strip().upper()
         for s in os.getenv(

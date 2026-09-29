@@ -41,10 +41,35 @@
   </section>
 
   <section class="decision-summary-grid">
-    <div class="panel summary-card"><span class="kicker">BUY / STARTER BUY NOW</span><strong id="buyNowCount">{{ summary.buy_now }}</strong><small>{% if summary.best_candidate %}Top: {{ summary.best_candidate.symbol }} • {{ summary.best_candidate.suggested_shares }} shares{% else %}No new position is actionable under the selected risk profile{% endif %}</small></div>
+    <div class="panel summary-card"><span class="kicker">OPTIMIZER INVEST NOW{{ '' if optimizer.live_gating else ' • SHADOW' }}</span><strong id="buyNowCount">{{ summary.buy_now }}</strong><small>{% if summary.best_candidate %}Top: {{ summary.best_candidate.symbol }} • {{ summary.best_candidate.suggested_shares }} shares{% else %}No new position is actionable under the selected risk profile{% endif %}</small></div>
     <div class="panel summary-card"><span class="kicker">PORTFOLIO ACTIONS</span><strong id="portfolioActionCount">{{ summary.portfolio_actions }}</strong><small>Profit-taking, reductions or exits requiring review</small></div>
     <div class="panel summary-card"><span class="kicker">TARGET RISK PROFILE</span><strong>{{ risk_profiles[risk_profile].label }}</strong><small>Changes sizing and stock suitability — not the underlying stock score</small></div>
     <div class="panel summary-card"><span class="kicker">RISK GAP</span><strong class="{{ 'neg' if account_risk.gap > 10 else 'pos' if account_risk.gap < -10 else '' }}">{{ '%+.0f'|format(account_risk.gap) }}</strong><small>Actual risk score minus target score</small></div>
+  </section>
+
+  <section class="two-col optimizer-overview">
+    <div class="panel">
+      <div class="section-title-row"><div><span class="kicker">PORTFOLIO FUNNEL</span><h2>Scan thousands → show 20 → own 5–7</h2></div><span class="pill {{ 'green' if optimizer.live_gating else 'amber' }}">{{ optimizer.version }} • {{ 'LIVE' if optimizer.live_gating else 'SHADOW' }}</span></div>
+      <div class="funnel-grid">
+        <div><span>Market scan</span><b>{{ scanner.universe_size or '—' }}</b><small>U.S. equities scanned internally</small></div>
+        <div><span>Visible Radar</span><b id="optimizerVisible">{{ optimizer.visible }}</b><small>Maximum 20 ranked opportunities</small></div>
+        <div><span>Serious shortlist</span><b id="optimizerShortlist">{{ optimizer.shortlist }}</b><small>Top 8–10 for close review</small></div>
+        <div><span>Invest now</span><b id="optimizerInvest">{{ optimizer.invest_now }}</b><small>Only optimizer-approved new positions</small></div>
+      </div>
+      <p class="footnote">The deterministic stock score is unchanged. Portfolio Priority is a separate capital-allocation rank. AI and analyst views remain confirmation signals and are not blended into the rank. {% if not optimizer.live_gating %}Live buy alerts remain on the existing production rules until the paper/walk-forward validation gate is passed.{% endif %}</p>
+    </div>
+    <div class="panel paper-panel">
+      <div class="section-title-row"><div><span class="kicker">$10,000 SHADOW PORTFOLIO</span><h2>Paper trading vs S&amp;P 500</h2></div><span class="pill {{ 'green' if paper.started else 'amber' }}">{{ 'RUNNING' if paper.started else 'STARTS ON FIRST SCAN' }}</span></div>
+      <div class="paper-metrics">
+        <div><span>Equity</span><b id="paperEquity">${{ '%.0f'|format(paper.equity if paper.started else paper.starting_cash) }}</b></div>
+        <div><span>Radar return</span><b id="paperReturn" class="{{ 'pos' if paper.started and paper.return_pct >= 0 else 'neg' if paper.started else '' }}">{{ ('%+.2f%%'|format(paper.return_pct)) if paper.started else '—' }}</b></div>
+        <div><span>SPY total return</span><b id="paperBenchmark">{{ ('%+.2f%%'|format(paper.benchmark_return_pct)) if paper.started else '—' }}</b></div>
+        <div><span>Excess vs SPY</span><b id="paperExcess" class="{{ 'pos' if paper.started and paper.excess_return_pct > 0 else 'neg' if paper.started and paper.excess_return_pct < 0 else '' }}">{{ ('%+.2f%%'|format(paper.excess_return_pct)) if paper.started else '—' }}</b></div>
+        <div><span>Positions</span><b id="paperPositionCount">{{ paper.position_count if paper.started else 0 }}</b><small>Target {{ optimizer.target_positions }} • max {{ optimizer.max_positions }}</small></div>
+        <div><span>Max drawdown</span><b id="paperDrawdown">{{ ('%.2f%%'|format(paper.drawdown_pct)) if paper.started else '—' }}</b></div>
+      </div>
+      <div class="paper-actions"><form method="post" action="/paper/run-now"><button class="btn secondary" type="submit">Rebalance paper now</button></form><form method="post" action="/paper/reset" onsubmit="return confirm('Reset the $10,000 paper test and delete its paper history?');"><button class="btn ghost" type="submit">Reset paper test</button></form></div>
+    </div>
   </section>
 
   <section class="panel risk-panel">
@@ -92,7 +117,7 @@
 
   <section class="panel radar-panel">
     <div class="section-title-row">
-      <div><span class="kicker">CONTINUOUS CROSS-SECTOR RADAR</span><h2>Actionable market radar</h2></div>
+      <div><span class="kicker">CONTINUOUS CROSS-SECTOR RADAR</span><h2>Top 20 ranked opportunities</h2><p class="subtle">The full U.S. market is scanned in the background. Only the 20 highest portfolio-priority names are shown here.</p></div>
       <div class="status-line">Universe: <b id="universeSize">{{ scanner.universe_size or 'loading' }}</b> eligible U.S. equities • Last scan: <span id="lastScan">{{ scanner.last_scan or 'not yet' }}</span></div>
     </div>
 
@@ -162,10 +187,10 @@
       <th class="sn-action-th"><span>Details</span></th>
     </tr></thead><tbody>
       {% for c in candidates %}
-      <tr class="radar-row" data-symbol="{{ c.symbol }}" data-search="{{ (c.symbol ~ ' ' ~ c.name)|lower }}" data-name="{{ c.name|lower }}" data-signal="{{ c.system_signal }}" data-category="{{ c.category }}" data-risk="{{ c.risk_band }}" data-owned="{{ 'owned' if c.owned else 'new' }}" data-ai="{{ c.ai_score }}" data-system="{{ c.score }}" data-distance="{{ c.distance_pct }}" data-distance-label="{{ c.distance }}" data-yield="{{ c.expected_yield_pct if c.expected_yield_pct is not none else '' }}" data-price="{{ c.price }}" data-level="{{ c.level_label }}" data-target="{{ c.target if c.target is not none else '' }}" data-stop="{{ c.stop if c.stop is not none else '' }}" data-rr="{{ c.risk_reward if c.risk_reward is not none else '' }}" data-analyst-label="{{ c.analyst_label }}" data-analyst-score="{{ c.analyst_score if c.analyst_score is not none else '' }}" data-risk-fit="{{ c.risk_fit }}" data-stock-risk="{{ c.stock_risk }}" data-suggested-shares="{{ c.suggested_shares or 0 }}" data-suggested-capital="{{ c.suggested_capital or 0 }}">
-        <td><div class="stock-cell"><b class="ticker">{{ c.symbol }}</b><small>{{ c.name if c.name != c.symbol else c.category }}</small>{% if c.owned %}<span class="mini-badge">OWN {{ c.owned_shares|int if c.owned_shares == c.owned_shares|int else c.owned_shares }}</span>{% endif %}{% if c.changed %}<span class="mini-badge change">CHANGED {{ c.changed }}</span>{% endif %}</div></td>
-        <td><b>{{ ('%.2f SEK'|format(c.price)) if c.currency == 'SEK' else ('$%.2f'|format(c.price)) }}</b><small>{{ c.category }} • Sys {{ '%.0f'|format(c.score) }} / AI {{ '%.0f'|format(c.ai_score) }}</small></td>
-        <td><span class="signal-chip signal-{{ c.system_signal|lower|replace(' ','-') }}">{{ c.system_signal }}</span><small>{{ c.action }}</small></td>
+      <tr class="radar-row" data-symbol="{{ c.symbol }}" data-search="{{ (c.symbol ~ ' ' ~ c.name)|lower }}" data-name="{{ c.name|lower }}" data-signal="{{ c.system_signal }}" data-category="{{ c.category }}" data-risk="{{ c.risk_band }}" data-owned="{{ 'owned' if c.owned else 'new' }}" data-ai="{{ c.ai_score }}" data-system="{{ c.score }}" data-distance="{{ c.distance_pct }}" data-distance-label="{{ c.distance }}" data-yield="{{ c.expected_yield_pct if c.expected_yield_pct is not none else '' }}" data-price="{{ c.price }}" data-level="{{ c.level_label }}" data-target="{{ c.target if c.target is not none else '' }}" data-stop="{{ c.stop if c.stop is not none else '' }}" data-rr="{{ c.risk_reward if c.risk_reward is not none else '' }}" data-analyst-label="{{ c.analyst_label }}" data-analyst-score="{{ c.analyst_score if c.analyst_score is not none else '' }}" data-risk-fit="{{ c.risk_fit }}" data-stock-risk="{{ c.stock_risk }}" data-suggested-shares="{{ c.suggested_shares or 0 }}" data-suggested-capital="{{ c.suggested_capital or 0 }}" data-portfolio-rank="{{ c.portfolio_rank_score or 0 }}" data-optimizer-bucket="{{ c.optimizer_bucket }}">
+        <td><div class="stock-cell"><b class="ticker">#{{ c.market_rank }} {{ c.symbol }}</b><small>{{ c.name if c.name != c.symbol else c.category }}</small><span class="mini-badge optimizer-badge optimizer-{{ c.optimizer_bucket|lower|replace(' ','-') }}">{{ c.optimizer_bucket }}</span>{% if c.owned %}<span class="mini-badge">OWN {{ c.owned_shares|int if c.owned_shares == c.owned_shares|int else c.owned_shares }}</span>{% endif %}{% if c.changed %}<span class="mini-badge change">CHANGED {{ c.changed }}</span>{% endif %}</div></td>
+        <td><b>{{ ('%.2f SEK'|format(c.price)) if c.currency == 'SEK' else ('$%.2f'|format(c.price)) }}</b><small>Priority {{ '%.0f'|format(c.portfolio_rank_score) }}/100 • Sys {{ '%.0f'|format(c.score) }} / AI {{ '%.0f'|format(c.ai_score) }}</small></td>
+        <td><span class="signal-chip signal-{{ c.system_signal|lower|replace(' ','-') }}">{{ c.system_signal }}</span><small>{{ c.optimizer_action }}</small><small class="subtle">Raw: {{ c.action }}</small></td>
         <td><b>{{ c.level_label }}</b><small>{{ c.level_value }}</small></td>
         <td><span class="distance-chip {{ 'now' if c.distance == 'NOW' else '' }}">{{ c.distance }}</span></td>
         <td><b>{{ ('%.2f'|format(c.target)) if c.target else '—' }}</b><small>Stop {{ ('%.2f'|format(c.stop)) if c.stop else '—' }} • R/R {{ c.risk_reward or '—' }}×</small></td>
@@ -174,12 +199,12 @@
         <td>{% if c.suggested_shares %}<b>{{ ('%s shares'|format(c.suggested_shares)) if c.system_signal in ['STRONG BUY','BUY','STARTER BUY'] else ('Plan %s @ trigger'|format(c.suggested_shares)) }}</b><small>≈ {{ '%.0f'|format(c.suggested_capital) }} {{ base_currency }}{% if c.projected_risk is not none %} • acct risk → {{ '%.0f'|format(c.projected_risk) }}{% endif %}</small>{% else %}<b>—</b><small>{{ c.sizing_reason }}</small>{% endif %}</td>
         <td><a class="text-link" href="/analysis/{{ c.symbol }}">Full details</a><button type="button" class="icon-btn row-expand" aria-label="Expand {{ c.symbol }}">⌄</button></td>
       </tr>
-      <tr class="radar-detail-row hidden" data-detail-for="{{ c.symbol }}"><td colspan="10"><div class="radar-detail-grid"><div><span>Why this action</span><b>{{ c.action_reason or 'Open full details for the evidence breakdown.' }}</b></div><div><span>Expected return</span><b>{{ ('%+.1f%%'|format(c.expected_yield_pct)) if c.expected_yield_pct is not none else '—' }}</b></div><div><span>Position sizing</span><b>{{ c.sizing_reason }}</b></div><div><span>What changed</span><b>{{ c.changed or 'No action-state change in the latest snapshot' }}</b></div>{% if c.owned %}<div><span>Current position</span><b>{{ c.owned_shares }} shares @ {{ c.owned_avg }}</b></div>{% endif %}<div><span>Target profile fit</span><b>{{ c.risk_fit }} for {{ risk_profiles[risk_profile].label }}</b></div></div></td></tr>
+      <tr class="radar-detail-row hidden" data-detail-for="{{ c.symbol }}"><td colspan="10"><div class="radar-detail-grid"><div><span>Why this action</span><b>{{ c.action_reason or 'Open full details for the evidence breakdown.' }}</b></div><div><span>Expected return</span><b>{{ ('%+.1f%%'|format(c.expected_yield_pct)) if c.expected_yield_pct is not none else '—' }}</b></div><div><span>Position sizing</span><b>{{ c.sizing_reason }}</b></div><div><span>What changed</span><b>{{ c.changed or 'No action-state change in the latest snapshot' }}</b></div>{% if c.owned %}<div><span>Current position</span><b>{{ c.owned_shares }} shares @ {{ c.owned_avg }}</b></div>{% endif %}<div><span>Target profile fit</span><b>{{ c.risk_fit }} for {{ risk_profiles[risk_profile].label }}</b></div><div><span>Portfolio priority</span><b>#{{ c.market_rank }} • {{ '%.1f'|format(c.portfolio_rank_score) }}/100 • {{ c.optimizer_bucket }}</b></div><div><span>Independent confirmation</span><b>AI {{ c.ai_confirmation }} • Analyst {{ c.analyst_confirmation }}</b></div></div></td></tr>
       {% endfor %}
       {% if not candidates %}<tr><td colspan="10" class="empty">Radar will populate after analysis/scan runs.</td></tr>{% endif %}
     </tbody></table></div>
     <div id="radarNoResults" class="empty hidden">No Radar stocks match the current filters.</div>
-    <p class="footnote">Rows are sorted by actionability and portfolio fit. Click a row to expand the immediate rationale; Full details retains the complete evidence and score breakdown.</p>
+    <p class="footnote">Only the optimizer-ranked Top 20 are shown. SHORTLIST means close review; INVEST NOW means the candidate has earned one of the limited 5–7 portfolio slots. RESERVE is visible but receives no capital.</p>
   </section>
 
   <section class="two-col">
@@ -197,6 +222,15 @@
       {% if proposals %}<div class="proposal-list">{% for p in proposals %}<article class="proposal"><span class="pill amber">{{ p.type }}</span><h3>{{ p.title }}</h3><p>{{ p.detail }}</p><div class="proposal-buttons"><button class="btn secondary" disabled title="Execution comes after broker integration">Review only</button></div></article>{% endfor %}</div>{% else %}<div class="empty">No rotation/deployment proposal meets the current thresholds.</div>{% endif %}
       <details><summary>Set cash and strategic reserve</summary><form class="grid-form" method="post" action="/cash"><input name="account" value="Main"><input name="cash" type="number" step="any" placeholder="Cash" required><input name="reserve_cash" type="number" step="any" value="0" placeholder="Reserve"><input name="currency" value="{{ base_currency }}"><button class="btn secondary">Save cash</button></form></details>
     </div>
+  </section>
+
+  <section class="panel" id="paperPortfolio">
+    <div class="section-title-row"><div><span class="kicker">PAPER PORTFOLIO LEDGER</span><h2>Optimizer positions — not real trades</h2></div><span class="pill muted">WHOLE SHARES • {{ '%.0f'|format(10) }} BPS/trade modeled</span></div>
+    <div class="table-wrap"><table><thead><tr><th>Stock</th><th>Shares</th><th>Avg cost</th><th>Last</th><th>Value</th><th>Entry rank</th></tr></thead><tbody id="paperPositionsBody">
+      {% for p in paper.positions %}<tr><td class="ticker">{{ p.symbol }}</td><td>{{ p.shares }}</td><td>${{ '%.2f'|format(p.avg_cost) }}</td><td>${{ '%.2f'|format(p.price) }}</td><td>${{ '%.0f'|format(p.value) }}</td><td>{{ '%.1f'|format(p.rank_score) }}/100</td></tr>{% endfor %}
+      {% if not paper.positions %}<tr><td colspan="6" class="empty">Paper portfolio will begin on the first successful optimizer scan.</td></tr>{% endif %}
+    </tbody></table></div>
+    <p class="footnote">Paper performance is a forward test. It uses the same optimizer selection, whole-share sizing and modeled transaction friction, while SPY is tracked as the benchmark. No broker orders are sent.</p>
   </section>
 
   <section class="panel" id="screenshotImport">

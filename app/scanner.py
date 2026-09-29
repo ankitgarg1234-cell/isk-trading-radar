@@ -8,9 +8,11 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 from .config import settings
-from .db import SessionLocal, Position, AnalysisRequest, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert
+from .db import SessionLocal, Position, AnalysisRequest, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, PortfolioPreference
 from .market import YahooMarketProvider
-from .analysis_engine import score_bundle, position_action, position_action_plan, portfolio_proposals
+from .analysis_engine import score_bundle, position_action, position_action_plan
+from .portfolio_engine import candidate_rank_score, build_optimizer_plan, normalise_profile
+from .paper_engine import run_paper_cycle
 from .ai_engine import AIEngine
 
 NY = ZoneInfo("America/New_York")
@@ -185,6 +187,9 @@ class RadarService:
             cand.score = full.get("deterministic_score", 0)
             cand.ai_score = full.get("ai_score", 0)
             cand.price = full.get("price", 0)
+            rank = candidate_rank_score(full)
+            cand.portfolio_rank_score = rank.get("score", 0)
+            cand.rank_version = rank.get("version", "rank-v1")
             cand.current_json = compact_json
             cand.updated_at = now
 
@@ -276,55 +281,80 @@ class RadarService:
             db.commit()
 
     def _sync_rotation_alerts(self):
-        """Surface only actionable portfolio ROTATE/SWAP proposals in attention.
-
-        Rotation does not imply that the source holding is a sell. It means a
-        materially stronger candidate may justify reallocating part of the capital.
-        """
+        """Gate live attention only after the optimizer has passed validation."""
+        if not settings.optimizer_live_gating:
+            return
         with SessionLocal() as db:
-            position_rows=db.query(Position).all()
-            positions=[{"symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost} for p in position_rows]
-            position_symbols=[p.symbol for p in position_rows]
-            # Keep the rotation check cheap: load only high-conviction candidate
-            # states plus the user's holdings, never the entire market universe.
-            buy_rows=db.query(RadarCandidate).filter(
-                RadarCandidate.action.in_(["BUY NOW","BREAKOUT BUY","REVIEW BUY","ADD"]),
-                RadarCandidate.ai_score >= 82,
-            ).order_by(RadarCandidate.ai_score.desc()).limit(25).all()
-            held_rows=(db.query(RadarCandidate).filter(RadarCandidate.symbol.in_(position_symbols)).all() if position_symbols else [])
-            rows={c.symbol:c for c in (buy_rows+held_rows)}.values()
-            analyses={}
+            position_rows = db.query(Position).all()
+            owned = {p.symbol for p in position_rows}
+            pref = db.query(PortfolioPreference).filter(PortfolioPreference.account == "Main").first()
+            profile = normalise_profile(pref.risk_profile if pref else "MEDIUM")
+            rows = db.query(RadarCandidate).order_by(
+                RadarCandidate.portfolio_rank_score.desc(), RadarCandidate.updated_at.desc()
+            ).limit(60).all()
+            have = {r.symbol for r in rows}
+            missing = [s for s in owned if s not in have]
+            if missing:
+                rows += db.query(RadarCandidate).filter(RadarCandidate.symbol.in_(missing)).all()
+            analyses = {}
             for c in rows:
-                if not c.current_json:
-                    continue
                 try:
-                    a=json.loads(c.current_json)
-                    if isinstance(a,dict) and a.get("symbol"):
-                        analyses[c.symbol]=a
+                    a = json.loads(c.current_json or "{}")
                 except Exception:
-                    continue
-            proposals=portfolio_proposals(positions, analyses, 0, 0)
-            rotations=[p for p in proposals if p.get("type") == "ROTATE"]
-            current_titles=set()
-            now=datetime.now(timezone.utc)
-            for p in rotations:
-                src=str(p.get("symbol_from") or "").upper(); dst=str(p.get("symbol_to") or "").upper()
-                if not src or not dst:
-                    continue
-                title=f"SWAP CANDIDATE: {src} → {dst}"
-                current_titles.add(title)
-                message=str(p.get("detail") or "")
-                active=db.query(Alert).filter(
-                    Alert.symbol==src, Alert.alert_type=="portfolio_swap", Alert.action=="ROTATE",
-                    Alert.acknowledged==False,
+                    a = {}
+                if isinstance(a, dict):
+                    a.setdefault("symbol", c.symbol); a.setdefault("price", c.price)
+                    a.setdefault("deterministic_score", c.score); a.setdefault("ai_score", c.ai_score)
+                    a.setdefault("action", c.action); a.setdefault("category", c.category)
+                    analyses[c.symbol] = a
+            plan = build_optimizer_plan(
+                analyses, owned, profile=profile,
+                visible_limit=settings.optimizer_visible_limit,
+                shortlist_limit=settings.optimizer_shortlist_limit,
+                target_positions=settings.optimizer_target_positions,
+                max_positions=settings.optimizer_max_positions,
+                min_rank_score=settings.optimizer_min_rank_score,
+                max_same_sector=settings.optimizer_max_same_sector,
+                rotation_gap=settings.optimizer_rotation_gap,
+                rotation_yield_gap=settings.optimizer_rotation_yield_gap,
+            )
+            approved = {r["symbol"]: r for r in plan["selected_new"]}
+            now = datetime.now(timezone.utc)
+
+            # Price reaching a buy zone is no longer enough to interrupt the user.
+            # Only the 5-7-position optimizer can approve an entry alert.
+            for alert in db.query(Alert).filter(Alert.alert_type == "buy_level", Alert.acknowledged == False).all():
+                if alert.symbol not in approved:
+                    alert.acknowledged = True
+            for sym, r in approved.items():
+                action = r.get("entry_signal") or "BUY"
+                title = f"{sym}: Optimizer approved — {action}"
+                message = f"Portfolio rank #{r.get('market_rank')}/{settings.optimizer_visible_limit} • priority {r.get('rank_score',0):.1f}/100 • {r.get('risk_fit')} • AI {r.get('ai_confirmation')} / Analyst {r.get('analyst_confirmation')} (confirmation only)."
+                active = db.query(Alert).filter(
+                    Alert.symbol == sym, Alert.alert_type == "buy_level", Alert.acknowledged == False
                 ).order_by(Alert.created_at.desc()).first()
                 if active:
-                    active.title=title; active.message=message; active.severity="high"; active.created_at=now; active.snoozed_until=None
+                    active.action = action; active.title = title; active.message = message
+                    active.severity = "high"; active.created_at = now; active.snoozed_until = None
                 else:
-                    db.add(Alert(symbol=src,alert_type="portfolio_swap",severity="high",title=title,message=message,action="ROTATE"))
-            for stale in db.query(Alert).filter(Alert.alert_type=="portfolio_swap",Alert.acknowledged==False).all():
-                if stale.title not in current_titles:
-                    stale.acknowledged=True
+                    db.add(Alert(symbol=sym, alert_type="buy_level", severity="high", title=title, message=message, action=action))
+
+            rotation_titles = set()
+            for rot in plan["rotations"]:
+                src, dst = rot["symbol_from"], rot["symbol_to"]
+                title = f"SWAP CANDIDATE: {src} → {dst}"
+                rotation_titles.add(title)
+                active = db.query(Alert).filter(
+                    Alert.symbol == src, Alert.alert_type == "portfolio_swap", Alert.action == "ROTATE", Alert.acknowledged == False
+                ).order_by(Alert.created_at.desc()).first()
+                if active:
+                    active.title = title; active.message = rot["detail"]; active.severity = "high"
+                    active.created_at = now; active.snoozed_until = None
+                else:
+                    db.add(Alert(symbol=src, alert_type="portfolio_swap", severity="high", title=title, message=rot["detail"], action="ROTATE"))
+            for stale in db.query(Alert).filter(Alert.alert_type == "portfolio_swap", Alert.acknowledged == False).all():
+                if stale.title not in rotation_titles:
+                    stale.acknowledged = True
             db.commit()
 
     def priority_symbols(self) -> list[str]:
@@ -412,7 +442,11 @@ class RadarService:
         try:
             self._sync_rotation_alerts()
         except Exception as e:
-            errors.append(f"portfolio rotation: {type(e).__name__}")
+            errors.append(f"portfolio optimizer: {type(e).__name__}")
+        try:
+            run_paper_cycle(self.provider)
+        except Exception as e:
+            errors.append(f"paper trading: {type(e).__name__}")
         self.last_scan = datetime.now(timezone.utc)
         self.scan_count += 1
         self.last_deep_analyzed = ok

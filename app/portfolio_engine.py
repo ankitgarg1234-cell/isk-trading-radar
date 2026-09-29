@@ -389,3 +389,232 @@ def projected_risk(account_rows: list[dict], cash: float, candidate: dict, sizin
         "material_events": (candidate.get("news") or {}).get("material_events", 0),
     }
     return account_risk(account_rows + [pseudo], max(0, cash - capital), target_profile=target_profile)
+
+
+RANK_VERSION = "rank-v1"
+INVESTABLE_ENTRY_ACTIONS = {"STRONG BUY", "BUY", "STARTER BUY"}
+
+
+def _clamp(v: float, lo: float = 0.0, hi: float = 100.0) -> float:
+    return max(lo, min(hi, v))
+
+
+def entry_attention_signal(a: dict) -> str | None:
+    """Portfolio-layer entry label using the agreed deterministic ladder.
+
+    This intentionally does not blend AI/analyst scores into the decision.
+    They remain separate confirmation signals.
+    """
+    if bool((a.get("thesis_assessment") or {}).get("invalidated")):
+        return None
+    if a.get("negative_news_override"):
+        return None
+    if str(a.get("decision_confidence") or "medium").lower() == "low":
+        return None
+    zone = str(a.get("entry_zone_status") or "").upper()
+    if not zone:
+        price = _float(a.get("price"))
+        levels = a.get("levels") or {}
+        b0, b1 = _float(levels.get("better_low")), _float(levels.get("better_high"))
+        p0, p1 = _float(levels.get("buy_low")), _float(levels.get("buy_high"))
+        if b0 and b0 <= price <= b1:
+            zone = "BETTER_BUY"
+        elif p0 and p0 <= price <= p1:
+            zone = "PRIMARY_BUY"
+    if zone not in {"PRIMARY_BUY", "BETTER_BUY"}:
+        return None
+    score = _float(a.get("deterministic_score"))
+    if score >= 85:
+        return "STRONG BUY"
+    if score >= 75:
+        return "BUY"
+    if score >= 68 and zone == "BETTER_BUY":
+        return "STARTER BUY"
+    if score >= 68 and zone == "PRIMARY_BUY":
+        return "CONSIDER BUY"
+    return None
+
+
+def candidate_rank_score(a: dict) -> dict:
+    """Transparent deterministic portfolio-priority score (0-100).
+
+    The stock's deterministic score remains untouched. This second score answers a
+    different question: among already-analysed candidates, which deserves scarce
+    portfolio capital first? AI/analyst opinions are reported as confirmations but
+    are deliberately not blended into the arithmetic.
+    """
+    det = _clamp(_float(a.get("deterministic_score")))
+    expected = _float(a.get("expected_yield_pct"))
+    rr = max(0.0, _float(a.get("risk_reward")))
+    confidence = str(a.get("decision_confidence") or "medium").lower()
+    srisk = stock_risk_score(a)
+
+    conviction_pts = det * 0.50
+    upside_pts = _clamp(expected, 0, 35) / 35 * 20
+    rr_pts = _clamp(rr, 0, 3.5) / 3.5 * 15
+    confidence_pts = 10.0 if confidence == "high" else 6.0 if confidence == "medium" else 0.0
+    risk_pts = max(0.0, 100.0 - srisk) / 100 * 5
+    penalty = 0.0
+    if a.get("negative_news_override"):
+        penalty += 20
+    if bool((a.get("thesis_assessment") or {}).get("invalidated")):
+        penalty += 35
+    if str(a.get("entry_zone_status") or "").upper() in {"DO_NOT_CHASE", "INVALIDATED"}:
+        penalty += 12
+
+    total = _clamp(conviction_pts + upside_pts + rr_pts + confidence_pts + risk_pts - penalty)
+    ai = a.get("ai_score")
+    analyst = a.get("analyst_score")
+    ai_confirmation = "UNAVAILABLE"
+    analyst_confirmation = "UNAVAILABLE"
+    if ai is not None:
+        delta = _float(ai) - det
+        ai_confirmation = "CONFIRMS" if delta >= -5 and _float(ai) >= 70 else "DIVERGES" if delta <= -10 else "NEUTRAL"
+    if analyst is not None:
+        delta = _float(analyst) - det
+        analyst_confirmation = "CONFIRMS" if delta >= -8 and _float(analyst) >= 65 else "DIVERGES" if delta <= -15 else "NEUTRAL"
+    return {
+        "score": round(total, 1),
+        "version": RANK_VERSION,
+        "entry_signal": entry_attention_signal(a),
+        "components": {
+            "Deterministic conviction": round(conviction_pts, 1),
+            "Expected upside": round(upside_pts, 1),
+            "Risk/reward": round(rr_pts, 1),
+            "Evidence confidence": round(confidence_pts, 1),
+            "Risk efficiency": round(risk_pts, 1),
+            "Penalties": round(-penalty, 1),
+        },
+        "ai_confirmation": ai_confirmation,
+        "analyst_confirmation": analyst_confirmation,
+        "stock_risk": srisk,
+    }
+
+
+def build_optimizer_plan(
+    analyses: dict[str, dict],
+    owned_symbols: set[str] | list[str] | tuple[str, ...] = (),
+    *,
+    profile: str = "MEDIUM",
+    visible_limit: int = 20,
+    shortlist_limit: int = 10,
+    target_positions: int = 6,
+    max_positions: int = 7,
+    min_rank_score: float = 62.0,
+    max_same_sector: int = 2,
+    rotation_gap: float = 12.0,
+    rotation_yield_gap: float = 8.0,
+) -> dict:
+    """Rank candidates and allocate scarce portfolio slots.
+
+    Full-market scanning remains unchanged. This function only controls the funnel
+    presented to the user and which candidates may receive capital.
+    """
+    owned = {str(s).upper() for s in owned_symbols}
+    profile = normalise_profile(profile)
+    rows = []
+    for sym, a in analyses.items():
+        if not isinstance(a, dict):
+            continue
+        sym = str(sym or a.get("symbol") or "").upper()
+        if not sym:
+            continue
+        rank = candidate_rank_score(a)
+        srisk = rank["stock_risk"]
+        fit = risk_fit(srisk, profile)
+        sector = str((a.get("fundamentals") or {}).get("sector") or "Unknown")
+        adjusted = rank["score"] - (6 if fit == "STRETCH" else 20 if fit == "ABOVE TARGET" else 0)
+        rows.append({
+            "symbol": sym,
+            "analysis": a,
+            "rank_score": round(_clamp(adjusted), 1),
+            "raw_rank_score": rank["score"],
+            "rank_components": rank["components"],
+            "entry_signal": rank["entry_signal"],
+            "ai_confirmation": rank["ai_confirmation"],
+            "analyst_confirmation": rank["analyst_confirmation"],
+            "risk_fit": fit,
+            "stock_risk": srisk,
+            "sector": sector,
+            "owned": sym in owned,
+            "expected_yield_pct": _float(a.get("expected_yield_pct")),
+        })
+    rows.sort(key=lambda r: (r["rank_score"], r["expected_yield_pct"]), reverse=True)
+    for i, r in enumerate(rows, 1):
+        r["market_rank"] = i
+        r["bucket"] = "RESERVE"
+        r["optimizer_action"] = "PASS"
+
+    visible = rows[:max(1, visible_limit)]
+    shortlist = visible[:max(1, min(shortlist_limit, len(visible)))]
+    for r in shortlist:
+        r["bucket"] = "SHORTLIST"
+        r["optimizer_action"] = "WATCH CLOSELY"
+    for r in visible:
+        if r["owned"]:
+            r["bucket"] = "PORTFOLIO"
+            r["optimizer_action"] = "HOLD / MANAGE"
+
+    owned_rows = [r for r in rows if r["owned"]]
+    sector_counts: dict[str, int] = defaultdict(int)
+    for r in owned_rows:
+        sector_counts[r["sector"]] += 1
+
+    selected_new = []
+    # Aim for six holdings, never exceed seven, and never force weak candidates.
+    open_slots = max(0, min(target_positions, max_positions) - len(owned))
+    for r in shortlist:
+        if open_slots <= 0:
+            break
+        if r["owned"]:
+            continue
+        if r["entry_signal"] not in INVESTABLE_ENTRY_ACTIONS:
+            continue
+        if r["rank_score"] < min_rank_score or r["risk_fit"] == "ABOVE TARGET":
+            continue
+        if sector_counts[r["sector"]] >= max_same_sector:
+            continue
+        r["bucket"] = "INVEST NOW"
+        r["optimizer_action"] = r["entry_signal"]
+        selected_new.append(r)
+        sector_counts[r["sector"]] += 1
+        open_slots -= 1
+
+    rotations = []
+    if len(owned) >= target_positions:
+        investable_new = [r for r in shortlist if not r["owned"] and r["entry_signal"] in INVESTABLE_ENTRY_ACTIONS and r["risk_fit"] != "ABOVE TARGET"]
+        weakest = sorted(owned_rows, key=lambda r: r["rank_score"])
+        for candidate in investable_new:
+            for held in weakest:
+                if candidate["symbol"] == held["symbol"]:
+                    continue
+                rank_gap = candidate["rank_score"] - held["rank_score"]
+                yield_gap = candidate["expected_yield_pct"] - held["expected_yield_pct"]
+                # Rotation is an opportunity-cost decision, not a thesis-invalidating sell.
+                if rank_gap >= rotation_gap and yield_gap >= rotation_yield_gap:
+                    candidate["bucket"] = "ROTATE IN"
+                    candidate["optimizer_action"] = "ROTATE"
+                    rotations.append({
+                        "symbol_from": held["symbol"],
+                        "symbol_to": candidate["symbol"],
+                        "rank_gap": round(rank_gap, 1),
+                        "yield_gap": round(yield_gap, 1),
+                        "title": f"ROTATE {held['symbol']} → {candidate['symbol']}",
+                        "detail": f"Portfolio-priority gap {rank_gap:.1f} pts and deterministic expected-return gap {yield_gap:.1f} pts; thesis on {held['symbol']} may still be intact.",
+                    })
+                    break
+            if rotations:
+                break
+
+    return {
+        "version": RANK_VERSION,
+        "visible": visible,
+        "shortlist": shortlist,
+        "selected_new": selected_new,
+        "rotations": rotations,
+        "target_positions": target_positions,
+        "max_positions": max_positions,
+        "owned_count": len(owned),
+        "visible_limit": visible_limit,
+        "shortlist_limit": shortlist_limit,
+    }

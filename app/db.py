@@ -92,6 +92,8 @@ class RadarCandidate(Base):
     score: Mapped[float] = mapped_column(Float, default=0.0)
     ai_score: Mapped[float] = mapped_column(Float, default=0.0)
     price: Mapped[float] = mapped_column(Float, default=0.0)
+    portfolio_rank_score: Mapped[float] = mapped_column(Float, default=0.0, index=True)
+    rank_version: Mapped[str] = mapped_column(String(32), default="rank-v1")
     # Compact current-state payload used by the live dashboard. Heavy one-year
     # price arrays are intentionally excluded to keep managed-Postgres egress low.
     current_json: Mapped[str] = mapped_column(Text, default="{}")
@@ -111,6 +113,65 @@ class Alert(Base):
     action: Mapped[str] = mapped_column(String(40), default="REVIEW")
     acknowledged: Mapped[bool] = mapped_column(Boolean, default=False)
     snoozed_until: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+
+class PaperAccount(Base):
+    __tablename__ = "paper_accounts"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    account: Mapped[str] = mapped_column(String(64), unique=True, index=True, default="Optimizer Paper")
+    starting_cash: Mapped[float] = mapped_column(Float, default=10000.0)
+    cash: Mapped[float] = mapped_column(Float, default=10000.0)
+    benchmark_symbol: Mapped[str] = mapped_column(String(16), default="SPY")
+    benchmark_start_price: Mapped[float] = mapped_column(Float, nullable=True)
+    benchmark_last_price: Mapped[float] = mapped_column(Float, nullable=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    last_rebalance_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class PaperPosition(Base):
+    __tablename__ = "paper_positions"
+    __table_args__ = (UniqueConstraint("account", "symbol", name="uq_paper_position_account_symbol"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    account: Mapped[str] = mapped_column(String(64), index=True, default="Optimizer Paper")
+    symbol: Mapped[str] = mapped_column(String(16), index=True)
+    shares: Mapped[float] = mapped_column(Float)
+    avg_cost: Mapped[float] = mapped_column(Float)
+    rank_score_at_entry: Mapped[float] = mapped_column(Float, default=0.0)
+    reason: Mapped[str] = mapped_column(String(255), default="")
+    opened_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class PaperTrade(Base):
+    __tablename__ = "paper_trades"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    account: Mapped[str] = mapped_column(String(64), index=True, default="Optimizer Paper")
+    symbol: Mapped[str] = mapped_column(String(16), index=True)
+    side: Mapped[str] = mapped_column(String(8))
+    shares: Mapped[float] = mapped_column(Float)
+    price: Mapped[float] = mapped_column(Float)
+    fees: Mapped[float] = mapped_column(Float, default=0.0)
+    rank_score: Mapped[float] = mapped_column(Float, default=0.0)
+    reason: Mapped[str] = mapped_column(String(255), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+
+class PaperSnapshot(Base):
+    __tablename__ = "paper_snapshots"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    account: Mapped[str] = mapped_column(String(64), index=True, default="Optimizer Paper")
+    equity: Mapped[float] = mapped_column(Float, default=0.0)
+    cash: Mapped[float] = mapped_column(Float, default=0.0)
+    invested: Mapped[float] = mapped_column(Float, default=0.0)
+    benchmark_price: Mapped[float] = mapped_column(Float, default=0.0)
+    portfolio_return_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    benchmark_return_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    excess_return_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    drawdown_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    positions_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
 
@@ -156,6 +217,8 @@ def _ensure_runtime_columns():
             "previous_action": "VARCHAR(40) DEFAULT ''",
             "last_snapshot_at": "TIMESTAMP NULL",
             "last_snapshot_key": "VARCHAR(128) DEFAULT ''",
+            "portfolio_rank_score": "FLOAT DEFAULT 0",
+            "rank_version": "VARCHAR(32) DEFAULT 'rank-v1'",
         }
         for name, ddl in additions.items():
             if name not in cols:
