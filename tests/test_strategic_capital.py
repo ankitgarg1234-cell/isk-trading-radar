@@ -1,0 +1,80 @@
+from app.portfolio_engine import candidate_rank_score
+from app.scanner import _compact_payload, _strategic_fingerprint
+from app.strategic_capital import StrategicCapitalProvider
+
+
+def _base_payload():
+    return {
+        "symbol": "ACME", "price": 100, "deterministic_score": 82, "ai_score": 80,
+        "analyst_score": 75, "expected_yield_pct": 22, "risk_reward": 2.5,
+        "decision_confidence": "high", "category": "Core", "entry_zone_status": "PRIMARY_BUY",
+        "action": "BUY NOW", "negative_news_override": None,
+        "thesis_assessment": {"invalidated": False},
+        "levels": {"buy_low": 98, "buy_high": 102, "better_low": 90, "better_high": 93, "stop": 88, "target": 125},
+        "technicals": {"atr": 2, "relative_volume": 1.2, "change20_pct": 4},
+        "news": {"material_events": 0}, "fundamentals": {"sector": "Technology"},
+    }
+
+
+def test_government_equity_and_trump_administration_are_not_personal_investment():
+    p = StrategicCapitalProvider()
+    events = p.classify_news("ACME", [
+        {
+            "title": "President Trump announces U.S. government equity stake in Acme",
+            "publisher": "The White House",
+            "link": "https://www.whitehouse.gov/fact-sheets/acme",
+        }
+    ])
+    assert len(events) == 1
+    assert events[0]["type"] == "GOVERNMENT_EQUITY_STAKE"
+    assert events[0]["source_quality"] == "OFFICIAL"
+
+
+def test_donald_trump_personal_interest_is_separate_from_family_interest():
+    p = StrategicCapitalProvider()
+    events = p.classify_news("ACME", [
+        {"title": "Donald Trump personally buys shares in Acme", "publisher": "Reuters", "link": "https://reuters.com/a"},
+        {"title": "Donald Trump Jr. invests in Acme", "publisher": "Reuters", "link": "https://reuters.com/b"},
+    ])
+    assert events[0]["type"] == "TRUMP_PERSONAL_INTEREST_MENTION"
+    assert events[1]["type"] == "TRUMP_FAMILY_INTEREST"
+
+
+def test_strategic_capital_is_shadow_only_and_does_not_change_rank_v1():
+    a = _base_payload()
+    b = dict(a)
+    b["strategic_capital"] = {
+        "mode": "SHADOW_ONLY", "label": "VERY STRONG", "direction": "POSITIVE",
+        "evidence_strength": 95, "shadow_rank_adjustment": 7.6,
+        "government_equity_stake": "EVIDENCE FOUND",
+        "trump_administration_action": "EVIDENCE FOUND",
+        "trump_personal_disclosure": {"status": "NOT FOUND IN CHECKED DISCLOSURE"},
+    }
+    assert candidate_rank_score(a)["score"] == candidate_rank_score(b)["score"]
+    assert candidate_rank_score(b)["strategic_capital_shadow"]["shadow_rank_adjustment"] == 7.6
+
+
+def test_official_award_materiality_is_normalized_to_company_revenue_without_scoring_it():
+    p = StrategicCapitalProvider()
+    p._usa_spending_awards = lambda _: {
+        "status": "CHECKED", "total_amount": 250_000_000,
+        "events": [{"type":"FEDERAL_AWARD","title":"DOE award","direction":"POSITIVE","materiality":"HIGH","verification":"VERIFIED SOURCE","source_quality":"OFFICIAL","source":"USAspending.gov","source_url":"https://www.usaspending.gov/"}],
+        "checked_at": "2026-09-29T20:00:00+00:00",
+    }
+    p._trump_personal_disclosure = lambda company, symbol: {"status":"NOT FOUND IN CHECKED DISCLOSURE"}
+    g = p.assess("ACME", company_name="Acme Corp", annual_revenue=1_000_000_000, fetch_official=True)
+    assert g["federal_amount_to_revenue_pct"] == 25.0
+    assert g["direction"] == "POSITIVE"
+    assert g["mode"] == "SHADOW_ONLY"
+
+
+def test_compact_payload_limits_strategic_event_volume_and_fingerprint_changes_materially():
+    events = [{"type":"FEDERAL_AWARD","title":f"Award {i}","direction":"POSITIVE","materiality":"HIGH"} for i in range(20)]
+    full = _base_payload()
+    full["strategic_capital"] = {"events": events, "federal_awards": {"events": events, "total_amount": 10}, "direction":"POSITIVE","evidence_strength":50}
+    compact = _compact_payload(full)
+    assert len(compact["strategic_capital"]["events"]) == 6
+    assert len(compact["strategic_capital"]["federal_awards"]["events"]) == 5
+    f1 = _strategic_fingerprint(compact["strategic_capital"])
+    compact["strategic_capital"]["government_equity_stake"] = "EVIDENCE FOUND"
+    assert _strategic_fingerprint(compact["strategic_capital"]) != f1
