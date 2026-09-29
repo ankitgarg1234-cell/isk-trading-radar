@@ -501,7 +501,6 @@ def build_optimizer_plan(
     target_positions: int = 6,
     max_positions: int = 7,
     min_rank_score: float = 62.0,
-    max_same_sector: int = 2,
     rotation_gap: float = 12.0,
     rotation_yield_gap: float = 8.0,
 ) -> dict:
@@ -556,9 +555,6 @@ def build_optimizer_plan(
             r["optimizer_action"] = "HOLD / MANAGE"
 
     owned_rows = [r for r in rows if r["owned"]]
-    sector_counts: dict[str, int] = defaultdict(int)
-    for r in owned_rows:
-        sector_counts[r["sector"]] += 1
 
     selected_new = []
     # Aim for six holdings, never exceed seven, and never force weak candidates.
@@ -572,12 +568,9 @@ def build_optimizer_plan(
             continue
         if r["rank_score"] < min_rank_score or r["risk_fit"] == "ABOVE TARGET":
             continue
-        if sector_counts[r["sector"]] >= max_same_sector:
-            continue
         r["bucket"] = "INVEST NOW"
         r["optimizer_action"] = r["entry_signal"]
         selected_new.append(r)
-        sector_counts[r["sector"]] += 1
         open_slots -= 1
 
     rotations = []

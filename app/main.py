@@ -244,7 +244,6 @@ def _dashboard_state(db):
         target_positions=settings.optimizer_target_positions,
         max_positions=settings.optimizer_max_positions,
         min_rank_score=settings.optimizer_min_rank_score,
-        max_same_sector=settings.optimizer_max_same_sector,
         rotation_gap=settings.optimizer_rotation_gap,
         rotation_yield_gap=settings.optimizer_rotation_yield_gap,
     )

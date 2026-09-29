@@ -44,7 +44,6 @@ class Settings:
     optimizer_min_rank_score: float = float(os.getenv("OPTIMIZER_MIN_RANK_SCORE", "62"))
     optimizer_rotation_gap: float = float(os.getenv("OPTIMIZER_ROTATION_GAP", "12"))
     optimizer_rotation_yield_gap: float = float(os.getenv("OPTIMIZER_ROTATION_YIELD_GAP", "8"))
-    optimizer_max_same_sector: int = int(os.getenv("OPTIMIZER_MAX_SAME_SECTOR", "2"))
     paper_trading_enabled: bool = _bool("PAPER_TRADING_ENABLED", True)
     paper_starting_cash: float = float(os.getenv("PAPER_STARTING_CASH", "10000"))
     paper_trade_cost_bps: float = float(os.getenv("PAPER_TRADE_COST_BPS", "10"))
