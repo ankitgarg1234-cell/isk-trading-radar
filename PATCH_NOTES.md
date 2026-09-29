@@ -1,14 +1,23 @@
-# Event-driven paper-entry patch
+# Remove sector-cap restriction
 
-This incremental patch changes the $10,000 shadow portfolio from a blanket 24-hour entry cadence to a two-speed model:
+This patch removes the portfolio-level maximum-same-sector rule from the optimizer.
 
-- New STRONG BUY / BUY / STARTER BUY signals are evaluated immediately after the scanner cycle that detects them.
-- Multiple actionable changes in one scanner cycle are coalesced into one optimizer run.
-- Material rank changes are bucketed to avoid re-running on tiny intraday noise.
-- Thesis-gated paper EXIT / REDUCE / TAKE PARTIAL PROFIT remains immediate.
-- Portfolio rotations/swaps remain daily (or manually forced) to prevent churn.
-- Event-driven entries do not move the daily rotation clock.
-- Paper holdings are added to scanner priority symbols so held names receive fresh thesis/risk checks.
-- Neon egress is reduced: normal cycles read only current paper holdings (max 7); the Top-20 compact candidate payloads are loaded only when an optimizer event/daily rebalance is actually due.
+## Behavior after patch
+- Sector classification and sector momentum remain available as stock-level evidence.
+- Sector concentration does **not** block a qualified candidate from being selected.
+- The optimizer may hold 3, 4, 5, 6, or 7 stocks from the same sector if they are the strongest qualifying opportunities.
+- The existing Top-20 / Top-10 / target-6 / max-7 funnel remains unchanged.
+- Existing rank, entry-signal, risk-fit, cash, whole-share and portfolio-slot rules remain unchanged.
+- `OPTIMIZER_MAX_SAME_SECTOR` is obsolete/ignored after this patch and may be removed from Render environment variables.
 
-No live broker execution and no change to the deterministic score or optimizer ranking formula.
+## Files changed
+- `app/portfolio_engine.py`
+- `app/config.py`
+- `app/paper_engine.py`
+- `app/main.py`
+- `app/scanner.py`
+- `tests/test_optimizer.py`
+
+## Validation
+79 tests passed, 0 failed.
+A dedicated regression test confirms that six qualifying Technology candidates can all be selected when they are the strongest opportunities.

@@ -26,11 +26,27 @@ def payload(symbol, score=85, sector="Technology", expected=25, ai=88, price=100
 
 def test_optimizer_funnel_caps_visible_and_portfolio_slots():
     analyses={f"S{i:02d}":payload(f"S{i:02d}",score=95-i,sector=f"Sector{i%5}",expected=35-i*.3) for i in range(30)}
-    plan=build_optimizer_plan(analyses,profile="HIGH",visible_limit=20,shortlist_limit=10,target_positions=6,max_positions=7,max_same_sector=2)
+    plan=build_optimizer_plan(analyses,profile="HIGH",visible_limit=20,shortlist_limit=10,target_positions=6,max_positions=7)
     assert len(plan["visible"])==20
     assert len(plan["shortlist"])==10
     assert len(plan["selected_new"])<=6
     assert all(r["bucket"] in {"INVEST NOW","SHORTLIST","RESERVE","PORTFOLIO","ROTATE IN"} for r in plan["visible"])
+
+
+
+def test_optimizer_has_no_sector_position_cap():
+    # Sector is evidence about each stock, not a portfolio-level exclusion.
+    # If the strongest candidates all come from one sector, they may all be selected.
+    analyses = {
+        f"TECH{i}": payload(f"TECH{i}", score=95-i, sector="Technology", expected=35-i)
+        for i in range(8)
+    }
+    plan = build_optimizer_plan(
+        analyses, profile="HIGH", visible_limit=20, shortlist_limit=10,
+        target_positions=6, max_positions=7, min_rank_score=62
+    )
+    assert len(plan["selected_new"]) == 6
+    assert {r["sector"] for r in plan["selected_new"]} == {"Technology"}
 
 
 def test_optimizer_does_not_force_five_positions_when_only_three_qualify():
