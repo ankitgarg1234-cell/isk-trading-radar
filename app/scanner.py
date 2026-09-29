@@ -62,6 +62,23 @@ def _attention_buy_signal(full: dict, has_position: bool = False) -> tuple[str |
     return None, None
 
 
+def _strategic_fingerprint(signal: dict | None) -> str:
+    signal = signal or {}
+    material = {
+        "direction": signal.get("direction"),
+        "strength": signal.get("evidence_strength", 0),
+        "government_equity_stake": signal.get("government_equity_stake"),
+        "trump_administration_action": signal.get("trump_administration_action"),
+        "trump_personal": (signal.get("trump_personal_disclosure") or {}).get("status"),
+        "federal_total": round(float((signal.get("federal_awards") or {}).get("total_amount") or 0), 2),
+        "events": [
+            (e.get("type"), e.get("title"), e.get("direction"), e.get("materiality"))
+            for e in (signal.get("events") or [])[:8]
+        ],
+    }
+    return hashlib.sha1(json.dumps(material, sort_keys=True, default=str).encode("utf-8")).hexdigest()
+
+
 def _compact_payload(full: dict) -> dict:
     """Return the current decision state without heavy historical arrays.
 
@@ -84,6 +101,16 @@ def _compact_payload(full: dict) -> dict:
         if isinstance(items, list):
             news["items"] = items[:5]
         compact["news"] = news
+    strategic = compact.get("strategic_capital")
+    if isinstance(strategic, dict):
+        strategic = dict(strategic)
+        strategic["events"] = list(strategic.get("events") or [])[:6]
+        federal = strategic.get("federal_awards")
+        if isinstance(federal, dict):
+            federal = dict(federal)
+            federal["events"] = list(federal.get("events") or [])[:5]
+            strategic["federal_awards"] = federal
+        compact["strategic_capital"] = strategic
     # This is used only for deterioration comparison and should never chain
     # historical snapshots recursively.
     prior = compact.get("previous_snapshot")
@@ -107,6 +134,7 @@ def _snapshot_key(payload: dict) -> str:
         "news_label": news.get("label"),
         "material_events": news.get("material_events", 0),
         "thesis_invalidated": bool(thesis.get("invalidated")),
+        "strategic_capital": _strategic_fingerprint(payload.get("strategic_capital")),
     }
     raw = json.dumps(material, sort_keys=True, default=str).encode("utf-8")
     return hashlib.sha1(raw).hexdigest()
@@ -129,6 +157,7 @@ class RadarService:
         # optimizer needs an immediate event-driven run.  It is intentionally
         # not stored in Neon; a service restart may cause one harmless recheck.
         self._paper_entry_state: dict[str, tuple] = {}
+        self._last_strategic_enrich_at: datetime | None = None
 
     def market_open(self, now=None):
         """Regular-session V1 gate: Mon-Fri, 09:30-16:00 America/New_York.
@@ -145,6 +174,7 @@ class RadarService:
         symbol = symbol.upper().strip()
         bundle = self.provider.bundle(symbol)
         result = score_bundle(bundle)
+        prior_payload = {}
         with SessionLocal() as db:
             p = db.query(Position).filter(Position.symbol == symbol).order_by(Position.created_at.desc()).first()
             pd = {"shares": p.shares, "avg_cost": p.avg_cost, "account": p.account} if p else None
@@ -158,7 +188,30 @@ class RadarService:
                         "action": prior_payload.get("action"),
                     }
                 except Exception:
+                    prior_payload = {}
                     result["previous_snapshot"] = {}
+        # Preserve the last official government/OGE check between normal market scans.
+        # Light news classification refreshes every analysis; structured official
+        # sources are deliberately refreshed on a slower Top-20 cadence.
+        if settings.strategic_capital_enabled and hasattr(self.provider, "strategic"):
+            try:
+                news_items = bundle.get("news") or []
+                bundle["strategic_capital"] = self.provider.strategic.assess(
+                    symbol,
+                    company_name=(bundle.get("fundamentals") or {}).get("companyName") or symbol,
+                    news=news_items if isinstance(news_items, list) else (news_items.get("items") or []),
+                    annual_revenue=(bundle.get("fundamentals") or {}).get("totalRevenue"),
+                    prior=prior_payload.get("strategic_capital") or {},
+                    fetch_official=False,
+                )
+                if isinstance(bundle.get("data_sources"), dict):
+                    bundle["data_sources"]["strategic_capital"] = {
+                        "source": "USAspending.gov + OGE disclosure + classified news",
+                        "status": "shadow evidence",
+                        "asof": bundle["strategic_capital"].get("official_checked_at") or bundle.get("asof"),
+                    }
+            except Exception:
+                pass
         action, reason = position_action(result, bundle["price"], pd)
         plan = position_action_plan(action, result, bundle["price"], pd)
         ai = self.ai.analyze(symbol, bundle, result)
@@ -283,6 +336,91 @@ class RadarService:
                 for stale in db.query(Alert).filter(Alert.symbol==symbol, Alert.acknowledged==False).all():
                     stale.acknowledged=True
             db.commit()
+
+    def _enrich_strategic_top_candidates(self) -> tuple[bool, list[str]]:
+        """Refresh official strategic-capital evidence for a few Top-20 names.
+
+        This is intentionally rate-limited and shadow-only: it prevents the scanner
+        from hammering USAspending/OGE and prevents a new political factor from
+        silently changing the validated rank-v1 portfolio rules.
+        """
+        if not settings.strategic_capital_enabled or not hasattr(self.provider, "strategic"):
+            return False, []
+        now = datetime.now(timezone.utc)
+        if self._last_strategic_enrich_at:
+            elapsed = (now - self._last_strategic_enrich_at).total_seconds()
+            if elapsed < settings.strategic_enrich_interval_seconds:
+                return False, []
+        self._last_strategic_enrich_at = now
+        changed_symbols: list[str] = []
+        refreshed = 0
+        ttl = max(1, settings.strategic_official_refresh_hours) * 3600
+        with SessionLocal() as db:
+            rows = db.query(RadarCandidate).order_by(
+                RadarCandidate.portfolio_rank_score.desc(), RadarCandidate.updated_at.desc()
+            ).limit(settings.optimizer_visible_limit).all()
+            for cand in rows:
+                if refreshed >= max(1, settings.strategic_enrich_per_cycle):
+                    break
+                try:
+                    payload = json.loads(cand.current_json or "{}")
+                except Exception:
+                    payload = {}
+                if not isinstance(payload, dict) or not payload.get("symbol"):
+                    continue
+                prior_signal = payload.get("strategic_capital") or {}
+                checked = prior_signal.get("official_checked_at")
+                if checked:
+                    try:
+                        dt = datetime.fromisoformat(str(checked).replace("Z", "+00:00"))
+                        if dt.tzinfo is None:
+                            dt = dt.replace(tzinfo=timezone.utc)
+                        if (now - dt).total_seconds() < ttl:
+                            continue
+                    except Exception:
+                        pass
+                fundamentals = payload.get("fundamentals") or {}
+                company = fundamentals.get("companyName") or cand.symbol
+                news = payload.get("news") or {}
+                items = news.get("items") if isinstance(news, dict) else news
+                try:
+                    enriched = self.provider.strategic.assess(
+                        cand.symbol, company_name=company, news=items or [],
+                        annual_revenue=fundamentals.get("totalRevenue"),
+                        prior=prior_signal, fetch_official=True,
+                    )
+                except Exception:
+                    continue
+                before = _strategic_fingerprint(prior_signal)
+                after = _strategic_fingerprint(enriched)
+                payload["strategic_capital"] = enriched
+                src = payload.setdefault("data_sources", {})
+                src["strategic_capital"] = {
+                    "source": "USAspending.gov + OGE disclosure + classified news",
+                    "status": "shadow evidence / official sources checked",
+                    "asof": enriched.get("official_checked_at"),
+                }
+                compact = _compact_payload(payload)
+                cand.current_json = json.dumps(compact, default=str, separators=(",", ":"))
+                cand.updated_at = now
+                refreshed += 1
+                if before != after:
+                    changed_symbols.append(cand.symbol)
+                    db.add(AnalysisSnapshot(
+                        symbol=cand.symbol, price=float(payload.get("price") or cand.price or 0),
+                        deterministic_score=float(payload.get("deterministic_score") or cand.score or 0),
+                        analyst_score=float(payload.get("analyst_score") or 0),
+                        ai_score=float(payload.get("ai_score") or cand.ai_score or 0),
+                        expected_yield_pct=float(payload.get("expected_yield_pct") or 0),
+                        ai_expected_yield_pct=float(payload.get("ai_expected_yield_pct") or 0),
+                        category=payload.get("category") or cand.category or "Watch",
+                        action=payload.get("action") or cand.action or "WATCH",
+                        payload_json=cand.current_json,
+                    ))
+                    cand.last_snapshot_at = now
+                    cand.last_snapshot_key = _snapshot_key(compact)
+            db.commit()
+        return bool(changed_symbols), changed_symbols
 
     def _sync_rotation_alerts(self):
         """Gate live attention only after the optimizer has passed validation."""
@@ -478,6 +616,15 @@ class RadarService:
                 ok += 1
             except Exception as e:
                 errors.append(f"{sym}: {type(e).__name__}")
+        try:
+            strategic_changed, strategic_symbols = self._enrich_strategic_top_candidates()
+            if strategic_changed:
+                # Re-run the paper optimizer once so the latest evidence is present
+                # in the forward-test decision record. rank-v1 itself is unchanged.
+                paper_entry_event = True
+                paper_event_symbols.extend(s for s in strategic_symbols if s not in paper_event_symbols)
+        except Exception as e:
+            errors.append(f"strategic capital: {type(e).__name__}")
         try:
             self._sync_rotation_alerts()
         except Exception as e:

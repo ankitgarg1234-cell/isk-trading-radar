@@ -282,6 +282,8 @@ def _dashboard_state(db):
             "updated_at":c.updated_at.isoformat() if c and c.updated_at else None,
             "market_rank":rankrow.get("market_rank"),"portfolio_rank_score":rankrow.get("rank_score"),"optimizer_bucket":rankrow.get("bucket"),"optimizer_action":rankrow.get("optimizer_action"),
             "rank_components":rankrow.get("rank_components"),"ai_confirmation":rankrow.get("ai_confirmation"),"analyst_confirmation":rankrow.get("analyst_confirmation"),
+            "strategic_capital":a.get("strategic_capital") or {},
+            "strategic_capital_shadow":rankrow.get("strategic_capital_shadow") or {},
         }
         radar_views.append(view)
 

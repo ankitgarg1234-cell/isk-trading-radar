@@ -49,6 +49,17 @@ class Settings:
     paper_trade_cost_bps: float = float(os.getenv("PAPER_TRADE_COST_BPS", "10"))
     paper_rebalance_seconds: int = int(os.getenv("PAPER_REBALANCE_SECONDS", "86400"))
     paper_snapshot_seconds: int = int(os.getenv("PAPER_SNAPSHOT_SECONDS", "1800"))
+    # Government / strategic-capital monitor. This evidence is shadow-only until
+    # walk-forward + forward paper testing proves incremental value versus SPY.
+    strategic_capital_enabled: bool = _bool("STRATEGIC_CAPITAL_ENABLED", True)
+    strategic_official_refresh_hours: int = int(os.getenv("STRATEGIC_OFFICIAL_REFRESH_HOURS", "24"))
+    strategic_enrich_per_cycle: int = int(os.getenv("STRATEGIC_ENRICH_PER_CYCLE", "4"))
+    strategic_enrich_interval_seconds: int = int(os.getenv("STRATEGIC_ENRICH_INTERVAL_SECONDS", "900"))
+    strategic_usaspending_lookback_days: int = int(os.getenv("STRATEGIC_USASPENDING_LOOKBACK_DAYS", "730"))
+    trump_oge_disclosure_url: str = os.getenv(
+        "TRUMP_OGE_DISCLOSURE_URL",
+        "https://oge.box.com/shared/static/zycb5i2ny8kssm51uzqm8ygyq2zkpkqq.pdf",
+    )
     radar_symbols: tuple[str, ...] = tuple(
         s.strip().upper()
         for s in os.getenv(

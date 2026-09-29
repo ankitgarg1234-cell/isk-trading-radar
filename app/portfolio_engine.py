@@ -465,6 +465,7 @@ def candidate_rank_score(a: dict) -> dict:
     total = _clamp(conviction_pts + upside_pts + rr_pts + confidence_pts + risk_pts - penalty)
     ai = a.get("ai_score")
     analyst = a.get("analyst_score")
+    strategic = a.get("strategic_capital") or {}
     ai_confirmation = "UNAVAILABLE"
     analyst_confirmation = "UNAVAILABLE"
     if ai is not None:
@@ -488,6 +489,18 @@ def candidate_rank_score(a: dict) -> dict:
         "ai_confirmation": ai_confirmation,
         "analyst_confirmation": analyst_confirmation,
         "stock_risk": srisk,
+        "strategic_capital_shadow": {
+            "mode": strategic.get("mode") or "UNAVAILABLE",
+            "label": strategic.get("label") or "NONE",
+            "direction": strategic.get("direction") or "NONE",
+            "evidence_strength": float(strategic.get("evidence_strength") or 0),
+            "shadow_rank_adjustment": float(strategic.get("shadow_rank_adjustment") or 0),
+            "government_equity_stake": strategic.get("government_equity_stake") or "UNKNOWN",
+            "government_capital_or_demand": strategic.get("government_capital_or_demand") or "UNKNOWN",
+            "sector_policy_support": strategic.get("sector_policy_support") or "UNKNOWN",
+            "trump_administration_action": strategic.get("trump_administration_action") or "UNKNOWN",
+            "trump_personal_disclosure": (strategic.get("trump_personal_disclosure") or {}).get("status") or "UNKNOWN",
+        },
     }
 
 
@@ -537,6 +550,7 @@ def build_optimizer_plan(
             "sector": sector,
             "owned": sym in owned,
             "expected_yield_pct": _float(a.get("expected_yield_pct")),
+            "strategic_capital_shadow": rank.get("strategic_capital_shadow") or {},
         })
     rows.sort(key=lambda r: (r["rank_score"], r["expected_yield_pct"]), reverse=True)
     for i, r in enumerate(rows, 1):

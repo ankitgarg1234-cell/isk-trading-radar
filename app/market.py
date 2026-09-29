@@ -8,6 +8,7 @@ from difflib import SequenceMatcher
 import httpx
 
 from .config import settings
+from .strategic_capital import StrategicCapitalProvider
 
 UA = "Mozilla/5.0 ISK-Trading-Radar/1.0"
 
@@ -279,6 +280,7 @@ class SECFundamentalsProvider:
             "revenueGrowth": self._growth(revenue),
             "earningsGrowth": self._growth(net_income),
             "quarterlyRevenueGrowth": self._growth(quarterly_revenue),
+            "totalRevenue": latest_rev,
             "grossMargins": (latest_gp / latest_rev) if latest_gp is not None and latest_rev else None,
             "operatingMargins": (latest_oi / latest_rev) if latest_oi is not None and latest_rev else None,
             "returnOnEquity": (latest_ni / equity) if latest_ni is not None and equity not in (None, 0) else None,
@@ -337,7 +339,7 @@ class YahooMarketProvider:
     is unavailable, so one provider failure does not collapse the whole evidence pack.
     """
 
-    def __init__(self, timeout: float = 10.0, sec_provider=None, analyst_provider=None):
+    def __init__(self, timeout: float = 10.0, sec_provider=None, analyst_provider=None, strategic_provider=None):
         self.client = httpx.Client(
             timeout=timeout,
             headers={"User-Agent": UA, "Accept": "application/json"},
@@ -345,6 +347,7 @@ class YahooMarketProvider:
         )
         self.sec = sec_provider or SECFundamentalsProvider(timeout=max(timeout, 12.0))
         self.analyst = analyst_provider or FinnhubAnalystProvider(timeout=timeout)
+        self.strategic = strategic_provider or StrategicCapitalProvider(timeout=max(timeout, 12.0))
 
     def _json(self, url: str, params: dict[str, Any] | None = None) -> dict:
         r = self.client.get(url, params=params)
@@ -458,7 +461,9 @@ class YahooMarketProvider:
         earnings_current = ((earnings.get("trend") or [{}])[0])
         return {
             "sector": ap.get("sector"), "industry": ap.get("industry"),
-            "marketCap": self._v(pr.get("marketCap")), "trailingPE": self._v(sd.get("trailingPE")),
+            "companyName": self._v(pr.get("longName")) or self._v(pr.get("shortName")),
+            "marketCap": self._v(pr.get("marketCap")), "totalRevenue": self._v(fd.get("totalRevenue")),
+            "trailingPE": self._v(sd.get("trailingPE")),
             "forwardPE": self._v(sd.get("forwardPE")), "priceToSalesTrailing12Months": self._v(sd.get("priceToSalesTrailing12Months")),
             "revenueGrowth": self._v(fd.get("revenueGrowth")), "earningsGrowth": self._v(fd.get("earningsGrowth")),
             "grossMargins": self._v(fd.get("grossMargins")), "operatingMargins": self._v(fd.get("operatingMargins")),
@@ -517,6 +522,13 @@ class YahooMarketProvider:
         rows, current, previous, currency, exchange = self._rows_from_chart(daily)
         fundamentals = self.fundamentals(symbol)
         news = self.news(symbol)
+        strategic_capital = self.strategic.assess(
+            symbol,
+            company_name=fundamentals.get("companyName") or symbol,
+            news=news,
+            annual_revenue=_safe_float(fundamentals.get("totalRevenue")),
+            fetch_official=False,
+        ) if settings.strategic_capital_enabled else {"mode": "DISABLED", "events": [], "event_count": 0}
         sector_benchmark = None
         sector = fundamentals.get("sector")
         etf = SECTOR_ETF.get(sector)
@@ -549,14 +561,20 @@ class YahooMarketProvider:
                 "status": "available" if sector_benchmark else (f"sector identified as {sector}, benchmark unavailable" if sector else "unavailable"),
                 "benchmark": etf,
             },
+            "strategic_capital": {
+                "source": "USAspending.gov + OGE disclosure + classified news",
+                "status": "shadow evidence",
+                "asof": strategic_capital.get("official_checked_at") or datetime.now(timezone.utc).isoformat(),
+            },
         }
         return {
             "symbol": symbol, "price": current, "previous_close": previous,
             "currency": currency, "exchange": exchange, "history": rows,
             "fundamentals": fundamentals, "news": news,
+            "strategic_capital": strategic_capital,
             "sector_benchmark": sector_benchmark,
             "data_sources": data_sources,
-            "provider": "Yahoo price/news + SEC EDGAR fundamentals + optional Finnhub analysts",
+            "provider": "Yahoo price/news + SEC EDGAR fundamentals + optional Finnhub analysts + strategic-capital shadow monitor",
             "asof": datetime.now(timezone.utc).isoformat(),
         }
 

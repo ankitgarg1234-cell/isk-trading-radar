@@ -16,7 +16,7 @@
   <section class="panel">
     <div class="section-title-row"><div><span class="kicker">EVIDENCE PROVENANCE</span><h2>What data actually powered this decision</h2></div><span class="pill">{{ d.get('decision_confidence') or 'unknown' }} confidence</span></div>
     <div class="table-wrap"><table><thead><tr><th>Evidence</th><th>Source</th><th>Status</th><th>As of / detail</th></tr></thead><tbody>
-      {% for key,label in [('price','Price / history'),('fundamentals','Fundamentals'),('news','News'),('analyst','Analyst consensus'),('sector','Sector benchmark')] %}
+      {% for key,label in [('price','Price / history'),('fundamentals','Fundamentals'),('news','News'),('analyst','Analyst consensus'),('sector','Sector benchmark'),('strategic_capital','Government / strategic capital')] %}
       {% set src=(d.get('evidence_sources') or {}).get(key,{}) %}
       <tr><td>{{ label }}</td><td>{{ src.get('source') or 'unavailable' }}</td><td>{{ src.get('status') or 'unavailable' }}</td><td>{{ src.get('asof') or (src.get('benchmark') if src.get('benchmark') else (src.get('items') ~ ' items' if src.get('items') is not none else '—')) }}</td></tr>
       {% endfor %}
@@ -51,6 +51,26 @@
   <section class="two-col">
     <div class="panel"><span class="kicker">WHY AI THINKS THIS</span><h2>Contextual adjustments</h2><div class="adjustments">{% for a in d.adjustments %}<div><b class="{{ 'pos' if a.points > 0 else 'neg' if a.points < 0 else '' }}">{{ '%+g'|format(a.points) }}</b><span>{{ a.reason }}</span></div>{% endfor %}{% if not d.adjustments %}<div class="empty">No AI adjustment beyond the deterministic evidence.</div>{% endif %}</div><h3>Supporting rationale</h3><ul>{% for x in d.reasons %}<li>{{ x }}</li>{% endfor %}</ul></div>
     <div class="panel"><span class="kicker">WHAT COULD CHANGE THE SCORE</span><h2>Sensitivity / invalidation</h2><div class="sensitivity">{% for x in d.sensitivity %}<div><span>{{ x.condition }}</span><b>→ {{ '%.0f'|format(x.new_score) }}</b></div>{% endfor %}</div><h3>Risks / contrary evidence</h3><ul>{% for x in d.risks %}<li>{{ x }}</li>{% endfor %}</ul></div>
+  </section>
+
+  {% set g=d.get('strategic_capital') or {} %}
+  <section class="panel">
+    <div class="section-title-row"><div><span class="kicker">GOVERNMENT / STRATEGIC CAPITAL — SHADOW</span><h2>{{ g.get('label') or 'NONE' }} • {{ g.get('direction') or 'NONE' }}</h2><p class="subtle">Recorded for forward/backtest validation. It does not change the current deterministic score or rank-v1.</p></div><span class="pill">Evidence {{ g.get('evidence_strength') or 0 }}/100</span></div>
+    <div class="levels-grid">
+      <div><span>Federal awards / loans checked</span><b>{% set fa=g.get('federal_awards') or {} %}{{ fa.get('status') or 'NOT CHECKED' }}{% if fa.get('total_amount') %} • ${{ '{:,.0f}'.format(fa.get('total_amount')) }}{% endif %}</b></div>
+      <div><span>Government equity/stake evidence</span><b>{{ g.get('government_equity_stake') or 'UNKNOWN' }}</b></div>
+      <div><span>Government capital / demand</span><b>{{ g.get('government_capital_or_demand') or 'UNKNOWN' }}</b></div>
+      <div><span>Sector policy support</span><b>{{ g.get('sector_policy_support') or 'UNKNOWN' }}</b></div>
+      <div><span>Trump administration company action</span><b>{{ g.get('trump_administration_action') or 'UNKNOWN' }}</b></div>
+      <div><span>Donald Trump personal disclosure</span><b>{{ (g.get('trump_personal_disclosure') or {}).get('status') or 'UNKNOWN' }}</b></div>
+      <div><span>Trump family interest</span><b>{{ g.get('trump_family_interest') or 'UNKNOWN' }}</b></div>
+      <div><span>Shadow rank adjustment</span><b>{{ '%+0.1f'|format(g.get('shadow_rank_adjustment') or 0) }} pts</b></div>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Event</th><th>Type</th><th>Direction</th><th>Materiality</th><th>Verification</th><th>Source</th></tr></thead><tbody>
+      {% for e in g.get('events') or [] %}<tr><td>{% if e.get('source_url') %}<a class="text-link" href="{{ e.get('source_url') }}" target="_blank" rel="noopener">{{ e.get('title') }}</a>{% else %}{{ e.get('title') }}{% endif %}</td><td>{{ e.get('type') }}</td><td>{{ e.get('direction') }}</td><td>{{ e.get('materiality') }}</td><td>{{ e.get('verification') }}</td><td>{{ e.get('source') }}</td></tr>{% endfor %}
+      {% if not g.get('events') %}<tr><td colspan="6" class="empty">No company-specific government/strategic-capital event found in the evidence checked so far.</td></tr>{% endif %}
+    </tbody></table></div>
+    <p class="footnote">A political mention or favorable comment alone does not receive investment weight. Donald Trump personal interests and Trump-family interests are kept separate from U.S. government actions.</p>
   </section>
 
   <section class="panel">
