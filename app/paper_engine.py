@@ -248,6 +248,27 @@ def paper_status(db) -> dict:
     equity, invested, pos_rows = _equity(db, account, analyses)
     snap = db.query(PaperSnapshot).filter(PaperSnapshot.account == PAPER_ACCOUNT).order_by(PaperSnapshot.created_at.desc()).first()
     trades = db.query(PaperTrade).filter(PaperTrade.account == PAPER_ACCOUNT).order_by(PaperTrade.created_at.desc()).limit(12).all()
+    for row, pos in zip(pos_rows, positions):
+        cost_basis = float(pos.shares or 0) * float(pos.avg_cost or 0)
+        pnl = float(row.get("value") or 0) - cost_basis
+        row["cost_basis"] = round(cost_basis, 2)
+        row["pnl"] = round(pnl, 2)
+        row["pnl_pct"] = round((pnl / cost_basis * 100) if cost_basis else 0.0, 2)
+        row["weight_pct"] = round((float(row.get("value") or 0) / equity * 100) if equity else 0.0, 2)
+        row["entry_rank_score"] = round(float(pos.rank_score_at_entry or 0), 2)
+        row["reason"] = pos.reason or ""
+        row["opened_at"] = pos.opened_at.isoformat() if pos.opened_at else None
+    trade_rows = [{
+        "id": t.id,
+        "symbol": t.symbol,
+        "side": t.side,
+        "shares": t.shares,
+        "price": t.price,
+        "fees": t.fees,
+        "rank_score": t.rank_score,
+        "reason": t.reason or "",
+        "created_at": t.created_at.isoformat() if t.created_at else None,
+    } for t in trades]
     port_ret = (equity / account.starting_cash - 1) * 100 if account.starting_cash else 0.0
     bench_ret = ((account.benchmark_last_price / account.benchmark_start_price - 1) * 100) if account.benchmark_last_price and account.benchmark_start_price else 0.0
     return {
@@ -264,7 +285,7 @@ def paper_status(db) -> dict:
         "drawdown_pct": round(float(snap.drawdown_pct or 0), 2) if snap else 0.0,
         "positions": pos_rows,
         "position_count": len(pos_rows),
-        "trades": trades,
+        "trades": trade_rows,
         "started_at": account.started_at,
         "updated_at": account.updated_at,
     }

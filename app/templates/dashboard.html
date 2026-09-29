@@ -68,6 +68,24 @@
         <div><span>Positions</span><b id="paperPositionCount">{{ paper.position_count if paper.started else 0 }}</b><small>Target {{ optimizer.target_positions }} • max {{ optimizer.max_positions }}</small></div>
         <div><span>Max drawdown</span><b id="paperDrawdown">{{ ('%.2f%%'|format(paper.drawdown_pct)) if paper.started else '—' }}</b></div>
       </div>
+      <div class="paper-holdings-head"><span>Current paper positions</span><small>These are the positions actually bought by the optimizer.</small></div>
+      <div class="paper-position-cards" id="paperPositionCards">
+        {% for p in paper.positions %}
+        <a class="paper-position-card" href="/analysis/{{ p.symbol }}">
+          <div class="paper-position-top"><b>{{ p.symbol }}</b><span class="{{ 'pos' if p.pnl >= 0 else 'neg' }}">{{ '%+.2f%%'|format(p.pnl_pct) }}</span></div>
+          <div class="paper-position-meta"><span>{{ p.shares|int if p.shares == p.shares|int else p.shares }} sh @ ${{ '%.2f'|format(p.avg_cost) }}</span><span>${{ '%.0f'|format(p.value) }} • {{ '%.1f'|format(p.weight_pct) }}%</span></div>
+          <small>Entry rank {{ '%.1f'|format(p.entry_rank_score) }}/100{% if p.reason %} • {{ p.reason }}{% endif %}</small>
+        </a>
+        {% endfor %}
+        {% if not paper.positions %}<div class="empty paper-empty-card">No optimizer paper positions yet.</div>{% endif %}
+      </div>
+      <details class="paper-journal" {% if paper.trades %}open{% endif %}>
+        <summary>Recent paper trades <span class="pill muted">{{ paper.trades|length }}</span></summary>
+        <div class="table-wrap"><table><thead><tr><th>Time</th><th>Stock</th><th>Action</th><th>Shares</th><th>Price</th><th>Entry rank</th><th>Reason</th></tr></thead><tbody id="paperTradesBody">
+          {% for t in paper.trades %}<tr><td>{{ t.created_at[:16].replace('T',' ') if t.created_at else '—' }}</td><td class="ticker">{{ t.symbol }}</td><td><span class="pill {{ 'green' if t.side == 'BUY' else 'amber' }}">{{ t.side }}</span></td><td>{{ t.shares }}</td><td>${{ '%.2f'|format(t.price) }}</td><td>{{ '%.1f'|format(t.rank_score) }}/100</td><td class="reason-cell">{{ t.reason or '—' }}</td></tr>{% endfor %}
+          {% if not paper.trades %}<tr><td colspan="7" class="empty">No paper trades recorded yet.</td></tr>{% endif %}
+        </tbody></table></div>
+      </details>
       <div class="paper-actions"><form method="post" action="/paper/run-now"><button class="btn secondary" type="submit">Rebalance paper now</button></form><form method="post" action="/paper/reset" onsubmit="return confirm('Reset the $10,000 paper test and delete its paper history?');"><button class="btn ghost" type="submit">Reset paper test</button></form></div>
     </div>
   </section>
@@ -226,9 +244,9 @@
 
   <section class="panel" id="paperPortfolio">
     <div class="section-title-row"><div><span class="kicker">PAPER PORTFOLIO LEDGER</span><h2>Optimizer positions — not real trades</h2></div><span class="pill muted">WHOLE SHARES • {{ '%.0f'|format(10) }} BPS/trade modeled</span></div>
-    <div class="table-wrap"><table><thead><tr><th>Stock</th><th>Shares</th><th>Avg cost</th><th>Last</th><th>Value</th><th>Entry rank</th></tr></thead><tbody id="paperPositionsBody">
-      {% for p in paper.positions %}<tr><td class="ticker">{{ p.symbol }}</td><td>{{ p.shares }}</td><td>${{ '%.2f'|format(p.avg_cost) }}</td><td>${{ '%.2f'|format(p.price) }}</td><td>${{ '%.0f'|format(p.value) }}</td><td>{{ '%.1f'|format(p.rank_score) }}/100</td></tr>{% endfor %}
-      {% if not paper.positions %}<tr><td colspan="6" class="empty">Paper portfolio will begin on the first successful optimizer scan.</td></tr>{% endif %}
+    <div class="table-wrap"><table><thead><tr><th>Stock</th><th>Shares</th><th>Avg cost</th><th>Last</th><th>Value</th><th>P&amp;L</th><th>Weight</th><th>Entry rank</th><th>Reason</th></tr></thead><tbody id="paperPositionsBody">
+      {% for p in paper.positions %}<tr><td class="ticker"><a href="/analysis/{{ p.symbol }}">{{ p.symbol }}</a></td><td>{{ p.shares }}</td><td>${{ '%.2f'|format(p.avg_cost) }}</td><td>${{ '%.2f'|format(p.price) }}</td><td>${{ '%.0f'|format(p.value) }}</td><td class="{{ 'pos' if p.pnl >= 0 else 'neg' }}">${{ '%+.2f'|format(p.pnl) }} / {{ '%+.2f%%'|format(p.pnl_pct) }}</td><td>{{ '%.1f%%'|format(p.weight_pct) }}</td><td>{{ '%.1f'|format(p.entry_rank_score) }}/100</td><td class="reason-cell">{{ p.reason or '—' }}</td></tr>{% endfor %}
+      {% if not paper.positions %}<tr><td colspan="9" class="empty">Paper portfolio will begin on the first successful optimizer scan.</td></tr>{% endif %}
     </tbody></table></div>
     <p class="footnote">Paper performance is a forward test. It uses the same optimizer selection, whole-share sizing and modeled transaction friction, while SPY is tracked as the benchmark. No broker orders are sent.</p>
   </section>
