@@ -55,8 +55,26 @@ def _ensure_account(db) -> PaperAccount:
     return account
 
 
-def _candidate_payloads(db, extra_symbols: list[str] | None = None) -> dict[str, dict]:
-    rows = db.query(RadarCandidate).order_by(RadarCandidate.portfolio_rank_score.desc(), RadarCandidate.updated_at.desc()).limit(80).all()
+def _candidate_payloads(
+    db,
+    extra_symbols: list[str] | None = None,
+    *,
+    ranked_limit: int = 0,
+) -> dict[str, dict]:
+    """Load only the compact candidate rows needed for this paper cycle.
+
+    Normal scanner cycles pass ``ranked_limit=0`` and therefore read only the
+    current paper holdings (at most seven).  The Top-20 ranked candidates are
+    loaded only when an entry event or the daily rebalance actually needs the
+    optimizer.  This keeps Neon egress bounded while preserving immediate entry
+    decisions.
+    """
+    rows = []
+    if ranked_limit > 0:
+        rows = db.query(RadarCandidate).order_by(
+            RadarCandidate.portfolio_rank_score.desc(),
+            RadarCandidate.updated_at.desc(),
+        ).limit(max(1, ranked_limit)).all()
     have = {r.symbol for r in rows}
     missing = [s for s in (extra_symbols or []) if s not in have]
     if missing:
@@ -142,7 +160,7 @@ def _equity(db, account: PaperAccount, analyses: dict[str, dict]) -> tuple[float
     return account.cash + invested, invested, rows
 
 
-def run_paper_cycle(provider, *, force_rebalance: bool = False) -> dict:
+def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: bool = False) -> dict:
     """Run one shadow-paper cycle. No broker or real Position/Trade rows are touched."""
     if not settings.paper_trading_enabled:
         return {"status": "disabled"}
@@ -152,7 +170,9 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False) -> dict:
         if not account.enabled:
             return {"status": "disabled"}
         paper_positions = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).all()
-        analyses = _candidate_payloads(db, [p.symbol for p in paper_positions])
+        # Every scan needs only the current holdings for immediate thesis-gated
+        # risk management.  Do not pull the full candidate set from Neon here.
+        analyses = _candidate_payloads(db, [p.symbol for p in paper_positions], ranked_limit=0)
         pref = db.query(PortfolioPreference).filter(PortfolioPreference.account == "Main").first()
         profile = normalise_profile(pref.risk_profile if pref else "MEDIUM")
 
@@ -176,11 +196,23 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False) -> dict:
                 _sell(db, account, p, price, max(1, math.floor(p.shares * 0.25)), "Dashboard TAKE PARTIAL PROFIT", rank_score)
         db.flush()
 
+        # If immediate risk management closed/reduced a position, allow the
+        # optimizer to refill an open slot without waiting for tomorrow.
+        current_after_risk = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).all()
+        risk_freed_slot = len(current_after_risk) < len(paper_positions)
+
         last_rebalance = _utc(account.last_rebalance_at)
-        rebalance_due = force_rebalance or last_rebalance is None or (now - last_rebalance).total_seconds() >= settings.paper_rebalance_seconds
+        daily_due = last_rebalance is None or (now - last_rebalance).total_seconds() >= settings.paper_rebalance_seconds
+        entry_due = bool(entry_event or risk_freed_slot)
+        rebalance_due = bool(force_rebalance or daily_due or entry_due)
         if rebalance_due:
-            current = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).all()
+            current = current_after_risk
             owned = {p.symbol for p in current}
+            # Only optimizer events load the ranked candidate funnel.  Top 20 is
+            # sufficient because the UI/optimizer never allocates outside it.
+            analyses.update(_candidate_payloads(
+                db, [p.symbol for p in current], ranked_limit=settings.optimizer_visible_limit
+            ))
             plan = build_optimizer_plan(
                 analyses, owned, profile=profile,
                 visible_limit=settings.optimizer_visible_limit,
@@ -205,7 +237,11 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False) -> dict:
 
             db.flush()
             current = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).all()
-            if len(current) >= settings.optimizer_target_positions and plan["rotations"]:
+            # A new BUY signal may fill an open slot immediately, but portfolio
+            # rotations remain deliberately slow (daily or manually forced) to
+            # prevent intraday rank-churn.
+            allow_rotation = bool(force_rebalance or daily_due)
+            if allow_rotation and len(current) >= settings.optimizer_target_positions and plan["rotations"]:
                 rot = plan["rotations"][0]
                 src = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT, PaperPosition.symbol == rot["symbol_from"]).first()
                 dst = next((r for r in plan["visible"] if r["symbol"] == rot["symbol_to"]), None)
@@ -215,7 +251,8 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False) -> dict:
                     db.flush()
                     dst_price = float((dst["analysis"] or {}).get("price") or 0)
                     _buy(db, account, dst["symbol"], dst_price, target_value, dst["rank_score"], rot["detail"])
-            account.last_rebalance_at = now
+            if force_rebalance or daily_due:
+                account.last_rebalance_at = now
 
         # Benchmark is sampled only when the compact paper snapshot is due.
         last_snapshot = db.query(PaperSnapshot).filter(PaperSnapshot.account == PAPER_ACCOUNT).order_by(PaperSnapshot.created_at.desc()).first()
@@ -236,7 +273,14 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False) -> dict:
             db.add(PaperSnapshot(account=PAPER_ACCOUNT, equity=equity, cash=account.cash, invested=invested, benchmark_price=account.benchmark_last_price or 0, portfolio_return_pct=port_ret, benchmark_return_pct=bench_ret, excess_return_pct=port_ret-bench_ret, drawdown_pct=drawdown, positions_count=len(rows)))
         account.updated_at = now
         db.commit()
-        return {"status": "ok", "account": PAPER_ACCOUNT, "cash": round(account.cash, 2), "rebalanced": rebalance_due}
+        return {
+            "status": "ok",
+            "account": PAPER_ACCOUNT,
+            "cash": round(account.cash, 2),
+            "rebalanced": rebalance_due,
+            "entry_event": entry_due,
+            "daily_rebalance": bool(force_rebalance or daily_due),
+        }
 
 
 def paper_status(db) -> dict:
@@ -244,7 +288,7 @@ def paper_status(db) -> dict:
     if not account:
         return {"enabled": settings.paper_trading_enabled, "started": False, "starting_cash": settings.paper_starting_cash, "positions": [], "trades": []}
     positions = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).order_by(PaperPosition.symbol).all()
-    analyses = _candidate_payloads(db, [p.symbol for p in positions])
+    analyses = _candidate_payloads(db, [p.symbol for p in positions], ranked_limit=0)
     equity, invested, pos_rows = _equity(db, account, analyses)
     snap = db.query(PaperSnapshot).filter(PaperSnapshot.account == PAPER_ACCOUNT).order_by(PaperSnapshot.created_at.desc()).first()
     trades = db.query(PaperTrade).filter(PaperTrade.account == PAPER_ACCOUNT).order_by(PaperTrade.created_at.desc()).limit(12).all()

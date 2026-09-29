@@ -8,10 +8,10 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 from .config import settings
-from .db import SessionLocal, Position, AnalysisRequest, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, PortfolioPreference
+from .db import SessionLocal, Position, AnalysisRequest, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, PortfolioPreference, PaperPosition
 from .market import YahooMarketProvider
 from .analysis_engine import score_bundle, position_action, position_action_plan
-from .portfolio_engine import candidate_rank_score, build_optimizer_plan, normalise_profile
+from .portfolio_engine import candidate_rank_score, build_optimizer_plan, normalise_profile, INVESTABLE_ENTRY_ACTIONS
 from .paper_engine import run_paper_cycle
 from .ai_engine import AIEngine
 
@@ -125,6 +125,10 @@ class RadarService:
         self.last_universe_candidates = 0
         self.last_deep_analyzed = 0
         self.last_universe_start = 0
+        # Process-local material state used only to decide whether the paper
+        # optimizer needs an immediate event-driven run.  It is intentionally
+        # not stored in Neon; a service restart may cause one harmless recheck.
+        self._paper_entry_state: dict[str, tuple] = {}
 
     def market_open(self, now=None):
         """Regular-session V1 gate: Mon-Fri, 09:30-16:00 America/New_York.
@@ -361,9 +365,12 @@ class RadarService:
         """Symbols that deserve full analysis every cycle before broad-market candidates."""
         with SessionLocal() as db:
             positions = [p.symbol for p in db.query(Position).all()]
+            paper_positions = [p.symbol for p in db.query(PaperPosition).all()]
             watch = [w.symbol for w in db.query(WatchlistItem).all()]
             manual = [a.symbol for a in db.query(AnalysisRequest).order_by(AnalysisRequest.created_at.desc()).limit(20).all()]
-        ordered = positions + manual + watch + list(settings.radar_symbols)
+        # Paper holdings are priority symbols too, so thesis/exit management is
+        # refreshed every scanner cycle without querying historical payloads.
+        ordered = positions + paper_positions + manual + watch + list(settings.radar_symbols)
         return list(dict.fromkeys(s.upper() for s in ordered if s))
 
     def _universe_slice(self) -> list[dict]:
@@ -426,6 +433,34 @@ class RadarService:
         ordered = priority + discovery_symbols + broad_symbols
         return list(dict.fromkeys(s.upper() for s in ordered if s))
 
+    def _paper_entry_event(self, full: dict) -> bool:
+        """True when an investable candidate materially changes this scan.
+
+        Multiple changes in one scanner cycle are coalesced by ``scan_once``
+        into a single paper-optimizer run.  Rank is bucketed in 5-point steps so
+        tiny intraday fluctuations do not churn the paper portfolio.
+        """
+        symbol = str(full.get("symbol") or "").upper()
+        if not symbol:
+            return False
+        rank = candidate_rank_score(full)
+        signal = rank.get("entry_signal")
+        zone = str(full.get("entry_zone_status") or "").upper()
+        rank_score = float(rank.get("score") or 0)
+        state = (
+            signal if signal in INVESTABLE_ENTRY_ACTIONS else None,
+            zone if signal in INVESTABLE_ENTRY_ACTIONS else None,
+            int(rank_score // 5) if signal in INVESTABLE_ENTRY_ACTIONS else -1,
+            bool((full.get("thesis_assessment") or {}).get("invalidated")),
+            bool(full.get("negative_news_override")),
+        )
+        previous = self._paper_entry_state.get(symbol)
+        if signal in INVESTABLE_ENTRY_ACTIONS:
+            self._paper_entry_state[symbol] = state
+            return previous != state
+        self._paper_entry_state.pop(symbol, None)
+        return False
+
     def scan_once(self, force: bool = False):
         if not force and not self.market_open():
             return {"status": "market_closed", "analyzed": 0, "universe_size": self.universe_size}
@@ -433,9 +468,14 @@ class RadarService:
         batch = syms[: settings.scan_batch_size]
         ok = 0
         errors: list[str] = []
+        paper_entry_event = False
+        paper_event_symbols: list[str] = []
         for sym in batch:
             try:
-                self.analyze_symbol(sym)
+                full = self.analyze_symbol(sym)
+                if self._paper_entry_event(full):
+                    paper_entry_event = True
+                    paper_event_symbols.append(sym)
                 ok += 1
             except Exception as e:
                 errors.append(f"{sym}: {type(e).__name__}")
@@ -444,7 +484,10 @@ class RadarService:
         except Exception as e:
             errors.append(f"portfolio optimizer: {type(e).__name__}")
         try:
-            run_paper_cycle(self.provider)
+            # Entry decisions are event-driven: all newly actionable names from
+            # this completed scan are coalesced into one optimizer run.  Broader
+            # portfolio rotation remains on the daily cadence inside paper_engine.
+            run_paper_cycle(self.provider, entry_event=paper_entry_event)
         except Exception as e:
             errors.append(f"paper trading: {type(e).__name__}")
         self.last_scan = datetime.now(timezone.utc)
@@ -457,6 +500,8 @@ class RadarService:
             "universe_prefiltered": self.last_universe_prefiltered,
             "universe_deep_candidates": self.last_universe_candidates,
             "universe_start": self.last_universe_start,
+            "paper_entry_event": paper_entry_event,
+            "paper_event_symbols": paper_event_symbols,
         }
 
     async def loop(self):
