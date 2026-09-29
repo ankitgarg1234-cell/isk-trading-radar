@@ -1,17 +1,8 @@
 # Test Results
 
-- Pytest: **74 passed / 0 failed**
-- Python compileall: **PASS**
-- JavaScript `node --check`: **PASS**
-- Overall Python coverage: **72%**
-- `portfolio_engine.py`: **81%**
-- `paper_engine.py`: **63%**
+- Full reconstructed regression suite: **75 passed / 0 failed**
+- Python compile check: passed
+- JavaScript syntax check: passed
+- Jinja template parse: passed
 
-New regression coverage verifies:
-- Radar display capped at 20.
-- Serious shortlist capped at 10.
-- Optimizer portfolio does not exceed 7 positions.
-- It does not force five positions when fewer candidates qualify.
-- AI remains confirmation-only and does not alter Portfolio Priority arithmetic.
-- $10,000 paper account initializes and preserves non-negative cash/whole-share sizing.
-- Optimizer rotation alerts remain available when live gating is explicitly enabled.
+This patch changes paper-portfolio visibility/auditability only. Optimizer selection, ranking, sizing, rebalance, and execution-simulation logic are unchanged.

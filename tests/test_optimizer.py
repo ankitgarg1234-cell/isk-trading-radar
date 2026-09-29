@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 
 from app.db import SessionLocal, RadarCandidate, PaperAccount, PaperPosition
 from app.main import app
-from app.paper_engine import run_paper_cycle
+from app.paper_engine import run_paper_cycle, paper_status
 from app.portfolio_engine import build_optimizer_plan, candidate_rank_score
 
 client=TestClient(app)
@@ -80,3 +80,18 @@ def test_paper_cycle_starts_at_10000_and_never_exceeds_seven_positions():
         assert acct.starting_cash==10000
         assert 1 <= len(positions) <= 7
         assert acct.cash >= 0
+
+
+def test_paper_status_exposes_position_identity_pnl_and_recent_trades():
+    with SessionLocal() as db:
+        status = paper_status(db)
+        assert "positions" in status
+        assert "trades" in status
+        if status["positions"]:
+            row = status["positions"][0]
+            for key in ("symbol", "shares", "avg_cost", "price", "value", "pnl", "pnl_pct", "weight_pct", "entry_rank_score", "reason"):
+                assert key in row
+        if status["trades"]:
+            trade = status["trades"][0]
+            for key in ("symbol", "side", "shares", "price", "rank_score", "reason", "created_at"):
+                assert key in trade
