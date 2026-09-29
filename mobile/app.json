@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "ISK Trading Radar",
+    "slug": "isk-trading-radar",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "iskradar",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.isktradingradar.mobile"
+    },
+    "android": {
+      "package": "com.isktradingradar.mobile"
+    },
+    "plugins": [
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true,
+          "faceIDPermission": "Allow ISK Trading Radar to securely access your saved session."
+        }
+      ]
+    ]
+  }
+}

@@ -1,26 +1,29 @@
-# Test Results
+# Mobile App Build Verification
 
-Final verification on the cumulative project state used to build this patch:
+Date: 2026-09-29
 
-- Pytest: **69 passed / 0 failed**
-- Python compileall: **PASS**
-- JavaScript syntax (`node --check app/static/app.js`): **PASS**
-- Overall Python coverage: **72%**
-- `analysis_engine.py`: **81%**
-- `main.py`: **85%**
-- `db.py`: **92%**
-- `portfolio_engine.py`: **76%**
-- `scanner.py`: **75%**
+## Backend regression
 
-Targeted regression coverage includes:
-- score 53 in Primary Buy does not create an attention alert
-- 68 Primary Buy -> CONSIDER BUY
-- 68–74 Better Buy -> STARTER BUY
-- 75–84 Primary/Better -> BUY
-- 85+ Primary/Better -> STRONG BUY
-- legacy WAIT alerts are hidden from the attention queue
-- actionable BUY remains visible
-- duplicate active alerts are suppressed/refreshed
-- portfolio ROTATE/SWAP proposal becomes an attention alert
-- swap scan does not load the full market payload universe
-- existing no-panic-sell thesis gates remain covered by the full suite
+- `pytest -q`: **74 passed / 0 failed**
+- Includes 5 new mobile API tests:
+  - signed mobile login + compact bootstrap
+  - Copilot diagnostics
+  - approval-gated risk profile configuration
+  - source-code changes cannot auto-apply
+  - scanner repair is approval-gated
+- `python -m py_compile app/main.py app/config.py`: passed
+
+## Mobile source validation
+
+- TypeScript compiler parser checked all **11 `.ts` / `.tsx` files**
+- Syntax errors: **0**
+
+Full dependency-aware Expo/React Native typecheck requires `npm install` on a machine with npm network access. This environment intentionally did not claim a device build without installing the SDK packages.
+
+## Architecture checks
+
+- Android/iOS share one React Native codebase.
+- Mobile authentication uses signed expiring bearer tokens stored by `expo-secure-store`.
+- No `DATABASE_URL`, Finnhub, OpenAI or other server credential is embedded in the mobile bundle.
+- Mobile bootstrap reuses the compact server-side dashboard cache and a 60-second-or-slower polling cadence.
+- AI Fix execution is restricted to an explicit runtime allowlist and requires user approval.
