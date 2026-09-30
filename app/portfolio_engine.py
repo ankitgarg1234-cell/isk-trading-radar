@@ -634,7 +634,7 @@ def build_optimizer_plan(
         srisk = rank["stock_risk"]
         fit = risk_fit(srisk, profile)
         sector = str((a.get("fundamentals") or {}).get("sector") or "Unknown")
-        adjusted = rank["score"] - (6 if fit == "STRETCH" else 20 if fit == "ABOVE TARGET" else 0)
+        adjusted = rank["score"]
         rows.append({
             "symbol": sym,
             "analysis": a,
