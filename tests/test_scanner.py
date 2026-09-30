@@ -195,3 +195,36 @@ def test_uncapped_policy_adds_new_buy_without_rotation_for_space(monkeypatch):
         a=db.query(Alert).filter(Alert.symbol=="BEST",Alert.alert_type=="buy_level",Alert.acknowledged==False).one()
         assert a.action in {"STRONG BUY","BUY","STARTER BUY"}
 
+
+
+def test_analyze_symbol_treats_paper_position_as_owned():
+    from app.db import PaperPosition
+    from tests.helpers import bundle as analysis_bundle
+
+    class Provider:
+        def bundle(self, symbol):
+            b=analysis_bundle(symbol=symbol)
+            b["fundamentals"]["marketCap"]=5_000_000_000
+            return b
+
+    class AI:
+        def analyze(self, symbol, bundle, result):
+            return {
+                "ai_score": result["deterministic_score"],
+                "ai_expected_yield_pct": result["expected_yield_pct"],
+                "mode": "test", "adjustments": [], "reasons": [], "risks": [], "sensitivity": [],
+            }
+
+    with SessionLocal() as db:
+        db.add(PaperPosition(
+            account="Optimizer Paper", symbol="PAPEROWN", shares=5, avg_cost=100,
+            rank_score_at_entry=80, reason="Core Quality Lane • Top-20 #1 BUY",
+        ))
+        db.commit()
+
+    service=RadarService(provider=Provider(),ai=AI())
+    full=service.analyze_symbol("PAPEROWN",persist=False)
+    assert full["position"] is not None
+    assert full["position"]["shares"] == 5
+    assert full["position"]["account"] == "Paper"
+    assert full["action"] not in {"BUY NOW", "CONSIDER BUYING NOW", "CONSIDER STARTER BUY"}
