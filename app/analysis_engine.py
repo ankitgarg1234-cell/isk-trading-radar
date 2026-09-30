@@ -338,7 +338,7 @@ def promotion_risk(bundle: dict, news: dict, technical: dict, price: float) -> d
         flags.append("very low float combined with sub-$1B market cap")
 
     hard_block = bool(recent_reverse_split or distress_hits)
-    explosive_block = bool(hard_block or len(financing_hits) >= 2 or (relvol > 8 and not material_catalyst) or any("very low float" in f for f in flags))
+    explosive_block = bool(hard_block or len(financing_hits) >= 2 or (relvol > 8 and not material_catalyst) or any("very low float" in flag for flag in flags))
     return {
         "hard_block": hard_block,
         "explosive_block": explosive_block,
@@ -515,7 +515,7 @@ def score_bundle(bundle: dict) -> dict:
         and fs >= 14
         and fconf != "low"
         and avg_dollar_volume >= settings.core_min_dollar_volume
-        and (market_cap <= 0 or market_cap >= settings.core_min_market_cap)
+        and market_cap >= settings.core_min_market_cap
         and not promotion["hard_block"]
         and not override
     )
