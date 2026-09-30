@@ -289,3 +289,51 @@ def test_paper_engine_executes_only_explicit_add_toward_score_target():
         buys = db.query(PaperTrade).filter(PaperTrade.symbol == "ADDME", PaperTrade.side == "BUY").all()
         assert len(buys) == 1
         assert "ADD" in buys[0].reason
+
+
+def test_core_lane_requires_market_cap_evidence():
+    b = bundle()
+    b["fundamentals"].pop("marketCap", None)
+    result = score_bundle(b)
+    assert result["lane_qualified"] is False
+    assert result["lane"] is None
+    assert any("market-cap evidence unavailable" in x for x in result["lane_reasons"])
+
+
+def test_core_lane_requires_minimum_average_dollar_liquidity():
+    b = bundle()
+    rows = history(start=100, days=260, daily=.01, last_volume_multiplier=1.2)
+    for row in rows:
+        row["volume"] = 20_000
+    b["history"] = rows
+    result = score_bundle(b)
+    assert result["lane_qualified"] is False
+    assert result["lane"] is None
+    assert any("average dollar volume" in x for x in result["lane_reasons"])
+
+
+def test_secondary_chatter_cannot_verify_explosive_catalyst():
+    b = bundle(price=100)
+    b["history"] = history(start=40, days=260, daily=.23, last_volume_multiplier=2.2)
+    b["history"][120].update({"open":139, "high":141, "low":138, "close":140, "volume":1_000_000})
+    now = int(datetime.now(timezone.utc).timestamp())
+    b["news"] = [{
+        "title": "Company raises guidance after record earnings beat",
+        "publisher": "Random Stocks Blog",
+        "published": now,
+        "link": "https://example.com/chatter",
+    }]
+    result = score_bundle(b)
+    assert result["core_quality_qualified"] is True
+    assert result["explosive_qualified"] is False
+    assert result["catalyst_verified"] is False
+
+
+def test_credible_material_news_can_verify_explosive_catalyst():
+    b = bundle(price=100)
+    b["history"] = history(start=40, days=260, daily=.23, last_volume_multiplier=2.2)
+    b["history"][120].update({"open":139, "high":141, "low":138, "close":140, "volume":1_000_000})
+    result = score_bundle(b)
+    assert result["explosive_qualified"] is True
+    assert result["catalyst_verified"] is True
+    assert result["catalyst_evidence"]
