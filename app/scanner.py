@@ -5,14 +5,17 @@ import gc
 import hashlib
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 
 from .config import settings
 from .db import SessionLocal, Position, AnalysisRequest, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, PortfolioPreference, PaperPosition
 from .market import YahooMarketProvider
 from .analysis_engine import score_bundle, position_action, position_action_plan
-from .portfolio_engine import candidate_rank_score, build_optimizer_plan, normalise_profile, INVESTABLE_ENTRY_ACTIONS
+from .portfolio_engine import (
+    candidate_rank_score, build_optimizer_plan, normalise_profile, INVESTABLE_ENTRY_ACTIONS,
+    classify_lane, CORE_LANE, EXPLOSIVE_LANE,
+)
 from .paper_engine import run_paper_cycle
 from .ai_engine import AIEngine
 
@@ -151,6 +154,9 @@ class RadarService:
         self.last_universe_prefiltered = 0
         self.last_universe_candidates = 0
         self.last_deep_analyzed = 0
+        self.last_core_analyzed = 0
+        self.last_explosive_analyzed = 0
+        self.last_unqualified_analyzed = 0
         self.last_universe_start = 0
         # Process-local material state used only to decide whether the paper
         # optimizer needs an immediate event-driven run.  It is intentionally
@@ -221,6 +227,10 @@ class RadarService:
         plan = position_action_plan(action, result, bundle["price"], pd)
         ai = self.ai.analyze(symbol, bundle, result)
         full = {**bundle, **result, **ai, "action": action, "action_reason": reason, "action_plan": plan, "position": pd}
+        lane = classify_lane(full)
+        full["lane"] = lane.get("lane")
+        full["lane_qualification"] = lane
+        full["category"] = "Explosive Runner" if lane.get("lane") == EXPLOSIVE_LANE else "Core" if lane.get("lane") == CORE_LANE else "Watch"
         if persist:
             self.persist(full)
         return full
@@ -414,6 +424,14 @@ class RadarService:
                     "status": "shadow evidence / official sources checked",
                     "asof": enriched.get("official_checked_at"),
                 }
+                lane = classify_lane(payload)
+                payload["lane"] = lane.get("lane")
+                payload["lane_qualification"] = lane
+                payload["category"] = "Explosive Runner" if lane.get("lane") == EXPLOSIVE_LANE else "Core" if lane.get("lane") == CORE_LANE else "Watch"
+                rank = candidate_rank_score(payload)
+                cand.category = payload["category"]
+                cand.portfolio_rank_score = rank.get("score", 0)
+                cand.rank_version = rank.get("version", "rank-v2-lanes")
                 compact = _compact_payload(payload)
                 cand.current_json = json.dumps(compact, default=str, separators=(",", ":"))
                 cand.updated_at = now
@@ -445,9 +463,12 @@ class RadarService:
             owned = {p.symbol for p in position_rows}
             pref = db.query(PortfolioPreference).filter(PortfolioPreference.account == "Main").first()
             profile = normalise_profile(pref.risk_profile if pref else "MEDIUM")
-            rows = db.query(RadarCandidate).order_by(
+            fresh_cutoff = datetime.now(timezone.utc) - timedelta(hours=18)
+            rows = db.query(RadarCandidate).filter(
+                RadarCandidate.updated_at >= fresh_cutoff
+            ).order_by(
                 RadarCandidate.portfolio_rank_score.desc(), RadarCandidate.updated_at.desc()
-            ).limit(60).all()
+            ).limit(80).all()
             have = {r.symbol for r in rows}
             missing = [s for s in owned if s not in have]
             if missing:
@@ -524,6 +545,23 @@ class RadarService:
         ordered = positions + paper_positions + manual + watch + list(settings.radar_symbols)
         return list(dict.fromkeys(s.upper() for s in ordered if s))
 
+    def incumbent_symbols(self) -> list[str]:
+        """Refresh a rotating subset of current leaders so Top-20 prices/scores cannot go stale."""
+        n = max(0, int(settings.incumbent_refresh_per_cycle))
+        if n <= 0:
+            return []
+        with SessionLocal() as db:
+            rows = db.query(RadarCandidate).order_by(
+                RadarCandidate.portfolio_rank_score.desc(), RadarCandidate.updated_at.desc()
+            ).limit(settings.optimizer_visible_limit).all()
+        symbols = [r.symbol for r in rows if r.symbol]
+        if not symbols:
+            return []
+        start = (self.scan_count * n) % len(symbols)
+        if start + n <= len(symbols):
+            return symbols[start:start+n]
+        return symbols[start:] + symbols[:(start+n) % len(symbols)]
+
     def _universe_slice(self) -> list[dict]:
         universe = self.provider.us_equity_universe()
         self.universe_size = len(universe)
@@ -560,29 +598,86 @@ class RadarService:
                 except Exception:
                     continue
         self.last_universe_prefiltered = len(results)
-        qualified = [r for r in results if r.get("qualifies")]
-        qualified.sort(key=lambda r: float(r.get("scan_score") or 0), reverse=True)
-        # Always retain a few highest-ranked names even if hard thresholds are narrowly missed.
-        if len(qualified) < settings.universe_deep_candidates:
-            seen = {r["symbol"] for r in qualified}
-            for r in sorted(results, key=lambda x: float(x.get("scan_score") or 0), reverse=True):
-                if r["symbol"] not in seen:
-                    qualified.append(r); seen.add(r["symbol"])
-                if len(qualified) >= settings.universe_deep_candidates:
+        limit = max(1, settings.universe_deep_candidates)
+        core = sorted(
+            [r for r in results if r.get("qualifies_core")],
+            key=lambda r: float(r.get("core_scan_score") or 0),
+            reverse=True,
+        )
+        explosive = sorted(
+            [r for r in results if r.get("qualifies_explosive")],
+            key=lambda r: float(r.get("explosive_scan_score") or 0),
+            reverse=True,
+        )
+        selected: list[dict] = []
+        seen: set[str] = set()
+        core_quota = (limit + 1) // 2
+        explosive_quota = limit // 2
+        for lane_name, rows, quota in ((CORE_LANE, core, core_quota), (EXPLOSIVE_LANE, explosive, explosive_quota)):
+            added = 0
+            for r in rows:
+                if r["symbol"] in seen:
+                    continue
+                item = dict(r); item["prefilter_lane"] = lane_name
+                selected.append(item); seen.add(r["symbol"]); added += 1
+                if added >= quota:
                     break
-        self.last_universe_candidates = min(len(qualified), settings.universe_deep_candidates)
-        return qualified[: settings.universe_deep_candidates]
+        if len(selected) < limit:
+            rest = sorted(results, key=lambda r: float(r.get("scan_score") or 0), reverse=True)
+            for r in rest:
+                if r["symbol"] in seen or not r.get("qualifies"):
+                    continue
+                item = dict(r)
+                item["prefilter_lane"] = CORE_LANE if float(r.get("core_scan_score") or 0) >= float(r.get("explosive_scan_score") or 0) else EXPLOSIVE_LANE
+                selected.append(item); seen.add(r["symbol"])
+                if len(selected) >= limit:
+                    break
+        self.last_universe_candidates = len(selected)
+        return selected[:limit]
+
 
     def candidate_symbols(self):
-        """Return the current deep-analysis queue, including a rotating whole-market slice."""
+        """Balanced deep-analysis queue: holdings + incumbents + Core + Explosive discovery."""
         priority = self.priority_symbols()[: settings.priority_deep_limit]
-        discovered = self.provider.discover(100)
-        discovered.sort(key=lambda x: abs(float(x.get("change_pct") or 0)), reverse=True)
-        discovery_symbols = [d["symbol"] for d in discovered[: settings.discovery_deep_candidates]]
+        incumbents = [s for s in self.incumbent_symbols() if s not in set(priority)]
+
+        discovered = self.provider.discover(120)
+        core_sources = {"undervalued_growth_stocks", "growth_technology_stocks"}
+        explosive_sources = {"day_gainers", "most_actives"}
+        core_disc = [
+            d for d in discovered
+            if core_sources.intersection(set(d.get("sources") or [d.get("source")]))
+            and float(d.get("price") or 0) >= settings.core_min_price
+        ]
+        explosive_disc = [
+            d for d in discovered
+            if explosive_sources.intersection(set(d.get("sources") or [d.get("source")]))
+            and float(d.get("price") or 0) >= settings.core_min_price
+            and float(d.get("change_pct") or 0) > 0
+        ]
+        core_disc.sort(key=lambda x: (float(x.get("volume") or 0), float(x.get("change_pct") or 0)), reverse=True)
+        explosive_disc.sort(key=lambda x: (float(x.get("change_pct") or 0), float(x.get("volume") or 0)), reverse=True)
+        disc_total = max(2, settings.discovery_deep_candidates)
+        core_n = (disc_total + 1) // 2
+        exp_n = disc_total // 2
+        discovery_symbols = [d["symbol"] for d in core_disc[:core_n]] + [d["symbol"] for d in explosive_disc[:exp_n]]
+
         broad = self._prefilter_universe(self._universe_slice())
-        broad_symbols = [q["symbol"] for q in broad]
-        ordered = priority + discovery_symbols + broad_symbols
+        broad_core = [q["symbol"] for q in broad if q.get("prefilter_lane") == CORE_LANE]
+        broad_explosive = [q["symbol"] for q in broad if q.get("prefilter_lane") == EXPLOSIVE_LANE]
+
+        # Interleave both lanes so one lane cannot consume the full scan batch.
+        ordered = list(priority) + list(incumbents)
+        max_len = max(len(discovery_symbols), len(broad_core), len(broad_explosive), 0)
+        for i in range(max_len):
+            if i < len(discovery_symbols):
+                ordered.append(discovery_symbols[i])
+            if i < len(broad_core):
+                ordered.append(broad_core[i])
+            if i < len(broad_explosive):
+                ordered.append(broad_explosive[i])
         return list(dict.fromkeys(s.upper() for s in ordered if s))
+
 
     def _paper_optimizer_policy_fingerprint(self) -> str:
         """Fingerprint every rule that can change paper-entry eligibility.
@@ -596,7 +691,7 @@ class RadarService:
             pref = db.query(PortfolioPreference).filter(PortfolioPreference.account == "Main").first()
             profile = normalise_profile(pref.risk_profile if pref else "MEDIUM")
         material = {
-            "policy_version": "eligibility-v3-top20-all-qualified",
+            "policy_version": "eligibility-v4-quality-explosive-lanes-score-sizing",
             "risk_profile": profile,
             "visible_limit": settings.optimizer_visible_limit,
             "paper_trade_cost_bps": settings.paper_trade_cost_bps,
@@ -677,6 +772,9 @@ class RadarService:
         syms = self.candidate_symbols()
         batch = syms[: settings.scan_batch_size]
         ok = 0
+        core_analyzed = 0
+        explosive_analyzed = 0
+        unqualified_analyzed = 0
         errors: list[str] = []
         # Portfolio-rule/config changes remain diagnostic events, but paper
         # allocation now re-evaluates the complete current Top 20 on every open-
@@ -690,6 +788,13 @@ class RadarService:
         for sym in batch:
             try:
                 full = self.analyze_symbol(sym)
+                lane_name = full.get("lane")
+                if lane_name == CORE_LANE:
+                    core_analyzed += 1
+                elif lane_name == EXPLOSIVE_LANE:
+                    explosive_analyzed += 1
+                else:
+                    unqualified_analyzed += 1
                 if self._paper_entry_event(full):
                     paper_entry_event = True
                     paper_event_symbols.append(sym)
@@ -723,6 +828,9 @@ class RadarService:
         self.last_scan = datetime.now(timezone.utc)
         self.scan_count += 1
         self.last_deep_analyzed = ok
+        self.last_core_analyzed = core_analyzed
+        self.last_explosive_analyzed = explosive_analyzed
+        self.last_unqualified_analyzed = unqualified_analyzed
         self.last_error = "; ".join(errors[:5]) if errors else None
         return {
             "status": "ok", "analyzed": ok, "errors": errors, "candidates": len(syms),
@@ -734,6 +842,9 @@ class RadarService:
             "paper_top20_recheck": paper_top20_recheck,
             "paper_optimizer_invalidated": optimizer_policy_event,
             "paper_event_symbols": paper_event_symbols,
+            "core_analyzed": core_analyzed,
+            "explosive_analyzed": explosive_analyzed,
+            "unqualified_analyzed": unqualified_analyzed,
         }
 
     async def loop(self):
