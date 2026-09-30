@@ -40,9 +40,14 @@ def _core_payload(symbol="CORE", score=90, price=10):
         "risk_reward": 3.5,
         "decision_confidence": "high",
         "entry_zone_status": "PRIMARY_BUY",
-        "levels": {"buy_low": price * .95, "buy_high": price * 1.02, "better_low": price * .9, "better_high": price * .93, "stop": price * .95, "target": price * 1.3},
-        "technicals": {"atr": price * .02, "relative_volume": 1.3, "change20_pct": 8},
-        "news": {"material_events": 1, "high_negative_events": 0},
+        "levels": {
+            "buy_low": price * .95, "buy_high": price * 1.02,
+            "better_low": price * .9, "better_high": price * .93,
+            "breakout": price * 1.08, "stop": price * .95,
+            "target": price * 1.3, "do_not_chase": price * 1.15,
+        },
+        "technicals": {"atr": price * .02, "relative_volume": 1.3, "change20_pct": 8, "rsi": 55, "ema20": price * .98},
+        "news": {"label": "Neutral", "material_events": 1, "high_negative_events": 0, "items": []},
         "fundamentals": {"sector": "Technology"},
         "action": "BUY NOW",
     }
