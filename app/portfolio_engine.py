@@ -261,8 +261,9 @@ def suggested_position_size(
     deployable_cash = max(0.0, cash - reserve_cash)
     if deployable_cash <= 0:
         return {"shares": 0, "reason": "No deployable cash after strategic reserve", "fit": fit, "stock_risk": stock_risk}
-    if fit == "ABOVE TARGET" and profile in {"LOW", "MEDIUM"}:
-        return {"shares": 0, "reason": f"Stock risk {stock_risk:.0f}/100 is above the {p['label']} limit", "fit": fit, "stock_risk": stock_risk}
+    # Risk fit is advisory for sizing, never an entry veto. Under the uncapped
+    # Top-20 policy every qualified entry must receive capital; higher-risk names
+    # may receive a smaller suggested size but cannot be silently blocked.
 
     price_base = price * fx_rate_to_base
     stop_risk_base = (price - stop) * fx_rate_to_base
@@ -278,6 +279,8 @@ def suggested_position_size(
     shares = min(by_risk, by_cap, by_cash)
     if fit == "STRETCH":
         shares *= 0.6
+    elif fit == "ABOVE TARGET":
+        shares *= 0.35
     shares = math.floor(shares) if whole_shares else round(shares, 4)
     shares = max(0, shares)
     capital = shares * price_base
