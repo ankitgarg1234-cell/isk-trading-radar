@@ -224,3 +224,13 @@ def test_explosive_requires_thirty_percent_remaining_upside():
     assert result["expected_yield_pct"] < 30
     assert result["explosive_qualified"] is False
     assert result["lane"] in {"CORE_QUALITY", None}
+
+
+def test_recent_reverse_split_is_hard_rejected_without_extra_feed():
+    b = bundle()
+    b["fundamentals"]["marketCap"] = 5_000_000_000
+    b["recent_reverse_splits"] = [{"date": 1_790_000_000, "ratio": "1:20"}]
+    result = score_bundle(b)
+    assert result["lane_qualified"] is False
+    assert result["promotion_risk"]["hard_reject"] is True
+    assert any("recent reverse split" in x for x in result["promotion_risk"]["reasons"])
