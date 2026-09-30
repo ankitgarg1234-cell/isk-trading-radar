@@ -1,138 +1,43 @@
-# ISK Trading Radar — V1 Full Functional Prototype
+# GWRE optimizer revalidation fix
 
-A private US-equity research/radar dashboard built with FastAPI, Jinja, SQLAlchemy and a continuous background scanner.
+Verified against `ankitgarg1234-cell/isk-trading-radar` main commit:
 
-## What V1 now includes
+`63e67817cd633ff32af425e1dd8a3e023bb6695f`
 
-- Dashboard with live-refreshing Radar candidates and alerts
-- Manual **Analyze Any Symbol** workflow
-- Current-position ledger with manual add/update/delete
-- Screenshot import for existing positions
-  - optional server-side AI vision when `OPENAI_API_KEY` is configured
-  - free in-browser Tesseract OCR fallback when AI vision is not configured
-  - mandatory confirmation/edit step before saving
-- Trade ledger
-- Cash + strategic reserve tracking
-- Portfolio deployment / rotation proposals
-- Deterministic score /100 with component breakdown
-- Analyst-consensus score when data is available
-- Explainable AI/context score with structured adjustments
-- Analyst vs deterministic vs AI expected-yield / holding-period presentation
-- News sentiment, materiality, credibility and priced-in-recency heuristic
-- Strong-fundamental gate for **Explosive Runner** classification
-- Buy zone / Better Buy / Breakout Buy / Do-Not-Chase / Stop / Target levels
-- Position-aware decisions:
-  - New: BUY NOW / WAIT MORE / BREAKOUT BUY / DON'T CHASE / AVOID / WATCH
-  - Existing: ADD / HOLD / HOLD-DON'T-ADD / TAKE PARTIAL PROFIT / REDUCE / EXIT
-- Continuous regular-session scanner while the Render process is awake
-- Cross-sector broad discovery through the free V1 provider
-- Analysis snapshots, Radar candidates and alerts persisted to the configured database
-- Login capability via environment variables
-- Health endpoint at `/health`
+## What this fixes
 
-## Important V1 data/infrastructure boundary
+The existing event path re-runs the paper optimizer when an individual ticker has a material actionable-state change. That misses this sequence:
 
-The included no-key market provider is suitable for prototyping, **not** an exchange-grade guaranteed real-time feed. It may be delayed, throttled or incomplete. The provider interface is isolated so a production market/news source can replace it without redesigning the dashboard.
+`GWRE = BUY` → old restriction blocks it → restriction is removed → `GWRE = BUY` still → no BUY-state transition → no immediate optimizer re-run.
 
-Render Free may sleep when there is no inbound traffic. Therefore the application logic supports continuous market-session scanning, but **free hosting cannot guarantee uninterrupted unattended scanning**.
+This patch makes **portfolio eligibility/configuration changes their own optimizer event**. On the first open-market scan after a restart/deployment, and whenever the risk profile or optimizer thresholds change, the paper engine reloads and re-ranks the current Top 20 even when every ticker stays BUY→BUY.
 
-## Deployment to the existing Render service
+It also makes every visible Top-20 candidate carry an explicit portfolio decision. An actionable name can therefore show either a purchase decision or a PASS reason such as `Rank #13; Top-10 shortlist required` instead of silently remaining BUY.
 
-Your existing service can be updated from GitHub.
+## Important policy retained
 
-1. Back up your current repository/branch if desired.
-2. Replace the repository contents with this release, preserving the files at repository root.
-3. Commit/push to `main`.
-4. Render should auto-deploy. If not: **Manual Deploy → Deploy latest commit**.
+- Paper trading only.
+- No sector-position cap.
+- No per-tier `max 2` cap.
+- 5–7 position funnel remains unchanged.
+- Top-20 visible / Top-10 serious-shortlist logic remains unchanged.
+- Daily rotation remains slower than entry re-evaluation to avoid churn.
 
-Use:
+## Apply
 
-```text
-Build command:
-pip install -r requirements.txt
-
-Start command:
-uvicorn app.main:app --host 0.0.0.0 --port $PORT
-
-Health check:
-/health
-```
-
-### Environment variables
-
-Recommended immediately:
-
-```text
-SESSION_SECRET=<long random value>
-APP_USERNAME=admin
-APP_PASSWORD=<your private password>
-```
-
-Optional for server-side AI explanations / screenshot vision:
-
-```text
-OPENAI_API_KEY=<key>
-OPENAI_MODEL=gpt-5-mini
-```
-
-Without an OpenAI key, deterministic analysis and explainable heuristic AI continue to work, and screenshot import falls back to free browser OCR.
-
-### Persistent ledger
-
-If `DATABASE_URL` is absent, the app uses local SQLite. This is fine for local development but **not durable on Render Free**.
-
-For the trade ledger/positions/history to survive redeploys and service filesystem replacement, set `DATABASE_URL` to a persistent PostgreSQL database.
-
-The app accepts standard `postgresql://...` / `postgres://...` URLs and converts them to the psycopg driver automatically.
-
-## Tests
-
-See `TEST_RESULTS.md` and `REQUIREMENTS_MATRIX.md`.
-
-Latest release result:
-
-```text
-25 passed
-0 failed
-73% overall Python coverage
-```
-
-Run locally:
+From the repository root, copy `apply_gwre_optimizer_fix.py` there and run:
 
 ```bash
-pip install -r requirements-dev.txt
-pytest --cov=app --cov-report=term --cov-report=xml:coverage.xml --junitxml=test-results.xml -q
+python apply_gwre_optimizer_fix.py
+pytest tests/test_optimizer.py
 ```
 
-## Architecture
+The patcher creates `.gwre.bak` backups before changing each file. It is idempotent and stops rather than guessing if an expected source anchor no longer matches.
 
-```text
-Browser
-  ↓
-FastAPI + Jinja dashboard
-  ├─ Position / trade ledger
-  ├─ Manual symbol analysis
-  ├─ Screenshot import
-  ├─ Live alerts API
-  └─ Portfolio optimizer
-  ↓
-RadarService background scanner
-  ↓
-Market provider → deterministic engine → contextual AI layer
-  ↓
-SQLAlchemy → SQLite / PostgreSQL
-```
+## Files changed
 
-## Deferred after V1
+- `app/scanner.py`
+- `app/portfolio_engine.py`
+- `tests/test_optimizer.py`
 
-- IBKR read-only synchronization
-- IBKR order tickets / execution
-- Automatic brokerage execution
-- Paid exchange-grade live market feed
-- Truly exhaustive full-US-universe tick scanning
-- Dedicated production news feed
-- Exchange holiday / early-close calendar
-- External push notifications
-- Programmatic eToro signal integration
-
-These are intentionally separated from V1 so the decision logic and portfolio workflow can be validated before broker execution is introduced.
+The GitHub connector available in this chat can read the now-public repository, but repository writes are still rejected with HTTP 403, so this package does **not** modify your GitHub repo automatically.
