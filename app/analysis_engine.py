@@ -365,6 +365,9 @@ def _promotion_risk(bundle: dict, news: dict, t: dict) -> dict:
     dilution_hits = sorted(term for term in PROMOTION_DILUTION_TERMS if term in titles)
 
     hard_reasons = []
+    if bundle.get("recent_reverse_splits"):
+        ratios = ", ".join(str(x.get("ratio") or "reverse split") for x in bundle.get("recent_reverse_splits")[:3])
+        hard_reasons.append(f"recent reverse split detected ({ratios})")
     if price < MIN_SHARE_PRICE:
         hard_reasons.append(f"share price below ${MIN_SHARE_PRICE:.0f}")
     if market_cap and market_cap < MIN_MARKET_CAP:
