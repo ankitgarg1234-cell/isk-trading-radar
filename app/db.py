@@ -140,6 +140,7 @@ class PaperPosition(Base):
     shares: Mapped[float] = mapped_column(Float)
     avg_cost: Mapped[float] = mapped_column(Float)
     rank_score_at_entry: Mapped[float] = mapped_column(Float, default=0.0)
+    entry_lane: Mapped[str] = mapped_column(String(32), default="Core Quality Lane")
     reason: Mapped[str] = mapped_column(String(255), default="")
     opened_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -224,6 +225,13 @@ def _ensure_runtime_columns():
             if name not in cols:
                 with engine.begin() as conn:
                     conn.exec_driver_sql(f"ALTER TABLE radar_candidates ADD COLUMN {name} {ddl}")
+    except Exception:
+        pass
+    try:
+        cols={c["name"] for c in inspect(engine).get_columns("paper_positions")}
+        if "entry_lane" not in cols:
+            with engine.begin() as conn:
+                conn.exec_driver_sql("ALTER TABLE paper_positions ADD COLUMN entry_lane VARCHAR(32) DEFAULT 'Core Quality Lane'")
     except Exception:
         pass
 
