@@ -286,7 +286,10 @@ def _dashboard_state(db):
     alerts=[]
     for a in raw_alerts:
         if _is_snoozed(a) or not _attentionworthy_alert(a):continue
-        if settings.optimizer_live_gating and a.alert_type=="buy_level" and a.symbol not in approved_buy_symbols:continue
+        # In the current paper-only workflow, a buy-level alert must agree with
+        # the Top-20 allocator. This prevents raw CONSIDER/BUY signals outside the
+        # actionable allocation set from looking like paper-trade decisions.
+        if a.alert_type=="buy_level" and a.symbol not in approved_buy_symbols:continue
         alerts.append(a)
     alerts=sorted(alerts,key=_alert_priority)[:20]
 
