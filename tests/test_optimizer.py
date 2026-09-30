@@ -61,6 +61,18 @@ def test_optimizer_does_not_force_five_positions_when_only_three_qualify():
     assert len(plan["selected_new"])==3
 
 
+
+def test_primary_buy_69_is_investable_and_selected():
+    a=payload("CELC",score=69,sector="Healthcare",expected=20,ai=76,price=84.79)
+    a["action"]="CONSIDER BUYING NOW"
+    a["entry_zone_status"]="PRIMARY_BUY"
+    plan=build_optimizer_plan({"CELC":a},profile="HIGH",visible_limit=20,shortlist_limit=10)
+    row=plan["visible"][0]
+    assert row["entry_signal"] == "STARTER BUY"
+    assert row["bucket"] == "INVEST NOW"
+    assert row in plan["selected_new"]
+
+
 def test_risk_fit_does_not_block_qualified_top20_entry():
     high_risk = payload("RISKY", score=90, sector="Technology", expected=35, price=4)
     high_risk["category"] = "Explosive Runner"
