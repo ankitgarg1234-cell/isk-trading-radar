@@ -517,8 +517,9 @@ def test_max_drawdown_reports_positive_historical_magnitude():
 
 def test_dashboard_paper_counts_link_to_matching_sections():
     html = client.get("/").text
-    assert 'href="#paperCurrentPositions"' in html
-    assert 'id="paperCurrentPositions"' in html
+    assert 'href="#paperPortfolio"' in html
+    assert 'id="paperPortfolio"' in html
     assert 'href="#paperValidTrades"' in html
     assert 'id="paperValidTrades"' in html
     assert 'paperOpenPositionCountJournal' not in html
+    assert '>Origin<' in html
