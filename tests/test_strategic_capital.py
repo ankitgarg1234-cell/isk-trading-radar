@@ -98,6 +98,12 @@ def test_periodic_disclosure_parser_detects_company_purchase_and_amount_range():
 
 
 def test_trump_personal_disclosure_checks_periodic_reports_not_just_annual(monkeypatch):
+    from dataclasses import replace
+    import app.strategic_capital as strategic_mod
+    monkeypatch.setattr(
+        strategic_mod, "settings",
+        replace(strategic_mod.settings, strategic_disclosure_pdf_enabled=True),
+    )
     p = StrategicCapitalProvider()
     periodic = """Executive Branch Personnel Public Financial Disclosure Report: Periodic Transaction Report
     NVIDIA CORP (NVDA) Purchase 04/09/2026 $1,000,001 - $5,000,000
