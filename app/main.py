@@ -11,7 +11,7 @@ from sqlalchemy import text
 from .config import settings
 from .db import engine, SessionLocal, Position, PaperPosition, AnalysisRequest, Trade, PortfolioCash, PortfolioPreference, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, storage_status
 from .analysis_engine import parse_positions_from_text
-from .portfolio_engine import RISK_PROFILES, ACTION_RANK, normalise_profile, stock_risk_score, system_signal, active_level, analyst_label, suggested_position_size, account_risk, projected_risk, risk_band, build_optimizer_plan, candidate_rank_score
+from .portfolio_engine import RISK_PROFILES, ACTION_RANK, normalise_profile, stock_risk_score, system_signal, active_level, analyst_label, suggested_position_size, account_risk, projected_risk, risk_band, build_optimizer_plan, candidate_rank_score, CORE_LANE, EXPLOSIVE_LANE
 from .paper_engine import paper_status, reset_paper, run_paper_cycle
 from .scanner import radar
 from .ai_engine import AIEngine
