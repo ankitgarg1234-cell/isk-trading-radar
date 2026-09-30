@@ -311,8 +311,11 @@ def suggested_position_size(
 
     # Risk budget is a ceiling only. It never enlarges the score-led target.
     risk_budget = total * (p["risk_per_trade_pct"] / 100)
+    existing_shares_equiv = (max(0.0, existing_value) / price_base) if price_base > 0 else 0.0
+    existing_risk_amount = existing_shares_equiv * stop_risk_base
+    remaining_risk_budget = max(0.0, risk_budget - existing_risk_amount)
     by_score = remaining_target_room / price_base if price_base > 0 else 0
-    by_risk = risk_budget / stop_risk_base if stop_risk_base > 0 else 0
+    by_risk = remaining_risk_budget / stop_risk_base if stop_risk_base > 0 else 0
     by_cash = deployable_cash / price_base if price_base > 0 else 0
     shares_raw = min(by_score, by_risk, by_cash)
     shares = math.floor(shares_raw) if whole_shares else round(shares_raw, 4)
@@ -344,6 +347,8 @@ def suggested_position_size(
         "target_allocation_pct": target_pct,
         "target_capital": round(remaining_target_room, 2),
         "risk_capital_ceiling": round(by_risk * price_base, 2),
+        "existing_risk_amount": round(existing_risk_amount, 2),
+        "remaining_risk_budget": round(remaining_risk_budget, 2),
         "reason": (
             f"Priority {rank_score:.1f}/100 targets {target_pct:.0f}% allocation; "
             f"final whole-share size limited by {limiter}"
