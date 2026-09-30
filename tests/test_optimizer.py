@@ -126,6 +126,7 @@ def test_paper_cycle_starts_at_10000_and_can_hold_all_qualified_names():
         assert acct.starting_cash==10000
         assert len(positions) == 10
         assert all(p.shares > 0 for p in positions)
+        assert all(float(p.shares).is_integer() for p in positions)
         assert acct.cash >= 0
 
 
@@ -387,3 +388,81 @@ def test_existing_paper_account_migrates_to_sp500_total_return_benchmark():
     with SessionLocal() as db:
         acct = db.query(PaperAccount).one()
         assert acct.benchmark_symbol == "^SP500TR"
+
+
+def test_legacy_fractional_position_is_normalised_without_sell_trade():
+    now = datetime.now(timezone.utc)
+    a = payload("DUST", score=80, price=25)
+    a["action"] = "HOLD — DON'T ADD"
+    a["entry_zone_status"] = "WATCH"
+    with SessionLocal() as db:
+        db.add(PaperAccount(
+            account="Optimizer Paper", starting_cash=10000, cash=9000,
+            benchmark_symbol="^SP500TR", enabled=True, last_rebalance_at=now,
+        ))
+        db.add(PaperPosition(
+            account="Optimizer Paper", symbol="DUST", shares=10.75,
+            avg_cost=20, rank_score_at_entry=70, reason="legacy fractional allocation",
+        ))
+        db.add(RadarCandidate(
+            symbol="DUST", category="Core", action=a["action"], score=80, ai_score=88,
+            price=25, portfolio_rank_score=70, current_json=json.dumps(a),
+        ))
+        db.commit()
+
+    before_equity = 9000 + 10.75 * 25
+    result = run_paper_cycle(BenchProvider(), entry_event=False)
+    assert result["whole_share_corrections"]
+    with SessionLocal() as db:
+        acct = db.query(PaperAccount).one()
+        pos = db.query(PaperPosition).filter(PaperPosition.symbol == "DUST").one()
+        sells = db.query(PaperTrade).filter(PaperTrade.side == "SELL").all()
+        assert pos.shares == 10
+        assert sells == []
+        after_equity = acct.cash + pos.shares * 25
+        assert round(after_equity, 6) == round(before_equity, 6)
+
+
+def test_sub_one_share_legacy_dust_is_removed_without_sell_trade():
+    now = datetime.now(timezone.utc)
+    a = payload("DUST", score=80, price=25)
+    a["action"] = "HOLD — DON'T ADD"
+    a["entry_zone_status"] = "WATCH"
+    with SessionLocal() as db:
+        db.add(PaperAccount(
+            account="Optimizer Paper", starting_cash=10000, cash=9999,
+            benchmark_symbol="^SP500TR", enabled=True, last_rebalance_at=now,
+        ))
+        db.add(PaperPosition(
+            account="Optimizer Paper", symbol="DUST", shares=0.000003,
+            avg_cost=25, rank_score_at_entry=70, reason="legacy dust",
+        ))
+        db.add(RadarCandidate(
+            symbol="DUST", category="Core", action=a["action"], score=80, ai_score=88,
+            price=25, portfolio_rank_score=70, current_json=json.dumps(a),
+        ))
+        db.commit()
+
+    run_paper_cycle(BenchProvider(), entry_event=False)
+    with SessionLocal() as db:
+        assert db.query(PaperPosition).filter(PaperPosition.symbol == "DUST").first() is None
+        assert db.query(PaperTrade).filter(PaperTrade.side == "SELL").count() == 0
+
+
+def test_fractional_historical_trade_is_legacy_not_valid_trade():
+    with SessionLocal() as db:
+        db.add(PaperAccount(
+            account="Optimizer Paper", starting_cash=10000, cash=10000,
+            benchmark_symbol="^SP500TR", enabled=True,
+        ))
+        db.add(PaperTrade(
+            account="Optimizer Paper", symbol="BRZE", side="BUY", shares=0.000003,
+            price=25.47, fees=0, rank_score=73.5,
+            reason="old fractional allocation",
+        ))
+        db.commit()
+    with SessionLocal() as db:
+        status = paper_status(db)
+    assert status["trade_count"] == 0
+    assert status["legacy_trade_count"] == 1
+    assert status["legacy_trades"][0]["legacy_fractional"] is True

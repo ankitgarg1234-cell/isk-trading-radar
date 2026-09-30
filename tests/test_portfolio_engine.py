@@ -52,3 +52,18 @@ def test_primary_buy_69_is_starter_buy_consistently():
     a["entry_zone_status"]="PRIMARY_BUY"
     assert system_signal(a,False) == "STARTER BUY"
 
+
+
+def test_owned_wait_more_means_hold_dont_add():
+    a=sample_analysis()
+    a["action"]="WAIT MORE"
+    a["entry_zone_status"]="PRIMARY_BUY"
+    assert system_signal(a,True) == "HOLD"
+
+
+def test_owned_buy_zone_does_not_imply_second_purchase_without_explicit_add():
+    a=sample_analysis()
+    a["action"]="BUY NOW"
+    assert system_signal(a,True) == "HOLD"
+    a["action"]="ADD"
+    assert system_signal(a,True) == "BUY"

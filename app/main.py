@@ -257,8 +257,11 @@ def _dashboard_state(db):
         currency=_currency_for(sym,a);rate=fx.get(currency)
         existing_value=owned.get(sym,{}).get("value_base",0.0)
         optimizer_approved=rankrow.get("bucket") in {"INVEST NOW","ROTATE IN"}
-        if optimizer_approved or is_owned:
+        explicit_add=is_owned and str(a.get("action") or "").upper()=="ADD"
+        if optimizer_approved or explicit_add:
             sizing=suggested_position_size(a,cash=cash,reserve_cash=reserve,portfolio_value=portfolio_value,profile=risk_profile,fx_rate_to_base=rate or 0,existing_value=existing_value,whole_shares=True)
+        elif is_owned:
+            sizing={"shares":0,"capital":0,"fit":rankrow.get("risk_fit","UNKNOWN"),"stock_risk":rankrow.get("stock_risk",stock_risk_score(a)),"reason":"Existing position — HOLD / DON'T ADD; no additional paper order"}
         else:
             sizing={"shares":0,"capital":0,"fit":rankrow.get("risk_fit","UNKNOWN"),"stock_risk":rankrow.get("stock_risk",stock_risk_score(a)),"reason":rankrow.get("decision_reason") or "No capital allocated: current signal is not an investable Top-20 entry"}
         projected=projected_risk(risk_rows,cash,a,sizing,rate or 0,risk_profile) if rate and sizing.get("shares") else None

@@ -149,8 +149,11 @@ def system_signal(a: dict, owned: bool = False) -> str:
             return "STRONG SELL"
         if action in {"REDUCE", "TAKE PARTIAL PROFIT"}:
             return "SELL" if action == "REDUCE" else "TAKE PROFIT"
-        if action.startswith("HOLD") or action == "ADD":
-            return "HOLD" if action != "ADD" else "BUY"
+        if action == "ADD":
+            return "BUY"
+        # Once a paper position already exists, WAIT/WATCH/BUY-zone language is
+        # entry timing, not an instruction to purchase a second allocation.
+        return "HOLD"
 
     if action in {"BUY NOW", "BREAKOUT BUY"}:
         return "STRONG BUY" if ai >= 88 and det >= 80 else "BUY"
@@ -574,8 +577,25 @@ def build_optimizer_plan(
     for r in visible:
         if r["owned"]:
             r["bucket"] = "PORTFOLIO"
-            r["optimizer_action"] = "HOLD / MANAGE"
-            r["decision_reason"] = "HOLD / MANAGE — already held in the portfolio"
+            raw_action = str((r["analysis"] or {}).get("action") or "").upper()
+            if raw_action == "EXIT":
+                r["optimizer_action"] = "EXIT"
+                r["decision_reason"] = "EXIT — already owned and thesis/position action requires exit review"
+            elif raw_action == "REDUCE":
+                r["optimizer_action"] = "REDUCE"
+                r["decision_reason"] = "REDUCE — already owned and thesis/position action requires reduction review"
+            elif raw_action == "TAKE PARTIAL PROFIT":
+                r["optimizer_action"] = "TAKE PARTIAL PROFIT"
+                r["decision_reason"] = "TAKE PARTIAL PROFIT — already owned; profit-management action"
+            elif raw_action == "ADD":
+                r["optimizer_action"] = "ADD"
+                r["decision_reason"] = "ADD — explicit add signal on an existing position"
+            else:
+                r["optimizer_action"] = "HOLD / DON'T ADD"
+                r["decision_reason"] = (
+                    f"HOLD / DON'T ADD — already owned; current raw state {raw_action or 'WATCH'} "
+                    "does not create another paper buy"
+                )
             continue
         if r["entry_signal"] in INVESTABLE_ENTRY_ACTIONS:
             r["bucket"] = "INVEST NOW"
