@@ -453,6 +453,7 @@ class YahooMarketProvider:
     def _flatten_summary(self, result: dict) -> dict:
         fd = result.get("financialData") or {}
         sd = result.get("summaryDetail") or {}
+        ks = result.get("defaultKeyStatistics") or {}
         pr = result.get("price") or {}
         ap = result.get("assetProfile") or {}
         trends = result.get("recommendationTrend") or {}
@@ -463,6 +464,7 @@ class YahooMarketProvider:
             "sector": ap.get("sector"), "industry": ap.get("industry"),
             "companyName": self._v(pr.get("longName")) or self._v(pr.get("shortName")),
             "marketCap": self._v(pr.get("marketCap")), "totalRevenue": self._v(fd.get("totalRevenue")),
+            "floatShares": self._v(ks.get("floatShares")), "sharesOutstanding": self._v(ks.get("sharesOutstanding")),
             "trailingPE": self._v(sd.get("trailingPE")),
             "forwardPE": self._v(sd.get("forwardPE")), "priceToSalesTrailing12Months": self._v(sd.get("priceToSalesTrailing12Months")),
             "revenueGrowth": self._v(fd.get("revenueGrowth")), "earningsGrowth": self._v(fd.get("earningsGrowth")),
@@ -543,6 +545,26 @@ class YahooMarketProvider:
         symbol = symbol.upper().strip()
         daily = self.chart(symbol, "1y", "1d")
         rows, current, previous, currency, exchange = self._rows_from_chart(daily)
+        split_events = []
+        for raw in ((daily.get("events") or {}).get("splits") or {}).values():
+            try:
+                numerator = float(raw.get("numerator") or 0)
+                denominator = float(raw.get("denominator") or 0)
+                ratio = numerator / denominator if numerator > 0 and denominator > 0 else None
+            except Exception:
+                ratio = None
+            split_events.append({
+                "date": raw.get("date"),
+                "numerator": raw.get("numerator"),
+                "denominator": raw.get("denominator"),
+                "split_ratio": raw.get("splitRatio"),
+                "ratio": ratio,
+                "reverse": bool(ratio is not None and ratio < 1.0),
+            })
+        corporate_actions = {
+            "splits_1y": split_events[-8:],
+            "recent_reverse_split": any(bool(x.get("reverse")) for x in split_events),
+        }
         fundamentals = self.fundamentals(symbol)
         news = self.news(symbol)
         strategic_capital = self.strategic.assess(
@@ -594,6 +616,7 @@ class YahooMarketProvider:
             "symbol": symbol, "price": current, "previous_close": previous,
             "currency": currency, "exchange": exchange, "history": rows,
             "fundamentals": fundamentals, "news": news,
+            "corporate_actions": corporate_actions,
             "strategic_capital": strategic_capital,
             "sector_benchmark": sector_benchmark,
             "data_sources": data_sources,
@@ -767,7 +790,12 @@ class YahooMarketProvider:
         raise MarketDataError(f"Could not resolve company or symbol: {raw}")
 
     def quick_scan(self, symbol: str) -> dict:
-        """Low-cost first-pass market scan used across the whole U.S. universe."""
+        """Low-cost directional prefilter for the Core and Explosive discovery lanes.
+
+        The first-pass scanner deliberately does not reward large negative moves.
+        Volume confirms a setup; it does not by itself make a falling stock attractive.
+        Full fundamentals/news/promotion checks are still performed in deep analysis.
+        """
         chart = self.chart(symbol, "1mo", "1d")
         rows, current, previous, currency, exchange = self._rows_from_chart(chart)
         closes = [float(r["close"]) for r in rows if r.get("close") is not None]
@@ -780,26 +808,54 @@ class YahooMarketProvider:
         avg_vol = sum(baseline_vols) / len(baseline_vols) if baseline_vols else 0.0
         rel_vol = (vols[-1] / avg_vol) if vols and avg_vol else 0.0
         dollar_volume = current * (vols[-1] if vols else 0.0)
+        avg_dollar_volume = current * avg_vol if avg_vol else 0.0
         high20 = max(closes[-20:]) if closes else current
         near_high = current / high20 if high20 else 0.0
-        # Cheap ranking only. Full qualification still requires fundamentals/news/sector analysis.
-        scan_score = (
-            min(abs(change_5), 20) * 2.0
-            + min(abs(change_20), 40) * 0.7
-            + min(rel_vol, 5) * 8.0
-            + (8.0 if near_high >= 0.98 else 0.0)
-            + (5.0 if dollar_volume >= 5_000_000 else 0.0)
+
+        positive_5 = max(0.0, change_5)
+        positive_20 = max(0.0, change_20)
+        # Core discovery favors liquidity, constructive trend and price durability.
+        core_scan_score = (
+            min(positive_20, 25) * 1.2
+            + min(positive_5, 12) * 0.8
+            + min(rel_vol, 2.5) * 4.0
+            + (12.0 if near_high >= 0.95 else 7.0 if near_high >= 0.90 else 0.0)
+            + (12.0 if avg_dollar_volume >= 25_000_000 else 7.0 if avg_dollar_volume >= 10_000_000 else 0.0)
         )
-        qualifies = bool(
-            dollar_volume >= 1_000_000
-            and (abs(change_5) >= 3.0 or abs(change_20) >= 7.0 or rel_vol >= 1.35 or near_high >= 0.985)
+        # Explosive discovery requires positive acceleration plus unusual, liquid participation.
+        explosive_scan_score = (
+            min(positive_5, 20) * 2.0
+            + min(positive_20, 35) * 1.0
+            + min(rel_vol, 5) * 9.0
+            + (10.0 if near_high >= 0.98 else 4.0 if near_high >= 0.94 else 0.0)
+            + (10.0 if dollar_volume >= 25_000_000 else 5.0 if dollar_volume >= 10_000_000 else 0.0)
+        )
+        qualifies_core = bool(
+            current >= settings.core_min_price
+            and avg_dollar_volume >= max(2_000_000.0, settings.core_min_dollar_volume * 0.5)
+            and change_20 >= -5.0
+            and (change_20 >= 1.0 or near_high >= 0.90 or rel_vol >= 1.15)
+        )
+        qualifies_explosive = bool(
+            current >= settings.core_min_price
+            and dollar_volume >= max(5_000_000.0, settings.explosive_min_dollar_volume * 0.5)
+            and change_5 > 0
+            and change_20 > 0
+            and (rel_vol >= 1.35 or near_high >= 0.975)
         )
         return {
             "symbol": symbol, "price": current, "previous_close": previous,
             "currency": currency, "exchange": exchange,
             "change_5_pct": change_5, "change_20_pct": change_20,
             "relative_volume": rel_vol, "dollar_volume": dollar_volume,
-            "near_20d_high": near_high, "scan_score": scan_score, "qualifies": qualifies,
+            "avg_dollar_volume_20": avg_dollar_volume,
+            "near_20d_high": near_high,
+            "core_scan_score": round(core_scan_score, 2),
+            "explosive_scan_score": round(explosive_scan_score, 2),
+            "scan_score": round(max(core_scan_score, explosive_scan_score), 2),
+            "qualifies_core": qualifies_core,
+            "qualifies_explosive": qualifies_explosive,
+            "qualifies": bool(qualifies_core or qualifies_explosive),
         }
 
 
@@ -851,7 +907,7 @@ class YahooMarketProvider:
         """Broad cross-sector candidate discovery from multiple US market screeners."""
         symbols: dict[str, dict] = {}
         screeners = (
-            "day_gainers", "most_actives", "aggressive_small_caps",
+            "day_gainers", "most_actives",
             "undervalued_growth_stocks", "growth_technology_stocks",
         )
         for screener in screeners:
@@ -868,10 +924,17 @@ class YahooMarketProvider:
                     sym = (q.get("symbol") or "").upper()
                     if not sym or q.get("quoteType") not in (None, "EQUITY"):
                         continue
+                    existing = symbols.get(sym) or {}
+                    sources = list(existing.get("sources") or [])
+                    if screener not in sources:
+                        sources.append(screener)
                     symbols[sym] = {
-                        "symbol": sym, "price": q.get("regularMarketPrice") or q.get("intradayprice"),
-                        "change_pct": q.get("regularMarketChangePercent") or q.get("percentchange"),
-                        "volume": q.get("regularMarketVolume") or q.get("dayvolume"), "source": screener,
+                        "symbol": sym,
+                        "price": q.get("regularMarketPrice") or q.get("intradayprice") or existing.get("price"),
+                        "change_pct": q.get("regularMarketChangePercent") or q.get("percentchange") or existing.get("change_pct"),
+                        "volume": q.get("regularMarketVolume") or q.get("dayvolume") or existing.get("volume"),
+                        "source": sources[0] if sources else screener,
+                        "sources": sources,
                     }
             except Exception:
                 continue
