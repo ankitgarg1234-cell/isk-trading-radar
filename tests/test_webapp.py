@@ -42,6 +42,14 @@ def test_dashboard_renders_shell_and_import_features():
     assert body.count("MANUAL RESEARCH QUEUE") == 1
     assert 'id="analyzeSymbol"' in body
     assert 'id="symbolSuggestions"' in body
+    assert 'id="scannerCoreCount"' in body
+    assert 'id="scannerExplosiveCount"' in body
+    assert 'id="optimizerCore"' in body
+    assert 'id="optimizerExplosive"' in body
+    assert 'id="paperCoreCount"' in body
+    assert 'id="paperExplosiveCount"' in body
+    assert "Core Quality Lane" in body
+    assert "Explosive Lane" in body
 
 
 def test_manual_position_and_trade_ledger_persist():
@@ -439,3 +447,15 @@ def test_dashboard_deduplicates_preexisting_research_history():
     assert queue.count('href="/analysis/DUP"') == 1
     assert "latest" in queue
     assert "older" not in queue
+
+
+def test_live_api_exposes_lane_discovery_and_position_counts():
+    r=client.get('/api/live')
+    assert r.status_code == 200
+    data=r.json()
+    assert "universe_core_candidates" in data
+    assert "universe_explosive_candidates" in data
+    assert "core_quality" in data["optimizer"]
+    assert "explosive" in data["optimizer"]
+    assert "core_position_count" in data["paper"]
+    assert "explosive_position_count" in data["paper"]

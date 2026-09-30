@@ -33,6 +33,8 @@ def _attention_buy_signal(full: dict, has_position: bool = False) -> tuple[str |
     Monitoring states below 68 stay in the Radar and never become attention alerts.
     Material bearish/thesis-invalidated setups are blocked from buy attention.
     """
+    if full.get("lane_qualified") is False:
+        return None, None
     if bool((full.get("thesis_assessment") or {}).get("invalidated")):
         return None, None
     if full.get("negative_news_override"):
@@ -150,6 +152,8 @@ class RadarService:
         self.universe_size = 0
         self.last_universe_prefiltered = 0
         self.last_universe_candidates = 0
+        self.last_universe_core_candidates = 0
+        self.last_universe_explosive_candidates = 0
         self.last_deep_analyzed = 0
         self.last_universe_start = 0
         # Process-local material state used only to decide whether the paper
@@ -181,7 +185,13 @@ class RadarService:
         prior_payload = {}
         with SessionLocal() as db:
             p = db.query(Position).filter(Position.symbol == symbol).order_by(Position.created_at.desc()).first()
-            pd = {"shares": p.shares, "avg_cost": p.avg_cost, "account": p.account} if p else None
+            pp = db.query(PaperPosition).filter(PaperPosition.symbol == symbol).order_by(PaperPosition.opened_at.desc()).first() if not p else None
+            pd = (
+                {"shares": p.shares, "avg_cost": p.avg_cost, "account": p.account}
+                if p else
+                {"shares": pp.shares, "avg_cost": pp.avg_cost, "account": "Paper"}
+                if pp else None
+            )
             prior = db.query(RadarCandidate).filter(RadarCandidate.symbol == symbol).first()
             if prior and prior.current_json:
                 try:
@@ -251,7 +261,7 @@ class RadarService:
             cand.price = full.get("price", 0)
             rank = candidate_rank_score(full)
             cand.portfolio_rank_score = rank.get("score", 0)
-            cand.rank_version = rank.get("version", "rank-v1")
+            cand.rank_version = rank.get("version", "rank-v2-lanes")
             cand.current_json = compact_json
             cand.updated_at = now
 
@@ -261,6 +271,7 @@ class RadarService:
             # changes first.
             is_priority = bool(
                 db.query(Position.id).filter(Position.symbol == symbol).first()
+                or db.query(PaperPosition.id).filter(PaperPosition.symbol == symbol).first()
                 or db.query(WatchlistItem.id).filter(WatchlistItem.symbol == symbol).first()
                 or db.query(AnalysisRequest.id).filter(AnalysisRequest.symbol == symbol).first()
             )
@@ -347,7 +358,7 @@ class RadarService:
 
         This is intentionally rate-limited and shadow-only: it prevents the scanner
         from hammering USAspending/OGE and prevents a new political factor from
-        silently changing the validated rank-v1 portfolio rules.
+        silently changing the validated rank-v2 portfolio rules.
         """
         if not settings.strategic_capital_enabled or not hasattr(self.provider, "strategic"):
             return False, []
@@ -442,7 +453,8 @@ class RadarService:
             return
         with SessionLocal() as db:
             position_rows = db.query(Position).all()
-            owned = {p.symbol for p in position_rows}
+            paper_rows = db.query(PaperPosition).all()
+            owned = {p.symbol for p in position_rows} | {p.symbol for p in paper_rows}
             pref = db.query(PortfolioPreference).filter(PortfolioPreference.account == "Main").first()
             profile = normalise_profile(pref.risk_profile if pref else "MEDIUM")
             rows = db.query(RadarCandidate).order_by(
@@ -474,6 +486,9 @@ class RadarService:
                 rotation_yield_gap=settings.optimizer_rotation_yield_gap,
             )
             approved = {r["symbol"]: r for r in plan["selected_new"]}
+            for r in plan["visible"]:
+                if r.get("owned") and r.get("optimizer_action") == "ADD":
+                    approved[r["symbol"]] = r
             now = datetime.now(timezone.utc)
 
             # Price reaching a buy zone is no longer enough to interrupt the user.
@@ -482,7 +497,7 @@ class RadarService:
                 if alert.symbol not in approved:
                     alert.acknowledged = True
             for sym, r in approved.items():
-                action = r.get("entry_signal") or "BUY"
+                action = "ADD" if r.get("optimizer_action") == "ADD" else (r.get("entry_signal") or "BUY")
                 title = f"{sym}: Optimizer approved — {action}"
                 message = f"Portfolio rank #{r.get('market_rank')}/{settings.optimizer_visible_limit} • priority {r.get('rank_score',0):.1f}/100 • {r.get('risk_fit')} • AI {r.get('ai_confirmation')} / Analyst {r.get('analyst_confirmation')} (confirmation only)."
                 active = db.query(Alert).filter(
@@ -544,10 +559,20 @@ class RadarService:
         return universe[start:] + universe[:(start + batch_size) % len(universe)]
 
     def _prefilter_universe(self, entries: list[dict]) -> list[dict]:
+        """Build balanced cheap-discovery queues for both investment lanes.
+
+        Core exploration deliberately uses liquidity rather than momentum so quiet,
+        high-quality businesses are still deep-analysed. Explosive exploration
+        requires positive momentum/volume and never rewards large negative moves.
+        Full lane qualification still happens after fundamentals/news analysis.
+        """
         if not entries:
             self.last_universe_prefiltered = 0
             self.last_universe_candidates = 0
+            self.last_universe_core_candidates = 0
+            self.last_universe_explosive_candidates = 0
             return []
+
         results: list[dict] = []
         workers = max(1, min(settings.quick_scan_workers, 16))
         with ThreadPoolExecutor(max_workers=workers) as pool:
@@ -560,24 +585,84 @@ class RadarService:
                 except Exception:
                     continue
         self.last_universe_prefiltered = len(results)
-        qualified = [r for r in results if r.get("qualifies")]
-        qualified.sort(key=lambda r: float(r.get("scan_score") or 0), reverse=True)
-        # Always retain a few highest-ranked names even if hard thresholds are narrowly missed.
-        if len(qualified) < settings.universe_deep_candidates:
-            seen = {r["symbol"] for r in qualified}
-            for r in sorted(results, key=lambda x: float(x.get("scan_score") or 0), reverse=True):
-                if r["symbol"] not in seen:
-                    qualified.append(r); seen.add(r["symbol"])
-                if len(qualified) >= settings.universe_deep_candidates:
+
+        limit = max(2, settings.universe_deep_candidates)
+        explosive_quota = max(1, limit // 2)
+        core_quota = max(1, limit - explosive_quota)
+
+        explosive_pool = [
+            r for r in results
+            if float(r.get("price") or 0) >= 5
+            and float(r.get("avg_dollar_volume_20") or r.get("dollar_volume") or 0) >= 20_000_000
+            and (
+                float(r.get("change_5_pct") or 0) >= 3
+                or float(r.get("change_20_pct") or 0) >= 7
+                or float(r.get("relative_volume") or 0) >= 1.5
+                or float(r.get("near_20d_high") or 0) >= 0.985
+            )
+        ]
+        explosive_pool.sort(key=lambda r: float(r.get("scan_score") or 0), reverse=True)
+
+        # Core lane exploration is intentionally not a second momentum list.
+        # Prefer liquid names from each rotating slice, then let the full
+        # fundamentals/valuation model decide whether they qualify.
+        core_pool = [
+            r for r in results
+            if float(r.get("price") or 0) >= 5
+            and float(r.get("avg_dollar_volume_20") or r.get("dollar_volume") or 0) >= 10_000_000
+        ]
+        core_pool.sort(
+            key=lambda r: (
+                float(r.get("avg_dollar_volume_20") or r.get("dollar_volume") or 0),
+                float(r.get("near_20d_high") or 0),
+            ),
+            reverse=True,
+        )
+
+        chosen: list[dict] = []
+        seen: set[str] = set()
+        for r in explosive_pool[:explosive_quota]:
+            chosen.append(r); seen.add(r["symbol"])
+        for r in core_pool:
+            if r["symbol"] in seen:
+                continue
+            chosen.append(r); seen.add(r["symbol"])
+            if len(chosen) >= explosive_quota + core_quota:
+                break
+
+        # If one lane is sparse, fill the remaining deep-analysis budget with the
+        # strongest eligible names from either lane, never with sub-$5 illiquid dust.
+        if len(chosen) < limit:
+            fallback = sorted(
+                [
+                    r for r in results
+                    if float(r.get("price") or 0) >= 5
+                    and float(r.get("avg_dollar_volume_20") or r.get("dollar_volume") or 0) >= 10_000_000
+                ],
+                key=lambda r: (
+                    float(r.get("scan_score") or 0),
+                    float(r.get("avg_dollar_volume_20") or r.get("dollar_volume") or 0),
+                ),
+                reverse=True,
+            )
+            for r in fallback:
+                if r["symbol"] in seen:
+                    continue
+                chosen.append(r); seen.add(r["symbol"])
+                if len(chosen) >= limit:
                     break
-        self.last_universe_candidates = min(len(qualified), settings.universe_deep_candidates)
-        return qualified[: settings.universe_deep_candidates]
+
+        explosive_symbols = {r["symbol"] for r in explosive_pool[:explosive_quota]}
+        self.last_universe_explosive_candidates = sum(1 for r in chosen if r["symbol"] in explosive_symbols)
+        self.last_universe_core_candidates = max(0, len(chosen) - self.last_universe_explosive_candidates)
+        self.last_universe_candidates = len(chosen)
+        return chosen[:limit]
 
     def candidate_symbols(self):
         """Return the current deep-analysis queue, including a rotating whole-market slice."""
         priority = self.priority_symbols()[: settings.priority_deep_limit]
         discovered = self.provider.discover(100)
-        discovered.sort(key=lambda x: abs(float(x.get("change_pct") or 0)), reverse=True)
+        discovered.sort(key=lambda x: float(x.get("change_pct") or 0), reverse=True)
         discovery_symbols = [d["symbol"] for d in discovered[: settings.discovery_deep_candidates]]
         broad = self._prefilter_universe(self._universe_slice())
         broad_symbols = [q["symbol"] for q in broad]
@@ -700,7 +785,7 @@ class RadarService:
             strategic_changed, strategic_symbols = self._enrich_strategic_top_candidates()
             if strategic_changed:
                 # Re-run the paper optimizer once so the latest evidence is present
-                # in the forward-test decision record. rank-v1 itself is unchanged.
+                # in the forward-test decision record. Portfolio Priority v2 itself is unchanged.
                 paper_entry_event = True
                 paper_event_symbols.extend(s for s in strategic_symbols if s not in paper_event_symbols)
         except Exception as e:
@@ -729,6 +814,8 @@ class RadarService:
             "universe_size": self.universe_size,
             "universe_prefiltered": self.last_universe_prefiltered,
             "universe_deep_candidates": self.last_universe_candidates,
+            "universe_core_candidates": self.last_universe_core_candidates,
+            "universe_explosive_candidates": self.last_universe_explosive_candidates,
             "universe_start": self.last_universe_start,
             "paper_entry_event": paper_entry_event,
             "paper_top20_recheck": paper_top20_recheck,

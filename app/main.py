@@ -10,7 +10,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy import text
 from .config import settings
 from .db import engine, SessionLocal, Position, PaperPosition, AnalysisRequest, Trade, PortfolioCash, PortfolioPreference, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, storage_status
-from .analysis_engine import parse_positions_from_text
+from .analysis_engine import parse_positions_from_text, position_action
 from .portfolio_engine import RISK_PROFILES, ACTION_RANK, normalise_profile, stock_risk_score, system_signal, active_level, analyst_label, suggested_position_size, account_risk, projected_risk, risk_band, build_optimizer_plan, candidate_rank_score
 from .paper_engine import paper_status, reset_paper, run_paper_cycle
 from .scanner import radar
@@ -253,6 +253,15 @@ def _dashboard_state(db):
     for p in paper_positions:
         a=payloads.get(p.symbol,{})
         price=float(a.get("price") or p.avg_cost or 0)
+        if a and price:
+            try:
+                paper_action,paper_reason=position_action(
+                    a,price,{"shares":p.shares,"avg_cost":p.avg_cost,"account":"Paper"}
+                )
+                a["action"]=paper_action
+                a["action_reason"]=paper_reason
+            except Exception:
+                pass
         currency=_currency_for(p.symbol,a);rate=fx.get(currency)
         paper_owned[p.symbol]={
             "symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost,
@@ -297,7 +306,7 @@ def _dashboard_state(db):
         view_day_change_pct=((view_price/view_previous_close)-1)*100 if view_price and view_previous_close else None
         view={
             "symbol":sym,"name":name,"price":view_price,"previous_close":view_previous_close or None,"day_change_pct":view_day_change_pct,"currency":currency,
-            "category":a.get("category") or (c.category if c else "Watch"),"score":float(a.get("deterministic_score") or (c.score if c else 0) or 0),"ai_score":float(a.get("ai_score") or (c.ai_score if c else 0) or 0),
+            "category":a.get("category") or (c.category if c else "Watch"),"lane":rankrow.get("lane") or a.get("lane"),"lane_label":rankrow.get("lane_label") or a.get("lane_label") or ("Explosive Lane" if (rankrow.get("lane") or a.get("lane"))=="EXPLOSIVE" else "Core Quality Lane"),"score":float(a.get("deterministic_score") or (c.score if c else 0) or 0),"ai_score":float(a.get("ai_score") or (c.ai_score if c else 0) or 0),
             "analyst_score":a.get("analyst_score"),"analyst_label":analyst_label(a),"action":a.get("action") or (c.action if c else "WATCH"),"action_reason":a.get("action_reason") or "",
             "system_signal":signal,"owned":is_owned,"owned_shares":owned_row.get("shares"),"owned_avg":owned_row.get("avg_cost"),
             "level_label":level["label"],"level_value":level["value"],"distance":level["distance"],"distance_pct":level["distance_pct"],
@@ -311,6 +320,7 @@ def _dashboard_state(db):
             "rank_components":rankrow.get("rank_components"),"ai_confirmation":rankrow.get("ai_confirmation"),"analyst_confirmation":rankrow.get("analyst_confirmation"),
             "strategic_capital":a.get("strategic_capital") or {},
             "strategic_capital_shadow":rankrow.get("strategic_capital_shadow") or {},
+            "promotion_risk":a.get("promotion_risk") or {},
         }
         radar_views.append(view)
 
@@ -339,9 +349,16 @@ def _dashboard_state(db):
         "deployable_cash":max(0,cash-reserve),
         "best_candidate":next((v for v in radar_views if v.get("optimizer_bucket")=="INVEST NOW"),None),
         "visible_candidates":len(radar_views),"shortlist_count":len(optimizer["shortlist"]),"position_cap_enabled":optimizer.get("position_cap_enabled",False),
+        "core_quality_count":sum(1 for v in radar_views if v.get("lane")=="CORE_QUALITY"),
+        "explosive_count":sum(1 for v in radar_views if v.get("lane")=="EXPLOSIVE"),
     }
-    optimizer_summary={"version":optimizer["version"],"live_gating":settings.optimizer_live_gating,"visible":len(radar_views),"shortlist":len(optimizer["shortlist"]),"invest_now":len(optimizer["selected_new"]),"owned":optimizer["owned_count"],"position_cap_enabled":optimizer.get("position_cap_enabled",False),"allocation_policy":optimizer.get("allocation_policy"),"rotations":len(optimizer["rotations"])}
-    return {"positions":pos_views,"trades":trades,"analyses":analyses_req,"alerts":alerts,"candidates":radar_views,"cash":cash,"reserve":reserve,"risk_profile":risk_profile,"risk_profiles":RISK_PROFILES,"account_risk":account,"base_currency":base_currency,"summary":summary,"optimizer":optimizer_summary,"paper":paper}
+    lane_counts=optimizer.get("lane_counts") or {}
+    optimizer_summary={"version":optimizer["version"],"live_gating":settings.optimizer_live_gating,"visible":len(radar_views),"shortlist":len(optimizer["shortlist"]),"invest_now":len(optimizer["selected_new"]),"owned":optimizer["owned_count"],"position_cap_enabled":optimizer.get("position_cap_enabled",False),"allocation_policy":optimizer.get("allocation_policy"),"rotations":len(optimizer["rotations"]),"core_quality":lane_counts.get("core_quality",0),"explosive":lane_counts.get("explosive",0)}
+    display_radar_views=sorted(
+        radar_views,
+        key=lambda v: (0 if v.get("lane")=="CORE_QUALITY" else 1, int(v.get("market_rank") or 999)),
+    )
+    return {"positions":pos_views,"trades":trades,"analyses":analyses_req,"alerts":alerts,"candidates":display_radar_views,"cash":cash,"reserve":reserve,"risk_profile":risk_profile,"risk_profiles":RISK_PROFILES,"account_risk":account,"base_currency":base_currency,"summary":summary,"optimizer":optimizer_summary,"paper":paper}
 
 
 @app.get("/",response_class=HTMLResponse)
@@ -542,7 +559,7 @@ def paper_reset():
 @app.get("/api/live")
 def live():
     state=_cached_live_state()
-    return {"market_open":radar.market_open(),"scanner_running":radar.running,"last_scan":radar.last_scan,"last_error":radar.last_error,"universe_size":radar.universe_size,"universe_prefiltered":radar.last_universe_prefiltered,"universe_deep_candidates":radar.last_universe_candidates,"deep_analyzed":radar.last_deep_analyzed,"risk_profile":state["risk_profile"],"account_risk":state["account_risk"],"summary":state["summary"],"optimizer":state["optimizer"],"paper":state["paper"],"base_currency":state["base_currency"],"alerts":[{"id":a.id,"symbol":a.symbol,"title":a.title,"message":a.message,"severity":a.severity,"action":a.action,"alert_type":a.alert_type,"created_at":a.created_at.isoformat() if a.created_at else None} for a in state["alerts"]],"candidates":state["candidates"],"cache_seconds":settings.dashboard_cache_seconds}
+    return {"market_open":radar.market_open(),"scanner_running":radar.running,"last_scan":radar.last_scan,"last_error":radar.last_error,"universe_size":radar.universe_size,"universe_prefiltered":radar.last_universe_prefiltered,"universe_deep_candidates":radar.last_universe_candidates,"universe_core_candidates":radar.last_universe_core_candidates,"universe_explosive_candidates":radar.last_universe_explosive_candidates,"deep_analyzed":radar.last_deep_analyzed,"risk_profile":state["risk_profile"],"account_risk":state["account_risk"],"summary":state["summary"],"optimizer":state["optimizer"],"paper":state["paper"],"base_currency":state["base_currency"],"alerts":[{"id":a.id,"symbol":a.symbol,"title":a.title,"message":a.message,"severity":a.severity,"action":a.action,"alert_type":a.alert_type,"created_at":a.created_at.isoformat() if a.created_at else None} for a in state["alerts"]],"candidates":state["candidates"],"cache_seconds":settings.dashboard_cache_seconds}
 
 @app.get("/api/alerts/{alert_id}")
 def alert_detail(alert_id:int):

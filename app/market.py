@@ -543,6 +543,21 @@ class YahooMarketProvider:
         symbol = symbol.upper().strip()
         daily = self.chart(symbol, "1y", "1d")
         rows, current, previous, currency, exchange = self._rows_from_chart(daily)
+        split_events = list(((daily.get("events") or {}).get("splits") or {}).values())
+        recent_reverse_splits = []
+        cutoff_ts = time.time() - 366 * 86400
+        for event in split_events:
+            try:
+                event_ts = float(event.get("date") or 0)
+                numerator = float(event.get("numerator") or 0)
+                denominator = float(event.get("denominator") or 0)
+                if event_ts >= cutoff_ts and numerator > 0 and denominator > 0 and numerator < denominator:
+                    recent_reverse_splits.append({
+                        "date": event_ts,
+                        "ratio": event.get("splitRatio") or f"{numerator:g}:{denominator:g}",
+                    })
+            except Exception:
+                continue
         fundamentals = self.fundamentals(symbol)
         news = self.news(symbol)
         strategic_capital = self.strategic.assess(
@@ -594,6 +609,7 @@ class YahooMarketProvider:
             "symbol": symbol, "price": current, "previous_close": previous,
             "currency": currency, "exchange": exchange, "history": rows,
             "fundamentals": fundamentals, "news": news,
+            "recent_reverse_splits": recent_reverse_splits,
             "strategic_capital": strategic_capital,
             "sector_benchmark": sector_benchmark,
             "data_sources": data_sources,
@@ -780,25 +796,31 @@ class YahooMarketProvider:
         avg_vol = sum(baseline_vols) / len(baseline_vols) if baseline_vols else 0.0
         rel_vol = (vols[-1] / avg_vol) if vols and avg_vol else 0.0
         dollar_volume = current * (vols[-1] if vols else 0.0)
+        avg_dollar_volume = current * avg_vol if avg_vol else 0.0
         high20 = max(closes[-20:]) if closes else current
         near_high = current / high20 if high20 else 0.0
-        # Cheap ranking only. Full qualification still requires fundamentals/news/sector analysis.
+        # Cheap discovery score only. Positive momentum can promote a candidate;
+        # a large negative move is not treated as equally attractive for a long-only
+        # opportunity funnel. Core-quality exploration is handled separately by the
+        # scanner using liquidity, so quiet compounders still receive deep analysis.
         scan_score = (
-            min(abs(change_5), 20) * 2.0
-            + min(abs(change_20), 40) * 0.7
+            min(max(change_5, 0), 20) * 2.0
+            + min(max(change_20, 0), 40) * 0.7
             + min(rel_vol, 5) * 8.0
             + (8.0 if near_high >= 0.98 else 0.0)
-            + (5.0 if dollar_volume >= 5_000_000 else 0.0)
+            + (5.0 if avg_dollar_volume >= 20_000_000 else 0.0)
         )
         qualifies = bool(
-            dollar_volume >= 1_000_000
-            and (abs(change_5) >= 3.0 or abs(change_20) >= 7.0 or rel_vol >= 1.35 or near_high >= 0.985)
+            current >= 5.0
+            and avg_dollar_volume >= 20_000_000
+            and (change_5 >= 3.0 or change_20 >= 7.0 or rel_vol >= 1.5 or near_high >= 0.985)
         )
         return {
             "symbol": symbol, "price": current, "previous_close": previous,
             "currency": currency, "exchange": exchange,
             "change_5_pct": change_5, "change_20_pct": change_20,
             "relative_volume": rel_vol, "dollar_volume": dollar_volume,
+            "avg_dollar_volume_20": avg_dollar_volume,
             "near_20d_high": near_high, "scan_score": scan_score, "qualifies": qualifies,
         }
 

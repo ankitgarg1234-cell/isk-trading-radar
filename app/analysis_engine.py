@@ -40,6 +40,25 @@ THESIS_BREAKING_TERMS = {
 }
 SEVERE_EXIT_TERMS = {"bankruptcy", "fraud", "fda rejection", "trial failure", "failed trial", "default"}
 
+CORE_LANE = "CORE_QUALITY"
+EXPLOSIVE_LANE = "EXPLOSIVE"
+LANE_LABELS = {CORE_LANE: "Core Quality Lane", EXPLOSIVE_LANE: "Explosive Lane"}
+MIN_SHARE_PRICE = 5.0
+MIN_MARKET_CAP = 500_000_000.0
+CORE_MIN_AVG_DOLLAR_VOLUME = 10_000_000.0
+EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME = 20_000_000.0
+MIN_FUNDAMENTAL_SCORE = 14.0  # 70/100 normalized fundamental quality
+EXPLOSIVE_MAX_TRADING_SESSIONS = 20
+
+PROMOTION_SEVERE_TERMS = {
+    "reverse split", "going concern", "minimum bid", "nasdaq compliance",
+    "delisting notice", "bankruptcy", "fraud", "restatement",
+}
+PROMOTION_DILUTION_TERMS = {
+    "at-the-market offering", "atm offering", "registered direct offering",
+    "public offering", "warrant exercise", "warrants exercised", "dilution",
+}
+
 
 def clamp(x: float, lo: float = 0.0, hi: float = 100.0) -> float:
     return max(lo, min(hi, x))
@@ -160,6 +179,7 @@ def fundamental_score(f: dict) -> tuple[float, list[str], str]:
     reasons: list[str] = []
     observed = 0
     rg = pct(f.get("revenueGrowth"))
+    qrg = pct(f.get("quarterlyRevenueGrowth"))
     eg = pct(f.get("earningsGrowth") or f.get("growth"))
     gm = pct(f.get("grossMargins"))
     om = pct(f.get("operatingMargins"))
@@ -188,6 +208,12 @@ def fundamental_score(f: dict) -> tuple[float, list[str], str]:
             reasons.append(f"Debt/equity {de:.0f} → {pts}/2")
         except Exception:
             pass
+    if qrg is not None:
+        observed += 1
+        qpts = 2 if qrg >= 25 else 1 if qrg >= 10 else 0
+        score += qpts
+        accel = " (accelerating)" if rg is not None and qrg >= rg + 5 else ""
+        reasons.append(f"Quarterly revenue growth {qrg:.1f}%{accel} → +{qpts}")
     if observed == 0:
         return 10.0, ["Fundamental feed unavailable: neutral 10/20 until verified"], "low"
     confidence = "high" if observed >= 5 else "medium" if observed >= 3 else "low"
@@ -262,9 +288,12 @@ def technicals(rows: list[dict], price: float) -> dict:
     low20 = min(closes[-20:]) if closes else price
     high52 = max(closes[-252:]) if closes else price
     change20 = (price / closes[-21] - 1) * 100 if len(closes) > 21 and closes[-21] else 0
+    avg_dollar_volume = (avgvol * price) if avgvol and price else 0.0
+    near_20d_high = (price / high20) if high20 else 0.0
     return {
         "ema20": e20, "ema50": e50, "ema200": e200, "rsi": rs, "atr": a,
-        "relative_volume": rel, "high20": high20, "low20": low20,
+        "relative_volume": rel, "avg_volume_20": avgvol, "avg_dollar_volume_20": avg_dollar_volume,
+        "high20": high20, "low20": low20, "near_20d_high": near_20d_high,
         "high52": high52, "change20_pct": change20,
     }
 
@@ -321,6 +350,157 @@ def buy_levels(t: dict, price: float) -> dict:
             "better_high": better_high, "breakout": breakout, "stop": stop,
             "target": target, "do_not_chase": do_not_chase,
         }.items()
+    }
+
+
+
+def _promotion_risk(bundle: dict, news: dict, t: dict) -> dict:
+    price = float(bundle.get("price") or 0)
+    f = bundle.get("fundamentals") or {}
+    market_cap = float(f.get("marketCap") or 0)
+    avg_dollar = float(t.get("avg_dollar_volume_20") or 0)
+    relvol = float(t.get("relative_volume") or 0)
+    titles = " | ".join(str(i.get("title") or "").lower() for i in (news.get("items") or []))
+    severe_hits = sorted(term for term in PROMOTION_SEVERE_TERMS if term in titles)
+    dilution_hits = sorted(term for term in PROMOTION_DILUTION_TERMS if term in titles)
+
+    hard_reasons = []
+    if bundle.get("recent_reverse_splits"):
+        ratios = ", ".join(str(x.get("ratio") or "reverse split") for x in bundle.get("recent_reverse_splits")[:3])
+        hard_reasons.append(f"recent reverse split detected ({ratios})")
+    if price < MIN_SHARE_PRICE:
+        hard_reasons.append(f"share price below ${MIN_SHARE_PRICE:.0f}")
+    if market_cap and market_cap < MIN_MARKET_CAP:
+        hard_reasons.append(f"market cap below ${MIN_MARKET_CAP/1_000_000:.0f}M")
+    if avg_dollar and avg_dollar < CORE_MIN_AVG_DOLLAR_VOLUME:
+        hard_reasons.append(f"20d average dollar volume below ${CORE_MIN_AVG_DOLLAR_VOLUME/1_000_000:.0f}M")
+    hard_reasons.extend(severe_hits)
+
+    catalyst_explained = bool(news.get("catalysts")) and int(news.get("material_events") or 0) >= 1
+    unexplained_extreme_volume = relvol >= 4.0 and not catalyst_explained
+    dilution_risk = len(dilution_hits) >= 2 or (bool(dilution_hits) and relvol >= 4.0)
+    promotional_risk = bool(hard_reasons or unexplained_extreme_volume or dilution_risk)
+    return {
+        "hard_reject": bool(hard_reasons),
+        "promotional_risk": promotional_risk,
+        "unexplained_extreme_volume": unexplained_extreme_volume,
+        "dilution_risk": dilution_risk,
+        "severe_hits": severe_hits,
+        "dilution_hits": dilution_hits,
+        "reasons": hard_reasons
+            + (["extreme relative volume has no identifiable material catalyst"] if unexplained_extreme_volume else [])
+            + (["dilution/financing promotion risk"] if dilution_risk else []),
+    }
+
+
+def _strategic_catalyst(bundle: dict) -> tuple[bool, list[str]]:
+    strategic = bundle.get("strategic_capital") or {}
+    accepted_types = {
+        "GOVERNMENT_EQUITY_STAKE", "GOVERNMENT_CAPITAL_OR_DEMAND",
+        "FEDERAL_AWARD", "FEDERAL_LOAN_OR_GUARANTEE",
+        "ADMINISTRATION_HIGHLIGHTED_INVESTMENT",
+    }
+    evidence = []
+    for event in strategic.get("events") or []:
+        if event.get("type") not in accepted_types:
+            continue
+        if event.get("source_quality") != "OFFICIAL" and event.get("verification") != "VERIFIED SOURCE":
+            continue
+        if event.get("direction") == "NEGATIVE":
+            continue
+        if event.get("materiality") not in {"HIGH", "VERY HIGH", "MEDIUM"}:
+            continue
+        evidence.append(str(event.get("title") or event.get("type")))
+    return bool(evidence), evidence[:4]
+
+
+def classify_lane(
+    bundle: dict, *, fs: float, fconf: str, news: dict, t: dict,
+    catalyst_score: float, total_score: float, expected_upside_pct: float,
+    negative_override: str | None,
+) -> dict:
+    promotion = _promotion_risk(bundle, news, t)
+    f = bundle.get("fundamentals") or {}
+    market_cap = float(f.get("marketCap") or 0)
+    avg_dollar = float(t.get("avg_dollar_volume_20") or 0)
+    relvol = float(t.get("relative_volume") or 0)
+    change20 = float(t.get("change20_pct") or 0)
+    near_high = float(t.get("near_20d_high") or 0)
+
+    core_reasons = []
+    core_quality = (
+        not promotion["hard_reject"]
+        and fs >= MIN_FUNDAMENTAL_SCORE
+        and fconf in {"medium", "high"}
+        and total_score >= 68
+        and not negative_override
+        and (not avg_dollar or avg_dollar >= CORE_MIN_AVG_DOLLAR_VOLUME)
+        and (not market_cap or market_cap >= MIN_MARKET_CAP)
+    )
+    if fs < MIN_FUNDAMENTAL_SCORE:
+        core_reasons.append(f"fundamentals {fs:.1f}/20 below {MIN_FUNDAMENTAL_SCORE:.0f}/20 floor")
+    if fconf == "low":
+        core_reasons.append("fundamental evidence confidence is low")
+    if total_score < 68:
+        core_reasons.append(f"system conviction {total_score:.1f}/100 below 68")
+    core_reasons.extend(promotion["reasons"])
+
+    strategic_catalyst, strategic_evidence = _strategic_catalyst(bundle)
+    news_catalyst = bool(news.get("catalysts")) and int(news.get("material_events") or 0) >= 1
+    # Government / political / connected-capital evidence is intentionally
+    # shadow-only in v2. It is recorded for validation but cannot independently
+    # qualify an Explosive setup or change Portfolio Priority.
+    catalyst_verified = news_catalyst
+    volume_explained = not promotion["unexplained_extreme_volume"]
+    explosive = (
+        core_quality
+        and avg_dollar >= EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME
+        and relvol >= 1.5
+        and (change20 >= 3.0 or near_high >= 0.985)
+        and catalyst_verified
+        and catalyst_score >= 8
+        and total_score >= 75
+        and expected_upside_pct >= 30.0
+        and volume_explained
+        and not promotion["dilution_risk"]
+    )
+
+    if explosive:
+        lane = EXPLOSIVE_LANE
+        label = LANE_LABELS[lane]
+        reasons = [
+            f"fundamentals {fs:.1f}/20",
+            f"20d dollar liquidity ${avg_dollar/1_000_000:.1f}M",
+            f"relative volume {relvol:.2f}x",
+            f"20d move {change20:+.1f}%",
+            f"modeled remaining upside {expected_upside_pct:.1f}%",
+            "material catalyst verified",
+        ]
+        reasons.extend(strategic_evidence[:2])
+    elif core_quality:
+        lane = CORE_LANE
+        label = LANE_LABELS[lane]
+        reasons = [
+            f"fundamentals {fs:.1f}/20",
+            f"20d dollar liquidity ${avg_dollar/1_000_000:.1f}M" if avg_dollar else "liquidity feed unavailable",
+            "fundamental quality gate passed",
+        ]
+    else:
+        lane = None
+        label = "Ineligible / Watch"
+        reasons = core_reasons or ["did not pass investable lane qualification"]
+
+    return {
+        "lane": lane,
+        "lane_label": label,
+        "lane_qualified": lane in {CORE_LANE, EXPLOSIVE_LANE},
+        "core_quality_qualified": core_quality,
+        "explosive_qualified": explosive,
+        "explosive_holding_max_trading_sessions": EXPLOSIVE_MAX_TRADING_SESSIONS if explosive else None,
+        "promotion_risk": promotion,
+        "lane_reasons": reasons,
+        "catalyst_verified": catalyst_verified,
+        "strategic_catalyst_evidence": strategic_evidence,
     }
 
 
@@ -414,9 +594,13 @@ def score_bundle(bundle: dict) -> dict:
 
     total = round(clamp(total), 1)
     deterministic_expected = round(max(-50, min(150, rr_up * 100)), 1)
-    explosive = fs >= 14 and mom >= 11 and (catalyst >= 10 or news["score"] >= 10) and total >= 80 and not override
-    category = "Explosive Runner" if explosive else "Core" if fs >= 14 and total >= 75 and not override else "Watch"
-    deterministic_horizon = (10, 40) if category == "Explosive Runner" else (30, 180) if category == "Core" else (30, 365)
+    lane_info = classify_lane(
+        bundle, fs=fs, fconf=fconf, news=news, t=t,
+        catalyst_score=catalyst, total_score=total, expected_upside_pct=deterministic_expected,
+        negative_override=override,
+    )
+    category = "Explosive Runner" if lane_info["lane"] == EXPLOSIVE_LANE else "Core" if lane_info["lane"] == CORE_LANE else "Watch"
+    deterministic_horizon = (1, 20) if lane_info["lane"] == EXPLOSIVE_LANE else (30, 365) if lane_info["lane"] == CORE_LANE else (30, 365)
     breakdown = {
         "Fundamentals": round(fs, 1), "Catalyst": round(catalyst, 1), "News": round(news["score"], 1),
         "Momentum": round(mom, 1), "Sector": round(sector, 1), "Valuation": round(valuation, 1),
@@ -433,6 +617,16 @@ def score_bundle(bundle: dict) -> dict:
         "analyst_holding_period_min_days": 180 if analyst_yield is not None else None,
         "analyst_holding_period_max_days": 365 if analyst_yield is not None else None,
         "category": category,
+        "lane": lane_info["lane"],
+        "lane_label": lane_info["lane_label"],
+        "lane_qualified": lane_info["lane_qualified"],
+        "core_quality_qualified": lane_info["core_quality_qualified"],
+        "explosive_qualified": lane_info["explosive_qualified"],
+        "explosive_holding_max_trading_sessions": lane_info["explosive_holding_max_trading_sessions"],
+        "promotion_risk": lane_info["promotion_risk"],
+        "lane_reasons": lane_info["lane_reasons"],
+        "catalyst_verified": lane_info["catalyst_verified"],
+        "strategic_catalyst_evidence": lane_info["strategic_catalyst_evidence"],
         "breakdown": breakdown,
         "fundamental_reasons": freasons,
         "fundamental_confidence": fconf,
@@ -695,7 +889,7 @@ def heuristic_ai(result: dict) -> dict:
         adjustments.append({"points": 0, "reason": result["negative_news_override"]})
     score = round(clamp(score), 1)
     exp = round(result["expected_yield_pct"] * (0.85 if n["label"] == "Bearish" else 1.05), 1)
-    horizon = (10, 40) if result["category"] == "Explosive Runner" else (30, 180)
+    horizon = (1, 20) if result.get("lane") == EXPLOSIVE_LANE or result["category"] == "Explosive Runner" else (30, 365)
     lv = result.get("levels") or {}
     sensitivity = [
         {"condition": f"Price breaks modeled stop/support near {lv.get('stop', 0):.2f}", "new_score": round(clamp(score - 18), 1)},

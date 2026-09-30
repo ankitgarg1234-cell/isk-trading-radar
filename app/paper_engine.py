@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import math
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -11,7 +11,7 @@ from .db import (
     SessionLocal, RadarCandidate, PortfolioPreference,
     PaperAccount, PaperPosition, PaperTrade, PaperSnapshot,
 )
-from .portfolio_engine import build_optimizer_plan, candidate_rank_score, normalise_profile
+from .portfolio_engine import build_optimizer_plan, candidate_rank_score, normalise_profile, suggested_position_size
 from .analysis_engine import position_action
 
 PAPER_ACCOUNT = "Optimizer Paper"
@@ -23,6 +23,71 @@ def _utc(dt: datetime | None) -> datetime | None:
     if dt is None:
         return None
     return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def _observed(d: date) -> date:
+    if d.weekday() == 5:
+        return d - timedelta(days=1)
+    if d.weekday() == 6:
+        return d + timedelta(days=1)
+    return d
+
+
+def _nth_weekday(year: int, month: int, weekday: int, n: int) -> date:
+    d = date(year, month, 1)
+    d += timedelta(days=(weekday - d.weekday()) % 7 + (n - 1) * 7)
+    return d
+
+
+def _last_weekday(year: int, month: int, weekday: int) -> date:
+    d = date(year + (1 if month == 12 else 0), 1 if month == 12 else month + 1, 1) - timedelta(days=1)
+    return d - timedelta(days=(d.weekday() - weekday) % 7)
+
+
+def _easter_sunday(year: int) -> date:
+    # Anonymous Gregorian algorithm; NYSE observes Good Friday.
+    a = year % 19; b = year // 100; c = year % 100
+    d = b // 4; e = b % 4; f = (b + 8) // 25
+    g = (b - f + 1) // 3; h = (19 * a + b - d - g + 15) % 30
+    i = c // 4; k = c % 4; l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    month = (h + l - 7 * m + 114) // 31
+    day = ((h + l - 7 * m + 114) % 31) + 1
+    return date(year, month, day)
+
+
+def _nyse_holidays(year: int) -> set[date]:
+    return {
+        _observed(date(year, 1, 1)),
+        _nth_weekday(year, 1, 0, 3),   # MLK
+        _nth_weekday(year, 2, 0, 3),   # Presidents Day
+        _easter_sunday(year) - timedelta(days=2),
+        _last_weekday(year, 5, 0),     # Memorial Day
+        _observed(date(year, 6, 19)),
+        _observed(date(year, 7, 4)),
+        _nth_weekday(year, 9, 0, 1),   # Labor Day
+        _nth_weekday(year, 11, 3, 4),  # Thanksgiving
+        _observed(date(year, 12, 25)),
+    }
+
+
+def trading_sessions_elapsed(opened_at: datetime | None, now: datetime | None = None) -> int:
+    opened = _utc(opened_at)
+    current = _utc(now or datetime.now(timezone.utc))
+    if not opened or not current or current < opened:
+        return 0
+    start = opened.astimezone(NY).date()
+    end = current.astimezone(NY).date()
+    holidays: set[date] = set()
+    for year in range(start.year - 1, end.year + 2):
+        holidays |= _nyse_holidays(year)
+    sessions = 0
+    d = start
+    while d <= end:
+        if d.weekday() < 5 and d not in holidays:
+            sessions += 1
+        d += timedelta(days=1)
+    return sessions
 
 
 def _benchmark_prices(provider, started_at: datetime, symbol: str = BENCHMARK_SYMBOL) -> tuple[float | None, float | None]:
@@ -223,14 +288,35 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
             paper_positions = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).all()
 
         # Immediate risk management uses the existing thesis-gated position action.
+        # Explosive positions have a separate 20-U.S.-trading-session thesis clock.
         for p in list(paper_positions):
             a = analyses.get(p.symbol) or {}
             price = float(a.get("price") or 0)
             action = str(a.get("action") or "").upper()
+            reason_upper = str(p.reason or "").upper()
+            was_explosive = "EXPLOSIVE LANE" in reason_upper and "GRADUATED TO CORE" not in reason_upper
+            sessions = trading_sessions_elapsed(p.opened_at, now)
+            if was_explosive and sessions > 20 and price > 0:
+                if bool(a.get("core_quality_qualified")):
+                    p.reason = ("GRADUATED TO CORE — 20-session Explosive thesis completed | " + str(p.reason or ""))[:255]
+                    p.updated_at = now
+                    was_explosive = False
+                else:
+                    rank_score = candidate_rank_score(a).get("score", 0) if a else p.rank_score_at_entry
+                    _sell(
+                        db, account, p, price, p.shares,
+                        "Explosive 20-session thesis expired — no longer qualifies Core Quality",
+                        rank_score,
+                    )
+                    continue
             if a and price:
                 try:
-                    action, _ = position_action(a, price, {"shares": p.shares, "avg_cost": p.avg_cost, "account": "Paper"})
+                    action, action_reason = position_action(a, price, {"shares": p.shares, "avg_cost": p.avg_cost, "account": "Paper"})
                     action = str(action or "").upper()
+                    # Keep the paper-cycle optimizer consistent with the actual
+                    # owned-position state without rewriting the global candidate.
+                    a["action"] = action
+                    a["action_reason"] = action_reason
                 except Exception:
                     pass
             rank_score = candidate_rank_score(a).get("score", 0) if a else p.rank_score_at_entry
@@ -259,54 +345,102 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
             analyses.update(_candidate_payloads(
                 db, [p.symbol for p in current], ranked_limit=settings.optimizer_visible_limit
             ))
+            # The ranked reload above can replace the locally derived owned action
+            # with the persisted new-entry state. Re-derive owned actions after the
+            # reload so HOLD/ADD/REDUCE semantics cannot drift before allocation.
+            for p in current:
+                a = analyses.get(p.symbol) or {}
+                price = float(a.get("price") or 0)
+                if not a or price <= 0:
+                    continue
+                try:
+                    owned_action, owned_reason = position_action(
+                        a, price, {"shares": p.shares, "avg_cost": p.avg_cost, "account": "Paper"}
+                    )
+                    a["action"] = str(owned_action or "").upper()
+                    a["action_reason"] = owned_reason
+                except Exception:
+                    pass
             plan = build_optimizer_plan(
                 analyses, owned, profile=profile,
                 visible_limit=settings.optimizer_visible_limit,
                 shortlist_limit=settings.optimizer_shortlist_limit,
             )
 
-            # Buy every newly qualified Top-20 name. There is no holding-count,
-            # sector, tier, rank-threshold or risk-fit gate.
+            # Allocate both newly qualified names and explicit ADD signals.
+            # Existing holdings are never increased merely because they are owned:
+            # position_action() must explicitly return ADD, and the score/risk target
+            # must still have remaining room.
+            current_by_symbol = {p.symbol: p for p in current}
             new_rows = [
                 r for r in plan["selected_new"]
-                if not db.query(PaperPosition).filter(
-                    PaperPosition.account == PAPER_ACCOUNT,
-                    PaperPosition.symbol == r["symbol"],
-                ).first()
+                if r["symbol"] not in current_by_symbol
             ]
+            add_rows = [
+                r for r in plan["visible"]
+                if r.get("owned") and r.get("optimizer_action") == "ADD"
+                and r["symbol"] in current_by_symbol
+            ]
+            allocation_rows = [(r, False) for r in new_rows] + [(r, True) for r in add_rows]
 
-            if new_rows:
-                # Never sell an intact holding merely to fund another qualified
-                # candidate. Whole-share execution means finite cash can make some
-                # otherwise-qualified names temporarily unaffordable.
-                priced_rows = []
+            if allocation_rows:
+                # One sizing engine for dashboard and paper execution:
+                # Portfolio Priority score sets the target allocation; stop risk and
+                # cash can only reduce it. If aggregate desired capital exceeds cash,
+                # scale every target proportionally before whole-share rounding.
+                equity_now, _, _ = _equity(db, account, analyses)
                 fee_rate = max(0.0, settings.paper_trade_cost_bps) / 10000.0
-                for r in new_rows:
-                    price = float((r["analysis"] or {}).get("price") or 0)
-                    if price > 0:
-                        priced_rows.append((r, price, price * (1.0 + fee_rate)))
+                desired = []
+                for r, is_add in allocation_rows:
+                    a = r["analysis"] or {}
+                    price = float(a.get("price") or 0)
+                    if price <= 0:
+                        continue
+                    existing_pos = current_by_symbol.get(r["symbol"]) if is_add else None
+                    existing_value = (float(existing_pos.shares) * price) if existing_pos else 0.0
+                    sizing = suggested_position_size(
+                        a,
+                        cash=float(account.cash or 0),
+                        reserve_cash=0.0,
+                        portfolio_value=max(float(equity_now or 0), float(account.starting_cash or 0)),
+                        profile=profile,
+                        fx_rate_to_base=1.0,
+                        existing_value=existing_value,
+                        whole_shares=False,
+                    )
+                    target_capital = min(
+                        float(sizing.get("target_capital") or 0),
+                        float(sizing.get("risk_capital_ceiling") or 0),
+                        float(account.cash or 0),
+                    )
+                    if target_capital <= 0:
+                        continue
+                    desired.append((r, price, sizing, target_capital, is_add))
 
-                total_one_share_cost = sum(x[2] for x in priced_rows)
-                if priced_rows and total_one_share_cost <= float(account.cash or 0):
-                    # If cash can fund one share of every qualified name, reserve
-                    # that minimum first, then spread any residual capital evenly.
-                    residual = float(account.cash) - total_one_share_cost
-                    extra_each = residual / len(priced_rows)
-                    for r, price, one_share_cost in priced_rows:
-                        _buy(
-                            db, account, r["symbol"], price, one_share_cost + extra_each, r["rank_score"],
-                            f"Top-20 qualified #{r['market_rank']} {r['entry_signal']} — whole-share allocation",
-                        )
-                else:
-                    # Otherwise buy in portfolio-rank order while at least one
-                    # whole share remains affordable. Never create fractional dust.
-                    for r, price, one_share_cost in priced_rows:
-                        if float(account.cash or 0) + 1e-9 < one_share_cost:
-                            continue
-                        _buy(
-                            db, account, r["symbol"], price, one_share_cost, r["rank_score"],
-                            f"Top-20 qualified #{r['market_rank']} {r['entry_signal']} — one whole share from available cash",
-                        )
+                total_desired = sum(x[3] for x in desired)
+                scale = min(1.0, (float(account.cash or 0) / total_desired)) if total_desired > 0 else 0.0
+                for r, price, sizing, target_capital, is_add in desired:
+                    scaled_capital = target_capital * scale
+                    one_share_cost = price * (1.0 + fee_rate)
+                    if scaled_capital + 1e-9 < one_share_cost:
+                        continue
+                    lane_label = str((r["analysis"] or {}).get("lane_label") or r.get("lane_label") or "Qualified Lane")
+                    if is_add and existing_pos:
+                        existing_reason = str(existing_pos.reason or "").upper()
+                        if "GRADUATED TO CORE" in existing_reason or "CORE QUALITY LANE" in existing_reason:
+                            lane_label = "Core Quality Lane"
+                        elif "EXPLOSIVE LANE" in existing_reason:
+                            lane_label = "Explosive Lane"
+                    target_pct = float(sizing.get("target_allocation_pct") or 0)
+                    scale_note = f" • cash-scaled {scale:.2f}x" if scale < 0.999 else ""
+                    decision = "ADD" if is_add else str(r.get("entry_signal") or "BUY")
+                    _buy(
+                        db, account, r["symbol"], price, scaled_capital, r["rank_score"],
+                        (
+                            f"{lane_label} • Top-20 #{r['market_rank']} {decision} • "
+                            f"priority target {target_pct:.0f}%{scale_note}"
+                        ),
+                    )
 
             db.flush()
             if force_rebalance or daily_due:
@@ -368,6 +502,8 @@ def paper_status(db) -> dict:
             "daily_pnl": 0.0,
             "daily_pnl_pct": 0.0,
             "benchmark_label": "S&P 500 Total Return",
+            "core_position_count": 0,
+            "explosive_position_count": 0,
         }
     positions = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).order_by(PaperPosition.symbol).all()
     analyses = _candidate_payloads(db, [p.symbol for p in positions], ranked_limit=0)
@@ -394,6 +530,29 @@ def paper_status(db) -> dict:
         row["entry_rank_score"] = round(float(pos.rank_score_at_entry or 0), 2)
         row["reason"] = pos.reason or ""
         row["opened_at"] = pos.opened_at.isoformat() if pos.opened_at else None
+        sessions = trading_sessions_elapsed(pos.opened_at)
+        reason_upper = str(pos.reason or "").upper()
+        graduated = "GRADUATED TO CORE" in reason_upper
+        raw_lane = analysis.get("lane")
+        if graduated:
+            lane = "CORE_QUALITY"
+        elif "EXPLOSIVE LANE" in reason_upper:
+            # Entry lane owns the 20-session lifecycle. A temporary current
+            # reclassification to Core does not silently erase the expiry clock.
+            lane = "EXPLOSIVE"
+        elif "CORE QUALITY LANE" in reason_upper:
+            lane = "CORE_QUALITY"
+        elif raw_lane in {"CORE_QUALITY", "EXPLOSIVE"}:
+            lane = raw_lane
+        elif str(analysis.get("category") or "") == "Explosive Runner":
+            lane = "EXPLOSIVE"
+        else:
+            lane = "CORE_QUALITY"
+        row["lane"] = lane
+        row["lane_label"] = "Explosive Lane" if lane == "EXPLOSIVE" else "Core Quality Lane"
+        row["trading_sessions_held"] = sessions
+        row["explosive_sessions_remaining"] = max(0, 20 - sessions) if lane == "EXPLOSIVE" else None
+        row["graduated_from_explosive"] = graduated
     all_trade_rows = [{
         "id": t.id,
         "symbol": t.symbol,
@@ -474,6 +633,8 @@ def paper_status(db) -> dict:
         "current_drawdown_pct": round(current_drawdown_pct, 2),
         "positions": pos_rows,
         "position_count": len(pos_rows),
+        "core_position_count": sum(1 for r in pos_rows if r.get("lane") == "CORE_QUALITY"),
+        "explosive_position_count": sum(1 for r in pos_rows if r.get("lane") == "EXPLOSIVE"),
         "trades": trade_rows,
         "trade_count": len(trade_rows),
         "legacy_trades": legacy_trade_rows,

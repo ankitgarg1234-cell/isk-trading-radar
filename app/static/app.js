@@ -7,37 +7,50 @@ function signalClass(s){return `signal-${String(s||'watch').toLowerCase().replac
 function fitClass(s){return `risk-${String(s||'unknown').toLowerCase().replace(/\s+/g,'-')}`}
 function num(v,d=0){const n=Number(v);return Number.isFinite(n)?n:d}
 
+function laneHeaderHtml(lane,count){
+  const label=lane==='EXPLOSIVE'?'Explosive Lane':'Core Quality Lane';
+  const note=lane==='EXPLOSIVE'?'Catalyst-driven • max 20 U.S. trading sessions • anti-promotion gate enforced':'Fundamental quality • durable growth • valuation-aware';
+  return `<tr class="lane-group-row" data-lane-header="${esc(lane)}"><td colspan="10"><div><b>${label}</b><span>${note}</span><em>${count} stock${count===1?'':'s'}</em></div></td></tr>`;
+}
 function candidateRowsHtml(candidates,baseCurrency='SEK'){
   if(!candidates?.length)return '<tr><td colspan="10" class="empty">Radar will populate after analysis/scan runs.</td></tr>';
-  return candidates.map(c=>{
-    const ownedBadge=c.owned?`<span class="mini-badge">OWN ${esc(c.owned_shares)}</span>`:'';
-    const changed=c.changed?`<span class="mini-badge change">CHANGED ${esc(c.changed)}</span>`:'';
-    const bucket=String(c.optimizer_bucket||'RESERVE');const bucketClass=`optimizer-${bucket.toLowerCase().replace(/\s+/g,'-')}`;const optimizerBadge=`<span class="mini-badge optimizer-badge ${bucketClass}">${esc(bucket)}</span>`;
-    const isBuy=['STRONG BUY','BUY','STARTER BUY'].includes(c.system_signal);const sizing=c.suggested_shares?`<b>${isBuy?`${esc(c.suggested_shares)} shares`:`Plan ${esc(c.suggested_shares)} @ trigger`}</b><small>≈ ${Math.round(num(c.suggested_capital))} ${esc(baseCurrency)}${c.projected_risk!=null?` • acct risk → ${Math.round(num(c.projected_risk))}`:''}</small>`:`<b>—</b><small>${esc(c.sizing_reason||'')}</small>`;
-    const analyst=c.analyst_score!=null?`${Math.round(num(c.analyst_score))}/100`:'No consensus score';
-    const exp=c.expected_yield_pct!=null?`${num(c.expected_yield_pct).toFixed(1)}%`:'—';
-    return `<tr class="radar-row" data-symbol="${esc(c.symbol)}" data-search="${esc(`${c.symbol} ${c.name||''}`.toLowerCase())}" data-name="${esc(String(c.name||'').toLowerCase())}" data-signal="${esc(c.system_signal)}" data-category="${esc(c.category)}" data-risk="${esc(c.risk_band)}" data-owned="${c.owned?'owned':'new'}" data-ai="${num(c.ai_score)}" data-system="${num(c.score)}" data-distance="${num(c.distance_pct,999)}" data-distance-label="${esc(c.distance)}" data-yield="${c.expected_yield_pct==null?'':num(c.expected_yield_pct)}" data-price="${num(c.price)}" data-level="${esc(c.level_label)}" data-target="${c.target==null?'':num(c.target)}" data-stop="${c.stop==null?'':num(c.stop)}" data-rr="${c.risk_reward==null?'':num(c.risk_reward)}" data-analyst-label="${esc(c.analyst_label)}" data-analyst-score="${c.analyst_score==null?'':num(c.analyst_score)}" data-risk-fit="${esc(c.risk_fit)}" data-stock-risk="${num(c.stock_risk)}" data-suggested-shares="${num(c.suggested_shares)}" data-suggested-capital="${num(c.suggested_capital)}" data-portfolio-rank="${num(c.portfolio_rank_score)}" data-optimizer-bucket="${esc(c.optimizer_bucket||'RESERVE')}">
-      <td><div class="stock-cell"><b class="ticker">#${esc(c.market_rank||'—')} ${esc(c.symbol)}</b><small>${esc((c.name&&c.name!==c.symbol)?c.name:c.category)}</small>${optimizerBadge}${ownedBadge}${changed}</div></td>
-      <td><b>${money(c.price,c.currency)}</b><small>${c.day_change_pct!=null?`<span class="${num(c.day_change_pct)>=0?'pos':'neg'}">Day ${num(c.day_change_pct)>=0?'+':''}${num(c.day_change_pct).toFixed(2)}%</span> • `:''}Priority ${Math.round(num(c.portfolio_rank_score))}/100 • Sys ${Math.round(num(c.score))} / AI ${Math.round(num(c.ai_score))}</small></td>
-      <td><span class="signal-chip ${signalClass(c.system_signal)}">${esc(c.system_signal)}</span><small>${esc(c.optimizer_action||'PASS')}</small><small class="subtle">${esc(c.optimizer_decision_reason||'')}</small><small class="subtle">Raw: ${esc(c.action)}</small></td>
-      <td><b>${esc(c.level_label)}</b><small>${esc(c.level_value)}</small></td>
-      <td><span class="distance-chip ${c.distance==='NOW'?'now':''}">${esc(c.distance)}</span></td>
-      <td><b>${c.target?num(c.target).toFixed(2):'—'}</b><small>Stop ${c.stop?num(c.stop).toFixed(2):'—'} • R/R ${c.risk_reward??'—'}×</small></td>
-      <td><b>${esc(c.analyst_label)}</b><small>${esc(analyst)}</small></td>
-      <td><span class="risk-fit ${fitClass(c.risk_fit)}">${esc(c.risk_fit)}</span><small>${esc(c.risk_band)} stock risk • ${Math.round(num(c.stock_risk))}/100</small></td>
-      <td>${sizing}</td>
-      <td><a class="text-link" href="/analysis/${encodeURIComponent(c.symbol)}">Full details</a><button type="button" class="icon-btn row-expand" aria-label="Expand ${esc(c.symbol)}">⌄</button></td>
-    </tr>
-    <tr class="radar-detail-row hidden" data-detail-for="${esc(c.symbol)}"><td colspan="10"><div class="radar-detail-grid">
-      <div><span>Why this action</span><b>${esc(c.action_reason||'Open full details for the evidence breakdown.')}</b></div>
-      <div><span>Expected return</span><b>${esc(exp)}</b></div>
-      <div><span>Position sizing</span><b>${esc(c.sizing_reason||'—')}</b></div>
-      <div><span>What changed</span><b>${esc(c.changed||'No action-state change in the latest snapshot')}</b></div>
-      ${c.owned?`<div><span>Current position</span><b>${esc(c.owned_shares)} shares @ ${esc(c.owned_avg)}</b></div>`:''}
-      <div><span>Target profile fit</span><b>${esc(c.risk_fit)}</b></div>
-      <div><span>Portfolio priority</span><b>#${esc(c.market_rank||'—')} • ${num(c.portfolio_rank_score).toFixed(1)}/100 • ${esc(c.optimizer_bucket||'RESERVE')}</b></div>
-      <div><span>Independent confirmation</span><b>AI ${esc(c.ai_confirmation||'UNAVAILABLE')} • Analyst ${esc(c.analyst_confirmation||'UNAVAILABLE')}</b></div>
-    </div></td></tr>`;
+  const grouped=['CORE_QUALITY','EXPLOSIVE'];
+  return grouped.map(lane=>{
+    const rows=candidates.filter(c=>(c.lane||'CORE_QUALITY')===lane);
+    if(!rows.length)return '';
+    return laneHeaderHtml(lane,rows.length)+rows.map(c=>{
+      const ownedBadge=c.owned?`<span class="mini-badge">OWN ${esc(c.owned_shares)}</span>`:'';
+      const changed=c.changed?`<span class="mini-badge change">CHANGED ${esc(c.changed)}</span>`:'';
+      const bucket=String(c.optimizer_bucket||'RESERVE');const bucketClass=`optimizer-${bucket.toLowerCase().replace(/\s+/g,'-')}`;const optimizerBadge=`<span class="mini-badge optimizer-badge ${bucketClass}">${esc(bucket)}</span>`;
+      const laneLabel=c.lane_label||(lane==='EXPLOSIVE'?'Explosive Lane':'Core Quality Lane');
+      const laneBadge=`<span class="lane-badge lane-${lane.toLowerCase().replace(/_/g,'-')}">${esc(laneLabel)}</span>`;
+      const isBuy=['STRONG BUY','BUY','STARTER BUY'].includes(c.system_signal);const sizing=c.suggested_shares?`<b>${isBuy?`${esc(c.suggested_shares)} shares`:`Plan ${esc(c.suggested_shares)} @ trigger`}</b><small>≈ ${Math.round(num(c.suggested_capital))} ${esc(baseCurrency)}${c.projected_risk!=null?` • acct risk → ${Math.round(num(c.projected_risk))}`:''}</small>`:`<b>—</b><small>${esc(c.sizing_reason||'')}</small>`;
+      const analyst=c.analyst_score!=null?`${Math.round(num(c.analyst_score))}/100`:'No consensus score';
+      const exp=c.expected_yield_pct!=null?`${num(c.expected_yield_pct).toFixed(1)}%`:'—';
+      return `<tr class="radar-row" data-symbol="${esc(c.symbol)}" data-search="${esc(`${c.symbol} ${c.name||''}`.toLowerCase())}" data-name="${esc(String(c.name||'').toLowerCase())}" data-signal="${esc(c.system_signal)}" data-category="${esc(laneLabel)}" data-lane="${esc(lane)}" data-risk="${esc(c.risk_band)}" data-owned="${c.owned?'owned':'new'}" data-ai="${num(c.ai_score)}" data-system="${num(c.score)}" data-distance="${num(c.distance_pct,999)}" data-distance-label="${esc(c.distance)}" data-yield="${c.expected_yield_pct==null?'':num(c.expected_yield_pct)}" data-price="${num(c.price)}" data-level="${esc(c.level_label)}" data-target="${c.target==null?'':num(c.target)}" data-stop="${c.stop==null?'':num(c.stop)}" data-rr="${c.risk_reward==null?'':num(c.risk_reward)}" data-analyst-label="${esc(c.analyst_label)}" data-analyst-score="${c.analyst_score==null?'':num(c.analyst_score)}" data-risk-fit="${esc(c.risk_fit)}" data-stock-risk="${num(c.stock_risk)}" data-suggested-shares="${num(c.suggested_shares)}" data-suggested-capital="${num(c.suggested_capital)}" data-portfolio-rank="${num(c.portfolio_rank_score)}" data-optimizer-bucket="${esc(c.optimizer_bucket||'RESERVE')}">
+        <td><div class="stock-cell"><b class="ticker">#${esc(c.market_rank||'—')} ${esc(c.symbol)}</b><small>${esc((c.name&&c.name!==c.symbol)?c.name:c.category)}</small>${laneBadge}${optimizerBadge}${ownedBadge}${changed}</div></td>
+        <td><b>${money(c.price,c.currency)}</b><small>${c.day_change_pct!=null?`<span class="${num(c.day_change_pct)>=0?'pos':'neg'}">Day ${num(c.day_change_pct)>=0?'+':''}${num(c.day_change_pct).toFixed(2)}%</span> • `:''}Priority ${Math.round(num(c.portfolio_rank_score))}/100 • Sys ${Math.round(num(c.score))} / AI ${Math.round(num(c.ai_score))}</small></td>
+        <td><span class="signal-chip ${signalClass(c.system_signal)}">${esc(c.system_signal)}</span><small>${esc(c.optimizer_action||'PASS')}</small><small class="subtle">${esc(c.optimizer_decision_reason||'')}</small><small class="subtle">Raw: ${esc(c.action)}</small></td>
+        <td><b>${esc(c.level_label)}</b><small>${esc(c.level_value)}</small></td>
+        <td><span class="distance-chip ${c.distance==='NOW'?'now':''}">${esc(c.distance)}</span></td>
+        <td><b>${c.target?num(c.target).toFixed(2):'—'}</b><small>Stop ${c.stop?num(c.stop).toFixed(2):'—'} • R/R ${c.risk_reward??'—'}×</small></td>
+        <td><b>${esc(c.analyst_label)}</b><small>${esc(analyst)}</small></td>
+        <td><span class="risk-fit ${fitClass(c.risk_fit)}">${esc(c.risk_fit)}</span><small>${esc(c.risk_band)} stock risk • ${Math.round(num(c.stock_risk))}/100</small></td>
+        <td>${sizing}</td>
+        <td><a class="text-link" href="/analysis/${encodeURIComponent(c.symbol)}">Full details</a><button type="button" class="icon-btn row-expand" aria-label="Expand ${esc(c.symbol)}">⌄</button></td>
+      </tr>
+      <tr class="radar-detail-row hidden" data-detail-for="${esc(c.symbol)}"><td colspan="10"><div class="radar-detail-grid">
+        <div><span>Why this action</span><b>${esc(c.action_reason||'Open full details for the evidence breakdown.')}</b></div>
+        <div><span>Expected return</span><b>${esc(exp)}</b></div>
+        <div><span>Position sizing</span><b>${esc(c.sizing_reason||'—')}</b></div>
+        <div><span>What changed</span><b>${esc(c.changed||'No action-state change in the latest snapshot')}</b></div>
+        ${c.owned?`<div><span>Current position</span><b>${esc(c.owned_shares)} shares @ ${esc(c.owned_avg)}</b></div>`:''}
+        <div><span>Target profile fit</span><b>${esc(c.risk_fit)}</b></div>
+        <div><span>Portfolio priority</span><b>#${esc(c.market_rank||'—')} • ${num(c.portfolio_rank_score).toFixed(1)}/100 • ${esc(c.optimizer_bucket||'RESERVE')}</b></div>
+        <div><span>Lane</span><b>${esc(laneLabel)}</b></div>
+        <div><span>Independent confirmation</span><b>AI ${esc(c.ai_confirmation||'UNAVAILABLE')} • Analyst ${esc(c.analyst_confirmation||'UNAVAILABLE')}</b></div>
+      </div></td></tr>`;
+    }).join('');
   }).join('');
 }
 
@@ -100,6 +113,12 @@ function applyRadarFilters(){
       &&sizeStateOk&&numericMatch(sizeMetricValue,sizeOp,sizeValue);
     row.classList.toggle('hidden',!ok);const det=document.querySelector(`[data-detail-for="${CSS.escape(row.dataset.symbol)}"]`);if(det&&!ok)det.classList.add('hidden');if(ok)visible++;
   });
+  $('.lane-group-row').forEach(h=>{
+    const lane=h.dataset.laneHeader||'';
+    const count=$('.radar-row').filter(r=>r.dataset.lane===lane&&!r.classList.contains('hidden')).length;
+    h.classList.toggle('hidden',count===0);
+    const em=h.querySelector('em');if(em)em.textContent=`${count} stock${count===1?'':'s'}`;
+  });
   $('#radarNoResults')?.classList.toggle('hidden',visible!==0);
   if($('#radarResultCount'))$('#radarResultCount').textContent=`${visible} shown`;
   if($('#columnFilterCount'))$('#columnFilterCount').textContent=`${activeFilterCount()} filters`;
@@ -109,8 +128,15 @@ function sortRadar(){
   const tbody=$('#candidateTable tbody');if(!tbody)return;const mode=$('#radarSort')?.value||'actionable';
   const actionRank={'STRONG BUY':0,'BUY':1,'STARTER BUY':2,'BREAKOUT BUY':3,'TAKE PROFIT':4,'SELL':5,'STRONG SELL':6,'HOLD':7,'WAIT':8,'WATCH':9};
   const rows=$$('.radar-row').map(row=>({row,detail:document.querySelector(`[data-detail-for="${CSS.escape(row.dataset.symbol)}"]`)}));
-  rows.sort((a,b)=>{if(mode==='ai')return num(b.row.dataset.ai)-num(a.row.dataset.ai);if(mode==='system')return num(b.row.dataset.system)-num(a.row.dataset.system);if(mode==='distance')return num(a.row.dataset.distance,999)-num(b.row.dataset.distance,999);if(mode==='yield')return num(b.row.dataset.yield,-999)-num(a.row.dataset.yield,-999);if(mode==='price-low')return num(a.row.dataset.price,Infinity)-num(b.row.dataset.price,Infinity);if(mode==='price-high')return num(b.row.dataset.price,-Infinity)-num(a.row.dataset.price,-Infinity);if(mode==='analyst')return num(b.row.dataset.analystScore,-1)-num(a.row.dataset.analystScore,-1);if(mode==='risk-low')return num(a.row.dataset.stockRisk,999)-num(b.row.dataset.stockRisk,999);if(mode==='rr')return num(b.row.dataset.rr,-1)-num(a.row.dataset.rr,-1);if(mode==='size')return num(b.row.dataset.suggestedCapital,0)-num(a.row.dataset.suggestedCapital,0);return (actionRank[a.row.dataset.signal]??99)-(actionRank[b.row.dataset.signal]??99)||num(b.row.dataset.ai)-num(a.row.dataset.ai)});
-  rows.forEach(x=>{tbody.appendChild(x.row);if(x.detail)tbody.appendChild(x.detail)});applyRadarFilters();
+  const cmp=(a,b)=>{if(mode==='ai')return num(b.row.dataset.ai)-num(a.row.dataset.ai);if(mode==='system')return num(b.row.dataset.system)-num(a.row.dataset.system);if(mode==='distance')return num(a.row.dataset.distance,999)-num(b.row.dataset.distance,999);if(mode==='yield')return num(b.row.dataset.yield,-999)-num(a.row.dataset.yield,-999);if(mode==='price-low')return num(a.row.dataset.price,Infinity)-num(b.row.dataset.price,Infinity);if(mode==='price-high')return num(b.row.dataset.price,-Infinity)-num(a.row.dataset.price,-Infinity);if(mode==='analyst')return num(b.row.dataset.analystScore,-1)-num(a.row.dataset.analystScore,-1);if(mode==='risk-low')return num(a.row.dataset.stockRisk,999)-num(b.row.dataset.stockRisk,999);if(mode==='rr')return num(b.row.dataset.rr,-1)-num(a.row.dataset.rr,-1);if(mode==='size')return num(b.row.dataset.suggestedCapital,0)-num(a.row.dataset.suggestedCapital,0);return (actionRank[a.row.dataset.signal]??99)-(actionRank[b.row.dataset.signal]??99)||num(b.row.dataset.portfolioRank)-num(a.row.dataset.portfolioRank)};
+  tbody.querySelectorAll('.lane-group-row').forEach(x=>x.remove());
+  ['CORE_QUALITY','EXPLOSIVE'].forEach(lane=>{
+    const group=rows.filter(x=>(x.row.dataset.lane||'CORE_QUALITY')===lane).sort(cmp);
+    if(!group.length)return;
+    const temp=document.createElement('tbody');temp.innerHTML=laneHeaderHtml(lane,group.length);tbody.appendChild(temp.firstElementChild);
+    group.forEach(x=>{tbody.appendChild(x.row);if(x.detail)tbody.appendChild(x.detail)});
+  });
+  applyRadarFilters();
 }
 
 function closeOtherHeaderMenus(openDetails){$$('.sn-more[open]').forEach(d=>{if(d!==openDetails)d.removeAttribute('open')})}
@@ -177,13 +203,13 @@ async function refreshLive(){
   try{
     const d=await jsonFetch('/api/live');
     const mb=$('#marketBadge'); if(mb){mb.textContent=d.market_open?'US MARKET OPEN':'US MARKET CLOSED';mb.className=`pill ${d.market_open?'green':'muted'}`}
-    const ls=$('#lastScan');if(ls)ls.textContent=d.last_scan||'not yet';const us=$('#universeSize');if(us)us.textContent=d.universe_size||'loading';
+    const ls=$('#lastScan');if(ls)ls.textContent=d.last_scan||'not yet';const us=$('#universeSize');if(us)us.textContent=d.universe_size||'loading';if($('#scannerCoreCount'))$('#scannerCoreCount').textContent=d.universe_core_candidates??0;if($('#scannerExplosiveCount'))$('#scannerExplosiveCount').textContent=d.universe_explosive_candidates??0;
     const list=$('#alertsList');if(list){list.innerHTML=d.alerts.length?d.alerts.map(alertCardHtml).join(''):'<div class="empty">No action required right now.</div>';bindAlerts()}
     const tb=$('#candidateTable tbody');if(tb){tb.innerHTML=candidateRowsHtml(d.candidates,d.base_currency||'SEK');bindRadarRows();sortRadar()}
     if($('#buyNowCount'))$('#buyNowCount').textContent=d.summary?.buy_now??0;if($('#portfolioActionCount'))$('#portfolioActionCount').textContent=d.summary?.portfolio_actions??0;if($('#deployableCash'))$('#deployableCash').textContent=Math.round(num(d.summary?.deployable_cash));if($('#accountRiskScore'))$('#accountRiskScore').textContent=Math.round(num(d.account_risk?.score));if($('#accountRiskBand'))$('#accountRiskBand').textContent=`${d.account_risk?.band||'—'} • target ${d.account_risk?.target_label||''}`;
-    if($('#optimizerVisible'))$('#optimizerVisible').textContent=d.optimizer?.visible??0;if($('#optimizerShortlist'))$('#optimizerShortlist').textContent=d.optimizer?.shortlist??0;if($('#optimizerInvest'))$('#optimizerInvest').textContent=d.optimizer?.invest_now??0;
-    const paper=d.paper||{};if($('#paperEquity'))$('#paperEquity').textContent=paper.started?('$'+Math.round(num(paper.equity))):'$10000';if($('#paperReturn'))$('#paperReturn').textContent=paper.started?`${num(paper.return_pct)>=0?'+':''}${num(paper.return_pct).toFixed(2)}%`:'—';if($('#paperAbsoluteReturn'))$('#paperAbsoluteReturn').textContent=paper.started?('$'+(num(paper.absolute_return)>=0?'+':'')+num(paper.absolute_return).toFixed(2)):'—';if($('#paperDailyPnl'))$('#paperDailyPnl').textContent=paper.started?('$'+(num(paper.daily_pnl)>=0?'+':'')+num(paper.daily_pnl).toFixed(2)+' / '+(num(paper.daily_pnl_pct)>=0?'+':'')+num(paper.daily_pnl_pct).toFixed(2)+'%'):'—';if($('#paperBenchmark'))$('#paperBenchmark').textContent=paper.started?`${num(paper.benchmark_return_pct)>=0?'+':''}${num(paper.benchmark_return_pct).toFixed(2)}%`:'—';if($('#paperExcess'))$('#paperExcess').textContent=paper.started?`${num(paper.excess_return_pct)>=0?'+':''}${num(paper.excess_return_pct).toFixed(2)}%`:'—';if($('#paperPositionCount'))$('#paperPositionCount').textContent=paper.position_count??0;if($('#paperDrawdown'))$('#paperDrawdown').textContent=paper.started?`${num(paper.drawdown_pct).toFixed(2)}%`:'—';;
-    const pp=$('#paperPositionsBody');if(pp&&Array.isArray(paper.positions)){pp.innerHTML=paper.positions.length?paper.positions.map(p=>`<tr><td class="ticker"><a href="/analysis/${encodeURIComponent(p.symbol)}">${esc(p.symbol)}</a></td><td>${esc(p.shares)}</td><td>$${num(p.avg_cost).toFixed(2)}</td><td>$${num(p.price).toFixed(2)}</td><td class="${p.day_change_pct!=null?(num(p.day_change_pct)>=0?'pos':'neg'):''}">${p.day_change_pct!=null?`${num(p.day_change_pct)>=0?'+':''}${num(p.day_change_pct).toFixed(2)}%`:'—'}</td><td>$${Math.round(num(p.value))}</td><td class="${num(p.pnl)>=0?'pos':'neg'}">$${num(p.pnl)>=0?'+':''}${num(p.pnl).toFixed(2)} / ${num(p.pnl_pct)>=0?'+':''}${num(p.pnl_pct).toFixed(2)}%</td><td>${num(p.weight_pct).toFixed(1)}%</td><td>${num(p.entry_rank_score).toFixed(1)}/100</td><td class="reason-cell">${esc(p.reason||'—')}</td></tr>`).join(''):'<tr><td colspan="10" class="empty">No open paper positions yet.</td></tr>'}
+    if($('#optimizerVisible'))$('#optimizerVisible').textContent=d.optimizer?.visible??0;if($('#optimizerCore'))$('#optimizerCore').textContent=d.optimizer?.core_quality??0;if($('#optimizerExplosive'))$('#optimizerExplosive').textContent=d.optimizer?.explosive??0;if($('#optimizerShortlist'))$('#optimizerShortlist').textContent=d.optimizer?.shortlist??0;if($('#optimizerInvest'))$('#optimizerInvest').textContent=d.optimizer?.invest_now??0;
+    const paper=d.paper||{};if($('#paperEquity'))$('#paperEquity').textContent=paper.started?('$'+Math.round(num(paper.equity))):'$10000';if($('#paperReturn'))$('#paperReturn').textContent=paper.started?`${num(paper.return_pct)>=0?'+':''}${num(paper.return_pct).toFixed(2)}%`:'—';if($('#paperAbsoluteReturn'))$('#paperAbsoluteReturn').textContent=paper.started?('$'+(num(paper.absolute_return)>=0?'+':'')+num(paper.absolute_return).toFixed(2)):'—';if($('#paperDailyPnl'))$('#paperDailyPnl').textContent=paper.started?('$'+(num(paper.daily_pnl)>=0?'+':'')+num(paper.daily_pnl).toFixed(2)+' / '+(num(paper.daily_pnl_pct)>=0?'+':'')+num(paper.daily_pnl_pct).toFixed(2)+'%'):'—';if($('#paperBenchmark'))$('#paperBenchmark').textContent=paper.started?`${num(paper.benchmark_return_pct)>=0?'+':''}${num(paper.benchmark_return_pct).toFixed(2)}%`:'—';if($('#paperExcess'))$('#paperExcess').textContent=paper.started?`${num(paper.excess_return_pct)>=0?'+':''}${num(paper.excess_return_pct).toFixed(2)}%`:'—';if($('#paperPositionCount'))$('#paperPositionCount').textContent=paper.position_count??0;if($('#paperCoreCount'))$('#paperCoreCount').textContent=paper.core_position_count??0;if($('#paperExplosiveCount'))$('#paperExplosiveCount').textContent=paper.explosive_position_count??0;if($('#paperDrawdown'))$('#paperDrawdown').textContent=paper.started?`${num(paper.drawdown_pct).toFixed(2)}%`:'—';;
+    const pp=$('#paperPositionsBody');if(pp&&Array.isArray(paper.positions)){pp.innerHTML=paper.positions.length?paper.positions.map(p=>`<tr><td class="ticker"><a href="/analysis/${encodeURIComponent(p.symbol)}">${esc(p.symbol)}</a></td><td><span class="lane-badge lane-${String(p.lane||'CORE_QUALITY').toLowerCase().replace(/_/g,'-')}">${esc(p.lane_label||'Core Quality Lane')}</span>${p.lane==='EXPLOSIVE'?`<small>Day ${esc(p.trading_sessions_held)}/20 • ${esc(p.explosive_sessions_remaining)} sessions left</small>`:p.graduated_from_explosive?'<small>Graduated from Explosive</small>':''}</td><td>${esc(p.shares)}</td><td>${num(p.avg_cost).toFixed(2)}</td><td>$${num(p.price).toFixed(2)}</td><td class="${p.day_change_pct!=null?(num(p.day_change_pct)>=0?'pos':'neg'):''}">${p.day_change_pct!=null?`${num(p.day_change_pct)>=0?'+':''}${num(p.day_change_pct).toFixed(2)}%`:'—'}</td><td>$${Math.round(num(p.value))}</td><td class="${num(p.pnl)>=0?'pos':'neg'}">$${num(p.pnl)>=0?'+':''}${num(p.pnl).toFixed(2)} / ${num(p.pnl_pct)>=0?'+':''}${num(p.pnl_pct).toFixed(2)}%</td><td>${num(p.weight_pct).toFixed(1)}%</td><td>${num(p.entry_rank_score).toFixed(1)}/100</td><td class="reason-cell">${esc(p.reason||'—')}</td></tr>`).join(''):'<tr><td colspan="11" class="empty">No open paper positions yet.</td></tr>'}
   }catch(e){console.debug('live refresh',e)}
 }
 bindAlerts();

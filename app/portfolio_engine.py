@@ -242,6 +242,26 @@ def risk_fit(stock_risk: float, profile: str) -> str:
     return "ABOVE TARGET"
 
 
+def score_target_allocation_pct(score: float) -> float:
+    """Conviction ladder agreed for both Core Quality and Explosive lanes."""
+    s = _clamp(_float(score))
+    if s < 68:
+        return 0.0
+    if s < 75:
+        return 2.0
+    if s < 80:
+        return 4.0
+    if s < 85:
+        return 6.0
+    if s < 90:
+        return 8.0
+    if s < 95:
+        return 10.0
+    if s < 98:
+        return 12.0
+    return 15.0
+
+
 def suggested_position_size(
     a: dict,
     *,
@@ -253,6 +273,13 @@ def suggested_position_size(
     existing_value: float = 0.0,
     whole_shares: bool = True,
 ) -> dict:
+    """Score-led target sizing with risk/cash acting only as hard ceilings.
+
+    The same sizing ladder applies to Core Quality and Explosive candidates.
+    Higher Portfolio Priority scores receive larger target allocations. Stop
+    distance, available cash and existing exposure can reduce that target but
+    never increase it.
+    """
     profile = normalise_profile(profile)
     p = RISK_PROFILES[profile]
     price = _float(a.get("price"))
@@ -265,41 +292,67 @@ def suggested_position_size(
     deployable_cash = max(0.0, cash - reserve_cash)
     if deployable_cash <= 0:
         return {"shares": 0, "reason": "No deployable cash after strategic reserve", "fit": fit, "stock_risk": stock_risk}
-    # Risk fit is advisory for sizing, never an entry veto. Under the uncapped
-    # Top-20 policy every qualified entry must receive capital; higher-risk names
-    # may receive a smaller suggested size but cannot be silently blocked.
+
+    rank = candidate_rank_score(a)
+    rank_score = _float(rank.get("score"))
+    target_pct = score_target_allocation_pct(rank_score)
+    if target_pct <= 0:
+        return {
+            "shares": 0, "capital": 0.0, "fit": fit, "stock_risk": stock_risk,
+            "portfolio_rank_score": round(rank_score, 1), "target_allocation_pct": 0.0,
+            "reason": f"Portfolio Priority {rank_score:.1f}/100 is below the 68 sizing threshold",
+        }
 
     price_base = price * fx_rate_to_base
     stop_risk_base = (price - stop) * fx_rate_to_base
-    total = max(portfolio_value, deployable_cash)
-    risk_budget = total * (p["risk_per_trade_pct"] / 100)
-    max_pct = p["max_explosive_pct"] if a.get("category") == "Explosive Runner" else p["max_position_pct"]
-    max_value = total * (max_pct / 100)
-    remaining_position_room = max(0.0, max_value - existing_value)
+    total = max(portfolio_value, deployable_cash + max(0.0, existing_value))
+    target_value = total * (target_pct / 100)
+    remaining_target_room = max(0.0, target_value - max(0.0, existing_value))
 
-    by_risk = risk_budget / stop_risk_base if stop_risk_base > 0 else 0
-    by_cap = remaining_position_room / price_base if price_base > 0 else 0
+    # Risk budget is a ceiling only. It never enlarges the score-led target.
+    risk_budget = total * (p["risk_per_trade_pct"] / 100)
+    existing_shares_equiv = (max(0.0, existing_value) / price_base) if price_base > 0 else 0.0
+    existing_risk_amount = existing_shares_equiv * stop_risk_base
+    remaining_risk_budget = max(0.0, risk_budget - existing_risk_amount)
+    by_score = remaining_target_room / price_base if price_base > 0 else 0
+    by_risk = remaining_risk_budget / stop_risk_base if stop_risk_base > 0 else 0
     by_cash = deployable_cash / price_base if price_base > 0 else 0
-    shares = min(by_risk, by_cap, by_cash)
-    if fit == "STRETCH":
-        shares *= 0.6
-    elif fit == "ABOVE TARGET":
-        shares *= 0.35
-    shares = math.floor(shares) if whole_shares else round(shares, 4)
+    shares_raw = min(by_score, by_risk, by_cash)
+    shares = math.floor(shares_raw) if whole_shares else round(shares_raw, 4)
     shares = max(0, shares)
     capital = shares * price_base
     risk_amount = shares * stop_risk_base
+
+    limiting = []
+    eps = 1e-6
+    if abs(shares_raw - by_score) <= eps:
+        limiting.append("score target")
+    if abs(shares_raw - by_risk) <= eps:
+        limiting.append("stop-risk ceiling")
+    if abs(shares_raw - by_cash) <= eps:
+        limiting.append("available cash")
+    limiter = ", ".join(limiting) or "whole-share rounding"
+
     return {
         "shares": shares,
         "capital": round(capital, 2),
         "risk_amount": round(risk_amount, 2),
         "risk_pct_portfolio": round((risk_amount / total * 100) if total else 0, 2),
-        "weight_after_pct": round(((existing_value + capital) / (total + capital) * 100) if total + capital else 0, 1),
+        "weight_after_pct": round(((existing_value + capital) / total * 100) if total else 0, 1),
         "cash_after": round(max(0, cash - capital), 2),
         "fit": fit,
         "stock_risk": stock_risk,
         "profile": profile,
-        "reason": f"Sized from {p['risk_per_trade_pct']}% risk/trade, {max_pct}% position cap and available cash",
+        "portfolio_rank_score": round(rank_score, 1),
+        "target_allocation_pct": target_pct,
+        "target_capital": round(remaining_target_room, 2),
+        "risk_capital_ceiling": round(by_risk * price_base, 2),
+        "existing_risk_amount": round(existing_risk_amount, 2),
+        "remaining_risk_budget": round(remaining_risk_budget, 2),
+        "reason": (
+            f"Priority {rank_score:.1f}/100 targets {target_pct:.0f}% allocation; "
+            f"final whole-share size limited by {limiter}"
+        ),
     }
 
 
@@ -398,7 +451,7 @@ def projected_risk(account_rows: list[dict], cash: float, candidate: dict, sizin
     return account_risk(account_rows + [pseudo], max(0, cash - capital), target_profile=target_profile)
 
 
-RANK_VERSION = "rank-v1"
+RANK_VERSION = "rank-v2-lanes"
 INVESTABLE_ENTRY_ACTIONS = {"STRONG BUY", "BUY", "STARTER BUY"}
 
 
@@ -412,6 +465,10 @@ def entry_attention_signal(a: dict) -> str | None:
     This intentionally does not blend AI/analyst scores into the decision.
     They remain separate confirmation signals.
     """
+    if a.get("lane_qualified") is False:
+        return None
+    if not a.get("lane") and str(a.get("category") or "") not in {"Core", "Explosive Runner"} and "lane_qualified" in a:
+        return None
     if bool((a.get("thesis_assessment") or {}).get("invalidated")):
         return None
     if a.get("negative_news_override"):
@@ -441,24 +498,53 @@ def entry_attention_signal(a: dict) -> str | None:
 
 
 def candidate_rank_score(a: dict) -> dict:
-    """Transparent deterministic portfolio-priority score (0-100).
+    """Portfolio Priority v2.
 
-    The stock's deterministic score remains untouched. This second score answers a
-    different question: among already-analysed candidates, which deserves scarce
-    portfolio capital first? AI/analyst opinions are reported as confirmations but
-    are deliberately not blended into the arithmetic.
+    Qualification happens before ranking. The score rewards fundamental quality,
+    catalyst strength, valuation, momentum/volume, risk/reward, sector strength
+    and evidence quality without double-counting technical target upside.
+    Analyst/AI views remain confirmations only.
     """
+    breakdown = a.get("breakdown") or {}
     det = _clamp(_float(a.get("deterministic_score")))
-    expected = _float(a.get("expected_yield_pct"))
-    rr = max(0.0, _float(a.get("risk_reward")))
-    confidence = str(a.get("decision_confidence") or "medium").lower()
     srisk = stock_risk_score(a)
 
-    conviction_pts = det * 0.50
-    upside_pts = _clamp(expected, 0, 35) / 35 * 20
-    rr_pts = _clamp(rr, 0, 3.5) / 3.5 * 15
-    confidence_pts = 10.0 if confidence == "high" else 6.0 if confidence == "medium" else 0.0
-    risk_pts = max(0.0, 100.0 - srisk) / 100 * 5
+    if breakdown:
+        fundamentals = _clamp(_float(breakdown.get("Fundamentals")), 0, 20) / 20 * 30
+        catalyst = _clamp(_float(breakdown.get("Catalyst")), 0, 15) / 15 * 15
+        valuation = _clamp(_float(breakdown.get("Valuation")), 0, 10) / 10 * 15
+        momentum = _clamp(_float(breakdown.get("Momentum")), 0, 15) / 15 * 15
+        rr = _clamp(_float(breakdown.get("Risk/Reward")), 0, 10)
+        sector = _clamp(_float(breakdown.get("Sector")), 0, 10)
+        evidence = _clamp(_float(a.get("data_quality_pct")), 0, 100) / 100 * 5
+        total = fundamentals + catalyst + valuation + momentum + rr + sector + evidence
+        components = {
+            "Fundamental quality & growth": round(fundamentals, 1),
+            "Catalyst": round(catalyst, 1),
+            "Valuation": round(valuation, 1),
+            "Momentum & volume": round(momentum, 1),
+            "Risk/reward": round(rr, 1),
+            "Sector strength": round(sector, 1),
+            "Evidence quality": round(evidence, 1),
+        }
+    else:
+        # Compatibility for historical compact/test payloads written before rank-v2.
+        expected = _float(a.get("expected_yield_pct"))
+        rr_raw = max(0.0, _float(a.get("risk_reward")))
+        confidence = str(a.get("decision_confidence") or "medium").lower()
+        total = (
+            det * 0.50
+            + _clamp(expected, 0, 35) / 35 * 20
+            + _clamp(rr_raw, 0, 3.5) / 3.5 * 15
+            + (10.0 if confidence == "high" else 6.0 if confidence == "medium" else 0.0)
+            + max(0.0, 100.0 - srisk) / 100 * 5
+        )
+        components = {
+            "Legacy conviction": round(det * 0.50, 1),
+            "Legacy expected upside": round(_clamp(expected, 0, 35) / 35 * 20, 1),
+            "Legacy risk/reward": round(_clamp(rr_raw, 0, 3.5) / 3.5 * 15, 1),
+        }
+
     penalty = 0.0
     if a.get("negative_news_override"):
         penalty += 20
@@ -466,8 +552,13 @@ def candidate_rank_score(a: dict) -> dict:
         penalty += 35
     if str(a.get("entry_zone_status") or "").upper() in {"DO_NOT_CHASE", "INVALIDATED"}:
         penalty += 12
+    promotion = a.get("promotion_risk") or {}
+    if promotion.get("hard_reject"):
+        penalty += 50
+    elif promotion.get("promotional_risk"):
+        penalty += 20
 
-    total = _clamp(conviction_pts + upside_pts + rr_pts + confidence_pts + risk_pts - penalty)
+    total = _clamp(total - penalty)
     ai = a.get("ai_score")
     analyst = a.get("analyst_score")
     strategic = a.get("strategic_capital") or {}
@@ -479,21 +570,27 @@ def candidate_rank_score(a: dict) -> dict:
     if analyst is not None:
         delta = _float(analyst) - det
         analyst_confirmation = "CONFIRMS" if delta >= -8 and _float(analyst) >= 65 else "DIVERGES" if delta <= -15 else "NEUTRAL"
+
+    lane = a.get("lane")
+    if not lane:
+        cat = str(a.get("category") or "")
+        lane = "EXPLOSIVE" if cat == "Explosive Runner" else "CORE_QUALITY" if cat == "Core" else None
+        # Transitional compatibility for compact pre-v2 candidates already in
+        # storage. Fresh score_bundle payloads always carry explicit lane state,
+        # so this cannot bypass the new fundamental/promotion gates after refresh.
+        if lane is None and "lane_qualified" not in a and det >= 68:
+            lane = "CORE_QUALITY"
+
     return {
         "score": round(total, 1),
         "version": RANK_VERSION,
         "entry_signal": entry_attention_signal(a),
-        "components": {
-            "Deterministic conviction": round(conviction_pts, 1),
-            "Expected upside": round(upside_pts, 1),
-            "Risk/reward": round(rr_pts, 1),
-            "Evidence confidence": round(confidence_pts, 1),
-            "Risk efficiency": round(risk_pts, 1),
-            "Penalties": round(-penalty, 1),
-        },
+        "components": {**components, "Penalties": round(-penalty, 1)},
         "ai_confirmation": ai_confirmation,
         "analyst_confirmation": analyst_confirmation,
         "stock_risk": srisk,
+        "lane": lane,
+        "lane_label": a.get("lane_label") or ("Explosive Lane" if lane == "EXPLOSIVE" else "Core Quality Lane" if lane == "CORE_QUALITY" else "Ineligible / Watch"),
         "strategic_capital_shadow": {
             "mode": strategic.get("mode") or "UNAVAILABLE",
             "label": strategic.get("label") or "NONE",
@@ -505,6 +602,7 @@ def candidate_rank_score(a: dict) -> dict:
             "sector_policy_support": strategic.get("sector_policy_support") or "UNKNOWN",
             "trump_administration_action": strategic.get("trump_administration_action") or "UNKNOWN",
             "trump_personal_disclosure": (strategic.get("trump_personal_disclosure") or {}).get("status") or "UNKNOWN",
+            "trump_family_interest": strategic.get("trump_family_interest") or "UNKNOWN",
         },
     }
 
@@ -538,10 +636,15 @@ def build_optimizer_plan(
         if not sym:
             continue
         rank = candidate_rank_score(a)
+        lane = rank.get("lane")
+        explicit_lane_state = "lane_qualified" in a or "lane" in a
+        lane_qualified = bool(a.get("lane_qualified")) if explicit_lane_state else lane in {"CORE_QUALITY", "EXPLOSIVE"}
+        if not lane_qualified:
+            continue
         srisk = rank["stock_risk"]
         fit = risk_fit(srisk, profile)
         sector = str((a.get("fundamentals") or {}).get("sector") or "Unknown")
-        adjusted = rank["score"] - (6 if fit == "STRETCH" else 20 if fit == "ABOVE TARGET" else 0)
+        adjusted = rank["score"]
         rows.append({
             "symbol": sym,
             "analysis": a,
@@ -554,6 +657,8 @@ def build_optimizer_plan(
             "risk_fit": fit,
             "stock_risk": srisk,
             "sector": sector,
+            "lane": lane,
+            "lane_label": rank.get("lane_label"),
             "owned": sym in owned,
             "expected_yield_pct": _float(a.get("expected_yield_pct")),
             "strategic_capital_shadow": rank.get("strategic_capital_shadow") or {},
@@ -621,6 +726,10 @@ def build_optimizer_plan(
         "shortlist": shortlist,
         "selected_new": selected_new,
         "rotations": rotations,
+        "lane_counts": {
+            "core_quality": sum(1 for r in visible if r.get("lane") == "CORE_QUALITY"),
+            "explosive": sum(1 for r in visible if r.get("lane") == "EXPLOSIVE"),
+        },
         "position_cap_enabled": False,
         "target_positions": None,
         "max_positions": None,
