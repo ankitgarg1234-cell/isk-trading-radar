@@ -732,3 +732,25 @@ def test_trading_session_clock_excludes_weekends():
     opened=datetime(2026,9,4,20,0,tzinfo=timezone.utc)  # Friday
     now=datetime(2026,9,8,20,0,tzinfo=timezone.utc)     # Tuesday after Labor Day
     assert trading_sessions_elapsed(opened,now) == 1
+
+
+def test_priority_below_68_cannot_be_invest_now_when_size_is_zero():
+    p=payload("ZEROSIZE",score=80,expected=5,price=100)
+    p["breakdown"]={
+        "Fundamentals":14,"Catalyst":3,"News":7.5,"Momentum":3,
+        "Sector":3,"Valuation":3,"Analyst confirmation":3,"Risk/Reward":2,
+    }
+    rank=candidate_rank_score(p)["score"]
+    assert rank < 68
+    plan=build_optimizer_plan({"ZEROSIZE":p},profile="MEDIUM",visible_limit=20,shortlist_limit=10)
+    row=plan["visible"][0]
+    assert row["entry_signal"] in {"STRONG BUY","BUY","STARTER BUY"}
+    assert row["optimizer_action"] == "PASS"
+    assert row["bucket"] != "INVEST NOW"
+    assert "below the 68 score-sizing floor" in row["decision_reason"]
+    size=suggested_position_size(
+        p,cash=10000,reserve_cash=0,portfolio_value=10000,profile="MEDIUM",
+        conviction_score=rank,
+    )
+    assert size["target_allocation_pct"] == 0
+    assert size["shares"] == 0
