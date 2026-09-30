@@ -255,7 +255,7 @@
   </section>
 
   <section class="panel" id="paperPortfolio">
-    <div class="section-title-row"><div><span class="kicker">PAPER PORTFOLIO LEDGER</span><h2>Optimizer positions — not real trades</h2></div><span class="pill muted">WHOLE SHARES • {{ '%.0f'|format(10) }} BPS/trade modeled</span></div>
+    <div class="section-title-row"><div><span class="kicker">PAPER PORTFOLIO LEDGER</span><h2>Optimizer positions — not real trades</h2></div><span class="pill muted">FRACTIONAL PAPER SIZING • {{ '%.0f'|format(10) }} BPS/trade modeled</span></div>
     <div class="table-wrap"><table><thead><tr><th>Stock</th><th>Shares</th><th>Avg cost</th><th>Last</th><th>Day</th><th>Value</th><th>P&amp;L since entry</th><th>Weight</th><th>Entry rank</th><th>Reason</th></tr></thead><tbody id="paperPositionsBody">
       {% for p in paper.positions %}<tr><td class="ticker"><a href="/analysis/{{ p.symbol }}">{{ p.symbol }}</a></td><td>{{ p.shares }}</td><td>&#36;{{ '%.2f'|format(p.avg_cost) }}</td><td>&#36;{{ '%.2f'|format(p.price) }}</td><td class="{{ 'pos' if p.day_change_pct is not none and p.day_change_pct >= 0 else 'neg' if p.day_change_pct is not none else '' }}">{{ ('%+.2f%%'|format(p.day_change_pct)) if p.day_change_pct is not none else '—' }}</td><td>&#36;{{ '%.0f'|format(p.value) }}</td><td class="{{ 'pos' if p.pnl >= 0 else 'neg' }}">&#36;{{ '%+.2f'|format(p.pnl) }} / {{ '%+.2f%%'|format(p.pnl_pct) }}</td><td>{{ '%.1f%%'|format(p.weight_pct) }}</td><td>{{ '%.1f'|format(p.entry_rank_score) }}/100</td><td class="reason-cell">{{ p.reason or '—' }}</td></tr>{% endfor %}
       {% if not paper.positions %}<tr><td colspan="10" class="empty">Paper portfolio will begin on the first successful optimizer scan.</td></tr>{% endif %}
