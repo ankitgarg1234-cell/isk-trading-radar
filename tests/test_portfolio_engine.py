@@ -10,17 +10,23 @@ def sample_analysis():
         "deterministic_score":88,"ai_score":92,"analyst_score":80,
         "entry_zone_status":"PRIMARY_BUY","decision_confidence":"high",
         "levels":{"buy_low":95,"buy_high":101,"better_low":90,"better_high":93,"breakout":108,"stop":92,"target":130,"do_not_chase":115},
-        "technicals":{"atr":3,"relative_volume":1.2,"change20_pct":6,"rsi":55,"ema20":98},
-        "news":{"label":"Neutral","material_events":0,"high_negative_events":0},
-        "fundamentals":{"sector":"Technology"},
+        "technicals":{"atr":3,"relative_volume":1.2,"change20_pct":6,"rsi":55,"ema20":98,"avg_dollar_volume_20":50_000_000},
+        "news":{"label":"Neutral","score":9,"material_events":1,"high_negative_events":0,"catalysts":[],"items":[]},
+        "fundamentals":{"sector":"Technology","marketCap":2_000_000_000,"revenueGrowth":.20,"quarterlyRevenueGrowth":.18,"earningsGrowth":.20,"grossMargins":.60,"operatingMargins":.15,"returnOnEquity":.18,"debtToEquity":40,"forwardPE":28},
+        "breakdown":{"Fundamentals":17,"Catalyst":8,"News":9,"Momentum":10,"Sector":7,"Valuation":7,"Risk/Reward":8},
+        "fundamental_confidence":"high","data_quality_pct":100,
+        "promotion_risk":{"hard_block":False,"explosive_block":False,"flags":[]},
+        "catalyst_assessment":{"tier":"C","strength":30},
+        "strategic_capital":{"direction":"NONE","evidence_strength":0},
     }
 
 
-def test_risk_profile_changes_size_not_stock_score():
+def test_score_target_is_primary_and_risk_profile_does_not_inflate_same_conviction():
     a=sample_analysis(); original=a["deterministic_score"]
-    low=suggested_position_size(a,cash=100000,reserve_cash=20000,portfolio_value=100000,profile="LOW",fx_rate_to_base=1)
-    high=suggested_position_size(a,cash=100000,reserve_cash=5000,portfolio_value=100000,profile="HIGH",fx_rate_to_base=1)
-    assert high["shares"] >= low["shares"]
+    low=suggested_position_size(a,cash=100000,reserve_cash=0,portfolio_value=100000,profile="LOW",fx_rate_to_base=1,conviction_score=90)
+    high=suggested_position_size(a,cash=100000,reserve_cash=0,portfolio_value=100000,profile="HIGH",fx_rate_to_base=1,conviction_score=90)
+    assert low["target_allocation_pct"] == high["target_allocation_pct"] == 10
+    assert low["shares"] == high["shares"]
     assert a["deterministic_score"] == original
 
 
