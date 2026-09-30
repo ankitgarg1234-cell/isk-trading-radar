@@ -56,7 +56,7 @@
         <div><span>Review shortlist</span><b id="optimizerShortlist">{{ optimizer.shortlist }}</b><small>Top 8–10 for review only — not an entry gate</small></div>
         <div><span>Invest now</span><b id="optimizerInvest">{{ optimizer.invest_now }}</b><small>Every qualified STRONG BUY / BUY / STARTER BUY inside Top 20</small></div>
       </div>
-      <p class="footnote">The deterministic stock score is unchanged. Portfolio Priority is a separate capital-allocation rank. AI and analyst views remain confirmation signals and are not blended into the rank. {% if not optimizer.live_gating %}Live buy alerts remain on the existing production rules until the paper/walk-forward validation gate is passed.{% endif %}</p>
+      <p class="footnote">The deterministic stock score is unchanged. Portfolio Priority is a separate ranking signal. AI and analyst views remain confirmation signals and are not blended into the rank. Buy alerts follow the same uncapped Top-20 paper-allocation policy.</p>
     </div>
     <div class="panel paper-panel">
       <div class="section-title-row"><div><span class="kicker">$10,000 SHADOW PORTFOLIO</span><h2>Paper trading vs S&amp;P 500</h2></div><span class="pill {{ 'green' if paper.started else 'amber' }}">{{ 'RUNNING' if paper.started else 'STARTS ON FIRST SCAN' }}</span></div>
@@ -115,7 +115,7 @@
   </section>
 
   <section class="panel alert-panel">
-    <div class="section-title-row"><div><span class="kicker">LIVE DECISION ALERTS</span><h2>What needs attention now</h2><p class="subtle">Actionable entries and portfolio actions only — no WAIT/WATCH/HOLD noise. Click an item to drill into the evidence.</p></div><button id="scanNow" class="btn secondary">Run scan now</button></div>
+    <div class="section-title-row"><div><span class="kicker">PAPER DECISION ALERTS</span><h2>What needs attention now</h2><p class="subtle">Optimizer-approved Top-20 paper entries and thesis-gated portfolio actions only — no WAIT/WATCH/HOLD noise.</p></div><button id="scanNow" class="btn secondary">Run scan now</button></div>
     <div id="alertsList" class="alert-list">
       {% if alerts %}{% for a in alerts %}
       <article class="alert-card {{ a.severity }}" data-alert-id="{{ a.id }}">
