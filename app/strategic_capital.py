@@ -528,6 +528,16 @@ class StrategicCapitalProvider:
         return matches
 
     def _trump_personal_disclosure(self, company_name: str, symbol: str, *, force: bool = False) -> dict:
+        if not settings.strategic_disclosure_pdf_enabled:
+            return {
+                "status": "DEFERRED — BACKGROUND PDF CHECK",
+                "source_status": "DISABLED IN LIVE WEB PROCESS",
+                "sources_checked": 0,
+                "matched_reports": 0,
+                "source_results": [],
+                "events": [],
+                "source_url": "",
+            }
         urls: list[str] = []
         for u in [settings.trump_oge_disclosure_url, *settings.trump_periodic_transaction_urls]:
             u = str(u or "").strip()
