@@ -84,12 +84,20 @@
         {% if not paper.positions %}<div class="empty paper-empty-card">No optimizer paper positions yet.</div>{% endif %}
       </div>
       <details class="paper-journal" {% if paper.trades %}open{% endif %}>
-        <summary>Recent paper trades <span class="pill muted">{{ paper.trades|length }}</span></summary>
+        <summary>Recent valid paper trades <span class="pill muted" id="paperTradeCountJournal">{{ paper.trade_count }}</span> <small>• {{ paper.position_count }} open positions</small></summary>
         <div class="table-wrap"><table><thead><tr><th>Time</th><th>Stock</th><th>Action</th><th>Shares</th><th>Price</th><th>Entry rank</th><th>Reason</th></tr></thead><tbody id="paperTradesBody">
           {% for t in paper.trades %}<tr><td>{{ t.created_at[:16].replace('T',' ') if t.created_at else '—' }}</td><td class="ticker">{{ t.symbol }}</td><td><span class="pill {{ 'green' if t.side == 'BUY' else 'amber' }}">{{ t.side }}</span></td><td>{{ t.shares }}</td><td>${{ '%.2f'|format(t.price) }}</td><td>{{ '%.1f'|format(t.rank_score) }}/100</td><td class="reason-cell">{{ t.reason or '—' }}</td></tr>{% endfor %}
           {% if not paper.trades %}<tr><td colspan="7" class="empty">No paper trades recorded yet.</td></tr>{% endif %}
         </tbody></table></div>
       </details>
+      {% if paper.legacy_trades %}
+      <details class="paper-journal legacy-paper-journal">
+        <summary>Legacy allocator audit <span class="pill muted">{{ paper.legacy_trade_count }}</span> <small>old funding-rebalance sells preserved for history</small></summary>
+        <div class="table-wrap"><table><thead><tr><th>Time</th><th>Stock</th><th>Historical action</th><th>Shares</th><th>Price</th><th>Reason</th></tr></thead><tbody>
+          {% for t in paper.legacy_trades %}<tr><td>{{ t.created_at[:16].replace('T',' ') if t.created_at else '—' }}</td><td class="ticker">{{ t.symbol }}</td><td><span class="pill muted">LEGACY REBALANCE</span></td><td>{{ t.shares }}</td><td>${{ '%.2f'|format(t.price) }}</td><td class="reason-cell">{{ t.reason }}</td></tr>{% endfor %}
+        </tbody></table></div>
+      </details>
+      {% endif %}
       <div class="paper-actions"><form method="post" action="/paper/run-now"><button class="btn secondary" type="submit">Rebalance paper now</button></form><form method="post" action="/paper/reset" onsubmit="return confirm('Reset the $10,000 paper test and delete its paper history?');"><button class="btn ghost" type="submit">Reset paper test</button></form></div>
     </div>
   </section>
@@ -252,7 +260,7 @@
       {% for p in paper.positions %}<tr><td class="ticker"><a href="/analysis/{{ p.symbol }}">{{ p.symbol }}</a></td><td>{{ p.shares }}</td><td>&#36;{{ '%.2f'|format(p.avg_cost) }}</td><td>&#36;{{ '%.2f'|format(p.price) }}</td><td class="{{ 'pos' if p.day_change_pct is not none and p.day_change_pct >= 0 else 'neg' if p.day_change_pct is not none else '' }}">{{ ('%+.2f%%'|format(p.day_change_pct)) if p.day_change_pct is not none else '—' }}</td><td>&#36;{{ '%.0f'|format(p.value) }}</td><td class="{{ 'pos' if p.pnl >= 0 else 'neg' }}">&#36;{{ '%+.2f'|format(p.pnl) }} / {{ '%+.2f%%'|format(p.pnl_pct) }}</td><td>{{ '%.1f%%'|format(p.weight_pct) }}</td><td>{{ '%.1f'|format(p.entry_rank_score) }}/100</td><td class="reason-cell">{{ p.reason or '—' }}</td></tr>{% endfor %}
       {% if not paper.positions %}<tr><td colspan="10" class="empty">Paper portfolio will begin on the first successful optimizer scan.</td></tr>{% endif %}
     </tbody></table></div>
-    <p class="footnote">Paper performance is a forward test. It uses the same optimizer selection, whole-share sizing and modeled transaction friction, while SPY is tracked as the benchmark. No broker orders are sent.</p>
+    <p class="footnote">Paper performance is a forward test. It uses the same optimizer selection and modeled transaction friction, while the S&amp;P 500 Total Return Index is the benchmark. No broker orders are sent.</p>
   </section>
 
   <section class="panel" id="screenshotImport">
