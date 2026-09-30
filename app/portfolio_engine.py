@@ -490,8 +490,8 @@ def classify_lane(a: dict) -> dict:
         hard_reasons.append(f"price below USD {settings.core_min_price:g} floor")
     if avg_dollar_volume < settings.core_min_dollar_volume:
         hard_reasons.append("20-day dollar liquidity below Core floor")
-    if market_cap > 0 and market_cap < settings.core_min_market_cap:
-        hard_reasons.append("market cap below USD 500M floor")
+    if market_cap < settings.core_min_market_cap:
+        hard_reasons.append("verified market cap below/unavailable for USD 500M floor")
     if fs < 14:
         hard_reasons.append("fundamental quality below 14/20")
     if confidence == "low":
