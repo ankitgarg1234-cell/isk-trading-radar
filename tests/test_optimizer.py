@@ -490,7 +490,11 @@ def test_paper_status_reconciles_valid_trades_with_normalized_legacy_holdings():
     assert status["position_count"] == 2
     assert status["trade_count"] == 1
     assert status["normalized_legacy_position_count"] == 1
+    assert status["current_valid_origin_count"] == 1
     assert status["normalized_legacy_symbols"] == ["BBB"]
+    by_symbol = {p["symbol"]: p for p in status["positions"]}
+    assert by_symbol["AAA"]["origin_type"] == "WHOLE-SHARE BUY"
+    assert by_symbol["BBB"]["origin_type"] == "NORMALIZED LEGACY"
 
 
 def test_max_drawdown_reports_positive_historical_magnitude():
@@ -509,3 +513,12 @@ def test_max_drawdown_reports_positive_historical_magnitude():
         status = paper_status(db)
     assert status["drawdown_pct"] == 5.0
     assert status["current_drawdown_pct"] == 2.0
+
+
+def test_dashboard_paper_counts_link_to_matching_sections():
+    html = client.get("/").text
+    assert 'href="#paperCurrentPositions"' in html
+    assert 'id="paperCurrentPositions"' in html
+    assert 'href="#paperValidTrades"' in html
+    assert 'id="paperValidTrades"' in html
+    assert 'paperOpenPositionCountJournal' not in html
