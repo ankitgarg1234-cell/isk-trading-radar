@@ -203,7 +203,8 @@ def test_analyze_symbol_treats_paper_position_as_owned():
 
     class Provider:
         def bundle(self, symbol):
-            b=analysis_bundle(symbol=symbol)
+            b=analysis_bundle()
+            b["symbol"]=symbol
             b["fundamentals"]["marketCap"]=5_000_000_000
             return b
 
