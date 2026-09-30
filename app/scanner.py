@@ -597,20 +597,20 @@ class RadarService:
             pref = db.query(PortfolioPreference).filter(PortfolioPreference.account == "Main").first()
             profile = normalise_profile(pref.risk_profile if pref else "MEDIUM")
         material = {
-            "policy_version": "eligibility-v2-no-sector-no-tier",
+            "policy_version": "eligibility-v3-top20-all-qualified",
             "risk_profile": profile,
             "visible_limit": settings.optimizer_visible_limit,
-            "shortlist_limit": settings.optimizer_shortlist_limit,
-            "target_positions": settings.optimizer_target_positions,
-            "max_positions": settings.optimizer_max_positions,
-            "min_rank_score": settings.optimizer_min_rank_score,
-            "rotation_gap": settings.optimizer_rotation_gap,
-            "rotation_yield_gap": settings.optimizer_rotation_yield_gap,
             "paper_trade_cost_bps": settings.paper_trade_cost_bps,
             "investable_entry_actions": sorted(INVESTABLE_ENTRY_ACTIONS),
-            # Explicitly encode the current policy: these legacy constraints are gone.
+            # Explicitly encode the uncapped policy. These values are intentionally
+            # absent as eligibility gates and changing legacy env vars must not
+            # change which qualified Top-20 names are bought.
+            "holding_count_cap": None,
             "sector_position_cap": None,
             "per_tier_max_positions": None,
+            "shortlist_entry_gate": None,
+            "min_rank_entry_gate": None,
+            "risk_fit_entry_gate": None,
         }
         return hashlib.sha1(json.dumps(material, sort_keys=True, default=str).encode("utf-8")).hexdigest()
 
