@@ -421,4 +421,21 @@ def test_symbol_search_prioritizes_ticker_prefix(monkeypatch):
         {"symbol":"CRC","name":"California Resources","exchange":"NYSE"},
     ])
     rows=client.get('/api/symbol-search?q=cr').json()["results"]
-    assert [x["symbol"] for x in rows[:3]] == ["CRC","CRDO","CRM"]
+    assert [x["symbol"] for x in rows[:3]] == ["CRC","CRM","CRDO"]
+
+
+def test_dashboard_deduplicates_preexisting_research_history():
+    from datetime import datetime, timezone, timedelta
+    now=datetime.now(timezone.utc)
+    with SessionLocal() as db:
+        db.add(mainmod.AnalysisRequest(symbol="DUP",source_note="older",created_at=now-timedelta(hours=2)))
+        db.add(mainmod.AnalysisRequest(symbol="DUP",source_note="latest",created_at=now-timedelta(hours=1)))
+        db.add(mainmod.AnalysisRequest(symbol="OTHER",source_note="manual",created_at=now))
+        db.commit()
+    body=client.get('/').text
+    queue_start=body.index("MANUAL RESEARCH QUEUE")
+    queue_end=body.index("</section>",queue_start)
+    queue=body[queue_start:queue_end]
+    assert queue.count('href="/analysis/DUP"') == 1
+    assert "latest" in queue
+    assert "older" not in queue
