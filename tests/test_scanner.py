@@ -11,7 +11,7 @@ class FakeProvider:
         return [{"symbol":f"U{i:03d}","name":f"Universe {i}"} for i in range(150)]
     def quick_scan(self,symbol):
         i=int(symbol[1:])
-        return {"symbol":symbol,"scan_score":100-i,"qualifies":i < 20,"price":10+i,"change_5_pct":5,"change_20_pct":8,"relative_volume":1.5,"dollar_volume":2_000_000}
+        return {"symbol":symbol,"scan_score":100-i,"qualifies":i < 20,"price":10+i,"change_5_pct":5,"change_20_pct":8,"relative_volume":1.5,"dollar_volume":25_000_000,"near_20d_high":0.99}
 
 
 class FakeAI: pass
