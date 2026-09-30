@@ -679,11 +679,14 @@ class RadarService:
         batch = syms[: settings.scan_batch_size]
         ok = 0
         errors: list[str] = []
-        # Portfolio-rule/config changes are first-class optimizer events. This is
-        # what makes an already-actionable BUY such as GWRE get reconsidered after
-        # a blocking restriction is removed; no BUY -> BUY transition is required.
+        # Portfolio-rule/config changes remain diagnostic events, but paper
+        # allocation now re-evaluates the complete current Top 20 on every open-
+        # market scanner cycle. This guarantees that a stock which stays BUY while
+        # moving into the Top 20 is not missed because no BUY -> BUY transition
+        # occurred.
         optimizer_policy_event = self._paper_optimizer_invalidation_event()
         paper_entry_event = optimizer_policy_event
+        paper_top20_recheck = True
         paper_event_symbols: list[str] = []
         for sym in batch:
             try:
@@ -708,12 +711,10 @@ class RadarService:
         except Exception as e:
             errors.append(f"portfolio optimizer: {type(e).__name__}")
         try:
-            # Entry decisions are event-driven. A run is triggered by either a
-            # material ticker event OR a portfolio-eligibility/config invalidation.
-            # The paper engine then reloads and re-ranks the complete current Top 20,
-            # so a BUY does not need to leave BUY and become BUY again to be seen.
-            # Broader portfolio rotation remains on the daily cadence.
-            run_paper_cycle(self.provider, entry_event=paper_entry_event)
+            # Re-evaluate the complete current Top 20 every market-open scan.
+            # The paper engine is idempotent for already-owned names, so this does
+            # not create repeat buys; it only catches newly qualified Top-20 names.
+            run_paper_cycle(self.provider, entry_event=paper_top20_recheck)
         except Exception as e:
             errors.append(f"paper trading: {type(e).__name__}")
         self.last_scan = datetime.now(timezone.utc)
@@ -727,6 +728,7 @@ class RadarService:
             "universe_deep_candidates": self.last_universe_candidates,
             "universe_start": self.last_universe_start,
             "paper_entry_event": paper_entry_event,
+            "paper_top20_recheck": paper_top20_recheck,
             "paper_optimizer_invalidated": optimizer_policy_event,
             "paper_event_symbols": paper_event_symbols,
         }
