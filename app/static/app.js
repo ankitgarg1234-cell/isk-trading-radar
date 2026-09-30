@@ -197,5 +197,68 @@ const parseBtn=$('#parseText');if(parseBtn)parseBtn.onclick=async()=>{try{await 
 const uploadBtn=$('#uploadScreenshot');if(uploadBtn)uploadBtn.onclick=async()=>{const file=$('#positionScreenshot').files[0];const status=$('#ocrStatus');if(!file){toast('Choose a screenshot first');return}uploadBtn.disabled=true;status.textContent='Uploading and extracting…';try{const fd=new FormData();fd.append('file',file);const r=await fetch('/api/import/screenshot',{method:'POST',body:fd});const d=await r.json();if(d.ok){renderImport(d.positions);status.textContent='Server extraction complete. Confirm/edit before saving.'}else if(d.needs_browser_ocr){if(!window.Tesseract)throw new Error('Browser OCR library is still loading. Try again in a few seconds.');status.textContent='Running free browser OCR locally…';const result=await Tesseract.recognize(file,'eng',{logger:m=>{if(m.status==='recognizing text')status.textContent=`Browser OCR ${Math.round((m.progress||0)*100)}%`}});$('#ocrText').value=result.data.text;await parseOcrText(result.data.text);status.textContent='Browser OCR complete. Confirm/edit extracted positions.'}else throw new Error(d.message||'Extraction failed')}catch(e){status.textContent='Extraction needs manual confirmation.';toast(e.message)}finally{uploadBtn.disabled=false}};
 const confirmBtn=$('#confirmImport');if(confirmBtn)confirmBtn.onclick=async()=>{const rows=readImportRows();if(!rows.length){toast('No valid rows to save');return}try{const d=await jsonFetch('/api/import/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({positions:rows})});toast(`${d.saved} positions saved`);setTimeout(()=>location.reload(),700)}catch(e){toast('Could not save positions')}};
 
+
+function initAnalyzeAutocomplete(){
+  const input=$('#analyzeSymbol'),box=$('#symbolSuggestions');
+  if(!input||!box)return;
+  let timer=null,items=[],active=-1,requestSeq=0;
+  const hide=()=>{box.classList.add('hidden');box.innerHTML='';items=[];active=-1;input.setAttribute('aria-expanded','false')};
+  const setActive=(idx)=>{
+    active=idx;
+    box.querySelectorAll('.symbol-suggestion').forEach((el,i)=>{
+      el.classList.toggle('active',i===active);
+      el.setAttribute('aria-selected',i===active?'true':'false');
+    });
+    box.querySelector('.symbol-suggestion.active')?.scrollIntoView({block:'nearest'});
+  };
+  const choose=(idx)=>{
+    const item=items[idx];
+    if(!item)return;
+    input.value=item.symbol;
+    input.dataset.selectedName=item.name||'';
+    hide();
+    input.focus();
+  };
+  const render=(rows)=>{
+    items=Array.isArray(rows)?rows:[];
+    active=-1;
+    if(!items.length){hide();return}
+    box.innerHTML=items.map((x,i)=>`<button type="button" class="symbol-suggestion" role="option" aria-selected="false" data-i="${i}"><span><b>${esc(x.symbol)}</b><small>${esc(x.name||x.symbol)}</small></span><em>${esc(x.exchange||'US')}</em></button>`).join('');
+    box.classList.remove('hidden');
+    input.setAttribute('aria-expanded','true');
+    box.querySelectorAll('.symbol-suggestion').forEach(btn=>{
+      btn.addEventListener('mousedown',e=>e.preventDefault());
+      btn.addEventListener('click',()=>choose(Number(btn.dataset.i)));
+    });
+  };
+  const load=async()=>{
+    const q=input.value.trim();
+    if(!q){hide();return}
+    const seq=++requestSeq;
+    try{
+      const d=await jsonFetch('/api/symbol-search?q='+encodeURIComponent(q));
+      if(seq!==requestSeq)return;
+      render(d.results||[]);
+    }catch(e){if(seq===requestSeq)hide()}
+  };
+  input.addEventListener('input',()=>{
+    delete input.dataset.selectedName;
+    clearTimeout(timer);
+    timer=setTimeout(load,160);
+  });
+  input.addEventListener('keydown',e=>{
+    if(box.classList.contains('hidden')||!items.length){
+      if(e.key==='ArrowDown'){clearTimeout(timer);load()}
+      return;
+    }
+    if(e.key==='ArrowDown'){e.preventDefault();setActive((active+1)%items.length)}
+    else if(e.key==='ArrowUp'){e.preventDefault();setActive((active-1+items.length)%items.length)}
+    else if(e.key==='Enter'&&active>=0){e.preventDefault();choose(active)}
+    else if(e.key==='Escape'){e.preventDefault();hide()}
+  });
+  input.addEventListener('blur',()=>setTimeout(hide,120));
+}
+initAnalyzeAutocomplete();
+
 bindRadarControls();
 const poll=Number(document.body.dataset.livePoll||15)*1000;if($('#candidateTable')){setInterval(refreshLive,Math.max(10000,poll));}

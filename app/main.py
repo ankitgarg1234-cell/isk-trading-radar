@@ -164,7 +164,16 @@ def _dashboard_state(db):
     positions=db.query(Position).order_by(Position.symbol).all()
     paper_positions=db.query(PaperPosition).filter(PaperPosition.account=="Optimizer Paper").order_by(PaperPosition.symbol).all()
     trades=db.query(Trade).order_by(Trade.created_at.desc()).limit(20).all()
-    analyses_req=db.query(AnalysisRequest).order_by(AnalysisRequest.created_at.desc()).limit(8).all()
+    recent_analysis_rows=db.query(AnalysisRequest).order_by(AnalysisRequest.created_at.desc()).limit(100).all()
+    analyses_req=[];seen_analysis_symbols=set()
+    for row in recent_analysis_rows:
+        sym=str(row.symbol or "").upper()
+        if not sym or sym in seen_analysis_symbols:
+            continue
+        seen_analysis_symbols.add(sym)
+        analyses_req.append(row)
+        if len(analyses_req)>=8:
+            break
     raw_alerts=db.query(Alert).filter(Alert.acknowledged==False).order_by(Alert.created_at.desc()).limit(100).all()
 
     # Read only the strongest/freshest compact rows. Full-market scanning continues
@@ -323,17 +332,6 @@ def _dashboard_state(db):
         alerts.append(a)
     alerts=sorted(alerts,key=_alert_priority)[:20]
 
-    view_by_symbol={v["symbol"]:v for v in radar_views}
-    props=[]
-    for r in optimizer["selected_new"]:
-        v=view_by_symbol.get(r["symbol"],{})
-        detail=f"Portfolio rank #{r['market_rank']} • priority {r['rank_score']:.1f}/100 • {r['entry_signal']} • deterministic expected return {r['expected_yield_pct']:.1f}%."
-        if v.get("suggested_shares"):
-            detail += f" Suggested {v['suggested_shares']} shares (≈ {v.get('suggested_capital',0):.0f} {base_currency})."
-        props.append({"type":"INVEST NOW" if settings.optimizer_live_gating else "SHADOW INVEST","title":f"Optimizer selects {r['symbol']}","detail":detail,"symbol_to":r["symbol"]})
-    for rot in optimizer["rotations"]:
-        props.append({"type":"ROTATE","title":rot["title"],"detail":rot["detail"],"symbol_from":rot["symbol_from"],"symbol_to":rot["symbol_to"]})
-
     paper=paper_status(db)
     summary={
         "buy_now":len(optimizer["selected_new"]),
@@ -343,7 +341,7 @@ def _dashboard_state(db):
         "visible_candidates":len(radar_views),"shortlist_count":len(optimizer["shortlist"]),"position_cap_enabled":optimizer.get("position_cap_enabled",False),
     }
     optimizer_summary={"version":optimizer["version"],"live_gating":settings.optimizer_live_gating,"visible":len(radar_views),"shortlist":len(optimizer["shortlist"]),"invest_now":len(optimizer["selected_new"]),"owned":optimizer["owned_count"],"position_cap_enabled":optimizer.get("position_cap_enabled",False),"allocation_policy":optimizer.get("allocation_policy"),"rotations":len(optimizer["rotations"])}
-    return {"positions":pos_views,"trades":trades,"analyses":analyses_req,"alerts":alerts,"candidates":radar_views,"cash":cash,"reserve":reserve,"proposals":props,"risk_profile":risk_profile,"risk_profiles":RISK_PROFILES,"account_risk":account,"base_currency":base_currency,"summary":summary,"optimizer":optimizer_summary,"paper":paper}
+    return {"positions":pos_views,"trades":trades,"analyses":analyses_req,"alerts":alerts,"candidates":radar_views,"cash":cash,"reserve":reserve,"risk_profile":risk_profile,"risk_profiles":RISK_PROFILES,"account_risk":account,"base_currency":base_currency,"summary":summary,"optimizer":optimizer_summary,"paper":paper}
 
 
 @app.get("/",response_class=HTMLResponse)
@@ -413,6 +411,56 @@ def add_watchlist(symbol:str=Form(...),source:str=Form("Manual")):
     _invalidate_live_cache()
     return RedirectResponse("/",303)
 
+@app.get("/api/symbol-search")
+def symbol_search(q:str=""):
+    query=(q or "").strip()
+    if not query:
+        return {"results":[]}
+    q_upper=query.upper()
+    q_lower=" ".join(query.lower().split())
+    try:
+        universe=radar.provider.us_equity_universe()
+    except Exception:
+        universe=[]
+
+    scored=[]
+    for row in universe:
+        symbol=str(row.get("symbol") or "").upper()
+        name=str(row.get("name") or symbol)
+        exchange=str(row.get("exchange") or "")
+        sym_lower=symbol.lower()
+        name_lower=name.lower()
+        score=None
+        if symbol==q_upper:
+            score=0
+        elif sym_lower.startswith(q_lower):
+            score=1
+        elif name_lower.startswith(q_lower):
+            score=2
+        elif q_lower in sym_lower:
+            score=3
+        elif q_lower in name_lower:
+            score=4
+        if score is not None:
+            scored.append((score, len(symbol), symbol, name, exchange))
+    scored.sort(key=lambda x:(x[0],x[1],x[2]))
+    results=[{"symbol":s,"name":n,"exchange":e} for _,_,s,n,e in scored[:12]]
+
+    if not results:
+        # Fallback to locally known Radar candidates when the universe directory
+        # is temporarily unavailable.
+        with SessionLocal() as db:
+            rows=db.query(RadarCandidate).order_by(RadarCandidate.portfolio_rank_score.desc()).limit(150).all()
+            for row in rows:
+                payload=_candidate_payload(row)
+                name=str((payload.get("fundamentals") or {}).get("companyName") or row.symbol)
+                if q_lower in row.symbol.lower() or q_lower in name.lower():
+                    results.append({"symbol":row.symbol,"name":name,"exchange":""})
+                    if len(results)>=12:
+                        break
+    return {"results":results}
+
+
 @app.post("/analyze")
 def analyze_symbol(symbol:str=Form(...),source_note:str=Form("Manual")):
     raw=symbol.strip()
@@ -424,7 +472,14 @@ def analyze_symbol(symbol:str=Form(...),source_note:str=Form("Manual")):
     note=(source_note.strip() or "Manual")
     if raw.upper()!=symbol:
         note=f"{note} | entered: {raw} | resolved: {resolved.get('name') or symbol}"
-    with SessionLocal() as db:db.add(AnalysisRequest(symbol=symbol,source_note=note));db.commit()
+    with SessionLocal() as db:
+        req=db.query(AnalysisRequest).filter(AnalysisRequest.symbol==symbol).order_by(AnalysisRequest.created_at.desc()).first()
+        if req:
+            req.source_note=note
+            req.created_at=datetime.now(timezone.utc)
+        else:
+            db.add(AnalysisRequest(symbol=symbol,source_note=note))
+        db.commit()
     try:radar.analyze_symbol(symbol,True,strategic_refresh=True)
     except Exception:pass
     _invalidate_live_cache()

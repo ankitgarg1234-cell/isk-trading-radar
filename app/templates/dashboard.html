@@ -30,7 +30,10 @@
     <div class="panel hero-card span-2">
       <div class="section-title-row"><div><span class="kicker">ANALYZE ANY COMPANY OR SYMBOL</span><h2>Run the complete Radar pipeline</h2></div></div>
       <form class="analyze-form" method="post" action="/analyze">
-        <input name="symbol" placeholder="Ticker or company name — e.g. CRDO or Credo Technology" maxlength="120" required autocomplete="off">
+        <div class="symbol-autocomplete">
+          <input id="analyzeSymbol" name="symbol" placeholder="Start typing ticker or company — e.g. CRDO or Credo Technology" maxlength="120" required autocomplete="off" aria-autocomplete="list" aria-controls="symbolSuggestions" aria-expanded="false">
+          <div id="symbolSuggestions" class="symbol-suggestions hidden" role="listbox" aria-label="Matching U.S. stocks"></div>
+        </div>
         <select name="source_note"><option>Manual</option><option>Recommended by friend</option><option>eToro</option><option>Analyst upgrade</option><option>Reddit/YouTube</option><option>News story</option><option>Other</option></select>
         <button class="btn primary" type="submit">Run full analysis</button>
       </form>
@@ -226,12 +229,12 @@
         {% if not positions %}<tr><td colspan="10" class="empty">No positions saved yet.</td></tr>{% endif %}
       </tbody></table></div>
       <details><summary>Add / update position manually</summary><form class="grid-form" method="post" action="/positions"><input name="symbol" placeholder="Ticker" required><input name="shares" type="number" step="any" min="0.0001" placeholder="Shares" required><input name="avg_cost" type="number" step="any" min="0.0001" placeholder="Avg cost" required><input name="account" value="Manual" placeholder="Account"><button class="btn secondary">Save position</button></form></details>
+      <details><summary>Cash &amp; reserve settings</summary><form class="grid-form" method="post" action="/cash"><input name="account" value="Main"><input name="cash" type="number" step="any" placeholder="Cash" required><input name="reserve_cash" type="number" step="any" value="0" placeholder="Reserve"><input name="currency" value="{{ base_currency }}"><button class="btn secondary">Save cash</button></form></details>
     </div>
 
-    <div class="panel">
-      <div class="section-title-row"><div><span class="kicker">PORTFOLIO OPTIMIZER</span><h2>Capital movement proposals</h2></div></div>
-      {% if proposals %}<div class="proposal-list">{% for p in proposals %}<article class="proposal"><span class="pill amber">{{ p.type }}</span><h3>{{ p.title }}</h3><p>{{ p.detail }}</p><div class="proposal-buttons"><button class="btn secondary" disabled title="Execution comes after broker integration">Review only</button></div></article>{% endfor %}</div>{% else %}<div class="empty">No rotation/deployment proposal meets the current thresholds.</div>{% endif %}
-      <details><summary>Set cash and strategic reserve</summary><form class="grid-form" method="post" action="/cash"><input name="account" value="Main"><input name="cash" type="number" step="any" placeholder="Cash" required><input name="reserve_cash" type="number" step="any" value="0" placeholder="Reserve"><input name="currency" value="{{ base_currency }}"><button class="btn secondary">Save cash</button></form></details>
+    <div class="panel research-queue-panel">
+      <div class="section-title-row"><div><span class="kicker">MANUAL RESEARCH QUEUE</span><h2>Recently requested symbols</h2><p class="subtle">One row per symbol; repeated searches update the latest request instead of adding duplicates.</p></div></div>
+      <div class="queue">{% for a in analyses %}<a href="/analysis/{{ a.symbol }}"><b>{{ a.symbol }}</b><span>{{ a.source_note }}</span><small>{{ a.created_at.strftime('%Y-%m-%d %H:%M') if a.created_at else '' }}</small></a>{% endfor %}{% if not analyses %}<div class="empty">No manual analyses yet.</div>{% endif %}</div>
     </div>
   </section>
 
@@ -241,9 +244,10 @@
     <div id="importPreview" class="hidden"><h3>Confirm or edit before saving</h3><div class="table-wrap"><table><thead><tr><th>Ticker</th><th>Shares</th><th>Average cost</th><th>Account</th><th></th></tr></thead><tbody id="importRows"></tbody></table></div><button id="confirmImport" class="btn primary">Confirm positions</button></div>
   </section>
 
-  <section class="two-col">
-    <div class="panel"><div class="section-title-row"><div><span class="kicker">TRADE LEDGER</span><h2>Recent trades</h2></div></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Ticker</th><th>Side</th><th>Qty</th><th>Price</th><th>Fees</th><th>Reason</th></tr></thead><tbody>{% for t in trades %}<tr><td>{{ t.created_at.strftime('%Y-%m-%d') if t.created_at else '' }}</td><td class="ticker">{{ t.symbol }}</td><td>{{ t.side }}</td><td>{{ t.shares }}</td><td>${{ '%.2f'|format(t.price) }}</td><td>{{ '%.2f'|format(t.fees) }}</td><td>{{ t.reason }}</td></tr>{% endfor %}{% if not trades %}<tr><td colspan="7" class="empty">No trades recorded.</td></tr>{% endif %}</tbody></table></div><details><summary>Record trade</summary><form class="grid-form" method="post" action="/trades"><input name="symbol" placeholder="Ticker" required><select name="side"><option>BUY</option><option>SELL</option></select><input name="shares" type="number" step="any" min="0.0001" placeholder="Qty" required><input name="price" type="number" step="any" min="0.0001" placeholder="Price" required><input name="fees" type="number" step="any" value="0" placeholder="Fees"><input name="account" value="Manual"><input name="reason" placeholder="Why / thesis"><button class="btn secondary">Record</button></form></details></div>
-    <div class="panel"><div class="section-title-row"><div><span class="kicker">MANUAL RESEARCH QUEUE</span><h2>Recently requested symbols</h2></div></div><div class="queue">{% for a in analyses %}<a href="/analysis/{{ a.symbol }}"><b>{{ a.symbol }}</b><span>{{ a.source_note }}</span><small>{{ a.created_at.strftime('%Y-%m-%d %H:%M') if a.created_at else '' }}</small></a>{% endfor %}{% if not analyses %}<div class="empty">No manual analyses yet.</div>{% endif %}</div></div>
+  <section class="panel">
+    <div class="section-title-row"><div><span class="kicker">TRADE LEDGER</span><h2>Recent trades</h2></div></div>
+    <div class="table-wrap"><table><thead><tr><th>Date</th><th>Ticker</th><th>Side</th><th>Qty</th><th>Price</th><th>Fees</th><th>Reason</th></tr></thead><tbody>{% for t in trades %}<tr><td>{{ t.created_at.strftime('%Y-%m-%d') if t.created_at else '' }}</td><td class="ticker">{{ t.symbol }}</td><td>{{ t.side }}</td><td>{{ t.shares }}</td><td>${{ '%.2f'|format(t.price) }}</td><td>{{ '%.2f'|format(t.fees) }}</td><td>{{ t.reason }}</td></tr>{% endfor %}{% if not trades %}<tr><td colspan="7" class="empty">No trades recorded.</td></tr>{% endif %}</tbody></table></div>
+    <details><summary>Record trade</summary><form class="grid-form" method="post" action="/trades"><input name="symbol" placeholder="Ticker" required><select name="side"><option>BUY</option><option>SELL</option></select><input name="shares" type="number" step="any" min="0.0001" placeholder="Qty" required><input name="price" type="number" step="any" min="0.0001" placeholder="Price" required><input name="fees" type="number" step="any" value="0" placeholder="Fees"><input name="account" value="Manual"><input name="reason" placeholder="Why / thesis"><button class="btn secondary">Record</button></form></details>
   </section>
 </main>
 <div id="toast" class="toast hidden"></div>
