@@ -215,7 +215,7 @@ def test_dashboard_has_actionable_filters_risk_profile_and_visible_levels(monkey
     p=full_payload("FILTERX")
     p["currency"]="USD"
     p["entry_zone_status"]="PRIMARY_BUY"
-    p["fundamentals"]={"companyName":"Filter Example Inc","sector":"Technology"}
+    p["fundamentals"].update({"companyName":"Filter Example Inc","sector":"Technology"})
     monkeypatch.setattr(mainmod.radar.provider,"fx_rate",lambda a,b:1.0)
     with SessionLocal() as db:
         db.add(RadarCandidate(symbol="FILTERX",category="Core",action="BUY NOW",score=88,ai_score=92,price=100))
@@ -239,7 +239,7 @@ def test_risk_profile_selection_persists():
 def test_live_api_exposes_decision_surface_fields(monkeypatch):
     from app.db import RadarCandidate, AnalysisSnapshot
     p=full_payload("LIVEUI")
-    p["currency"]="USD";p["entry_zone_status"]="PRIMARY_BUY";p["fundamentals"]={"companyName":"Live UI Inc","sector":"Industrials"}
+    p["currency"]="USD";p["entry_zone_status"]="PRIMARY_BUY";p["fundamentals"].update({"companyName":"Live UI Inc","sector":"Industrials"})
     monkeypatch.setattr(mainmod.radar.provider,"fx_rate",lambda a,b:1.0)
     with SessionLocal() as db:
         db.add(RadarCandidate(symbol="LIVEUI",category="Core",action="BUY NOW",score=88,ai_score=92,price=100))
@@ -255,7 +255,7 @@ def test_live_api_exposes_decision_surface_fields(monkeypatch):
 def test_dashboard_has_filters_for_every_radar_decision_column(monkeypatch):
     from app.db import RadarCandidate, AnalysisSnapshot
     p=full_payload("COLFLT")
-    p["currency"]="USD";p["entry_zone_status"]="PRIMARY_BUY";p["fundamentals"]={"companyName":"Column Filter Inc","sector":"Technology"}
+    p["currency"]="USD";p["entry_zone_status"]="PRIMARY_BUY";p["fundamentals"].update({"companyName":"Column Filter Inc","sector":"Technology"})
     monkeypatch.setattr(mainmod.radar.provider,"fx_rate",lambda a,b:1.0)
     with SessionLocal() as db:
         db.add(RadarCandidate(symbol="COLFLT",category="Core",action="BUY NOW",score=88,ai_score=92,price=100))
@@ -332,7 +332,7 @@ def test_dashboard_alerts_are_clickable_and_have_cross_and_direct_conviction_fil
 def test_dashboard_can_render_from_compact_current_state_without_snapshot(monkeypatch):
     from app.db import RadarCandidate
     p=full_payload("COMPACT")
-    p["currency"]="USD";p["fundamentals"]={"companyName":"Compact State Inc","sector":"Technology"}
+    p["currency"]="USD";p["fundamentals"].update({"companyName":"Compact State Inc","sector":"Technology"})
     monkeypatch.setattr(mainmod.radar.provider,"fx_rate",lambda a,b:1.0)
     with SessionLocal() as db:
         db.add(RadarCandidate(symbol="COMPACT",category="Core",action="BUY NOW",score=88,ai_score=92,price=100,current_json=json.dumps(p)))
