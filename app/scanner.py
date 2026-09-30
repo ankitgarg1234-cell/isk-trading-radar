@@ -150,6 +150,8 @@ class RadarService:
         self.universe_size = 0
         self.last_universe_prefiltered = 0
         self.last_universe_candidates = 0
+        self.last_universe_core_candidates = 0
+        self.last_universe_explosive_candidates = 0
         self.last_deep_analyzed = 0
         self.last_universe_start = 0
         # Process-local material state used only to decide whether the paper
@@ -544,10 +546,20 @@ class RadarService:
         return universe[start:] + universe[:(start + batch_size) % len(universe)]
 
     def _prefilter_universe(self, entries: list[dict]) -> list[dict]:
+        """Build balanced cheap-discovery queues for both investment lanes.
+
+        Core exploration deliberately uses liquidity rather than momentum so quiet,
+        high-quality businesses are still deep-analysed. Explosive exploration
+        requires positive momentum/volume and never rewards large negative moves.
+        Full lane qualification still happens after fundamentals/news analysis.
+        """
         if not entries:
             self.last_universe_prefiltered = 0
             self.last_universe_candidates = 0
+            self.last_universe_core_candidates = 0
+            self.last_universe_explosive_candidates = 0
             return []
+
         results: list[dict] = []
         workers = max(1, min(settings.quick_scan_workers, 16))
         with ThreadPoolExecutor(max_workers=workers) as pool:
@@ -560,24 +572,84 @@ class RadarService:
                 except Exception:
                     continue
         self.last_universe_prefiltered = len(results)
-        qualified = [r for r in results if r.get("qualifies")]
-        qualified.sort(key=lambda r: float(r.get("scan_score") or 0), reverse=True)
-        # Always retain a few highest-ranked names even if hard thresholds are narrowly missed.
-        if len(qualified) < settings.universe_deep_candidates:
-            seen = {r["symbol"] for r in qualified}
-            for r in sorted(results, key=lambda x: float(x.get("scan_score") or 0), reverse=True):
-                if r["symbol"] not in seen:
-                    qualified.append(r); seen.add(r["symbol"])
-                if len(qualified) >= settings.universe_deep_candidates:
+
+        limit = max(2, settings.universe_deep_candidates)
+        explosive_quota = max(1, limit // 2)
+        core_quota = max(1, limit - explosive_quota)
+
+        explosive_pool = [
+            r for r in results
+            if float(r.get("price") or 0) >= 5
+            and float(r.get("dollar_volume") or 0) >= 20_000_000
+            and (
+                float(r.get("change_5_pct") or 0) >= 3
+                or float(r.get("change_20_pct") or 0) >= 7
+                or float(r.get("relative_volume") or 0) >= 1.5
+                or float(r.get("near_20d_high") or 0) >= 0.985
+            )
+        ]
+        explosive_pool.sort(key=lambda r: float(r.get("scan_score") or 0), reverse=True)
+
+        # Core lane exploration is intentionally not a second momentum list.
+        # Prefer liquid names from each rotating slice, then let the full
+        # fundamentals/valuation model decide whether they qualify.
+        core_pool = [
+            r for r in results
+            if float(r.get("price") or 0) >= 5
+            and float(r.get("dollar_volume") or 0) >= 10_000_000
+        ]
+        core_pool.sort(
+            key=lambda r: (
+                float(r.get("dollar_volume") or 0),
+                float(r.get("near_20d_high") or 0),
+            ),
+            reverse=True,
+        )
+
+        chosen: list[dict] = []
+        seen: set[str] = set()
+        for r in explosive_pool[:explosive_quota]:
+            chosen.append(r); seen.add(r["symbol"])
+        for r in core_pool:
+            if r["symbol"] in seen:
+                continue
+            chosen.append(r); seen.add(r["symbol"])
+            if len(chosen) >= explosive_quota + core_quota:
+                break
+
+        # If one lane is sparse, fill the remaining deep-analysis budget with the
+        # strongest eligible names from either lane, never with sub-$5 illiquid dust.
+        if len(chosen) < limit:
+            fallback = sorted(
+                [
+                    r for r in results
+                    if float(r.get("price") or 0) >= 5
+                    and float(r.get("dollar_volume") or 0) >= 10_000_000
+                ],
+                key=lambda r: (
+                    float(r.get("scan_score") or 0),
+                    float(r.get("dollar_volume") or 0),
+                ),
+                reverse=True,
+            )
+            for r in fallback:
+                if r["symbol"] in seen:
+                    continue
+                chosen.append(r); seen.add(r["symbol"])
+                if len(chosen) >= limit:
                     break
-        self.last_universe_candidates = min(len(qualified), settings.universe_deep_candidates)
-        return qualified[: settings.universe_deep_candidates]
+
+        explosive_symbols = {r["symbol"] for r in explosive_pool[:explosive_quota]}
+        self.last_universe_explosive_candidates = sum(1 for r in chosen if r["symbol"] in explosive_symbols)
+        self.last_universe_core_candidates = max(0, len(chosen) - self.last_universe_explosive_candidates)
+        self.last_universe_candidates = len(chosen)
+        return chosen[:limit]
 
     def candidate_symbols(self):
         """Return the current deep-analysis queue, including a rotating whole-market slice."""
         priority = self.priority_symbols()[: settings.priority_deep_limit]
         discovered = self.provider.discover(100)
-        discovered.sort(key=lambda x: abs(float(x.get("change_pct") or 0)), reverse=True)
+        discovered.sort(key=lambda x: float(x.get("change_pct") or 0), reverse=True)
         discovery_symbols = [d["symbol"] for d in discovered[: settings.discovery_deep_candidates]]
         broad = self._prefilter_universe(self._universe_slice())
         broad_symbols = [q["symbol"] for q in broad]
@@ -729,6 +801,8 @@ class RadarService:
             "universe_size": self.universe_size,
             "universe_prefiltered": self.last_universe_prefiltered,
             "universe_deep_candidates": self.last_universe_candidates,
+            "universe_core_candidates": self.last_universe_core_candidates,
+            "universe_explosive_candidates": self.last_universe_explosive_candidates,
             "universe_start": self.last_universe_start,
             "paper_entry_event": paper_entry_event,
             "paper_top20_recheck": paper_top20_recheck,
