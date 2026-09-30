@@ -14,8 +14,12 @@ def full_payload(symbol="TEST"):
         "deterministic_score":88,"analyst_score":80,"ai_score":92,"risk_reward":3.2,"expected_yield_pct":25,"analyst_expected_yield_pct":20,"ai_expected_yield_pct":30,
         "deterministic_holding_period_min_days":30,"deterministic_holding_period_max_days":180,"analyst_holding_period_min_days":180,"analyst_holding_period_max_days":365,"holding_period_min_days":20,"holding_period_max_days":60,
         "levels":{"buy_low":95,"buy_high":100,"better_low":90,"better_high":93,"breakout":105,"stop":88,"target":130,"do_not_chase":112},
-        "technicals":{"ema20":98,"ema50":94,"ema200":80,"rsi":58,"relative_volume":1.6,"change20_pct":8},
+        "technicals":{"ema20":98,"ema50":94,"ema200":80,"rsi":58,"relative_volume":1.6,"change20_pct":8,"avg_dollar_volume_20":50_000_000},
         "breakdown":{"Fundamentals":18,"Catalyst":12,"News":12,"Momentum":12,"Sector":8,"Valuation":8,"Analyst confirmation":4,"Risk/Reward":10},
+        "fundamentals":{"companyName":symbol,"sector":"Technology","marketCap":2_000_000_000,"revenueGrowth":.30,"quarterlyRevenueGrowth":.25,"earningsGrowth":.30,"grossMargins":.60,"operatingMargins":.18,"returnOnEquity":.20,"debtToEquity":35,"forwardPE":28},
+        "promotion_risk":{"hard_block":False,"explosive_block":False,"flags":[]},
+        "catalyst_assessment":{"tier":"B","strength":55},
+        "strategic_capital":{"direction":"NONE","evidence_strength":0},
         "fundamental_reasons":["Revenue growth 30.0% → 4/4"],"fundamental_confidence":"high","analyst_reasons":["Mean analyst target implies 20.0% upside"],"sector_reasons":["Sector benchmark above EMA20 +3"],"momentum_reasons":["Above EMA20 +3"],
         "negative_news_override":None,"mode":"test","adjustments":[{"points":4,"reason":"positive catalyst"}],"reasons":["positive catalyst"],"risks":["test risk"],"sensitivity":[{"condition":"break support","new_score":70}],
         "decision_confidence":"high","data_quality_pct":100,"missing_inputs":[],"optional_missing_inputs":[],
@@ -42,6 +46,8 @@ def test_dashboard_renders_shell_and_import_features():
     assert body.count("MANUAL RESEARCH QUEUE") == 1
     assert 'id="analyzeSymbol"' in body
     assert 'id="symbolSuggestions"' in body
+    assert "Core Quality Lane" in body
+    assert "Explosive Lane" in body
 
 
 def test_manual_position_and_trade_ledger_persist():
