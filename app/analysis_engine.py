@@ -6,6 +6,8 @@ import time
 from statistics import mean
 from typing import Any
 
+from .config import settings
+
 POSITIVE = {
     "beat", "beats", "upgrade", "upgraded", "approval", "approved", "record",
     "growth", "surge", "strong", "contract", "partnership", "launch", "raises",
@@ -160,6 +162,7 @@ def fundamental_score(f: dict) -> tuple[float, list[str], str]:
     reasons: list[str] = []
     observed = 0
     rg = pct(f.get("revenueGrowth"))
+    qrg = pct(f.get("quarterlyRevenueGrowth"))
     eg = pct(f.get("earningsGrowth") or f.get("growth"))
     gm = pct(f.get("grossMargins"))
     om = pct(f.get("operatingMargins"))
@@ -179,6 +182,11 @@ def fundamental_score(f: dict) -> tuple[float, list[str], str]:
         pts = next(points for cutoff, points in bands if value >= cutoff)
         score += pts
         reasons.append(f"{label} {value:.1f}{suffix} → {pts}/{maxpts}")
+    if qrg is not None:
+        observed += 1
+        qpts = 2 if qrg >= 20 else 1 if qrg >= 5 else 0
+        score += qpts
+        reasons.append(f"Quarterly revenue growth {qrg:.1f}% → {qpts}/2")
     if de is not None:
         observed += 1
         try:
@@ -264,8 +272,82 @@ def technicals(rows: list[dict], price: float) -> dict:
     change20 = (price / closes[-21] - 1) * 100 if len(closes) > 21 and closes[-21] else 0
     return {
         "ema20": e20, "ema50": e50, "ema200": e200, "rsi": rs, "atr": a,
-        "relative_volume": rel, "high20": high20, "low20": low20,
+        "relative_volume": rel, "avg_volume_20": avgvol,
+        "avg_dollar_volume_20": (avgvol * price) if avgvol and price else 0.0,
+        "high20": high20, "low20": low20,
         "high52": high52, "change20_pct": change20,
+    }
+
+
+
+PROMOTION_DISTRESS_TERMS = {
+    "going concern", "bankruptcy", "insolvency", "delisting", "minimum bid",
+    "nasdaq compliance", "default", "chapter 11",
+}
+PROMOTION_FINANCING_TERMS = {
+    "registered direct", "public offering", "secondary offering", "at-the-market",
+    "atm offering", "warrant", "warrants", "dilution", "dilutive",
+}
+
+
+def catalyst_assessment(news: dict, strategic: dict | None = None) -> dict:
+    strategic = strategic or {}
+    events = strategic.get("events") or []
+    verified_positive = [
+        e for e in events
+        if e.get("direction") == "POSITIVE"
+        and e.get("source_quality") in {"OFFICIAL", "HIGH-CREDIBILITY MEDIA"}
+        and e.get("materiality") in {"HIGH", "VERY HIGH"}
+    ]
+    material = int(news.get("material_events") or 0)
+    catalyst_count = len(news.get("catalysts") or [])
+    strength = min(100.0, catalyst_count * 18.0 + min(material, 4) * 9.0 + min(30.0, len(verified_positive) * 15.0))
+    if verified_positive and strength < 55:
+        strength = 55.0
+    tier = "A" if strength >= 70 else "B" if strength >= 45 else "C" if strength >= 25 else "NONE"
+    return {
+        "tier": tier,
+        "strength": round(strength, 1),
+        "verified_strategic_events": len(verified_positive),
+        "news_catalyst_count": catalyst_count,
+        "material_news_events": material,
+    }
+
+
+def promotion_risk(bundle: dict, news: dict, technical: dict, price: float) -> dict:
+    f = bundle.get("fundamentals") or {}
+    titles = [str(x.get("title") or "").lower() for x in (news.get("items") or [])]
+    distress_hits = sorted({term for title in titles for term in PROMOTION_DISTRESS_TERMS if term in title})
+    financing_hits = [term for title in titles for term in PROMOTION_FINANCING_TERMS if term in title]
+    recent_reverse_split = bool((bundle.get("corporate_actions") or {}).get("recent_reverse_split"))
+    relvol = float(technical.get("relative_volume") or 0)
+    market_cap = float(f.get("marketCap") or 0)
+    float_shares = float(f.get("floatShares") or 0)
+    material_catalyst = bool(news.get("catalysts")) and int(news.get("material_events") or 0) > 0
+
+    flags = []
+    if recent_reverse_split:
+        flags.append("reverse split within available 1-year history")
+    if distress_hits:
+        flags.append("distress/compliance news: " + ", ".join(distress_hits[:3]))
+    if len(financing_hits) >= 2:
+        flags.append("repeated dilution/financing headlines")
+    if relvol > 8 and not material_catalyst:
+        flags.append(f"unexplained extreme relative volume {relvol:.1f}x")
+    if float_shares and float_shares < 5_000_000 and market_cap and market_cap < 1_000_000_000:
+        flags.append("very low float combined with sub-$1B market cap")
+
+    hard_block = bool(recent_reverse_split or distress_hits)
+    explosive_block = bool(hard_block or len(financing_hits) >= 2 or (relvol > 8 and not material_catalyst) or any("very low float" in f for f in flags))
+    return {
+        "hard_block": hard_block,
+        "explosive_block": explosive_block,
+        "flags": flags,
+        "recent_reverse_split": recent_reverse_split,
+        "distress_hits": distress_hits,
+        "financing_warning_count": len(financing_hits),
+        "extreme_volume_unexplained": bool(relvol > 8 and not material_catalyst),
+        "price_below_floor": bool(price < settings.core_min_price),
     }
 
 
@@ -350,6 +432,7 @@ def score_bundle(bundle: dict) -> dict:
     catalyst = clamp(5 + len(news["catalysts"]) * 2 + min(news["material_events"], 3), 0, 15)
     sector, sector_reasons = sector_score(bundle)
     pe = f.get("forwardPE") or f.get("trailingPE")
+    ps = f.get("priceToSalesTrailing12Months")
     rg = pct(f.get("revenueGrowth"))
     valuation = 5.0
     if pe:
@@ -358,6 +441,15 @@ def score_bundle(bundle: dict) -> dict:
             valuation = 8 if pe < 20 else 7 if pe < 30 else 5 if pe < 45 else 3
             if rg and rg > 25 and pe < 45:
                 valuation = min(10, valuation + 2)
+        except Exception:
+            pass
+    elif ps:
+        try:
+            ps = float(ps)
+            if rg is not None and rg >= 25:
+                valuation = 8 if ps < 5 else 6 if ps < 10 else 4 if ps < 15 else 2
+            else:
+                valuation = 7 if ps < 3 else 5 if ps < 6 else 3
         except Exception:
             pass
 
@@ -414,9 +506,32 @@ def score_bundle(bundle: dict) -> dict:
 
     total = round(clamp(total), 1)
     deterministic_expected = round(max(-50, min(150, rr_up * 100)), 1)
-    explosive = fs >= 14 and mom >= 11 and (catalyst >= 10 or news["score"] >= 10) and total >= 80 and not override
-    category = "Explosive Runner" if explosive else "Core" if fs >= 14 and total >= 75 and not override else "Watch"
-    deterministic_horizon = (10, 40) if category == "Explosive Runner" else (30, 180) if category == "Core" else (30, 365)
+    catalyst_meta = catalyst_assessment(news, bundle.get("strategic_capital") or {})
+    promotion = promotion_risk(bundle, news, t, price)
+    market_cap = float(f.get("marketCap") or 0)
+    avg_dollar_volume = float(t.get("avg_dollar_volume_20") or 0)
+    base_quality = bool(
+        price >= settings.core_min_price
+        and fs >= 14
+        and fconf != "low"
+        and avg_dollar_volume >= settings.core_min_dollar_volume
+        and (market_cap <= 0 or market_cap >= settings.core_min_market_cap)
+        and not promotion["hard_block"]
+        and not override
+    )
+    explosive = bool(
+        base_quality
+        and market_cap >= settings.explosive_min_market_cap
+        and avg_dollar_volume >= settings.explosive_min_dollar_volume
+        and float(t.get("relative_volume") or 0) >= settings.explosive_min_relative_volume
+        and deterministic_expected >= settings.explosive_min_expected_return_pct
+        and mom >= 9
+        and total >= 75
+        and catalyst_meta["tier"] in {"A", "B"}
+        and not promotion["explosive_block"]
+    )
+    category = "Explosive Runner" if explosive else "Core" if base_quality else "Watch"
+    deterministic_horizon = (1, 30) if category == "Explosive Runner" else (30, 365) if category == "Core" else (30, 365)
     breakdown = {
         "Fundamentals": round(fs, 1), "Catalyst": round(catalyst, 1), "News": round(news["score"], 1),
         "Momentum": round(mom, 1), "Sector": round(sector, 1), "Valuation": round(valuation, 1),
@@ -433,6 +548,17 @@ def score_bundle(bundle: dict) -> dict:
         "analyst_holding_period_min_days": 180 if analyst_yield is not None else None,
         "analyst_holding_period_max_days": 365 if analyst_yield is not None else None,
         "category": category,
+        "lane_evidence": {
+            "core_quality_prequalified": base_quality,
+            "explosive_prequalified": explosive,
+            "market_cap": market_cap or None,
+            "avg_dollar_volume_20": round(avg_dollar_volume, 2),
+            "catalyst": catalyst_meta,
+            "promotion_risk": promotion,
+            "explosive_max_trading_sessions": settings.explosive_max_trading_sessions,
+        },
+        "promotion_risk": promotion,
+        "catalyst_assessment": catalyst_meta,
         "breakdown": breakdown,
         "fundamental_reasons": freasons,
         "fundamental_confidence": fconf,
