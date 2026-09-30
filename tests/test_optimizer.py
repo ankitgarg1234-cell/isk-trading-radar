@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
 
-from app.db import SessionLocal, RadarCandidate, PaperAccount, PaperPosition
+from app.db import SessionLocal, RadarCandidate, PaperAccount, PaperPosition, PaperTrade
 from app.main import app
 from app.paper_engine import run_paper_cycle, paper_status, _candidate_payloads
 from app.portfolio_engine import build_optimizer_plan, candidate_rank_score
@@ -164,7 +164,7 @@ def test_entry_event_buys_immediately_without_resetting_daily_rotation_clock():
         assert abs(acct.last_rebalance_at.replace(tzinfo=timezone.utc).timestamp() - now.timestamp()) < 1
 
 
-def test_uncapped_policy_rebalances_existing_paper_capital_to_fund_new_qualified_name():
+def test_new_qualified_name_never_forces_sale_of_intact_holding_when_cash_is_zero():
     now = datetime.now(timezone.utc)
     old = payload("OLD", score=72, sector="Industrials", expected=12, price=100)
     old["entry_zone_status"] = "WATCH"
@@ -178,7 +178,7 @@ def test_uncapped_policy_rebalances_existing_paper_capital_to_fund_new_qualified
         ))
         db.add(PaperPosition(
             account="Optimizer Paper", symbol="OLD", shares=100,
-            avg_cost=100, rank_score_at_entry=70, reason="legacy capped allocation",
+            avg_cost=100, rank_score_at_entry=70, reason="existing intact holding",
         ))
         db.add(RadarCandidate(
             symbol="OLD", category="Core", action=old["action"], score=72, ai_score=88,
@@ -196,11 +196,11 @@ def test_uncapped_policy_rebalances_existing_paper_capital_to_fund_new_qualified
     assert result["rebalanced"] is True
     with SessionLocal() as db:
         old_pos = db.query(PaperPosition).filter(PaperPosition.symbol == "OLD").one()
-        new_pos = db.query(PaperPosition).filter(PaperPosition.symbol == "NEW").one()
-        acct = db.query(PaperAccount).one()
-        assert 0 < old_pos.shares < 100
-        assert new_pos.shares > 0
-        assert acct.cash >= 0
+        new_pos = db.query(PaperPosition).filter(PaperPosition.symbol == "NEW").first()
+        sells = db.query(PaperTrade).filter(PaperTrade.side == "SELL").all()
+        assert old_pos.shares == 100
+        assert new_pos is None
+        assert sells == []
 
 
 def test_normal_cycle_can_load_only_current_holdings_without_top20_egress():
