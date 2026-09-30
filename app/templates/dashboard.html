@@ -68,8 +68,8 @@
         <div><span>S&amp;P 500 total return</span><b id="paperBenchmark">{{ ('%+.2f%%'|format(paper.benchmark_return_pct)) if paper.started else '—' }}</b></div>
         <div><span>Excess vs S&amp;P 500</span><b id="paperExcess" class="{{ 'pos' if paper.started and paper.excess_return_pct > 0 else 'neg' if paper.started and paper.excess_return_pct < 0 else '' }}">{{ ('%+.2f%%'|format(paper.excess_return_pct)) if paper.started else '—' }}</b></div>
         <div><span>Positions</span><b id="paperPositionCount">{{ paper.position_count if paper.started else 0 }}</b><small>Current open holdings</small></div>
-        <div><span>Valid trade events</span><b id="paperTradeCount">{{ paper.trade_count if paper.started else 0 }}</b><small>Recent executions, not open-position count</small></div>
-        <div><span>Max drawdown</span><b id="paperDrawdown">{{ ('%.2f%%'|format(paper.drawdown_pct)) if paper.started else '—' }}</b></div>
+        <div><span>Valid trade records</span><b id="paperTradeCount">{{ paper.trade_count if paper.started else 0 }}</b><small>{% if paper.normalized_legacy_position_count %}{{ paper.normalized_legacy_position_count }} current holdings came from normalized legacy entries{% else %}Recent valid executions{% endif %}</small></div>
+        <div><span>Max drawdown</span><b id="paperDrawdown">{{ ('%.2f%%'|format(paper.drawdown_pct)) if paper.started else '—' }}</b><small>largest peak-to-trough loss</small></div>
       </div>
       <p class="footnote paper-cadence">New STRONG BUY / BUY / STARTER BUY signals are evaluated immediately after the scanner cycle. Every qualifying name inside the current Top 20 is eligible for paper capital; there is no holding-count, sector or tier cap.</p>
       <div class="paper-holdings-head"><span>Current paper positions</span><small>These are the positions actually bought by the optimizer.</small></div>
@@ -84,7 +84,7 @@
         {% if not paper.positions %}<div class="empty paper-empty-card">No optimizer paper positions yet.</div>{% endif %}
       </div>
       <details class="paper-journal" {% if paper.trades %}open{% endif %}>
-        <summary>Recent valid paper trades <span class="pill muted" id="paperTradeCountJournal">{{ paper.trade_count }}</span> <small>• {{ paper.position_count }} open positions</small></summary>
+        <summary>Recent valid paper trades <span class="pill muted" id="paperTradeCountJournal">{{ paper.trade_count }}</span> <small>• <span id="paperOpenPositionCountJournal">{{ paper.position_count }}</span> open positions{% if paper.normalized_legacy_position_count %} • <span id="paperNormalizedLegacyCount">{{ paper.normalized_legacy_position_count }}</span> normalized legacy holdings{% endif %}</small></summary>
         <div class="table-wrap"><table><thead><tr><th>Time</th><th>Stock</th><th>Action</th><th>Shares</th><th>Price</th><th>Entry rank</th><th>Reason</th></tr></thead><tbody id="paperTradesBody">
           {% for t in paper.trades %}<tr><td>{{ t.created_at[:16].replace('T',' ') if t.created_at else '—' }}</td><td class="ticker">{{ t.symbol }}</td><td><span class="pill {{ 'green' if t.side == 'BUY' else 'amber' }}">{{ t.side }}</span></td><td>{{ t.shares }}</td><td>${{ '%.2f'|format(t.price) }}</td><td>{{ '%.1f'|format(t.rank_score) }}/100</td><td class="reason-cell">{{ t.reason or '—' }}</td></tr>{% endfor %}
           {% if not paper.trades %}<tr><td colspan="7" class="empty">No paper trades recorded yet.</td></tr>{% endif %}

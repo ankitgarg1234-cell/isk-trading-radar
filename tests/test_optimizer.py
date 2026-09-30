@@ -466,3 +466,46 @@ def test_fractional_historical_trade_is_legacy_not_valid_trade():
     assert status["trade_count"] == 0
     assert status["legacy_trade_count"] == 1
     assert status["legacy_trades"][0]["legacy_fractional"] is True
+
+
+def test_paper_status_reconciles_valid_trades_with_normalized_legacy_holdings():
+    now = datetime.now(timezone.utc)
+    a = payload("AAA", score=85, price=100)
+    b = payload("BBB", score=82, price=50)
+    with SessionLocal() as db:
+        db.add(PaperAccount(
+            account="Optimizer Paper", starting_cash=10000, cash=8000,
+            benchmark_symbol="^SP500TR", enabled=True, started_at=now-timedelta(days=2),
+        ))
+        db.add(PaperPosition(account="Optimizer Paper", symbol="AAA", shares=10, avg_cost=90, rank_score_at_entry=80, reason="whole"))
+        db.add(PaperPosition(account="Optimizer Paper", symbol="BBB", shares=20, avg_cost=40, rank_score_at_entry=75, reason="normalized"))
+        db.add(RadarCandidate(symbol="AAA", category="Core", action="HOLD — DON'T ADD", score=85, ai_score=88, price=100, portfolio_rank_score=80, current_json=json.dumps(a)))
+        db.add(RadarCandidate(symbol="BBB", category="Core", action="HOLD — DON'T ADD", score=82, ai_score=88, price=50, portfolio_rank_score=75, current_json=json.dumps(b)))
+        db.add(PaperTrade(account="Optimizer Paper", symbol="AAA", side="BUY", shares=10, price=90, fees=0, rank_score=80, reason="whole buy"))
+        db.add(PaperTrade(account="Optimizer Paper", symbol="BBB", side="BUY", shares=20.5, price=40, fees=0, rank_score=75, reason="legacy fractional buy"))
+        db.commit()
+
+    with SessionLocal() as db:
+        status = paper_status(db)
+    assert status["position_count"] == 2
+    assert status["trade_count"] == 1
+    assert status["normalized_legacy_position_count"] == 1
+    assert status["normalized_legacy_symbols"] == ["BBB"]
+
+
+def test_max_drawdown_reports_positive_historical_magnitude():
+    now = datetime.now(timezone.utc)
+    with SessionLocal() as db:
+        db.add(PaperAccount(
+            account="Optimizer Paper", starting_cash=10000, cash=10000,
+            benchmark_symbol="^SP500TR", enabled=True, started_at=now-timedelta(days=3),
+        ))
+        db.add(PaperSnapshot(account="Optimizer Paper", equity=10000, cash=10000, invested=0, benchmark_price=100, portfolio_return_pct=0, benchmark_return_pct=0, excess_return_pct=0, drawdown_pct=0, positions_count=0, created_at=now-timedelta(days=3)))
+        db.add(PaperSnapshot(account="Optimizer Paper", equity=9500, cash=9500, invested=0, benchmark_price=100, portfolio_return_pct=-5, benchmark_return_pct=0, excess_return_pct=-5, drawdown_pct=-5, positions_count=0, created_at=now-timedelta(days=2)))
+        db.add(PaperSnapshot(account="Optimizer Paper", equity=9800, cash=9800, invested=0, benchmark_price=100, portfolio_return_pct=-2, benchmark_return_pct=0, excess_return_pct=-2, drawdown_pct=-2, positions_count=0, created_at=now-timedelta(days=1)))
+        db.commit()
+
+    with SessionLocal() as db:
+        status = paper_status(db)
+    assert status["drawdown_pct"] == 5.0
+    assert status["current_drawdown_pct"] == 2.0

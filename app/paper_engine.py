@@ -360,6 +360,9 @@ def paper_status(db) -> dict:
             "position_count": 0,
             "trade_count": 0,
             "legacy_trade_count": 0,
+            "normalized_legacy_position_count": 0,
+            "normalized_legacy_symbols": [],
+            "current_drawdown_pct": 0.0,
             "absolute_return": 0.0,
             "daily_pnl": 0.0,
             "daily_pnl_pct": 0.0,
@@ -411,6 +414,19 @@ def paper_status(db) -> dict:
     trade_rows = [t for t in all_trade_rows if not t["legacy_artifact"]][:12]
     legacy_trade_rows = [t for t in all_trade_rows if t["legacy_artifact"]][:12]
 
+    current_symbols = {p.symbol for p in positions}
+    origin_trades = []
+    if current_symbols:
+        origin_trades = db.query(PaperTrade).filter(
+            PaperTrade.account == PAPER_ACCOUNT,
+            PaperTrade.side == "BUY",
+            PaperTrade.symbol.in_(current_symbols),
+        ).all()
+    normalized_legacy_symbols = sorted({
+        t.symbol for t in origin_trades
+        if abs(float(t.shares or 0) - round(float(t.shares or 0))) > 1e-9
+    } & current_symbols)
+
     absolute_return = equity - float(account.starting_cash or 0)
     snapshots = db.query(PaperSnapshot).filter(
         PaperSnapshot.account == PAPER_ACCOUNT
@@ -426,6 +442,10 @@ def paper_status(db) -> dict:
     daily_base_equity = float(prior_day_snapshot.equity or 0) if prior_day_snapshot else float(account.starting_cash or 0)
     daily_pnl = equity - daily_base_equity
     daily_pnl_pct = (daily_pnl / daily_base_equity * 100) if daily_base_equity else 0.0
+
+    historical_drawdowns = [float(s.drawdown_pct or 0) for s in snapshots]
+    max_drawdown_pct = abs(min([0.0] + historical_drawdowns))
+    current_drawdown_pct = abs(min(0.0, float(snap.drawdown_pct or 0))) if snap else 0.0
 
     port_ret = (equity / account.starting_cash - 1) * 100 if account.starting_cash else 0.0
     bench_ret = ((account.benchmark_last_price / account.benchmark_start_price - 1) * 100) if account.benchmark_last_price and account.benchmark_start_price else 0.0
@@ -445,13 +465,16 @@ def paper_status(db) -> dict:
         "benchmark_label": "S&P 500 Total Return",
         "benchmark_return_pct": round(bench_ret, 2),
         "excess_return_pct": round(port_ret - bench_ret, 2),
-        "drawdown_pct": round(float(snap.drawdown_pct or 0), 2) if snap else 0.0,
+        "drawdown_pct": round(max_drawdown_pct, 2),
+        "current_drawdown_pct": round(current_drawdown_pct, 2),
         "positions": pos_rows,
         "position_count": len(pos_rows),
         "trades": trade_rows,
         "trade_count": len(trade_rows),
         "legacy_trades": legacy_trade_rows,
         "legacy_trade_count": len(legacy_trade_rows),
+        "normalized_legacy_position_count": len(normalized_legacy_symbols),
+        "normalized_legacy_symbols": normalized_legacy_symbols,
         "started_at": account.started_at,
         "updated_at": account.updated_at,
     }
