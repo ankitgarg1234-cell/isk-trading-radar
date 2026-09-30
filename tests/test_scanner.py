@@ -6,15 +6,42 @@ from app.db import SessionLocal, Position, WatchlistItem
 
 class FakeProvider:
     def discover(self,count=60):
-        return [{"symbol":"DISC","change_pct":25},{"symbol":"OTHER","change_pct":5}]
+        return [
+            {"symbol":"DISC","price":40,"change_pct":25,"volume":5_000_000,"source":"day_gainers","sources":["day_gainers"]},
+            {"symbol":"OTHER","price":50,"change_pct":5,"volume":4_000_000,"source":"growth_technology_stocks","sources":["growth_technology_stocks"]},
+        ]
     def us_equity_universe(self):
         return [{"symbol":f"U{i:03d}","name":f"Universe {i}"} for i in range(150)]
     def quick_scan(self,symbol):
         i=int(symbol[1:])
-        return {"symbol":symbol,"scan_score":100-i,"qualifies":i < 20,"price":10+i,"change_5_pct":5,"change_20_pct":8,"relative_volume":1.5,"dollar_volume":2_000_000}
+        return {
+            "symbol":symbol,"scan_score":100-i,"core_scan_score":100-i,"explosive_scan_score":90-i,
+            "qualifies":i < 20,"qualifies_core":i < 20,"qualifies_explosive":i < 10,
+            "price":10+i,"change_5_pct":5,"change_20_pct":8,"relative_volume":1.5,
+            "dollar_volume":25_000_000,"avg_dollar_volume_20":20_000_000,
+        }
 
 
 class FakeAI: pass
+
+
+def eligible_payload(symbol="TEST", score=90, price=100):
+    return {
+        "symbol":symbol,"price":price,"deterministic_score":score,"analyst_score":80,"ai_score":93,
+        "expected_yield_pct":30,"ai_expected_yield_pct":32,"risk_reward":3.0,
+        "decision_confidence":"high","data_quality_pct":100,"category":"Core","lane":"Core Quality Lane",
+        "action":"BUY NOW","action_reason":"Qualified entry","entry_zone_status":"PRIMARY_BUY",
+        "negative_news_override":False,"thesis_assessment":{"invalidated":False},
+        "levels":{"buy_low":price*.98,"buy_high":price*1.01,"better_low":price*.9,"better_high":price*.94,"stop":price*.88,"target":price*1.3},
+        "technicals":{"atr":2,"relative_volume":1.3,"change20_pct":8,"avg_dollar_volume_20":50_000_000},
+        "breakdown":{"Fundamentals":17,"Catalyst":9,"News":9,"Momentum":10,"Sector":7,"Valuation":7,"Risk/Reward":8},
+        "fundamental_confidence":"high",
+        "fundamentals":{"sector":"Technology","marketCap":2_000_000_000,"revenueGrowth":.20,"quarterlyRevenueGrowth":.18,"earningsGrowth":.20,"grossMargins":.60,"operatingMargins":.15,"returnOnEquity":.18,"debtToEquity":40,"forwardPE":28},
+        "news":{"score":9,"label":"Neutral","material_events":1,"high_negative_events":0,"catalysts":[],"items":[]},
+        "promotion_risk":{"hard_block":False,"explosive_block":False,"flags":[]},
+        "catalyst_assessment":{"tier":"C","strength":30},
+        "strategic_capital":{"direction":"NONE","evidence_strength":0},
+    }
 
 
 def test_market_open_regular_session_and_weekend():
@@ -40,11 +67,8 @@ def test_existing_positions_and_watchlist_are_prioritized():
 def test_persist_generates_buy_alert_without_duplicate_on_same_action():
     from app.db import Alert, RadarCandidate
     r=RadarService(provider=FakeProvider(),ai=FakeAI())
-    payload={
-        "symbol":"BUYME","price":100,"deterministic_score":90,"analyst_score":80,"ai_score":93,
-        "expected_yield_pct":25,"ai_expected_yield_pct":30,"category":"Core","action":"BUY NOW",
-        "action_reason":"Buy level reached","levels":{"buy_low":98,"buy_high":101},
-    }
+    payload=eligible_payload("BUYME",90,100)
+    payload["action_reason"]="Buy level reached"
     r.persist(payload); r.persist(payload)
     with SessionLocal() as db:
         assert db.query(RadarCandidate).filter(RadarCandidate.symbol=="BUYME").one().action == "BUY NOW"
@@ -64,11 +88,8 @@ def test_marketwide_universe_is_not_limited_to_seed_symbols(monkeypatch):
 def test_persist_refreshes_same_active_alert_instead_of_duplicating():
     from app.db import Alert
     r=RadarService(provider=FakeProvider(),ai=FakeAI())
-    payload={
-        "symbol":"DEDUP","price":100,"deterministic_score":90,"analyst_score":80,"ai_score":93,
-        "expected_yield_pct":25,"ai_expected_yield_pct":30,"category":"Core","action":"BUY NOW",
-        "action_reason":"first reason","levels":{"buy_low":98,"buy_high":101},
-    }
+    payload=eligible_payload("DEDUP",90,100)
+    payload["action_reason"]="first reason"
     r.persist(payload)
     payload["action_reason"]="updated reason"
     r.persist(payload)
@@ -121,7 +142,7 @@ def test_material_action_change_writes_new_compact_snapshot():
 
 def test_attention_buy_ladder_only_surfaces_agreed_entry_scores():
     from app.scanner import _attention_buy_signal
-    base={"price":100,"decision_confidence":"high","negative_news_override":False,"thesis_assessment":{"invalidated":False}}
+    base={"price":100,"lane":"Core Quality Lane","decision_confidence":"high","negative_news_override":False,"thesis_assessment":{"invalidated":False}}
     cases=[
         (53,"PRIMARY_BUY",None),
         (67,"BETTER_BUY",None),
@@ -165,7 +186,7 @@ def test_agreed_buy_attention_actions_are_persisted():
     ]:
         r.persist({
             "symbol":symbol,"price":100,"deterministic_score":score,"analyst_score":80,"ai_score":82,
-            "expected_yield_pct":20,"ai_expected_yield_pct":22,"category":"Core","action":"WAIT MORE",
+            "expected_yield_pct":20,"ai_expected_yield_pct":22,"category":"Core","lane":"Core Quality Lane","action":"WAIT MORE",
             "action_reason":"underlying radar state","entry_zone_status":zone,"decision_confidence":"high",
             "negative_news_override":False,"thesis_assessment":{"invalidated":False},"levels":{},
         })
@@ -180,8 +201,10 @@ def test_uncapped_policy_adds_new_buy_without_rotation_for_space(monkeypatch):
     with SessionLocal() as db:
         for sym in ["WEAK","H2","H3","H4","H5","H6"]:
             db.add(Position(symbol=sym,shares=10,avg_cost=100,account="Test"))
-        weak={"symbol":"WEAK","price":95,"action":"HOLD — DON'T ADD","deterministic_score":50,"ai_score":55,"expected_yield_pct":4,"risk_reward":1.0,"decision_confidence":"high","entry_zone_status":"WATCH","levels":{},"fundamentals":{"sector":"Industrials"},"news":{"material_events":0}}
-        best={"symbol":"BEST","price":50,"action":"BUY NOW","deterministic_score":90,"ai_score":94,"expected_yield_pct":35,"risk_reward":3.2,"decision_confidence":"high","entry_zone_status":"PRIMARY_BUY","levels":{"buy_low":48,"buy_high":52,"stop":42,"target":70},"fundamentals":{"sector":"Technology"},"news":{"material_events":0},"thesis_assessment":{"invalidated":False}}
+        weak=eligible_payload("WEAK",50,95)
+        weak["action"]="HOLD — DON'T ADD"; weak["entry_zone_status"]="WATCH"; weak["breakdown"]["Fundamentals"]=10
+        best=eligible_payload("BEST",90,50)
+        best["expected_yield_pct"]=35
         db.add(RadarCandidate(symbol="WEAK",action="HOLD — DON'T ADD",score=50,ai_score=55,price=95,portfolio_rank_score=30,current_json=json.dumps(weak)))
         db.add(RadarCandidate(symbol="BEST",action="BUY NOW",score=90,ai_score=94,price=50,portfolio_rank_score=90,current_json=json.dumps(best)))
         db.commit()
