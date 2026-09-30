@@ -673,7 +673,10 @@ class StrategicCapitalProvider:
                 personal = self._trump_personal_disclosure(company_name, symbol, force=force_official)
             except TypeError:
                 personal = self._trump_personal_disclosure(company_name, symbol)
-            wh_tracker = self._whitehouse_investment_tracker(company_name, symbol, force=force_official)
+            try:
+                wh_tracker = self._whitehouse_investment_tracker(company_name, symbol, force=force_official)
+            except TypeError:
+                wh_tracker = self._whitehouse_investment_tracker(company_name, symbol)
             checked_at = datetime.now(timezone.utc).isoformat()
 
         events.extend(federal.get("events") or [])
