@@ -404,9 +404,12 @@ def paper_status(db) -> dict:
             str(t.side or "").upper() == "SELL"
             and str(t.reason or "").startswith("REBALANCE — fund newly qualified")
         ),
+        "legacy_fractional": abs(float(t.shares or 0) - round(float(t.shares or 0))) > 1e-9,
     } for t in trades]
-    trade_rows = [t for t in all_trade_rows if not t["legacy_rebalance"]][:12]
-    legacy_trade_rows = [t for t in all_trade_rows if t["legacy_rebalance"]][:12]
+    for t in all_trade_rows:
+        t["legacy_artifact"] = bool(t["legacy_rebalance"] or t["legacy_fractional"])
+    trade_rows = [t for t in all_trade_rows if not t["legacy_artifact"]][:12]
+    legacy_trade_rows = [t for t in all_trade_rows if t["legacy_artifact"]][:12]
 
     absolute_return = equity - float(account.starting_cash or 0)
     snapshots = db.query(PaperSnapshot).filter(
