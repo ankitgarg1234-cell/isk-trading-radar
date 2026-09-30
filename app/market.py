@@ -782,17 +782,21 @@ class YahooMarketProvider:
         dollar_volume = current * (vols[-1] if vols else 0.0)
         high20 = max(closes[-20:]) if closes else current
         near_high = current / high20 if high20 else 0.0
-        # Cheap ranking only. Full qualification still requires fundamentals/news/sector analysis.
+        # Cheap discovery score only. Positive momentum can promote a candidate;
+        # a large negative move is not treated as equally attractive for a long-only
+        # opportunity funnel. Core-quality exploration is handled separately by the
+        # scanner using liquidity, so quiet compounders still receive deep analysis.
         scan_score = (
-            min(abs(change_5), 20) * 2.0
-            + min(abs(change_20), 40) * 0.7
+            min(max(change_5, 0), 20) * 2.0
+            + min(max(change_20, 0), 40) * 0.7
             + min(rel_vol, 5) * 8.0
             + (8.0 if near_high >= 0.98 else 0.0)
-            + (5.0 if dollar_volume >= 5_000_000 else 0.0)
+            + (5.0 if dollar_volume >= 20_000_000 else 0.0)
         )
         qualifies = bool(
-            dollar_volume >= 1_000_000
-            and (abs(change_5) >= 3.0 or abs(change_20) >= 7.0 or rel_vol >= 1.35 or near_high >= 0.985)
+            current >= 5.0
+            and dollar_volume >= 20_000_000
+            and (change_5 >= 3.0 or change_20 >= 7.0 or rel_vol >= 1.5 or near_high >= 0.985)
         )
         return {
             "symbol": symbol, "price": current, "previous_close": previous,
