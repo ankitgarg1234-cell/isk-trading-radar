@@ -217,14 +217,24 @@ class StrategicCapitalProvider:
         return events
 
     def _usa_spending_awards(self, company_name: str, symbol: str = "", *, force: bool = False) -> dict:
+        """Fetch direct and indirect federal spending evidence resiliently.
+
+        USAspending can reject a mixed award-type query when type-specific fields or
+        sort keys are combined.  Query contracts, non-loan assistance and loans
+        separately so one bad component cannot erase all coverage.  Transient API
+        failures are retried briefly and cached for only the short error TTL.
+        """
         key = _norm(company_name)
         if not key or len(key) < 3:
-            return {"status": "UNAVAILABLE", "reason": "company name unavailable", "events": []}
+            return {"status": "UNAVAILABLE", "reason": "company name unavailable", "events": [], "retry_recommended": False}
         cache_key = f"{key}|{symbol.upper()}"
         cached = self.__class__._award_cache.get(cache_key)
-        ttl = max(1, settings.strategic_official_refresh_hours) * 3600
-        if not force and cached and time.time() - cached[0] < ttl:
-            return cached[1]
+        normal_ttl = max(1, settings.strategic_official_refresh_hours) * 3600
+        error_ttl = max(60, settings.strategic_error_retry_seconds)
+        if not force and cached:
+            cached_ttl = error_ttl if (cached[1] or {}).get("retry_recommended") else normal_ttl
+            if time.time() - cached[0] < cached_ttl:
+                return cached[1]
 
         end = date.today()
         start = end - timedelta(days=max(30, settings.strategic_usaspending_lookback_days))
@@ -232,87 +242,125 @@ class StrategicCapitalProvider:
         events: list[dict] = []
         total = 0.0
         indirect_total = 0.0
-        statuses: list[str] = []
+        component_status: dict[str, str] = {}
+        errors: list[str] = []
+        retryable_http = {408, 425, 429, 500, 502, 503, 504}
 
-        try:
-            # 1) Direct recipient search: actual federal money awarded to the company/legal entity.
-            common = {
-                "subawards": False, "limit": 25, "page": 1, "order": "desc", "sort": "Award Amount",
-                "filters": {"recipient_search_text": [company_name], "time_period": period},
-            }
-            body = dict(common)
-            body["filters"] = dict(common["filters"], award_type_codes=["A", "B", "C", "D", "02", "03", "04", "05", "06", "09", "10", "11"])
-            body["fields"] = ["Award ID", "Recipient Name", "Start Date", "Award Amount", "Awarding Agency", "Description"]
-            resp = self.client.post("https://api.usaspending.gov/api/v2/search/spending_by_award/", json=body)
-            resp.raise_for_status()
-            for row in (resp.json() or {}).get("results") or []:
+        def _error_detail(resp) -> str:
+            try:
+                payload = resp.json() or {}
+                detail = payload.get("detail") or payload.get("message") or ""
+                if isinstance(detail, (list, dict)):
+                    detail = str(detail)
+                detail = re.sub(r"\s+", " ", str(detail)).strip()
+                return f": {detail[:180]}" if detail else ""
+            except Exception:
+                return ""
+
+        def _post(label: str, body: dict) -> dict | None:
+            attempts = max(1, min(3, int(settings.strategic_usaspending_max_attempts)))
+            for attempt in range(attempts):
+                try:
+                    resp = self.client.post("https://api.usaspending.gov/api/v2/search/spending_by_award/", json=body)
+                    status_code = int(getattr(resp, "status_code", 200) or 200)
+                    if status_code in retryable_http and attempt + 1 < attempts:
+                        time.sleep(0.35 * (attempt + 1))
+                        continue
+                    resp.raise_for_status()
+                    component_status[label] = "CHECKED"
+                    return resp.json() or {}
+                except httpx.HTTPStatusError as exc:
+                    code = exc.response.status_code if exc.response is not None else 0
+                    if code in retryable_http and attempt + 1 < attempts:
+                        time.sleep(0.35 * (attempt + 1))
+                        continue
+                    component_status[label] = f"HTTP {code or 'ERROR'}"
+                    errors.append(f"{label}: HTTP {code or 'ERROR'}{_error_detail(exc.response) if exc.response is not None else ''}")
+                    return None
+                except (httpx.TimeoutException, httpx.TransportError) as exc:
+                    if attempt + 1 < attempts:
+                        time.sleep(0.35 * (attempt + 1))
+                        continue
+                    component_status[label] = "NETWORK/TIMEOUT"
+                    errors.append(f"{label}: {type(exc).__name__}")
+                    return None
+                except Exception as exc:
+                    component_status[label] = "ERROR"
+                    errors.append(f"{label}: {type(exc).__name__}")
+                    return None
+            return None
+
+        def _direct_rows(payload: dict | None, *, event_type: str, amount_field: str, date_field: str, relationship: str = "DIRECT RECIPIENT"):
+            nonlocal total
+            if not payload:
+                return
+            for row in payload.get("results") or []:
                 recip = str(row.get("Recipient Name") or "")
-                if key not in _norm(recip) and _norm(recip) not in key:
+                if key not in _norm(recip) and (_norm(recip) and _norm(recip) not in key):
                     continue
-                amount = _money(row.get("Award Amount"))
+                amount = _money(row.get(amount_field))
                 total += max(0.0, amount)
                 events.append({
-                    "type": "FEDERAL_AWARD",
-                    "title": f"{row.get('Awarding Agency') or 'U.S. Government'} award {row.get('Award ID') or ''}".strip(),
+                    "type": event_type,
+                    "title": f"{row.get('Awarding Agency') or 'U.S. Government'} {'loan/guarantee' if event_type == 'FEDERAL_LOAN_OR_GUARANTEE' else 'award'} {row.get('Award ID') or ''}".strip(),
                     "direction": "POSITIVE" if amount > 0 else "CONTEXT",
                     "materiality": "HIGH" if amount >= 100_000_000 else "MEDIUM" if amount >= 10_000_000 else "LOW",
                     "verification": "VERIFIED SOURCE", "source_quality": "OFFICIAL", "source": "USAspending.gov",
-                    "source_url": "https://www.usaspending.gov/", "published": row.get("Start Date"),
+                    "source_url": "https://www.usaspending.gov/", "published": row.get(date_field),
                     "amount": amount, "description": row.get("Description") or "", "recipient": recip,
-                    "relationship": "DIRECT RECIPIENT",
+                    "relationship": relationship,
                 })
-            statuses.append("direct awards")
 
-            # 2) Direct federal loans / guarantees.
-            loan = dict(common)
-            loan["sort"] = "Loan Value"
-            loan["filters"] = dict(common["filters"], award_type_codes=["07", "08"])
-            loan["fields"] = ["Award ID", "Recipient Name", "Issued Date", "Loan Value", "Awarding Agency"]
-            resp = self.client.post("https://api.usaspending.gov/api/v2/search/spending_by_award/", json=loan)
-            resp.raise_for_status()
-            for row in (resp.json() or {}).get("results") or []:
-                recip = str(row.get("Recipient Name") or "")
-                if key not in _norm(recip) and _norm(recip) not in key:
-                    continue
-                amount = _money(row.get("Loan Value"))
-                total += max(0.0, amount)
-                events.append({
-                    "type": "FEDERAL_LOAN_OR_GUARANTEE",
-                    "title": f"{row.get('Awarding Agency') or 'U.S. Government'} loan/guarantee {row.get('Award ID') or ''}".strip(),
-                    "direction": "POSITIVE" if amount > 0 else "CONTEXT",
-                    "materiality": "HIGH" if amount >= 100_000_000 else "MEDIUM" if amount >= 10_000_000 else "LOW",
-                    "verification": "VERIFIED SOURCE", "source_quality": "OFFICIAL", "source": "USAspending.gov",
-                    "source_url": "https://www.usaspending.gov/", "published": row.get("Issued Date"),
-                    "amount": amount, "recipient": recip, "relationship": "DIRECT RECIPIENT",
-                })
-            statuses.append("direct loans")
+        # Split award classes so type-specific fields/sorts are always valid.
+        direct_specs = [
+            ("direct_contracts", ["A", "B", "C", "D"]),
+            ("direct_assistance", ["02", "03", "04", "05", "06", "09", "10", "11"]),
+        ]
+        for label, codes in direct_specs:
+            body = {
+                "subawards": False, "limit": 25, "page": 1, "order": "desc", "sort": "Award Amount",
+                "filters": {"recipient_search_text": [company_name], "time_period": period, "award_type_codes": codes},
+                "fields": ["Award ID", "Recipient Name", "Start Date", "Award Amount", "Awarding Agency", "Description"],
+            }
+            _direct_rows(_post(label, body), event_type="FEDERAL_AWARD", amount_field="Award Amount", date_field="Start Date")
 
-            # 3) Keyword search catches government purchases through resellers/integrators,
-            # where the prime recipient is not the public company (e.g. a reseller buying
-            # NVIDIA hardware). These are *indirect demand evidence*, not direct company revenue.
-            aliases = [a for a in _company_aliases(company_name, "") if len(a) >= 5][:2]
-            if aliases:
+        loan = {
+            "subawards": False, "limit": 25, "page": 1, "order": "desc", "sort": "Loan Value",
+            "filters": {"recipient_search_text": [company_name], "time_period": period, "award_type_codes": ["07", "08"]},
+            "fields": ["Award ID", "Recipient Name", "Issued Date", "Loan Value", "Awarding Agency"],
+        }
+        _direct_rows(_post("direct_loans", loan), event_type="FEDERAL_LOAN_OR_GUARANTEE", amount_field="Loan Value", date_field="Issued Date")
+
+        # Product/vendor mentions: split contracts and assistance for the same reason.
+        aliases = [a for a in _company_aliases(company_name, "") if len(a) >= 5][:2]
+        if aliases:
+            alias_norm = [_norm(a) for a in aliases]
+            seen_indirect_awards: set[str] = set()
+            for label, codes in [
+                ("product_mentions_contracts", ["A", "B", "C", "D"]),
+                ("product_mentions_assistance", ["02", "03", "04", "05", "06", "09", "10", "11"]),
+            ]:
                 kw = {
                     "subawards": False, "limit": 25, "page": 1, "order": "desc", "sort": "Award Amount",
-                    "filters": {
-                        "keywords": aliases,
-                        "time_period": period,
-                        "award_type_codes": ["A", "B", "C", "D", "02", "03", "04", "05", "06", "09", "10", "11"],
-                    },
+                    "filters": {"keywords": aliases, "time_period": period, "award_type_codes": codes},
                     "fields": ["Award ID", "Recipient Name", "Start Date", "Award Amount", "Awarding Agency", "Description"],
                 }
-                resp = self.client.post("https://api.usaspending.gov/api/v2/search/spending_by_award/", json=kw)
-                resp.raise_for_status()
-                alias_norm = [_norm(a) for a in aliases]
-                for row in (resp.json() or {}).get("results") or []:
+                payload = _post(label, kw)
+                if not payload:
+                    continue
+                for row in payload.get("results") or []:
                     recip = str(row.get("Recipient Name") or "")
                     desc = str(row.get("Description") or "")
                     recip_n, desc_n = _norm(recip), _norm(desc)
-                    # Skip records already captured as direct awards.
                     if key in recip_n or (recip_n and recip_n in key):
                         continue
                     if not any(a and (a in desc_n or a in recip_n) for a in alias_norm):
                         continue
+                    award_id = str(row.get("Award ID") or "").strip()
+                    dedupe_key = award_id or f"{recip_n}|{desc_n[:120]}|{row.get('Start Date')}"
+                    if dedupe_key in seen_indirect_awards:
+                        continue
+                    seen_indirect_awards.add(dedupe_key)
                     amount = _money(row.get("Award Amount"))
                     indirect_total += max(0.0, amount)
                     events.append({
@@ -325,20 +373,29 @@ class StrategicCapitalProvider:
                         "amount": amount, "description": desc[:700], "recipient": recip,
                         "relationship": "INDIRECT / PRIME AWARD TO ANOTHER RECIPIENT",
                     })
-                statuses.append("keyword/product mentions")
 
-            out = {
-                "status": "CHECKED", "coverage": ", ".join(statuses),
-                "total_amount": round(total, 2),
-                "indirect_mention_award_amount": round(indirect_total, 2),
-                "events": events[:16], "checked_at": datetime.now(timezone.utc).isoformat(),
-            }
-        except Exception as exc:
-            out = {
-                "status": f"UNAVAILABLE ({type(exc).__name__})", "total_amount": round(total, 2),
-                "indirect_mention_award_amount": round(indirect_total, 2), "events": events[:16],
-                "checked_at": datetime.now(timezone.utc).isoformat(),
-            }
+        expected = 5 if aliases else 3
+        checked = sum(v == "CHECKED" for v in component_status.values())
+        retry_recommended = checked < expected
+        if checked == expected:
+            status = "CHECKED"
+        elif checked:
+            status = "PARTIAL — AUTO RETRY"
+        else:
+            status = "TEMPORARILY UNAVAILABLE — AUTO RETRY"
+        coverage_labels = [k.replace("_", " ") for k, v in component_status.items() if v == "CHECKED"]
+        out = {
+            "status": status,
+            "coverage": ", ".join(coverage_labels),
+            "component_status": component_status,
+            "retry_recommended": retry_recommended,
+            "retry_after_seconds": error_ttl if retry_recommended else None,
+            "last_error": errors[-1] if errors else None,
+            "total_amount": round(total, 2),
+            "indirect_mention_award_amount": round(indirect_total, 2),
+            "events": events[:16],
+            "checked_at": datetime.now(timezone.utc).isoformat(),
+        }
         self.__class__._award_cache[cache_key] = (time.time(), out)
         return out
 
@@ -620,6 +677,29 @@ class StrategicCapitalProvider:
         elif summary["direction"] == "NEGATIVE":
             shadow_adjustment = -min(10.0, summary["evidence_strength"] / 10.0)
 
+        fed_components = federal.get("component_status") or {}
+        product_components = [
+            fed_components.get("product_mentions_contracts"),
+            fed_components.get("product_mentions_assistance"),
+        ]
+        if product_components and all(x == "CHECKED" for x in product_components):
+            product_coverage = "CHECKED"
+        elif any(x for x in product_components):
+            product_coverage = "PARTIAL — AUTO RETRY"
+        else:
+            product_coverage = "NOT CHECKED"
+
+        personal_sources = personal.get("source_results") or []
+        personal_complete = bool(personal_sources) and all(
+            str(x.get("status") or "") in {"CHECKED", "CACHED"} for x in personal_sources
+        )
+        wh_complete = str(wh_tracker.get("source_status") or "") in {"CHECKED", "CACHED"}
+        federal_complete = str(federal.get("status") or "") == "CHECKED"
+        if fetch_official:
+            official_check_status = "COMPLETE" if (federal_complete and personal_complete and wh_complete) else "PARTIAL"
+        else:
+            official_check_status = prior.get("official_check_status") or "NOT CHECKED"
+
         return {
             "mode": "SHADOW_ONLY", "symbol": symbol, "company_name": company_name, **summary,
             "shadow_rank_adjustment": round(shadow_adjustment, 1), "events": deduped[:14], "event_count": len(deduped),
@@ -632,9 +712,11 @@ class StrategicCapitalProvider:
             "whitehouse_investment_tracker": wh_tracker,
             "federal_awards": federal,
             "official_checked_at": checked_at,
+            "official_check_status": official_check_status,
+            "official_retry_after_seconds": max(60, settings.strategic_error_retry_seconds) if official_check_status == "PARTIAL" else None,
             "coverage": {
                 "direct_federal_awards": federal.get("status") or "NOT CHECKED",
-                "federal_product_mentions": "CHECKED" if "keyword/product mentions" in str(federal.get("coverage") or "") else "NOT CHECKED",
+                "federal_product_mentions": product_coverage,
                 "trump_disclosures": personal.get("source_status") or "NOT CHECKED",
                 "trump_disclosure_sources_checked": personal.get("sources_checked", 0),
                 "whitehouse_investment_tracker": wh_tracker.get("source_status") or "NOT CHECKED",

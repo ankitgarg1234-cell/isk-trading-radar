@@ -376,7 +376,16 @@ class RadarService:
                         dt = datetime.fromisoformat(str(checked).replace("Z", "+00:00"))
                         if dt.tzinfo is None:
                             dt = dt.replace(tzinfo=timezone.utc)
-                        if (now - dt).total_seconds() < ttl:
+                        check_status = str(prior_signal.get("official_check_status") or "").upper()
+                        federal = prior_signal.get("federal_awards") or {}
+                        partial_or_failed = (
+                            check_status in {"PARTIAL", "FAILED"}
+                            or bool(federal.get("retry_recommended"))
+                            or "UNAVAILABLE" in str(federal.get("status") or "").upper()
+                            or "PARTIAL" in str(federal.get("status") or "").upper()
+                        )
+                        effective_ttl = max(60, settings.strategic_error_retry_seconds) if partial_or_failed else ttl
+                        if (now - dt).total_seconds() < effective_ttl:
                             continue
                     except Exception:
                         pass
@@ -601,7 +610,25 @@ class RadarService:
 
     def scan_once(self, force: bool = False):
         if not force and not self.market_open():
-            return {"status": "market_closed", "analyzed": 0, "universe_size": self.universe_size}
+            # Official-source evidence is not market-data dependent. Keep the
+            # Top-20 strategic-capital queue moving even while U.S. equities are
+            # closed so users do not have to open every stock and click Refresh.
+            errors: list[str] = []
+            strategic_changed = False
+            strategic_symbols: list[str] = []
+            try:
+                strategic_changed, strategic_symbols = self._enrich_strategic_top_candidates()
+            except Exception as e:
+                errors.append(f"strategic capital: {type(e).__name__}")
+            self.last_scan = datetime.now(timezone.utc)
+            self.scan_count += 1
+            self.last_deep_analyzed = 0
+            self.last_error = "; ".join(errors[:5]) if errors else None
+            return {
+                "status": "market_closed", "analyzed": 0, "universe_size": self.universe_size,
+                "strategic_enriched": strategic_symbols, "strategic_changed": strategic_changed,
+                "errors": errors,
+            }
         syms = self.candidate_symbols()
         batch = syms[: settings.scan_batch_size]
         ok = 0

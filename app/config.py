@@ -54,7 +54,9 @@ class Settings:
     strategic_capital_enabled: bool = _bool("STRATEGIC_CAPITAL_ENABLED", True)
     strategic_official_refresh_hours: int = int(os.getenv("STRATEGIC_OFFICIAL_REFRESH_HOURS", "24"))
     strategic_enrich_per_cycle: int = int(os.getenv("STRATEGIC_ENRICH_PER_CYCLE", "4"))
-    strategic_enrich_interval_seconds: int = int(os.getenv("STRATEGIC_ENRICH_INTERVAL_SECONDS", "900"))
+    strategic_enrich_interval_seconds: int = int(os.getenv("STRATEGIC_ENRICH_INTERVAL_SECONDS", "120"))
+    strategic_error_retry_seconds: int = int(os.getenv("STRATEGIC_ERROR_RETRY_SECONDS", "600"))
+    strategic_usaspending_max_attempts: int = int(os.getenv("STRATEGIC_USASPENDING_MAX_ATTEMPTS", "2"))
     strategic_usaspending_lookback_days: int = int(os.getenv("STRATEGIC_USASPENDING_LOOKBACK_DAYS", "730"))
     trump_oge_disclosure_url: str = os.getenv(
         "TRUMP_OGE_DISCLOSURE_URL",
