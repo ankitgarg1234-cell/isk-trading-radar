@@ -345,6 +345,22 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
             analyses.update(_candidate_payloads(
                 db, [p.symbol for p in current], ranked_limit=settings.optimizer_visible_limit
             ))
+            # The ranked reload above can replace the locally derived owned action
+            # with the persisted new-entry state. Re-derive owned actions after the
+            # reload so HOLD/ADD/REDUCE semantics cannot drift before allocation.
+            for p in current:
+                a = analyses.get(p.symbol) or {}
+                price = float(a.get("price") or 0)
+                if not a or price <= 0:
+                    continue
+                try:
+                    owned_action, owned_reason = position_action(
+                        a, price, {"shares": p.shares, "avg_cost": p.avg_cost, "account": "Paper"}
+                    )
+                    a["action"] = str(owned_action or "").upper()
+                    a["action_reason"] = owned_reason
+                except Exception:
+                    pass
             plan = build_optimizer_plan(
                 analyses, owned, profile=profile,
                 visible_limit=settings.optimizer_visible_limit,
