@@ -496,9 +496,16 @@ def paper_status(db) -> dict:
         row["reason"] = pos.reason or ""
         row["opened_at"] = pos.opened_at.isoformat() if pos.opened_at else None
         sessions = trading_sessions_elapsed(pos.opened_at)
-        graduated = "GRADUATED TO CORE" in str(pos.reason or "").upper()
+        reason_upper = str(pos.reason or "").upper()
+        graduated = "GRADUATED TO CORE" in reason_upper
         raw_lane = analysis.get("lane")
         if graduated:
+            lane = "CORE_QUALITY"
+        elif "EXPLOSIVE LANE" in reason_upper:
+            # Entry lane owns the 20-session lifecycle. A temporary current
+            # reclassification to Core does not silently erase the expiry clock.
+            lane = "EXPLOSIVE"
+        elif "CORE QUALITY LANE" in reason_upper:
             lane = "CORE_QUALITY"
         elif raw_lane in {"CORE_QUALITY", "EXPLOSIVE"}:
             lane = raw_lane
