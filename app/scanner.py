@@ -185,7 +185,13 @@ class RadarService:
         prior_payload = {}
         with SessionLocal() as db:
             p = db.query(Position).filter(Position.symbol == symbol).order_by(Position.created_at.desc()).first()
-            pd = {"shares": p.shares, "avg_cost": p.avg_cost, "account": p.account} if p else None
+            pp = db.query(PaperPosition).filter(PaperPosition.symbol == symbol).order_by(PaperPosition.opened_at.desc()).first() if not p else None
+            pd = (
+                {"shares": p.shares, "avg_cost": p.avg_cost, "account": p.account}
+                if p else
+                {"shares": pp.shares, "avg_cost": pp.avg_cost, "account": "Paper"}
+                if pp else None
+            )
             prior = db.query(RadarCandidate).filter(RadarCandidate.symbol == symbol).first()
             if prior and prior.current_json:
                 try:
@@ -265,6 +271,7 @@ class RadarService:
             # changes first.
             is_priority = bool(
                 db.query(Position.id).filter(Position.symbol == symbol).first()
+                or db.query(PaperPosition.id).filter(PaperPosition.symbol == symbol).first()
                 or db.query(WatchlistItem.id).filter(WatchlistItem.symbol == symbol).first()
                 or db.query(AnalysisRequest.id).filter(AnalysisRequest.symbol == symbol).first()
             )
@@ -446,7 +453,8 @@ class RadarService:
             return
         with SessionLocal() as db:
             position_rows = db.query(Position).all()
-            owned = {p.symbol for p in position_rows}
+            paper_rows = db.query(PaperPosition).all()
+            owned = {p.symbol for p in position_rows} | {p.symbol for p in paper_rows}
             pref = db.query(PortfolioPreference).filter(PortfolioPreference.account == "Main").first()
             profile = normalise_profile(pref.risk_profile if pref else "MEDIUM")
             rows = db.query(RadarCandidate).order_by(
@@ -478,6 +486,9 @@ class RadarService:
                 rotation_yield_gap=settings.optimizer_rotation_yield_gap,
             )
             approved = {r["symbol"]: r for r in plan["selected_new"]}
+            for r in plan["visible"]:
+                if r.get("owned") and r.get("optimizer_action") == "ADD":
+                    approved[r["symbol"]] = r
             now = datetime.now(timezone.utc)
 
             # Price reaching a buy zone is no longer enough to interrupt the user.
@@ -486,7 +497,7 @@ class RadarService:
                 if alert.symbol not in approved:
                     alert.acknowledged = True
             for sym, r in approved.items():
-                action = r.get("entry_signal") or "BUY"
+                action = "ADD" if r.get("optimizer_action") == "ADD" else (r.get("entry_signal") or "BUY")
                 title = f"{sym}: Optimizer approved — {action}"
                 message = f"Portfolio rank #{r.get('market_rank')}/{settings.optimizer_visible_limit} • priority {r.get('rank_score',0):.1f}/100 • {r.get('risk_fit')} • AI {r.get('ai_confirmation')} / Analyst {r.get('analyst_confirmation')} (confirmation only)."
                 active = db.query(Alert).filter(
