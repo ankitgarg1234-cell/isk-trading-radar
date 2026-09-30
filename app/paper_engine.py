@@ -311,8 +311,12 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                     continue
             if a and price:
                 try:
-                    action, _ = position_action(a, price, {"shares": p.shares, "avg_cost": p.avg_cost, "account": "Paper"})
+                    action, action_reason = position_action(a, price, {"shares": p.shares, "avg_cost": p.avg_cost, "account": "Paper"})
                     action = str(action or "").upper()
+                    # Keep the paper-cycle optimizer consistent with the actual
+                    # owned-position state without rewriting the global candidate.
+                    a["action"] = action
+                    a["action_reason"] = action_reason
                 except Exception:
                     pass
             rank_score = candidate_rank_score(a).get("score", 0) if a else p.rank_score_at_entry
@@ -347,29 +351,37 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                 shortlist_limit=settings.optimizer_shortlist_limit,
             )
 
-            # Buy every newly qualified Top-20 name. There is no holding-count,
-            # sector, tier, rank-threshold or risk-fit gate.
+            # Allocate both newly qualified names and explicit ADD signals.
+            # Existing holdings are never increased merely because they are owned:
+            # position_action() must explicitly return ADD, and the score/risk target
+            # must still have remaining room.
+            current_by_symbol = {p.symbol: p for p in current}
             new_rows = [
                 r for r in plan["selected_new"]
-                if not db.query(PaperPosition).filter(
-                    PaperPosition.account == PAPER_ACCOUNT,
-                    PaperPosition.symbol == r["symbol"],
-                ).first()
+                if r["symbol"] not in current_by_symbol
             ]
+            add_rows = [
+                r for r in plan["visible"]
+                if r.get("owned") and r.get("optimizer_action") == "ADD"
+                and r["symbol"] in current_by_symbol
+            ]
+            allocation_rows = [(r, False) for r in new_rows] + [(r, True) for r in add_rows]
 
-            if new_rows:
+            if allocation_rows:
                 # One sizing engine for dashboard and paper execution:
                 # Portfolio Priority score sets the target allocation; stop risk and
                 # cash can only reduce it. If aggregate desired capital exceeds cash,
-                # scale every new target proportionally before whole-share rounding.
+                # scale every target proportionally before whole-share rounding.
                 equity_now, _, _ = _equity(db, account, analyses)
                 fee_rate = max(0.0, settings.paper_trade_cost_bps) / 10000.0
                 desired = []
-                for r in new_rows:
+                for r, is_add in allocation_rows:
                     a = r["analysis"] or {}
                     price = float(a.get("price") or 0)
                     if price <= 0:
                         continue
+                    existing_pos = current_by_symbol.get(r["symbol"]) if is_add else None
+                    existing_value = (float(existing_pos.shares) * price) if existing_pos else 0.0
                     sizing = suggested_position_size(
                         a,
                         cash=float(account.cash or 0),
@@ -377,7 +389,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                         portfolio_value=max(float(equity_now or 0), float(account.starting_cash or 0)),
                         profile=profile,
                         fx_rate_to_base=1.0,
-                        existing_value=0.0,
+                        existing_value=existing_value,
                         whole_shares=False,
                     )
                     target_capital = min(
@@ -387,11 +399,11 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                     )
                     if target_capital <= 0:
                         continue
-                    desired.append((r, price, sizing, target_capital))
+                    desired.append((r, price, sizing, target_capital, is_add))
 
                 total_desired = sum(x[3] for x in desired)
                 scale = min(1.0, (float(account.cash or 0) / total_desired)) if total_desired > 0 else 0.0
-                for r, price, sizing, target_capital in desired:
+                for r, price, sizing, target_capital, is_add in desired:
                     scaled_capital = target_capital * scale
                     one_share_cost = price * (1.0 + fee_rate)
                     if scaled_capital + 1e-9 < one_share_cost:
@@ -399,10 +411,11 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                     lane_label = str((r["analysis"] or {}).get("lane_label") or r.get("lane_label") or "Qualified Lane")
                     target_pct = float(sizing.get("target_allocation_pct") or 0)
                     scale_note = f" • cash-scaled {scale:.2f}x" if scale < 0.999 else ""
+                    decision = "ADD" if is_add else str(r.get("entry_signal") or "BUY")
                     _buy(
                         db, account, r["symbol"], price, scaled_capital, r["rank_score"],
                         (
-                            f"{lane_label} • Top-20 #{r['market_rank']} {r['entry_signal']} • "
+                            f"{lane_label} • Top-20 #{r['market_rank']} {decision} • "
                             f"priority target {target_pct:.0f}%{scale_note}"
                         ),
                     )
