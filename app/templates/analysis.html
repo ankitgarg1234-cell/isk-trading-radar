@@ -56,21 +56,26 @@
   {% set g=d.get('strategic_capital') or {} %}
   <section class="panel">
     <div class="section-title-row"><div><span class="kicker">GOVERNMENT / STRATEGIC CAPITAL — SHADOW</span><h2>{{ g.get('label') or 'NONE' }} • {{ g.get('direction') or 'NONE' }}</h2><p class="subtle">Recorded for forward/backtest validation. It does not change the current deterministic score or rank-v1.</p></div><span class="pill">Evidence {{ g.get('evidence_strength') or 0 }}/100</span></div>
+    {% set fa=g.get('federal_awards') or {} %}{% set tp=g.get('trump_personal_disclosure') or {} %}{% set cov=g.get('coverage') or {} %}
     <div class="levels-grid">
-      <div><span>Federal awards / loans checked</span><b>{% set fa=g.get('federal_awards') or {} %}{{ fa.get('status') or 'NOT CHECKED' }}{% if fa.get('total_amount') %} • ${{ '{:,.0f}'.format(fa.get('total_amount')) }}{% endif %}</b></div>
+      <div><span>Direct federal awards / loans</span><b>{{ fa.get('status') or 'NOT CHECKED' }}{% if fa.get('total_amount') %} • ${{ '{:,.0f}'.format(fa.get('total_amount')) }}{% endif %}</b></div>
+      <div><span>Federal product / reseller mentions</span><b>{{ cov.get('federal_product_mentions') or 'NOT CHECKED' }}{% if fa.get('indirect_mention_award_amount') %} • prime awards ${{ '{:,.0f}'.format(fa.get('indirect_mention_award_amount')) }}{% endif %}</b></div>
       <div><span>Government equity/stake evidence</span><b>{{ g.get('government_equity_stake') or 'UNKNOWN' }}</b></div>
       <div><span>Government capital / demand</span><b>{{ g.get('government_capital_or_demand') or 'UNKNOWN' }}</b></div>
       <div><span>Sector policy support</span><b>{{ g.get('sector_policy_support') or 'UNKNOWN' }}</b></div>
-      <div><span>Trump administration company action</span><b>{{ g.get('trump_administration_action') or 'UNKNOWN' }}</b></div>
-      <div><span>Donald Trump personal disclosure</span><b>{{ (g.get('trump_personal_disclosure') or {}).get('status') or 'UNKNOWN' }}</b></div>
+      <div><span>Trump administration company interest/action</span><b>{{ g.get('trump_administration_action') or 'UNKNOWN' }}</b></div>
+      <div><span>White House investment tracker</span><b>{{ (g.get('whitehouse_investment_tracker') or {}).get('status') or 'NOT CHECKED' }}{% if (g.get('whitehouse_investment_tracker') or {}).get('amount_text') %} • {{ (g.get('whitehouse_investment_tracker') or {}).get('amount_text') }}{% endif %}</b></div>
+      <div><span>Donald Trump personal disclosures</span><b>{{ tp.get('status') or 'UNKNOWN' }}{% if tp.get('sources_checked') %} • {{ tp.get('sources_checked') }} reports checked{% endif %}</b></div>
       <div><span>Trump family interest</span><b>{{ g.get('trump_family_interest') or 'UNKNOWN' }}</b></div>
+      <div><span>Official evidence checked</span><b>{{ g.get('official_checked_at') or 'NOT YET' }}</b></div>
       <div><span>Shadow rank adjustment</span><b>{{ '%+0.1f'|format(g.get('shadow_rank_adjustment') or 0) }} pts</b></div>
     </div>
+    {% if not g.get('official_checked_at') %}<div class="warning-box">Official government/disclosure sources have not been checked for this symbol yet. Click <b>Refresh analysis</b> above to run the company-specific official check immediately.</div>{% endif %}
     <div class="table-wrap"><table><thead><tr><th>Event</th><th>Type</th><th>Direction</th><th>Materiality</th><th>Verification</th><th>Source</th></tr></thead><tbody>
       {% for e in g.get('events') or [] %}<tr><td>{% if e.get('source_url') %}<a class="text-link" href="{{ e.get('source_url') }}" target="_blank" rel="noopener">{{ e.get('title') }}</a>{% else %}{{ e.get('title') }}{% endif %}</td><td>{{ e.get('type') }}</td><td>{{ e.get('direction') }}</td><td>{{ e.get('materiality') }}</td><td>{{ e.get('verification') }}</td><td>{{ e.get('source') }}</td></tr>{% endfor %}
       {% if not g.get('events') %}<tr><td colspan="6" class="empty">No company-specific government/strategic-capital event found in the evidence checked so far.</td></tr>{% endif %}
     </tbody></table></div>
-    <p class="footnote">A political mention or favorable comment alone does not receive investment weight. Donald Trump personal interests and Trump-family interests are kept separate from U.S. government actions.</p>
+    <p class="footnote">A political mention or favorable comment alone does not receive investment weight. Donald Trump personal interests, Trump-family interests, U.S. government actions, direct federal awards, and indirect procurement through resellers are kept separate. Prime-award amounts on indirect product mentions are not treated as company revenue.</p>
   </section>
 
   <section class="panel">

@@ -170,7 +170,7 @@ class RadarService:
         mins = now.hour * 60 + now.minute
         return 570 <= mins < 960
 
-    def analyze_symbol(self, symbol: str, persist: bool = True):
+    def analyze_symbol(self, symbol: str, persist: bool = True, strategic_refresh: bool = False):
         symbol = symbol.upper().strip()
         bundle = self.provider.bundle(symbol)
         result = score_bundle(bundle)
@@ -202,11 +202,12 @@ class RadarService:
                     news=news_items if isinstance(news_items, list) else (news_items.get("items") or []),
                     annual_revenue=(bundle.get("fundamentals") or {}).get("totalRevenue"),
                     prior=prior_payload.get("strategic_capital") or {},
-                    fetch_official=False,
+                    fetch_official=bool(strategic_refresh),
+                    force_official=bool(strategic_refresh),
                 )
                 if isinstance(bundle.get("data_sources"), dict):
                     bundle["data_sources"]["strategic_capital"] = {
-                        "source": "USAspending.gov + OGE disclosure + classified news",
+                        "source": "USAspending.gov + OGE annual/periodic disclosures + White House investment tracker + classified news",
                         "status": "shadow evidence",
                         "asof": bundle["strategic_capital"].get("official_checked_at") or bundle.get("asof"),
                     }
@@ -387,7 +388,7 @@ class RadarService:
                     enriched = self.provider.strategic.assess(
                         cand.symbol, company_name=company, news=items or [],
                         annual_revenue=fundamentals.get("totalRevenue"),
-                        prior=prior_signal, fetch_official=True,
+                        prior=prior_signal, fetch_official=True, force_official=False,
                     )
                 except Exception:
                     continue
@@ -396,7 +397,7 @@ class RadarService:
                 payload["strategic_capital"] = enriched
                 src = payload.setdefault("data_sources", {})
                 src["strategic_capital"] = {
-                    "source": "USAspending.gov + OGE disclosure + classified news",
+                    "source": "USAspending.gov + OGE annual/periodic disclosures + White House investment tracker + classified news",
                     "status": "shadow evidence / official sources checked",
                     "asof": enriched.get("official_checked_at"),
                 }

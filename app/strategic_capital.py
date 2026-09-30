@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html as html_lib
 import io
 import re
 import time
@@ -11,7 +12,7 @@ import httpx
 
 try:  # Optional at import time so the rest of the radar remains resilient.
     from pypdf import PdfReader
-except Exception:  # pragma: no cover - exercised only when dependency is absent
+except Exception:  # pragma: no cover
     PdfReader = None
 
 from .config import settings
@@ -56,17 +57,14 @@ NEGATIVE_POLICY_TERMS = {
     "cancel", "cancels", "cancelled", "canceled", "cut funding", "funding cut", "blocks",
     "blocked", "ban", "bans", "sanction", "sanctions", "export restriction", "export control",
     "revokes", "revoked", "terminates", "terminated", "probe", "investigation", "penalty",
+    "tariff", "tariffs", "license restriction", "licensing restriction",
 }
-TRUMP_ADMIN_TERMS = {
-    "president trump", "donald trump", "trump administration", "white house",
-}
+TRUMP_ADMIN_TERMS = {"president trump", "donald trump", "trump administration", "white house"}
 TRUMP_PERSONAL_FINANCIAL_TERMS = {
     "buys", "bought", "purchases", "purchased", "invests", "invested", "investment",
     "owns", "owned", "ownership", "beneficial owner", "stake", "shares", "stock", "equity",
 }
-TRUMP_FAMILY_TERMS = {
-    "donald trump jr", "donald j. trump jr", "eric trump", "ivanka trump", "trump family",
-}
+TRUMP_FAMILY_TERMS = {"donald trump jr", "donald j. trump jr", "eric trump", "ivanka trump", "trump family"}
 
 
 def _norm(text: str) -> str:
@@ -98,16 +96,42 @@ def _event_key(e: dict) -> tuple:
     return (str(e.get("type") or ""), str(e.get("title") or ""), str(e.get("source_url") or ""))
 
 
+def _company_aliases(company_name: str, symbol: str = "") -> list[str]:
+    """Conservative aliases suitable for government-description and disclosure matching."""
+    raw = str(company_name or "").strip()
+    aliases: list[str] = []
+    n = _norm(raw)
+    if len(n) >= 4:
+        aliases.append(n)
+        first = n.split()[0]
+        if len(first) >= 5:
+            aliases.append(first)
+    # Raw legal name without punctuation can be useful when the brand is multiple words.
+    legal = re.sub(r"\s+", " ", re.sub(r"[^A-Za-z0-9 ]+", " ", raw)).strip().lower()
+    if len(legal) >= 5:
+        aliases.append(legal)
+    # Tickers are only used for disclosure matching, not broad federal keyword search,
+    # because short tickers create too many false positives.
+    if symbol and len(symbol) >= 3:
+        aliases.append(symbol.lower())
+    out = []
+    for a in aliases:
+        a = " ".join(a.split())
+        if a and a not in out:
+            out.append(a)
+    return out
+
+
 class StrategicCapitalProvider:
     """Shadow evidence layer for government / political strategic-capital signals.
 
-    It deliberately does *not* change the deterministic score or portfolio rank.
-    The output is stored point-in-time so it can later be tested for incremental
-    predictive value before promotion into the allocation model.
+    The layer is deliberately separate from the deterministic score and portfolio
+    rank. It records point-in-time evidence for forward/walk-forward validation.
     """
 
     _award_cache: dict[str, tuple[float, dict]] = {}
-    _oge_cache: tuple[float, str] | None = None
+    _document_cache: dict[str, tuple[float, str, str]] = {}
+    _html_cache: dict[str, tuple[float, str]] = {}
 
     def __init__(self, timeout: float = 12.0):
         self.client = httpx.Client(
@@ -132,7 +156,8 @@ class StrategicCapitalProvider:
             title = str(item.get("title") or "").strip()
             if not title:
                 continue
-            text = title.lower()
+            # If a provider later adds summaries, classify title + summary without needing a new parser.
+            text = f"{title} {item.get('summary') or item.get('description') or ''}".lower()
             quality = self._source_quality(item)
             government_context = _contains_any(text, GOV_TERMS | TRUMP_ADMIN_TERMS)
             family_context = _contains_any(text, TRUMP_FAMILY_TERMS)
@@ -145,12 +170,11 @@ class StrategicCapitalProvider:
             materiality = "LOW"
             verified = quality in {"OFFICIAL", "HIGH-CREDIBILITY MEDIA"}
 
-            # Donald Trump personally is kept separate from the administration.
             exact_personal = bool(
                 not family_context
                 and (
-                    re.search(r"\bdonald(?: j\.?)? trump\b.{0,35}\b(?:buys|bought|purchases|purchased|invests|invested|owns|owned|acquires|acquired)\b", text)
-                    or re.search(r"\bdonald(?: j\.?)? trump(?:'s)?\b.{0,35}\b(?:personal|personally|ownership|shares|stock|equity|stake)\b", text)
+                    re.search(r"\bdonald(?: j\.?)? trump\b.{0,45}\b(?:buys|bought|purchases|purchased|invests|invested|owns|owned|acquires|acquired)\b", text)
+                    or re.search(r"\bdonald(?: j\.?)? trump(?:'s)?\b.{0,45}\b(?:personal|personally|ownership|shares|stock|equity|stake)\b", text)
                 )
             )
             if exact_personal:
@@ -177,48 +201,45 @@ class StrategicCapitalProvider:
                 materiality = "MEDIUM" if verified else "LOW"
                 direction = "NEGATIVE" if negative else "POSITIVE"
 
-            if not etype:
-                continue
-            events.append({
-                "type": etype,
-                "title": title,
-                "direction": direction,
-                "materiality": materiality,
-                "verification": "VERIFIED SOURCE" if verified else "UNVERIFIED / SECONDARY",
-                "source_quality": quality,
-                "source": item.get("publisher") or _domain(item.get("link") or "") or "News",
-                "source_url": item.get("link") or "",
-                "published": item.get("published"),
-                "symbol": symbol,
-            })
+            if etype:
+                events.append({
+                    "type": etype,
+                    "title": title,
+                    "direction": direction,
+                    "materiality": materiality,
+                    "verification": "VERIFIED SOURCE" if verified else "UNVERIFIED / SECONDARY",
+                    "source_quality": quality,
+                    "source": item.get("publisher") or _domain(item.get("link") or "") or "News",
+                    "source_url": item.get("link") or "",
+                    "published": item.get("published"),
+                    "symbol": symbol,
+                })
         return events
 
-    def _usa_spending_awards(self, company_name: str) -> dict:
+    def _usa_spending_awards(self, company_name: str, symbol: str = "", *, force: bool = False) -> dict:
         key = _norm(company_name)
         if not key or len(key) < 3:
             return {"status": "UNAVAILABLE", "reason": "company name unavailable", "events": []}
-        cached = self.__class__._award_cache.get(key)
+        cache_key = f"{key}|{symbol.upper()}"
+        cached = self.__class__._award_cache.get(cache_key)
         ttl = max(1, settings.strategic_official_refresh_hours) * 3600
-        if cached and time.time() - cached[0] < ttl:
+        if not force and cached and time.time() - cached[0] < ttl:
             return cached[1]
 
         end = date.today()
         start = end - timedelta(days=max(30, settings.strategic_usaspending_lookback_days))
-        common = {
-            "subawards": False,
-            "limit": 25,
-            "page": 1,
-            "order": "desc",
-            "sort": "Award Amount",
-            "filters": {
-                "recipient_search_text": [company_name],
-                "time_period": [{"start_date": start.isoformat(), "end_date": end.isoformat()}],
-            },
-        }
+        period = [{"start_date": start.isoformat(), "end_date": end.isoformat()}]
         events: list[dict] = []
         total = 0.0
+        indirect_total = 0.0
+        statuses: list[str] = []
+
         try:
-            # Contracts + non-loan assistance support Award Amount.
+            # 1) Direct recipient search: actual federal money awarded to the company/legal entity.
+            common = {
+                "subawards": False, "limit": 25, "page": 1, "order": "desc", "sort": "Award Amount",
+                "filters": {"recipient_search_text": [company_name], "time_period": period},
+            }
             body = dict(common)
             body["filters"] = dict(common["filters"], award_type_codes=["A", "B", "C", "D", "02", "03", "04", "05", "06", "09", "10", "11"])
             body["fields"] = ["Award ID", "Recipient Name", "Start Date", "Award Amount", "Awarding Agency", "Description"]
@@ -226,7 +247,6 @@ class StrategicCapitalProvider:
             resp.raise_for_status()
             for row in (resp.json() or {}).get("results") or []:
                 recip = str(row.get("Recipient Name") or "")
-                # Recipient search can be fuzzy. Retain only reasonable legal-name matches.
                 if key not in _norm(recip) and _norm(recip) not in key:
                     continue
                 amount = _money(row.get("Award Amount"))
@@ -236,17 +256,14 @@ class StrategicCapitalProvider:
                     "title": f"{row.get('Awarding Agency') or 'U.S. Government'} award {row.get('Award ID') or ''}".strip(),
                     "direction": "POSITIVE" if amount > 0 else "CONTEXT",
                     "materiality": "HIGH" if amount >= 100_000_000 else "MEDIUM" if amount >= 10_000_000 else "LOW",
-                    "verification": "VERIFIED SOURCE",
-                    "source_quality": "OFFICIAL",
-                    "source": "USAspending.gov",
-                    "source_url": "https://www.usaspending.gov/",
-                    "published": row.get("Start Date"),
-                    "amount": amount,
-                    "description": row.get("Description") or "",
-                    "recipient": recip,
+                    "verification": "VERIFIED SOURCE", "source_quality": "OFFICIAL", "source": "USAspending.gov",
+                    "source_url": "https://www.usaspending.gov/", "published": row.get("Start Date"),
+                    "amount": amount, "description": row.get("Description") or "", "recipient": recip,
+                    "relationship": "DIRECT RECIPIENT",
                 })
+            statuses.append("direct awards")
 
-            # Loans/loan guarantees expose Loan Value instead of Award Amount.
+            # 2) Direct federal loans / guarantees.
             loan = dict(common)
             loan["sort"] = "Loan Value"
             loan["filters"] = dict(common["filters"], award_type_codes=["07", "08"])
@@ -264,59 +281,259 @@ class StrategicCapitalProvider:
                     "title": f"{row.get('Awarding Agency') or 'U.S. Government'} loan/guarantee {row.get('Award ID') or ''}".strip(),
                     "direction": "POSITIVE" if amount > 0 else "CONTEXT",
                     "materiality": "HIGH" if amount >= 100_000_000 else "MEDIUM" if amount >= 10_000_000 else "LOW",
-                    "verification": "VERIFIED SOURCE",
-                    "source_quality": "OFFICIAL",
-                    "source": "USAspending.gov",
-                    "source_url": "https://www.usaspending.gov/",
-                    "published": row.get("Issued Date"),
-                    "amount": amount,
-                    "recipient": recip,
+                    "verification": "VERIFIED SOURCE", "source_quality": "OFFICIAL", "source": "USAspending.gov",
+                    "source_url": "https://www.usaspending.gov/", "published": row.get("Issued Date"),
+                    "amount": amount, "recipient": recip, "relationship": "DIRECT RECIPIENT",
                 })
-            out = {"status": "CHECKED", "total_amount": round(total, 2), "events": events[:12], "checked_at": datetime.now(timezone.utc).isoformat()}
+            statuses.append("direct loans")
+
+            # 3) Keyword search catches government purchases through resellers/integrators,
+            # where the prime recipient is not the public company (e.g. a reseller buying
+            # NVIDIA hardware). These are *indirect demand evidence*, not direct company revenue.
+            aliases = [a for a in _company_aliases(company_name, "") if len(a) >= 5][:2]
+            if aliases:
+                kw = {
+                    "subawards": False, "limit": 25, "page": 1, "order": "desc", "sort": "Award Amount",
+                    "filters": {
+                        "keywords": aliases,
+                        "time_period": period,
+                        "award_type_codes": ["A", "B", "C", "D", "02", "03", "04", "05", "06", "09", "10", "11"],
+                    },
+                    "fields": ["Award ID", "Recipient Name", "Start Date", "Award Amount", "Awarding Agency", "Description"],
+                }
+                resp = self.client.post("https://api.usaspending.gov/api/v2/search/spending_by_award/", json=kw)
+                resp.raise_for_status()
+                alias_norm = [_norm(a) for a in aliases]
+                for row in (resp.json() or {}).get("results") or []:
+                    recip = str(row.get("Recipient Name") or "")
+                    desc = str(row.get("Description") or "")
+                    recip_n, desc_n = _norm(recip), _norm(desc)
+                    # Skip records already captured as direct awards.
+                    if key in recip_n or (recip_n and recip_n in key):
+                        continue
+                    if not any(a and (a in desc_n or a in recip_n) for a in alias_norm):
+                        continue
+                    amount = _money(row.get("Award Amount"))
+                    indirect_total += max(0.0, amount)
+                    events.append({
+                        "type": "FEDERAL_PRODUCT_OR_VENDOR_MENTION",
+                        "title": f"{row.get('Awarding Agency') or 'U.S. Government'} procurement mentions {company_name}",
+                        "direction": "CONTEXT",
+                        "materiality": "HIGH" if amount >= 100_000_000 else "MEDIUM" if amount >= 10_000_000 else "LOW",
+                        "verification": "VERIFIED SOURCE", "source_quality": "OFFICIAL", "source": "USAspending.gov",
+                        "source_url": "https://www.usaspending.gov/", "published": row.get("Start Date"),
+                        "amount": amount, "description": desc[:700], "recipient": recip,
+                        "relationship": "INDIRECT / PRIME AWARD TO ANOTHER RECIPIENT",
+                    })
+                statuses.append("keyword/product mentions")
+
+            out = {
+                "status": "CHECKED", "coverage": ", ".join(statuses),
+                "total_amount": round(total, 2),
+                "indirect_mention_award_amount": round(indirect_total, 2),
+                "events": events[:16], "checked_at": datetime.now(timezone.utc).isoformat(),
+            }
         except Exception as exc:
-            out = {"status": f"UNAVAILABLE ({type(exc).__name__})", "total_amount": 0.0, "events": [], "checked_at": datetime.now(timezone.utc).isoformat()}
-        self.__class__._award_cache[key] = (time.time(), out)
+            out = {
+                "status": f"UNAVAILABLE ({type(exc).__name__})", "total_amount": round(total, 2),
+                "indirect_mention_award_amount": round(indirect_total, 2), "events": events[:16],
+                "checked_at": datetime.now(timezone.utc).isoformat(),
+            }
+        self.__class__._award_cache[cache_key] = (time.time(), out)
         return out
 
-    def _oge_text(self) -> tuple[str, str]:
-        ttl = max(1, settings.strategic_official_refresh_hours) * 3600
-        cached = self.__class__._oge_cache
-        if cached and time.time() - cached[0] < ttl:
-            return cached[1], "CACHED"
-        if not settings.trump_oge_disclosure_url:
+    def _html_text(self, url: str, *, force: bool = False) -> tuple[str, str]:
+        if not url:
             return "", "NOT CONFIGURED"
-        if PdfReader is None:
-            return "", "PYPDF UNAVAILABLE"
+        ttl = max(1, settings.strategic_official_refresh_hours) * 3600
+        cached = self.__class__._html_cache.get(url)
+        if not force and cached and time.time() - cached[0] < ttl:
+            return cached[1], "CACHED"
         try:
-            r = self.client.get(settings.trump_oge_disclosure_url, headers={"Accept": "application/pdf,*/*"})
+            r = self.client.get(url, headers={"Accept": "text/html,*/*"})
             r.raise_for_status()
-            reader = PdfReader(io.BytesIO(r.content))
-            text = "\n".join((p.extract_text() or "") for p in reader.pages)
-            self.__class__._oge_cache = (time.time(), text)
+            raw = str(r.text or "")
+            raw = re.sub(r"<script\b[^>]*>.*?</script>", " ", raw, flags=re.I | re.S)
+            raw = re.sub(r"<style\b[^>]*>.*?</style>", " ", raw, flags=re.I | re.S)
+            text = html_lib.unescape(re.sub(r"<[^>]+>", " ", raw))
+            text = re.sub(r"\s+", " ", text).strip()
+            self.__class__._html_cache[url] = (time.time(), text)
             return text, "CHECKED"
         except Exception as exc:
             return "", f"UNAVAILABLE ({type(exc).__name__})"
 
-    def _trump_personal_disclosure(self, company_name: str, symbol: str) -> dict:
-        text, status = self._oge_text()
-        if not text:
-            return {"status": "UNKNOWN", "source_status": status, "source_url": settings.trump_oge_disclosure_url}
-        normalized = _norm(text)
-        cname = _norm(company_name)
-        # Avoid very short/common company names causing spurious matches.
-        company_hit = bool(cname and len(cname) >= 5 and cname in normalized)
-        ticker_hit = bool(symbol and len(symbol) >= 3 and re.search(rf"\b{re.escape(symbol.lower())}\b", text.lower()))
-        if not (company_hit or ticker_hit):
-            return {"status": "NOT FOUND IN CHECKED DISCLOSURE", "source_status": status, "source_url": settings.trump_oge_disclosure_url}
+    def _whitehouse_investment_tracker(self, company_name: str, symbol: str, *, force: bool = False) -> dict:
+        """Detect company mentions on the official White House investment tracker.
 
-        # A text hit in an OGE report is treated as disclosed-interest evidence, not
-        # automatically as a stock purchase: the report may describe income or another
-        # financial relationship. The UI explicitly tells the user to review the source.
+        A hit is administration-highlighted *private investment / strategic interest*.
+        It is explicitly not treated as U.S. government capital or a Trump personal holding.
+        """
+        url = settings.whitehouse_investments_url
+        text, source_status = self._html_text(url, force=force)
+        if not text:
+            return {"status": "UNKNOWN", "source_status": source_status, "source_url": url, "events": []}
+        normalized = _norm(text)
+        aliases = [a for a in _company_aliases(company_name, "") if len(a) >= 5]
+        hit = next((a for a in aliases if _norm(a) in normalized), None)
+        if not hit:
+            return {"status": "NOT FOUND IN CHECKED TRACKER", "source_status": source_status, "source_url": url, "events": []}
+        # Grab a small local context and an amount if the page places it near the company.
+        low = text.lower()
+        pos = low.find(hit.lower())
+        context = text[max(0, pos - 120): min(len(text), pos + len(hit) + 260)] if pos >= 0 else ""
+        amt = re.search(r"\$\s?[\d,.]+\s*(?:million|billion|trillion|m|b|t)?", context, flags=re.I)
+        event = {
+            "type": "ADMINISTRATION_HIGHLIGHTED_INVESTMENT",
+            "title": f"White House investment tracker lists {company_name}",
+            "direction": "CONTEXT",
+            "materiality": "MEDIUM",
+            "verification": "VERIFIED SOURCE",
+            "source_quality": "OFFICIAL",
+            "source": "The White House — Investments",
+            "source_url": url,
+            "published": None,
+            "amount_text": amt.group(0) if amt else None,
+            "description": "Administration-highlighted private investment / strategic interest; not U.S. government investment.",
+        }
         return {
-            "status": "DISCLOSURE MENTION — REVIEW SOURCE",
-            "source_status": status,
-            "source_url": settings.trump_oge_disclosure_url,
-            "match": "company name" if company_hit else "ticker",
+            "status": "EVIDENCE FOUND", "source_status": source_status, "source_url": url,
+            "match": hit, "amount_text": event.get("amount_text"), "events": [event],
+        }
+
+    def _document_text(self, url: str, *, force: bool = False) -> tuple[str, str]:
+        if not url:
+            return "", "NOT CONFIGURED"
+        ttl = max(1, settings.strategic_official_refresh_hours) * 3600
+        cached = self.__class__._document_cache.get(url)
+        if not force and cached and time.time() - cached[0] < ttl:
+            return cached[1], "CACHED"
+        if PdfReader is None:
+            return "", "PYPDF UNAVAILABLE"
+        try:
+            r = self.client.get(url, headers={"Accept": "application/pdf,*/*"})
+            r.raise_for_status()
+            reader = PdfReader(io.BytesIO(r.content))
+            text = "\n".join((p.extract_text() or "") for p in reader.pages)
+            self.__class__._document_cache[url] = (time.time(), text, "CHECKED")
+            return text, "CHECKED"
+        except Exception as exc:
+            return "", f"UNAVAILABLE ({type(exc).__name__})"
+
+    @staticmethod
+    def _match_disclosure_text(text: str, company_name: str, symbol: str) -> list[dict]:
+        """Return conservative row-local matches from an OGE disclosure PDF.
+
+        Transaction reports often contain many adjacent rows. Fields are therefore
+        read *after* each company match, rather than from a wide context window, so
+        a nearby NVIDIA sale cannot be mistaken for a different NVIDIA purchase.
+        """
+        raw = str(text or "")
+        lower = raw.lower()
+        cname = _norm(company_name)
+        patterns: list[tuple[str, str]] = []
+        if cname and len(cname) >= 5:
+            words = [w for w in cname.split() if len(w) >= 4]
+            if words:
+                patterns.append((r"\b" + r"\s+".join(re.escape(w) for w in words[:3]) + r"\b", "company"))
+            if len(words) > 1:
+                patterns.append((rf"\b{re.escape(words[0])}\b", "brand"))
+        if symbol and len(symbol) >= 3:
+            patterns.append((rf"\({re.escape(symbol.lower())}\)", "ticker"))
+            if len(symbol) >= 4:
+                patterns.append((rf"\b{re.escape(symbol.lower())}\b", "ticker"))
+
+        matches: list[dict] = []
+        seen_positions: list[int] = []
+        for pattern, kind in patterns:
+            for m in re.finditer(pattern, lower, flags=re.I):
+                # Multiple aliases can point at the same table row. Keep nearby alias
+                # hits once, while preserving genuinely separate transactions.
+                if any(abs(m.start() - p) < 40 for p in seen_positions):
+                    continue
+                seen_positions.append(m.start())
+                after = re.sub(r"\s+", " ", raw[m.end(): min(len(raw), m.end() + 360)]).strip()
+                snippet = re.sub(r"\s+", " ", raw[max(0, m.start() - 80): min(len(raw), m.end() + 420)]).strip()
+                action = None
+                action_match = re.search(r"\b(purchase|purchased|buy|bought|sale|sold|sell|exchange)\b", after, flags=re.I)
+                if action_match:
+                    word = action_match.group(1).lower()
+                    action = "PURCHASE" if word in {"purchase", "purchased", "buy", "bought"} else "SALE" if word in {"sale", "sold", "sell"} else "EXCHANGE"
+                date_match = re.search(r"\b(?:0?[1-9]|1[0-2])[/-](?:0?[1-9]|[12]\d|3[01])[/-](?:20)?\d{2}\b", after)
+                amount_match = re.search(r"\$\s?[\d,]+(?:\.\d+)?\s*(?:-|–|—|to)\s*\$\s?[\d,]+(?:\.\d+)?", after, flags=re.I)
+                matches.append({
+                    "match": kind, "action": action,
+                    "date": date_match.group(0) if date_match else None,
+                    "amount_range": amount_match.group(0) if amount_match else None,
+                    "snippet": snippet[:900],
+                })
+                if len(matches) >= 12:
+                    return matches
+        return matches
+
+    def _trump_personal_disclosure(self, company_name: str, symbol: str, *, force: bool = False) -> dict:
+        urls: list[str] = []
+        for u in [settings.trump_oge_disclosure_url, *settings.trump_periodic_transaction_urls]:
+            u = str(u or "").strip()
+            if u and u not in urls:
+                urls.append(u)
+        if not urls:
+            return {"status": "UNKNOWN", "source_status": "NOT CONFIGURED", "sources_checked": 0, "events": []}
+
+        source_results = []
+        events = []
+        matched_reports = 0
+        transaction_reports = 0
+        any_checked = False
+        for url in urls:
+            text, source_status = self._document_text(url, force=force)
+            if source_status in {"CHECKED", "CACHED"}:
+                any_checked = True
+            matches = self._match_disclosure_text(text, company_name, symbol) if text else []
+            is_transaction_report = "periodic transaction report" in text.lower() if text else "periodic-transaction-report" in url.lower()
+            if matches:
+                matched_reports += 1
+                if is_transaction_report:
+                    transaction_reports += 1
+                for idx, match in enumerate(matches[:5]):
+                    action = match.get("action")
+                    title = f"Donald Trump disclosure mentions {company_name}"
+                    if is_transaction_report and action:
+                        title = f"Donald Trump periodic disclosure: {action.title()} involving {company_name}"
+                    elif is_transaction_report:
+                        title = f"Donald Trump periodic transaction disclosure mentions {company_name}"
+                    events.append({
+                        "type": "TRUMP_PERSONAL_DISCLOSURE_TRANSACTION" if is_transaction_report else "TRUMP_PERSONAL_DISCLOSURE_INTEREST",
+                        "title": title,
+                        "direction": "CONTEXT",
+                        "materiality": "HIGH" if is_transaction_report else "MEDIUM",
+                        "verification": "VERIFIED SOURCE", "source_quality": "OFFICIAL",
+                        "source": "White House / OGE disclosure",
+                        "source_url": url,
+                        "published": match.get("date"),
+                        "transaction_action": action,
+                        "amount_range": match.get("amount_range"),
+                        "match": match.get("match"),
+                        "description": match.get("snippet"),
+                    })
+            source_results.append({"url": url, "status": source_status, "matches": len(matches), "report_type": "PERIODIC TRANSACTION" if is_transaction_report else "ANNUAL / OTHER"})
+
+        if events:
+            if transaction_reports:
+                status = f"VERIFIED TRANSACTION DISCLOSURE — {len(events)} MATCH{'ES' if len(events) != 1 else ''}"
+            else:
+                status = "DISCLOSURE MENTION — REVIEW SOURCE"
+        elif any_checked:
+            status = "NOT FOUND IN CHECKED DISCLOSURES"
+        else:
+            status = "UNKNOWN"
+        return {
+            "status": status,
+            "source_status": "CHECKED" if any_checked else "UNAVAILABLE",
+            "sources_checked": sum(1 for x in source_results if x["status"] in {"CHECKED", "CACHED"}),
+            "matched_reports": matched_reports,
+            "source_results": source_results,
+            "events": events[:10],
+            "source_url": next((e.get("source_url") for e in events), urls[0] if urls else ""),
         }
 
     @staticmethod
@@ -352,6 +569,7 @@ class StrategicCapitalProvider:
         annual_revenue: float | None = None,
         prior: dict | None = None,
         fetch_official: bool = False,
+        force_official: bool = False,
     ) -> dict:
         symbol = str(symbol or "").upper().strip()
         company_name = company_name or symbol
@@ -359,15 +577,26 @@ class StrategicCapitalProvider:
         prior = prior or {}
 
         federal = prior.get("federal_awards") or {"status": "NOT CHECKED", "total_amount": 0.0, "events": []}
-        personal = prior.get("trump_personal_disclosure") or {"status": "NOT CHECKED"}
+        personal = prior.get("trump_personal_disclosure") or {"status": "NOT CHECKED", "events": []}
+        wh_tracker = prior.get("whitehouse_investment_tracker") or {"status": "NOT CHECKED", "events": []}
         checked_at = prior.get("official_checked_at")
         if fetch_official and settings.strategic_capital_enabled and not symbol.endswith(".ST"):
-            federal = self._usa_spending_awards(company_name)
-            personal = self._trump_personal_disclosure(company_name, symbol)
+            # TypeError fallbacks keep older test/provider stubs compatible while the
+            # production provider uses the richer symbol + force-refresh signature.
+            try:
+                federal = self._usa_spending_awards(company_name, symbol, force=force_official)
+            except TypeError:
+                federal = self._usa_spending_awards(company_name)
+            try:
+                personal = self._trump_personal_disclosure(company_name, symbol, force=force_official)
+            except TypeError:
+                personal = self._trump_personal_disclosure(company_name, symbol)
+            wh_tracker = self._whitehouse_investment_tracker(company_name, symbol, force=force_official)
             checked_at = datetime.now(timezone.utc).isoformat()
 
         events.extend(federal.get("events") or [])
-        # De-duplicate a source/event if it appeared both in news and an official feed.
+        events.extend(personal.get("events") or [])
+        events.extend(wh_tracker.get("events") or [])
         deduped: list[dict] = []
         seen = set()
         for event in events:
@@ -379,13 +608,12 @@ class StrategicCapitalProvider:
 
         federal_amount = _money(federal.get("total_amount"))
         summary = self._summary(deduped, annual_revenue, federal_amount)
-        trump_admin = [e for e in deduped if e.get("type") in {"ADMINISTRATION_STRATEGIC_ACTION", "POLICY_OR_ADMINISTRATION_SIGNAL", "GOVERNMENT_EQUITY_STAKE", "GOVERNMENT_CAPITAL_OR_DEMAND"} and _contains_any(str(e.get("title") or ""), TRUMP_ADMIN_TERMS)]
+        trump_admin = [e for e in deduped if e.get("type") == "ADMINISTRATION_HIGHLIGHTED_INVESTMENT" or (e.get("type") in {"ADMINISTRATION_STRATEGIC_ACTION", "POLICY_OR_ADMINISTRATION_SIGNAL", "GOVERNMENT_EQUITY_STAKE", "GOVERNMENT_CAPITAL_OR_DEMAND"} and _contains_any(str(e.get("title") or ""), TRUMP_ADMIN_TERMS))]
         family = [e for e in deduped if e.get("type") == "TRUMP_FAMILY_INTEREST"]
         government_equity = [e for e in deduped if e.get("type") == "GOVERNMENT_EQUITY_STAKE"]
         sector_policy = [e for e in deduped if e.get("type") == "POLICY_OR_ADMINISTRATION_SIGNAL" and e.get("direction") in {"POSITIVE", "NEGATIVE"}]
-        government_demand = [e for e in deduped if e.get("type") in {"FEDERAL_AWARD", "FEDERAL_LOAN_OR_GUARANTEE", "GOVERNMENT_CAPITAL_OR_DEMAND"}]
+        government_demand = [e for e in deduped if e.get("type") in {"FEDERAL_AWARD", "FEDERAL_LOAN_OR_GUARANTEE", "FEDERAL_PRODUCT_OR_VENDOR_MENTION", "GOVERNMENT_CAPITAL_OR_DEMAND"}]
 
-        # Shadow adjustment is logged for research but is NOT added to rank-v1.
         shadow_adjustment = 0.0
         if summary["direction"] == "POSITIVE":
             shadow_adjustment = min(8.0, summary["evidence_strength"] / 12.5)
@@ -393,20 +621,23 @@ class StrategicCapitalProvider:
             shadow_adjustment = -min(10.0, summary["evidence_strength"] / 10.0)
 
         return {
-            "mode": "SHADOW_ONLY",
-            "symbol": symbol,
-            "company_name": company_name,
-            **summary,
-            "shadow_rank_adjustment": round(shadow_adjustment, 1),
-            "events": deduped[:12],
-            "event_count": len(deduped),
+            "mode": "SHADOW_ONLY", "symbol": symbol, "company_name": company_name, **summary,
+            "shadow_rank_adjustment": round(shadow_adjustment, 1), "events": deduped[:14], "event_count": len(deduped),
             "government_equity_stake": "EVIDENCE FOUND" if government_equity else "NONE FOUND IN CURRENT EVIDENCE",
             "government_capital_or_demand": "EVIDENCE FOUND" if government_demand else "NONE FOUND IN CURRENT EVIDENCE",
             "sector_policy_support": "EVIDENCE FOUND" if sector_policy else "NONE FOUND IN CURRENT EVIDENCE",
             "trump_administration_action": "EVIDENCE FOUND" if trump_admin else "NONE FOUND IN CURRENT EVIDENCE",
             "trump_personal_disclosure": personal,
             "trump_family_interest": "EVIDENCE FOUND" if family else "NONE FOUND IN CURRENT EVIDENCE",
+            "whitehouse_investment_tracker": wh_tracker,
             "federal_awards": federal,
             "official_checked_at": checked_at,
+            "coverage": {
+                "direct_federal_awards": federal.get("status") or "NOT CHECKED",
+                "federal_product_mentions": "CHECKED" if "keyword/product mentions" in str(federal.get("coverage") or "") else "NOT CHECKED",
+                "trump_disclosures": personal.get("source_status") or "NOT CHECKED",
+                "trump_disclosure_sources_checked": personal.get("sources_checked", 0),
+                "whitehouse_investment_tracker": wh_tracker.get("source_status") or "NOT CHECKED",
+            },
             "source_note": "Official-source evidence and news context. Political mentions alone do not affect rank-v1.",
         }

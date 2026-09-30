@@ -397,7 +397,7 @@ def analyze_symbol(symbol:str=Form(...),source_note:str=Form("Manual")):
     if raw.upper()!=symbol:
         note=f"{note} | entered: {raw} | resolved: {resolved.get('name') or symbol}"
     with SessionLocal() as db:db.add(AnalysisRequest(symbol=symbol,source_note=note));db.commit()
-    try:radar.analyze_symbol(symbol,True)
+    try:radar.analyze_symbol(symbol,True,strategic_refresh=True)
     except Exception:pass
     _invalidate_live_cache()
     return RedirectResponse(f"/analysis/{symbol}",303)
@@ -406,7 +406,7 @@ def analyze_symbol(symbol:str=Form(...),source_note:str=Form("Manual")):
 def analysis_page(request:Request,symbol:str,refresh:int=0):
     symbol=symbol.upper().strip(); data=None
     if refresh:
-        try:data=radar.analyze_symbol(symbol,True)
+        try:data=radar.analyze_symbol(symbol,True,strategic_refresh=True)
         except Exception:data=None
     if data is None:
         with SessionLocal() as db:
@@ -427,7 +427,7 @@ def analysis_page(request:Request,symbol:str,refresh:int=0):
 def analysis_json(symbol:str, refresh:int=0):
     symbol=symbol.upper().strip()
     if refresh:
-        return radar.analyze_symbol(symbol,True)
+        return radar.analyze_symbol(symbol,True,strategic_refresh=True)
     with SessionLocal() as db:
         c=db.query(RadarCandidate).filter(RadarCandidate.symbol==symbol).first()
         if c and c.current_json:

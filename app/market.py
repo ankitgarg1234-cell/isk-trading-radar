@@ -562,7 +562,7 @@ class YahooMarketProvider:
                 "benchmark": etf,
             },
             "strategic_capital": {
-                "source": "USAspending.gov + OGE disclosure + classified news",
+                "source": "USAspending.gov + OGE annual/periodic disclosures + White House investment tracker + classified news",
                 "status": "shadow evidence",
                 "asof": strategic_capital.get("official_checked_at") or datetime.now(timezone.utc).isoformat(),
             },

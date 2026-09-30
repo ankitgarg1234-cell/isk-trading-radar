@@ -60,6 +60,23 @@ class Settings:
         "TRUMP_OGE_DISCLOSURE_URL",
         "https://oge.box.com/shared/static/zycb5i2ny8kssm51uzqm8ygyq2zkpkqq.pdf",
     )
+    # Periodic transaction reports are separate from the annual OGE disclosure.
+    # Keep this list configurable because new reports can be published during the year.
+    trump_periodic_transaction_urls: tuple[str, ...] = tuple(
+        u.strip()
+        for u in os.getenv(
+            "TRUMP_PERIODIC_TRANSACTION_URLS",
+            "https://www.whitehouse.gov/wp-content/uploads/2026/03/President-Donald-J.-Trump-Periodic-Transaction-Report-2.26.26-1.pdf,"
+            "https://www.whitehouse.gov/wp-content/uploads/2026/06/President-Donald-J.-Trump-Periodic-Transaction-Report-0.6.25.26-1.pdf,"
+            "https://www.whitehouse.gov/wp-content/uploads/2026/06/President-Donald-J.-Trump-Periodic-Transaction-Report-0.6.25.26-2.pdf,"
+            "https://www.whitehouse.gov/wp-content/uploads/2026/08/President-Donald-J.-Trump-Periodic-Transaction-Report-08.12.26.pdf",
+        ).split(",")
+        if u.strip()
+    )
+    whitehouse_investments_url: str = os.getenv(
+        "WHITEHOUSE_INVESTMENTS_URL",
+        "https://www.whitehouse.gov/investments/",
+    )
     radar_symbols: tuple[str, ...] = tuple(
         s.strip().upper()
         for s in os.getenv(
