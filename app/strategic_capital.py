@@ -188,9 +188,17 @@ class StrategicCapitalProvider:
                 etype = "TRUMP_PERSONAL_INTEREST_MENTION"
                 materiality = "HIGH" if quality == "OFFICIAL" else "MEDIUM"
                 direction = "CONTEXT"
-            elif (family_context or connected_capital_context) and _contains_any(text, TRUMP_PERSONAL_FINANCIAL_TERMS | DIRECT_CAPITAL_TERMS):
+            elif connected_capital_context and _contains_any(text, TRUMP_PERSONAL_FINANCIAL_TERMS | DIRECT_CAPITAL_TERMS):
                 etype = "TRUMP_FAMILY_OR_CONNECTED_CAPITAL"
                 materiality = "HIGH" if quality in {"OFFICIAL", "HIGH-CREDIBILITY MEDIA"} and direct_capital else "MEDIUM"
+                direction = "CONTEXT"
+            elif family_context and _contains_any(text, TRUMP_PERSONAL_FINANCIAL_TERMS):
+                # Preserve the established family-interest event contract for
+                # Donald Trump Jr./Eric/Ivanka-only mentions. Named investment
+                # vehicles (Affinity, A Fin, 1789 Capital) use the richer connected
+                # capital event above.
+                etype = "TRUMP_FAMILY_INTEREST"
+                materiality = "MEDIUM"
                 direction = "CONTEXT"
             elif government_context and direct_capital:
                 if any(term in text for term in ("equity stake", "government stake", "takes stake", "took a stake", "stake in")):
