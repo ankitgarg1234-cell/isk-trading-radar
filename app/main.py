@@ -10,7 +10,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy import text
 from .config import settings
 from .db import engine, SessionLocal, Position, PaperPosition, AnalysisRequest, Trade, PortfolioCash, PortfolioPreference, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, storage_status
-from .analysis_engine import parse_positions_from_text
+from .analysis_engine import parse_positions_from_text, position_action
 from .portfolio_engine import RISK_PROFILES, ACTION_RANK, normalise_profile, stock_risk_score, system_signal, active_level, analyst_label, suggested_position_size, account_risk, projected_risk, risk_band, build_optimizer_plan, candidate_rank_score
 from .paper_engine import paper_status, reset_paper, run_paper_cycle
 from .scanner import radar
@@ -253,6 +253,15 @@ def _dashboard_state(db):
     for p in paper_positions:
         a=payloads.get(p.symbol,{})
         price=float(a.get("price") or p.avg_cost or 0)
+        if a and price:
+            try:
+                paper_action,paper_reason=position_action(
+                    a,price,{"shares":p.shares,"avg_cost":p.avg_cost,"account":"Paper"}
+                )
+                a["action"]=paper_action
+                a["action_reason"]=paper_reason
+            except Exception:
+                pass
         currency=_currency_for(p.symbol,a);rate=fx.get(currency)
         paper_owned[p.symbol]={
             "symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost,
