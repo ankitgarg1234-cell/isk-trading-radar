@@ -154,10 +154,11 @@ def system_signal(a: dict, owned: bool = False) -> str:
 
     if action in {"BUY NOW", "BREAKOUT BUY"}:
         return "STRONG BUY" if ai >= 88 and det >= 80 else "BUY"
-    if action in {"CONSIDER BUYING NOW"}:
-        return "BUY"
-    if action in {"CONSIDER STARTER BUY"}:
-        return "STARTER BUY"
+    if action in {"CONSIDER BUYING NOW", "CONSIDER STARTER BUY"}:
+        entry = entry_attention_signal(a)
+        if entry:
+            return entry
+        return "STARTER BUY" if action == "CONSIDER STARTER BUY" else "BUY"
     if action in {"EXIT"}:
         return "STRONG SELL"
     if action in {"REDUCE"}:
@@ -431,10 +432,8 @@ def entry_attention_signal(a: dict) -> str | None:
         return "STRONG BUY"
     if score >= 75:
         return "BUY"
-    if score >= 68 and zone == "BETTER_BUY":
+    if score >= 68 and zone in {"BETTER_BUY", "PRIMARY_BUY"}:
         return "STARTER BUY"
-    if score >= 68 and zone == "PRIMARY_BUY":
-        return "CONSIDER BUY"
     return None
 
 

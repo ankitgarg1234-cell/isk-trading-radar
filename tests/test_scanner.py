@@ -125,7 +125,7 @@ def test_attention_buy_ladder_only_surfaces_agreed_entry_scores():
     cases=[
         (53,"PRIMARY_BUY",None),
         (67,"BETTER_BUY",None),
-        (68,"PRIMARY_BUY","CONSIDER BUY"),
+        (68,"PRIMARY_BUY","STARTER BUY"),
         (68,"BETTER_BUY","STARTER BUY"),
         (74,"BETTER_BUY","STARTER BUY"),
         (75,"PRIMARY_BUY","BUY"),
@@ -161,7 +161,7 @@ def test_agreed_buy_attention_actions_are_persisted():
         ("SB85",85,"PRIMARY_BUY","STRONG BUY"),
         ("BUY75",75,"BETTER_BUY","BUY"),
         ("ST74",74,"BETTER_BUY","STARTER BUY"),
-        ("CB68",68,"PRIMARY_BUY","CONSIDER BUY"),
+        ("PB68",68,"PRIMARY_BUY","STARTER BUY"),
     ]:
         r.persist({
             "symbol":symbol,"price":100,"deterministic_score":score,"analyst_score":80,"ai_score":82,
