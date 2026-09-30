@@ -501,7 +501,8 @@ class YahooMarketProvider:
         closes = quote.get("close") or []
         rows = []
         for i, ts in enumerate(timestamps):
-            close = adj[i] if i < len(adj) and adj[i] is not None else (closes[i] if i < len(closes) else None)
+            raw_close = closes[i] if i < len(closes) else None
+            close = adj[i] if i < len(adj) and adj[i] is not None else raw_close
             if close is None:
                 continue
             def at(name: str, default=None):
@@ -510,10 +511,32 @@ class YahooMarketProvider:
             rows.append({
                 "ts": ts, "date": datetime.fromtimestamp(ts, tz=timezone.utc).date().isoformat(),
                 "open": at("open"), "high": at("high"), "low": at("low"),
-                "close": close, "volume": at("volume", 0) or 0,
+                "close": close, "raw_close": raw_close, "volume": at("volume", 0) or 0,
             })
-        current = meta.get("regularMarketPrice") or meta.get("currentMarketPrice") or (rows[-1]["close"] if rows else 0)
-        previous = meta.get("chartPreviousClose") or meta.get("previousClose") or (rows[-2]["close"] if len(rows) > 1 else current)
+        current = meta.get("regularMarketPrice") or meta.get("currentMarketPrice") or (rows[-1]["raw_close"] if rows else 0)
+
+        # Do not use Yahoo's chartPreviousClose for Day %. Its meaning depends on
+        # the requested chart range (for a 1y chart it can be roughly a year-old
+        # reference), which produced absurd -20%/-30% daily moves on the dashboard.
+        # Derive the immediately prior trading-session close from the daily bars.
+        previous = current
+        if rows:
+            market_ts = meta.get("regularMarketTime")
+            market_date = None
+            if market_ts:
+                try:
+                    market_date = datetime.fromtimestamp(float(market_ts), tz=timezone.utc).date().isoformat()
+                except Exception:
+                    market_date = None
+            if len(rows) > 1 and market_date and rows[-1].get("date") == market_date:
+                prior_row = rows[-2]
+            else:
+                # If today's bar is not present yet (e.g. pre-market), the last
+                # completed daily bar itself is the previous regular-session close.
+                prior_row = rows[-1]
+            previous = prior_row.get("raw_close")
+            if previous in (None, 0):
+                previous = prior_row.get("close") or current
         return rows, float(current or 0), float(previous or 0), meta.get("currency") or "USD", meta.get("exchangeName") or meta.get("fullExchangeName")
 
     def bundle(self, symbol: str) -> dict:
