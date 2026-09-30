@@ -503,15 +503,24 @@ def classify_lane(a: dict) -> dict:
 
     fundamental_quality = not hard_reasons
 
-    rg_raw = _float(f.get("revenueGrowth"))
-    qrg_raw = _float(f.get("quarterlyRevenueGrowth"))
-    eg_raw = _float(f.get("earningsGrowth") or f.get("growth"))
-    om_raw = _float(f.get("operatingMargins"))
-    rg = rg_raw * (100 if abs(rg_raw) <= 2 else 1)
-    qrg = qrg_raw * (100 if abs(qrg_raw) <= 2 else 1)
-    eg = eg_raw * (100 if abs(eg_raw) <= 2 else 1)
-    op_margin = om_raw * (100 if abs(om_raw) <= 2 else 1)
-    durability = bool(rg >= 5 or qrg >= 5 or eg >= 0 or op_margin > 0)
+    rg_value = f.get("revenueGrowth")
+    qrg_value = f.get("quarterlyRevenueGrowth")
+    eg_value = f.get("earningsGrowth") if f.get("earningsGrowth") is not None else f.get("growth")
+    om_value = f.get("operatingMargins")
+    rg_raw = _float(rg_value) if rg_value is not None else None
+    qrg_raw = _float(qrg_value) if qrg_value is not None else None
+    eg_raw = _float(eg_value) if eg_value is not None else None
+    om_raw = _float(om_value) if om_value is not None else None
+    rg = rg_raw * (100 if abs(rg_raw) <= 2 else 1) if rg_raw is not None else None
+    qrg = qrg_raw * (100 if abs(qrg_raw) <= 2 else 1) if qrg_raw is not None else None
+    eg = eg_raw * (100 if abs(eg_raw) <= 2 else 1) if eg_raw is not None else None
+    op_margin = om_raw * (100 if abs(om_raw) <= 2 else 1) if om_raw is not None else None
+    durability = bool(
+        (rg is not None and rg >= 5)
+        or (qrg is not None and qrg >= 5)
+        or (eg is not None and eg >= 0)
+        or (op_margin is not None and op_margin > 0)
+    )
     core_quality = bool(fundamental_quality and durability and valuation >= 3)
 
     catalyst_tier = str(catalyst.get("tier") or "NONE").upper()
@@ -790,4 +799,8 @@ def build_optimizer_plan(
         "visible_limit": visible_limit,
         "shortlist_limit": shortlist_limit,
         "allocation_policy": "TOP20_ALL_QUALIFIED",
+        "lane_counts": {
+            CORE_LANE: sum(r.get("lane") == CORE_LANE for r in visible),
+            EXPLOSIVE_LANE: sum(r.get("lane") == EXPLOSIVE_LANE for r in visible),
+        },
     }
