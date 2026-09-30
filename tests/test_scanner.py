@@ -174,7 +174,7 @@ def test_agreed_buy_attention_actions_are_persisted():
             assert a.action == expected
 
 
-def test_rotation_proposal_is_synced_into_attention_alert_without_marketwide_payload_scan(monkeypatch):
+def test_uncapped_policy_adds_new_buy_without_rotation_for_space(monkeypatch):
     import json
     from app.db import Alert, RadarCandidate
     with SessionLocal() as db:
@@ -191,7 +191,7 @@ def test_rotation_proposal_is_synced_into_attention_alert_without_marketwide_pay
     r=RadarService(provider=FakeProvider(),ai=FakeAI())
     r._sync_rotation_alerts()
     with SessionLocal() as db:
-        a=db.query(Alert).filter(Alert.alert_type=="portfolio_swap",Alert.acknowledged==False).one()
-        assert a.action == "ROTATE"
-        assert "WEAK" in a.title and "BEST" in a.title
+        assert db.query(Alert).filter(Alert.alert_type=="portfolio_swap",Alert.acknowledged==False).count() == 0
+        a=db.query(Alert).filter(Alert.symbol=="BEST",Alert.alert_type=="buy_level",Alert.acknowledged==False).one()
+        assert a.action in {"STRONG BUY","BUY","STARTER BUY"}
 

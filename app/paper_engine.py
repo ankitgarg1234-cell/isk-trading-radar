@@ -116,20 +116,21 @@ def _sell(db, account: PaperAccount, pos: PaperPosition, price: float, shares: f
         pos.updated_at = datetime.now(timezone.utc)
 
 
-def _buy(db, account: PaperAccount, symbol: str, price: float, target_value: float, rank_score: float, reason: str) -> int:
-    if price <= 0 or target_value <= 0:
-        return 0
-    shares = math.floor(target_value / price)
+def _buy(db, account: PaperAccount, symbol: str, price: float, target_value: float, rank_score: float, reason: str) -> float:
+    """Paper-buy up to target_value, allowing fractional shares.
+
+    Fractional paper shares keep the uncapped Top-20 policy testable with finite
+    capital: an expensive qualified stock must not be silently skipped merely
+    because one whole share costs more than its equal-cash allocation.
+    """
+    if price <= 0 or target_value <= 0 or account.cash <= 0:
+        return 0.0
+    fee_rate = max(0.0, settings.paper_trade_cost_bps) / 10000.0
+    spendable = min(float(target_value), float(account.cash))
+    shares = spendable / (price * (1.0 + fee_rate))
+    shares = math.floor(shares * 1_000_000) / 1_000_000
     if shares <= 0:
-        return 0
-    while shares > 0:
-        gross = shares * price
-        fee = _trade_cost(gross)
-        if gross + fee <= account.cash:
-            break
-        shares -= 1
-    if shares <= 0:
-        return 0
+        return 0.0
     gross = shares * price
     fee = _trade_cost(gross)
     account.cash -= gross + fee
@@ -196,14 +197,14 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                 _sell(db, account, p, price, max(1, math.floor(p.shares * 0.25)), "Dashboard TAKE PARTIAL PROFIT", rank_score)
         db.flush()
 
-        # If immediate risk management closed/reduced a position, allow the
-        # optimizer to refill an open slot without waiting for tomorrow.
+        # If immediate risk management changes the holdings, rerun the Top-20
+        # allocation immediately so every currently qualified entry is reconsidered.
         current_after_risk = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).all()
-        risk_freed_slot = len(current_after_risk) < len(paper_positions)
+        risk_changed_portfolio = len(current_after_risk) < len(paper_positions)
 
         last_rebalance = _utc(account.last_rebalance_at)
         daily_due = last_rebalance is None or (now - last_rebalance).total_seconds() >= settings.paper_rebalance_seconds
-        entry_due = bool(entry_event or risk_freed_slot)
+        entry_due = bool(entry_event or risk_changed_portfolio)
         rebalance_due = bool(force_rebalance or daily_due or entry_due)
         if rebalance_due:
             current = current_after_risk
@@ -217,39 +218,65 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                 analyses, owned, profile=profile,
                 visible_limit=settings.optimizer_visible_limit,
                 shortlist_limit=settings.optimizer_shortlist_limit,
-                target_positions=settings.optimizer_target_positions,
-                max_positions=settings.optimizer_max_positions,
-                min_rank_score=settings.optimizer_min_rank_score,
-                rotation_gap=settings.optimizer_rotation_gap,
-                rotation_yield_gap=settings.optimizer_rotation_yield_gap,
             )
-            equity, _, _ = _equity(db, account, analyses)
-            target_value = equity / max(1, settings.optimizer_target_positions)
 
-            # Fill only optimizer-approved slots; unqualified capital remains cash.
-            for r in plan["selected_new"]:
-                if db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT, PaperPosition.symbol == r["symbol"]).first():
-                    continue
-                price = float((r["analysis"] or {}).get("price") or 0)
-                risk_scale = 0.7 if r["stock_risk"] >= 75 else 0.85 if r["stock_risk"] >= 60 else 1.0
-                _buy(db, account, r["symbol"], price, target_value * risk_scale, r["rank_score"], f"Optimizer #{r['market_rank']} {r['entry_signal']}")
+            # Buy every newly qualified Top-20 name. There is no holding-count,
+            # sector, tier, rank-threshold or risk-fit gate.
+            new_rows = [
+                r for r in plan["selected_new"]
+                if not db.query(PaperPosition).filter(
+                    PaperPosition.account == PAPER_ACCOUNT,
+                    PaperPosition.symbol == r["symbol"],
+                ).first()
+            ]
+
+            if new_rows:
+                # If legacy holdings consumed the available cash, proportionally
+                # rebalance existing positions to fund the newly qualified names.
+                # This is a capital-allocation rebalance, not a thesis REDUCE/EXIT.
+                equity, _, _ = _equity(db, account, analyses)
+                desired_count = max(1, len(current) + len(new_rows))
+                target_per_name = equity / desired_count if equity > 0 else 0.0
+                required_new_cash = target_per_name * len(new_rows)
+                if target_per_name > 0 and account.cash + 1e-9 < required_new_cash and current:
+                    shortfall = required_new_cash - account.cash
+                    fee_rate = max(0.0, settings.paper_trade_cost_bps) / 10000.0
+                    gross_to_raise = shortfall / max(1e-9, 1.0 - fee_rate)
+                    trim_rows = []
+                    trim_value = 0.0
+                    for pos in current:
+                        a = analyses.get(pos.symbol) or {}
+                        price = float(a.get("price") or pos.avg_cost or 0)
+                        value = float(pos.shares or 0) * price
+                        if price > 0 and value > 0:
+                            trim_rows.append((pos, price, value))
+                            trim_value += value
+                    for pos, price, value in trim_rows:
+                        gross_piece = min(value, gross_to_raise * (value / trim_value)) if trim_value else 0.0
+                        shares_to_sell = gross_piece / price if price > 0 else 0.0
+                        if shares_to_sell > 0:
+                            _sell(
+                                db, account, pos, price, shares_to_sell,
+                                "REBALANCE — fund newly qualified uncapped Top-20 entries",
+                                pos.rank_score_at_entry,
+                            )
+                    db.flush()
+
+                # Fractional paper shares make the equal-allocation policy feasible
+                # even when a stock price exceeds its per-name cash allocation.
+                for idx, r in enumerate(new_rows):
+                    remaining = len(new_rows) - idx
+                    if remaining <= 0 or account.cash <= 0:
+                        break
+                    price = float((r["analysis"] or {}).get("price") or 0)
+                    fair_share = float(account.cash) / remaining
+                    allocation = min(target_per_name, fair_share) if target_per_name > 0 else fair_share
+                    _buy(
+                        db, account, r["symbol"], price, allocation, r["rank_score"],
+                        f"Top-20 qualified #{r['market_rank']} {r['entry_signal']} — uncapped allocation",
+                    )
 
             db.flush()
-            current = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).all()
-            # A new BUY signal may fill an open slot immediately, but portfolio
-            # rotations remain deliberately slow (daily or manually forced) to
-            # prevent intraday rank-churn.
-            allow_rotation = bool(force_rebalance or daily_due)
-            if allow_rotation and len(current) >= settings.optimizer_target_positions and plan["rotations"]:
-                rot = plan["rotations"][0]
-                src = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT, PaperPosition.symbol == rot["symbol_from"]).first()
-                dst = next((r for r in plan["visible"] if r["symbol"] == rot["symbol_to"]), None)
-                if src and dst:
-                    src_price = float((analyses.get(src.symbol) or {}).get("price") or 0)
-                    _sell(db, account, src, src_price, src.shares, rot["detail"], src.rank_score_at_entry)
-                    db.flush()
-                    dst_price = float((dst["analysis"] or {}).get("price") or 0)
-                    _buy(db, account, dst["symbol"], dst_price, target_value, dst["rank_score"], rot["detail"])
             if force_rebalance or daily_due:
                 account.last_rebalance_at = now
 

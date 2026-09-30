@@ -241,11 +241,6 @@ def _dashboard_state(db):
         payloads,set(owned),profile=risk_profile,
         visible_limit=settings.optimizer_visible_limit,
         shortlist_limit=settings.optimizer_shortlist_limit,
-        target_positions=settings.optimizer_target_positions,
-        max_positions=settings.optimizer_max_positions,
-        min_rank_score=settings.optimizer_min_rank_score,
-        rotation_gap=settings.optimizer_rotation_gap,
-        rotation_yield_gap=settings.optimizer_rotation_yield_gap,
     )
     plan_by_symbol={r["symbol"]:r for r in optimizer["visible"]}
 
@@ -262,7 +257,7 @@ def _dashboard_state(db):
         if optimizer_approved or is_owned:
             sizing=suggested_position_size(a,cash=cash,reserve_cash=reserve,portfolio_value=portfolio_value,profile=risk_profile,fx_rate_to_base=rate or 0,existing_value=existing_value,whole_shares=True)
         else:
-            sizing={"shares":0,"capital":0,"fit":rankrow.get("risk_fit","UNKNOWN"),"stock_risk":rankrow.get("stock_risk",stock_risk_score(a)),"reason":"No capital allocated: optimizer did not select this candidate for the 5–7 stock portfolio"}
+            sizing={"shares":0,"capital":0,"fit":rankrow.get("risk_fit","UNKNOWN"),"stock_risk":rankrow.get("stock_risk",stock_risk_score(a)),"reason":rankrow.get("decision_reason") or "No capital allocated: current signal is not an investable Top-20 entry"}
         projected=projected_risk(risk_rows,cash,a,sizing,rate or 0,risk_profile) if rate and sizing.get("shares") else None
         prev=previous.get(sym) or {};changed=None
         if prev and prev.get("action") and prev.get("action")!=a.get("action"):changed=f"{prev.get('action')} → {a.get('action')}"
@@ -291,7 +286,10 @@ def _dashboard_state(db):
     alerts=[]
     for a in raw_alerts:
         if _is_snoozed(a) or not _attentionworthy_alert(a):continue
-        if settings.optimizer_live_gating and a.alert_type=="buy_level" and a.symbol not in approved_buy_symbols:continue
+        # In the current paper-only workflow, a buy-level alert must agree with
+        # the Top-20 allocator. This prevents raw CONSIDER/BUY signals outside the
+        # actionable allocation set from looking like paper-trade decisions.
+        if a.alert_type=="buy_level" and a.symbol not in approved_buy_symbols:continue
         alerts.append(a)
     alerts=sorted(alerts,key=_alert_priority)[:20]
 
@@ -312,9 +310,9 @@ def _dashboard_state(db):
         "portfolio_actions":sum(v["system_signal"] in {"SELL","STRONG SELL","TAKE PROFIT"} and v["owned"] for v in radar_views),
         "deployable_cash":max(0,cash-reserve),
         "best_candidate":next((v for v in radar_views if v.get("optimizer_bucket")=="INVEST NOW"),None),
-        "visible_candidates":len(radar_views),"shortlist_count":len(optimizer["shortlist"]),"target_positions":optimizer["target_positions"],"max_positions":optimizer["max_positions"],
+        "visible_candidates":len(radar_views),"shortlist_count":len(optimizer["shortlist"]),"position_cap_enabled":optimizer.get("position_cap_enabled",False),
     }
-    optimizer_summary={"version":optimizer["version"],"live_gating":settings.optimizer_live_gating,"visible":len(radar_views),"shortlist":len(optimizer["shortlist"]),"invest_now":len(optimizer["selected_new"]),"owned":optimizer["owned_count"],"target_positions":optimizer["target_positions"],"max_positions":optimizer["max_positions"],"rotations":len(optimizer["rotations"])}
+    optimizer_summary={"version":optimizer["version"],"live_gating":settings.optimizer_live_gating,"visible":len(radar_views),"shortlist":len(optimizer["shortlist"]),"invest_now":len(optimizer["selected_new"]),"owned":optimizer["owned_count"],"position_cap_enabled":optimizer.get("position_cap_enabled",False),"allocation_policy":optimizer.get("allocation_policy"),"rotations":len(optimizer["rotations"])}
     return {"positions":pos_views,"trades":trades,"analyses":analyses_req,"alerts":alerts,"candidates":radar_views,"cash":cash,"reserve":reserve,"proposals":props,"risk_profile":risk_profile,"risk_profiles":RISK_PROFILES,"account_risk":account,"base_currency":base_currency,"summary":summary,"optimizer":optimizer_summary,"paper":paper}
 
 
