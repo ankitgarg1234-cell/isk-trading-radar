@@ -504,6 +504,7 @@ def paper_status(db) -> dict:
             "benchmark_label": "S&P 500 Total Return",
             "core_position_count": 0,
             "explosive_position_count": 0,
+            "outside_lane_position_count": 0,
         }
     positions = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).order_by(PaperPosition.symbol).all()
     analyses = _candidate_payloads(db, [p.symbol for p in positions], ranked_limit=0)
@@ -534,22 +535,28 @@ def paper_status(db) -> dict:
         reason_upper = str(pos.reason or "").upper()
         graduated = "GRADUATED TO CORE" in reason_upper
         raw_lane = analysis.get("lane")
-        if graduated:
+        current_lane_qualified = analysis.get("lane_qualified") is True and raw_lane in {"CORE_QUALITY", "EXPLOSIVE"}
+        if graduated and current_lane_qualified:
             lane = "CORE_QUALITY"
         elif "EXPLOSIVE LANE" in reason_upper:
-            # Entry lane owns the 20-session lifecycle. A temporary current
-            # reclassification to Core does not silently erase the expiry clock.
+            # Entry lane owns the 20-session lifecycle. This identifies how the
+            # position was opened even when the current snapshot temporarily
+            # fails the new-entry gate; sell/hold remains thesis-gated elsewhere.
             lane = "EXPLOSIVE"
-        elif "CORE QUALITY LANE" in reason_upper:
-            lane = "CORE_QUALITY"
-        elif raw_lane in {"CORE_QUALITY", "EXPLOSIVE"}:
+        elif current_lane_qualified:
             lane = raw_lane
-        elif str(analysis.get("category") or "") == "Explosive Runner":
-            lane = "EXPLOSIVE"
         else:
-            lane = "CORE_QUALITY"
+            # Legacy positions and holdings that no longer satisfy current lane
+            # eligibility must never be mislabeled Core simply because no lane
+            # metadata exists. Keep managing the position without claiming it
+            # qualifies for a new Core/Explosive entry today.
+            lane = "OUTSIDE_LANES"
         row["lane"] = lane
-        row["lane_label"] = "Explosive Lane" if lane == "EXPLOSIVE" else "Core Quality Lane"
+        row["lane_label"] = (
+            "Explosive Lane" if lane == "EXPLOSIVE"
+            else "Core Quality Lane" if lane == "CORE_QUALITY"
+            else "Outside Current Lanes"
+        )
         row["trading_sessions_held"] = sessions
         row["explosive_sessions_remaining"] = max(0, 20 - sessions) if lane == "EXPLOSIVE" else None
         row["graduated_from_explosive"] = graduated
@@ -635,6 +642,7 @@ def paper_status(db) -> dict:
         "position_count": len(pos_rows),
         "core_position_count": sum(1 for r in pos_rows if r.get("lane") == "CORE_QUALITY"),
         "explosive_position_count": sum(1 for r in pos_rows if r.get("lane") == "EXPLOSIVE"),
+        "outside_lane_position_count": sum(1 for r in pos_rows if r.get("lane") == "OUTSIDE_LANES"),
         "trades": trade_rows,
         "trade_count": len(trade_rows),
         "legacy_trades": legacy_trade_rows,

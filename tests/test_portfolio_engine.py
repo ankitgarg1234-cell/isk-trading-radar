@@ -7,6 +7,9 @@ from app.portfolio_engine import (
 def sample_analysis():
     return {
         "symbol":"TEST","price":100,"category":"Core","action":"BUY NOW",
+        "lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,
+        "core_quality_qualified":True,"explosive_qualified":False,
+        "promotion_risk":{"hard_reject":False,"promotional_risk":False},
         "deterministic_score":88,"ai_score":92,"analyst_score":80,
         "entry_zone_status":"PRIMARY_BUY","decision_confidence":"high",
         "levels":{"buy_low":95,"buy_high":101,"better_low":90,"better_high":93,"breakout":108,"stop":92,"target":130,"do_not_chase":115},

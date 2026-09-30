@@ -487,18 +487,29 @@ def classify_lane(
     # shadow-only in v2. It is recorded for validation but cannot independently
     # qualify an Explosive setup or change Portfolio Priority.
     volume_explained = not promotion["unexplained_extreme_volume"]
-    explosive = (
-        core_quality
-        and avg_dollar >= EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME
-        and relvol >= 1.5
-        and (change20 >= 3.0 or near_high >= 0.985)
-        and catalyst_verified
-        and catalyst_score >= 8
-        and total_score >= 75
-        and expected_upside_pct >= 30.0
-        and volume_explained
-        and not promotion["dilution_risk"]
-    )
+    explosive_blockers: list[str] = []
+    if not core_quality:
+        explosive_blockers.append("Core quality gate")
+    if avg_dollar < EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME:
+        explosive_blockers.append("20d dollar liquidity < $20M")
+    if relvol < 1.5:
+        explosive_blockers.append("relative volume < 1.5x")
+    if not (change20 >= 3.0 or near_high >= 0.985):
+        explosive_blockers.append("momentum / near-high confirmation")
+    if not catalyst_verified:
+        explosive_blockers.append("verified material catalyst")
+    if catalyst_score < 8:
+        explosive_blockers.append("catalyst score < 8/15")
+    if total_score < 75:
+        explosive_blockers.append("system conviction < 75")
+    if expected_upside_pct < 30.0:
+        explosive_blockers.append("modeled remaining upside < 30%")
+    if not volume_explained:
+        explosive_blockers.append("unexplained extreme volume")
+    if promotion["dilution_risk"]:
+        explosive_blockers.append("dilution / financing risk")
+
+    explosive = not explosive_blockers
 
     if explosive:
         lane = EXPLOSIVE_LANE
@@ -535,6 +546,7 @@ def classify_lane(
         "explosive_holding_max_trading_sessions": EXPLOSIVE_MAX_TRADING_SESSIONS if explosive else None,
         "promotion_risk": promotion,
         "lane_reasons": reasons,
+        "explosive_blockers": explosive_blockers,
         "catalyst_verified": catalyst_verified,
         "catalyst_evidence": catalyst_evidence,
         "strategic_catalyst_evidence": strategic_evidence,
@@ -662,6 +674,7 @@ def score_bundle(bundle: dict) -> dict:
         "explosive_holding_max_trading_sessions": lane_info["explosive_holding_max_trading_sessions"],
         "promotion_risk": lane_info["promotion_risk"],
         "lane_reasons": lane_info["lane_reasons"],
+        "explosive_blockers": lane_info.get("explosive_blockers") or [],
         "catalyst_verified": lane_info["catalyst_verified"],
         "catalyst_evidence": lane_info.get("catalyst_evidence") or [],
         "strategic_catalyst_evidence": lane_info["strategic_catalyst_evidence"],

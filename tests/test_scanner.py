@@ -44,6 +44,8 @@ def test_persist_generates_buy_alert_without_duplicate_on_same_action():
         "symbol":"BUYME","price":100,"deterministic_score":90,"analyst_score":80,"ai_score":93,
         "expected_yield_pct":25,"ai_expected_yield_pct":30,"category":"Core","action":"BUY NOW",
         "action_reason":"Buy level reached","levels":{"buy_low":98,"buy_high":101},
+        "lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,
+        "core_quality_qualified":True,"explosive_qualified":False,"promotion_risk":{"hard_reject":False},
     }
     r.persist(payload); r.persist(payload)
     with SessionLocal() as db:
@@ -68,6 +70,8 @@ def test_persist_refreshes_same_active_alert_instead_of_duplicating():
         "symbol":"DEDUP","price":100,"deterministic_score":90,"analyst_score":80,"ai_score":93,
         "expected_yield_pct":25,"ai_expected_yield_pct":30,"category":"Core","action":"BUY NOW",
         "action_reason":"first reason","levels":{"buy_low":98,"buy_high":101},
+        "lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,
+        "core_quality_qualified":True,"explosive_qualified":False,"promotion_risk":{"hard_reject":False},
     }
     r.persist(payload)
     payload["action_reason"]="updated reason"
@@ -121,7 +125,9 @@ def test_material_action_change_writes_new_compact_snapshot():
 
 def test_attention_buy_ladder_only_surfaces_agreed_entry_scores():
     from app.scanner import _attention_buy_signal
-    base={"price":100,"decision_confidence":"high","negative_news_override":False,"thesis_assessment":{"invalidated":False}}
+    base={"price":100,"decision_confidence":"high","negative_news_override":False,"thesis_assessment":{"invalidated":False},
+          "lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,
+          "core_quality_qualified":True,"explosive_qualified":False,"promotion_risk":{"hard_reject":False}}
     cases=[
         (53,"PRIMARY_BUY",None),
         (67,"BETTER_BUY",None),
@@ -168,6 +174,8 @@ def test_agreed_buy_attention_actions_are_persisted():
             "expected_yield_pct":20,"ai_expected_yield_pct":22,"category":"Core","action":"WAIT MORE",
             "action_reason":"underlying radar state","entry_zone_status":zone,"decision_confidence":"high",
             "negative_news_override":False,"thesis_assessment":{"invalidated":False},"levels":{},
+            "lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,
+            "core_quality_qualified":True,"explosive_qualified":False,"promotion_risk":{"hard_reject":False},
         })
         with SessionLocal() as db:
             a=db.query(Alert).filter(Alert.symbol==symbol,Alert.acknowledged==False).one()
@@ -180,8 +188,8 @@ def test_uncapped_policy_adds_new_buy_without_rotation_for_space(monkeypatch):
     with SessionLocal() as db:
         for sym in ["WEAK","H2","H3","H4","H5","H6"]:
             db.add(Position(symbol=sym,shares=10,avg_cost=100,account="Test"))
-        weak={"symbol":"WEAK","price":95,"action":"HOLD — DON'T ADD","deterministic_score":50,"ai_score":55,"expected_yield_pct":4,"risk_reward":1.0,"decision_confidence":"high","entry_zone_status":"WATCH","levels":{},"fundamentals":{"sector":"Industrials"},"news":{"material_events":0}}
-        best={"symbol":"BEST","price":50,"action":"BUY NOW","deterministic_score":90,"ai_score":94,"expected_yield_pct":35,"risk_reward":3.2,"decision_confidence":"high","entry_zone_status":"PRIMARY_BUY","levels":{"buy_low":48,"buy_high":52,"stop":42,"target":70},"fundamentals":{"sector":"Technology"},"news":{"material_events":0},"thesis_assessment":{"invalidated":False}}
+        weak={"symbol":"WEAK","price":95,"action":"HOLD — DON'T ADD","deterministic_score":50,"ai_score":55,"expected_yield_pct":4,"risk_reward":1.0,"decision_confidence":"high","entry_zone_status":"WATCH","levels":{},"fundamentals":{"sector":"Industrials"},"news":{"material_events":0},"lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,"core_quality_qualified":True,"explosive_qualified":False,"promotion_risk":{"hard_reject":False}}
+        best={"symbol":"BEST","price":50,"action":"BUY NOW","deterministic_score":90,"ai_score":94,"expected_yield_pct":35,"risk_reward":3.2,"decision_confidence":"high","entry_zone_status":"PRIMARY_BUY","levels":{"buy_low":48,"buy_high":52,"stop":42,"target":70},"fundamentals":{"sector":"Technology"},"news":{"material_events":0},"thesis_assessment":{"invalidated":False},"lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,"core_quality_qualified":True,"explosive_qualified":False,"promotion_risk":{"hard_reject":False}}
         db.add(RadarCandidate(symbol="WEAK",action="HOLD — DON'T ADD",score=50,ai_score=55,price=95,portfolio_rank_score=30,current_json=json.dumps(weak)))
         db.add(RadarCandidate(symbol="BEST",action="BUY NOW",score=90,ai_score=94,price=50,portfolio_rank_score=90,current_json=json.dumps(best)))
         db.commit()

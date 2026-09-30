@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.analysis_engine import score_bundle
 from app.db import SessionLocal, PaperAccount, PaperPosition, PaperTrade, RadarCandidate
-from app.paper_engine import run_paper_cycle
+from app.paper_engine import run_paper_cycle, paper_status
 from app.portfolio_engine import score_target_allocation_pct, suggested_position_size, candidate_rank_score
 from app.strategic_capital import StrategicCapitalProvider
 from tests.helpers import bundle, strong_fundamentals, history
@@ -337,3 +337,50 @@ def test_credible_material_news_can_verify_explosive_catalyst():
     assert result["explosive_qualified"] is True
     assert result["catalyst_verified"] is True
     assert result["catalyst_evidence"]
+
+
+def test_explosive_blockers_explain_why_core_quality_name_does_not_qualify():
+    b = bundle()
+    b["fundamentals"]["marketCap"] = 5_000_000_000
+    result = score_bundle(b)
+    assert result["core_quality_qualified"] is True
+    assert result["explosive_qualified"] is False
+    assert result["explosive_blockers"]
+    assert "modeled remaining upside < 30%" in result["explosive_blockers"]
+
+
+def test_legacy_or_currently_ineligible_paper_holding_is_not_labeled_core():
+    now = datetime.now(timezone.utc)
+    legacy = {
+        "symbol": "OLDLOW",
+        "price": 3.50,
+        "previous_close": 3.60,
+        "deterministic_score": 80,
+        "category": "Core",
+        "action": "HOLD",
+        "levels": {"stop": 2.5, "target": 5.0},
+        "technicals": {},
+        "news": {},
+        "fundamentals": {"sector": "Healthcare"},
+    }
+    with SessionLocal() as db:
+        db.add(PaperAccount(
+            account="Optimizer Paper", starting_cash=1000, cash=650,
+            benchmark_symbol="^SP500TR", benchmark_start_price=100,
+            benchmark_last_price=100, enabled=True, last_rebalance_at=now,
+        ))
+        db.add(PaperPosition(
+            account="Optimizer Paper", symbol="OLDLOW", shares=100, avg_cost=3.50,
+            rank_score_at_entry=80, reason="Optimizer #1 BUY", opened_at=now,
+        ))
+        db.add(RadarCandidate(
+            symbol="OLDLOW", category="Core", action="HOLD", score=80, ai_score=80,
+            price=3.50, portfolio_rank_score=80, current_json=json.dumps(legacy),
+        ))
+        db.commit()
+        status = paper_status(db)
+        row = next(x for x in status["positions"] if x["symbol"] == "OLDLOW")
+        assert row["lane"] == "OUTSIDE_LANES"
+        assert row["lane_label"] == "Outside Current Lanes"
+        assert status["core_position_count"] == 0
+        assert status["outside_lane_position_count"] == 1

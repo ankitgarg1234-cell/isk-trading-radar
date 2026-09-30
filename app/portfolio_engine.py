@@ -465,9 +465,13 @@ def entry_attention_signal(a: dict) -> str | None:
     This intentionally does not blend AI/analyst scores into the decision.
     They remain separate confirmation signals.
     """
-    if a.get("lane_qualified") is False:
+    if a.get("lane_qualified") is not True:
         return None
-    if not a.get("lane") and str(a.get("category") or "") not in {"Core", "Explosive Runner"} and "lane_qualified" in a:
+    if a.get("lane") not in {"CORE_QUALITY", "EXPLOSIVE"}:
+        return None
+    if _float(a.get("price")) < 5.0:
+        return None
+    if bool((a.get("promotion_risk") or {}).get("hard_reject")):
         return None
     if bool((a.get("thesis_assessment") or {}).get("invalidated")):
         return None
@@ -571,15 +575,12 @@ def candidate_rank_score(a: dict) -> dict:
         delta = _float(analyst) - det
         analyst_confirmation = "CONFIRMS" if delta >= -8 and _float(analyst) >= 65 else "DIVERGES" if delta <= -15 else "NEUTRAL"
 
-    lane = a.get("lane")
-    if not lane:
-        cat = str(a.get("category") or "")
-        lane = "EXPLOSIVE" if cat == "Explosive Runner" else "CORE_QUALITY" if cat == "Core" else None
-        # Transitional compatibility for compact pre-v2 candidates already in
-        # storage. Fresh score_bundle payloads always carry explicit lane state,
-        # so this cannot bypass the new fundamental/promotion gates after refresh.
-        if lane is None and "lane_qualified" not in a and det >= 68:
-            lane = "CORE_QUALITY"
+    # Rank-v2 is fail-closed: historical/pre-lane payloads cannot be promoted
+    # into Core/Explosive by their old category label. They must be refreshed by
+    # score_bundle and explicitly pass the current lane gate.
+    lane = a.get("lane") if a.get("lane_qualified") is True else None
+    if lane not in {"CORE_QUALITY", "EXPLOSIVE"}:
+        lane = None
 
     return {
         "score": round(total, 1),
@@ -637,9 +638,10 @@ def build_optimizer_plan(
             continue
         rank = candidate_rank_score(a)
         lane = rank.get("lane")
-        explicit_lane_state = "lane_qualified" in a or "lane" in a
-        lane_qualified = bool(a.get("lane_qualified")) if explicit_lane_state else lane in {"CORE_QUALITY", "EXPLOSIVE"}
-        if not lane_qualified:
+        lane_qualified = a.get("lane_qualified") is True and lane in {"CORE_QUALITY", "EXPLOSIVE"}
+        hard_price_ok = _float(a.get("price")) >= 5.0
+        hard_promotion_ok = not bool((a.get("promotion_risk") or {}).get("hard_reject"))
+        if not lane_qualified or not hard_price_ok or not hard_promotion_ok:
             continue
         srisk = rank["stock_risk"]
         fit = risk_fit(srisk, profile)
