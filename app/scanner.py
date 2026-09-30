@@ -29,7 +29,7 @@ def _attention_buy_signal(full: dict, has_position: bool = False) -> tuple[str |
       85-100 -> STRONG BUY
       75-84  -> BUY
       68-74 in BETTER_BUY -> STARTER BUY
-      68-74 in PRIMARY_BUY -> CONSIDER BUY
+      68-74 in PRIMARY_BUY -> STARTER BUY
     Monitoring states below 68 stay in the Radar and never become attention alerts.
     Material bearish/thesis-invalidated setups are blocked from buy attention.
     """
@@ -56,10 +56,8 @@ def _attention_buy_signal(full: dict, has_position: bool = False) -> tuple[str |
         return "STRONG BUY", f"{zone.replace('_', ' ').title()} reached with deterministic conviction {score:.0f}/100"
     if score >= 75:
         return "BUY", f"{zone.replace('_', ' ').title()} reached with deterministic conviction {score:.0f}/100"
-    if score >= 68 and zone == "BETTER_BUY":
-        return "STARTER BUY", f"Better Buy reached with deterministic conviction {score:.0f}/100"
-    if score >= 68 and zone == "PRIMARY_BUY":
-        return "CONSIDER BUY", f"Primary Buy reached with deterministic conviction {score:.0f}/100"
+    if score >= 68 and zone in {"BETTER_BUY", "PRIMARY_BUY"}:
+        return "STARTER BUY", f"{zone.replace('_', ' ').title()} reached with deterministic conviction {score:.0f}/100"
     return None, None
 
 
