@@ -296,7 +296,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
             reason_upper = str(p.reason or "").upper()
             was_explosive = "EXPLOSIVE LANE" in reason_upper and "GRADUATED TO CORE" not in reason_upper
             sessions = trading_sessions_elapsed(p.opened_at, now)
-            if was_explosive and sessions >= 20 and price > 0:
+            if was_explosive and sessions > 20 and price > 0:
                 if bool(a.get("core_quality_qualified")):
                     p.reason = ("GRADUATED TO CORE — 20-session Explosive thesis completed | " + str(p.reason or ""))[:255]
                     p.updated_at = now
@@ -409,6 +409,12 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                     if scaled_capital + 1e-9 < one_share_cost:
                         continue
                     lane_label = str((r["analysis"] or {}).get("lane_label") or r.get("lane_label") or "Qualified Lane")
+                    if is_add and existing_pos:
+                        existing_reason = str(existing_pos.reason or "").upper()
+                        if "GRADUATED TO CORE" in existing_reason or "CORE QUALITY LANE" in existing_reason:
+                            lane_label = "Core Quality Lane"
+                        elif "EXPLOSIVE LANE" in existing_reason:
+                            lane_label = "Explosive Lane"
                     target_pct = float(sizing.get("target_allocation_pct") or 0)
                     scale_note = f" • cash-scaled {scale:.2f}x" if scale < 0.999 else ""
                     decision = "ADD" if is_add else str(r.get("entry_signal") or "BUY")
