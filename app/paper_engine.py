@@ -4,6 +4,7 @@ import json
 import math
 from datetime import datetime, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from .config import settings
 from .db import (
@@ -14,6 +15,8 @@ from .portfolio_engine import build_optimizer_plan, candidate_rank_score, normal
 from .analysis_engine import position_action
 
 PAPER_ACCOUNT = "Optimizer Paper"
+BENCHMARK_SYMBOL = "^SP500TR"
+NY = ZoneInfo("America/New_York")
 
 
 def _utc(dt: datetime | None) -> datetime | None:
@@ -22,7 +25,7 @@ def _utc(dt: datetime | None) -> datetime | None:
     return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 
-def _benchmark_prices(provider, started_at: datetime, symbol: str = "SPY") -> tuple[float | None, float | None]:
+def _benchmark_prices(provider, started_at: datetime, symbol: str = BENCHMARK_SYMBOL) -> tuple[float | None, float | None]:
     """Return adjusted benchmark start/latest closes for total-return comparison."""
     try:
         chart = provider.chart(symbol, "1y", "1d")
@@ -42,12 +45,17 @@ def _benchmark_prices(provider, started_at: datetime, symbol: str = "SPY") -> tu
 def _ensure_account(db) -> PaperAccount:
     account = db.query(PaperAccount).filter(PaperAccount.account == PAPER_ACCOUNT).first()
     if account:
+        if account.benchmark_symbol != BENCHMARK_SYMBOL:
+            account.benchmark_symbol = BENCHMARK_SYMBOL
+            account.benchmark_start_price = None
+            account.benchmark_last_price = None
+            db.flush()
         return account
     account = PaperAccount(
         account=PAPER_ACCOUNT,
         starting_cash=settings.paper_starting_cash,
         cash=settings.paper_starting_cash,
-        benchmark_symbol="SPY",
+        benchmark_symbol=BENCHMARK_SYMBOL,
         enabled=settings.paper_trading_enabled,
     )
     db.add(account)
@@ -253,12 +261,17 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
         # Benchmark is sampled only when the compact paper snapshot is due.
         last_snapshot = db.query(PaperSnapshot).filter(PaperSnapshot.account == PAPER_ACCOUNT).order_by(PaperSnapshot.created_at.desc()).first()
         last_snap_at = _utc(last_snapshot.created_at) if last_snapshot else None
-        snapshot_due = last_snap_at is None or (now - last_snap_at).total_seconds() >= settings.paper_snapshot_seconds
+        snapshot_due = (
+            last_snap_at is None
+            or (now - last_snap_at).total_seconds() >= settings.paper_snapshot_seconds
+            or not account.benchmark_start_price
+            or not account.benchmark_last_price
+        )
         if snapshot_due:
             bench_start, bench_last = _benchmark_prices(provider, account.started_at, account.benchmark_symbol)
             if bench_start and bench_last:
-                # Recompute the historical adjusted start on each sample so SPY
-                # dividends are reflected as total return rather than price return.
+                # Recompute the historical start on each sample against the
+                # S&P 500 Total Return Index (^SP500TR).
                 account.benchmark_start_price = bench_start
                 account.benchmark_last_price = bench_last
             equity, invested, rows = _equity(db, account, analyses)
@@ -287,7 +300,7 @@ def paper_status(db) -> dict:
     analyses = _candidate_payloads(db, [p.symbol for p in positions], ranked_limit=0)
     equity, invested, pos_rows = _equity(db, account, analyses)
     snap = db.query(PaperSnapshot).filter(PaperSnapshot.account == PAPER_ACCOUNT).order_by(PaperSnapshot.created_at.desc()).first()
-    trades = db.query(PaperTrade).filter(PaperTrade.account == PAPER_ACCOUNT).order_by(PaperTrade.created_at.desc()).limit(12).all()
+    trades = db.query(PaperTrade).filter(PaperTrade.account == PAPER_ACCOUNT).order_by(PaperTrade.created_at.desc()).limit(24).all()
     positions_by_symbol = {p.symbol: p for p in positions}
     for row in pos_rows:
         pos = positions_by_symbol.get(row.get("symbol"))
@@ -308,7 +321,7 @@ def paper_status(db) -> dict:
         row["entry_rank_score"] = round(float(pos.rank_score_at_entry or 0), 2)
         row["reason"] = pos.reason or ""
         row["opened_at"] = pos.opened_at.isoformat() if pos.opened_at else None
-    trade_rows = [{
+    all_trade_rows = [{
         "id": t.id,
         "symbol": t.symbol,
         "side": t.side,
@@ -318,7 +331,30 @@ def paper_status(db) -> dict:
         "rank_score": t.rank_score,
         "reason": t.reason or "",
         "created_at": t.created_at.isoformat() if t.created_at else None,
+        "legacy_rebalance": bool(
+            str(t.side or "").upper() == "SELL"
+            and str(t.reason or "").startswith("REBALANCE — fund newly qualified")
+        ),
     } for t in trades]
+    trade_rows = [t for t in all_trade_rows if not t["legacy_rebalance"]][:12]
+    legacy_trade_rows = [t for t in all_trade_rows if t["legacy_rebalance"]][:12]
+
+    absolute_return = equity - float(account.starting_cash or 0)
+    snapshots = db.query(PaperSnapshot).filter(
+        PaperSnapshot.account == PAPER_ACCOUNT
+    ).order_by(PaperSnapshot.created_at.desc()).limit(200).all()
+    today_ny = datetime.now(timezone.utc).astimezone(NY).date()
+    prior_day_snapshot = next(
+        (
+            s for s in snapshots
+            if _utc(s.created_at) and _utc(s.created_at).astimezone(NY).date() < today_ny
+        ),
+        None,
+    )
+    daily_base_equity = float(prior_day_snapshot.equity or 0) if prior_day_snapshot else float(account.starting_cash or 0)
+    daily_pnl = equity - daily_base_equity
+    daily_pnl_pct = (daily_pnl / daily_base_equity * 100) if daily_base_equity else 0.0
+
     port_ret = (equity / account.starting_cash - 1) * 100 if account.starting_cash else 0.0
     bench_ret = ((account.benchmark_last_price / account.benchmark_start_price - 1) * 100) if account.benchmark_last_price and account.benchmark_start_price else 0.0
     return {
@@ -329,13 +365,21 @@ def paper_status(db) -> dict:
         "invested": round(invested, 2),
         "equity": round(equity, 2),
         "return_pct": round(port_ret, 2),
+        "absolute_return": round(absolute_return, 2),
+        "daily_pnl": round(daily_pnl, 2),
+        "daily_pnl_pct": round(daily_pnl_pct, 2),
+        "daily_pnl_base_equity": round(daily_base_equity, 2),
         "benchmark_symbol": account.benchmark_symbol,
+        "benchmark_label": "S&P 500 Total Return",
         "benchmark_return_pct": round(bench_ret, 2),
         "excess_return_pct": round(port_ret - bench_ret, 2),
         "drawdown_pct": round(float(snap.drawdown_pct or 0), 2) if snap else 0.0,
         "positions": pos_rows,
         "position_count": len(pos_rows),
         "trades": trade_rows,
+        "trade_count": len(trade_rows),
+        "legacy_trades": legacy_trade_rows,
+        "legacy_trade_count": len(legacy_trade_rows),
         "started_at": account.started_at,
         "updated_at": account.updated_at,
     }
