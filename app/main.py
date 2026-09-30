@@ -9,7 +9,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy import text
 from .config import settings
-from .db import engine, SessionLocal, Position, AnalysisRequest, Trade, PortfolioCash, PortfolioPreference, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, storage_status
+from .db import engine, SessionLocal, Position, PaperPosition, AnalysisRequest, Trade, PortfolioCash, PortfolioPreference, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, storage_status
 from .analysis_engine import parse_positions_from_text
 from .portfolio_engine import RISK_PROFILES, ACTION_RANK, normalise_profile, stock_risk_score, system_signal, active_level, analyst_label, suggested_position_size, account_risk, projected_risk, risk_band, build_optimizer_plan, candidate_rank_score
 from .paper_engine import paper_status, reset_paper, run_paper_cycle
@@ -162,6 +162,7 @@ def _is_snoozed(a: Alert, now: datetime | None = None) -> bool:
 
 def _dashboard_state(db):
     positions=db.query(Position).order_by(Position.symbol).all()
+    paper_positions=db.query(PaperPosition).filter(PaperPosition.account=="Optimizer Paper").order_by(PaperPosition.symbol).all()
     trades=db.query(Trade).order_by(Trade.created_at.desc()).limit(20).all()
     analyses_req=db.query(AnalysisRequest).order_by(AnalysisRequest.created_at.desc()).limit(8).all()
     raw_alerts=db.query(Alert).filter(Alert.acknowledged==False).order_by(Alert.created_at.desc()).limit(100).all()
@@ -176,7 +177,8 @@ def _dashboard_state(db):
     if not candidates or max((float(getattr(c,"portfolio_rank_score",0) or 0) for c in candidates),default=0)<=0:
         candidates=db.query(RadarCandidate).order_by(RadarCandidate.updated_at.desc()).limit(150).all()
     have={c.symbol for c in candidates}
-    missing=[p.symbol for p in positions if p.symbol not in have]
+    tracked_symbols={p.symbol for p in positions} | {p.symbol for p in paper_positions}
+    missing=[sym for sym in tracked_symbols if sym not in have]
     if missing:
         candidates += db.query(RadarCandidate).filter(RadarCandidate.symbol.in_(missing)).all()
     candidate_map={c.symbol:c for c in candidates}
@@ -202,7 +204,7 @@ def _dashboard_state(db):
             try:latest[snap.symbol]=json.loads(snap.payload_json)
             except Exception:continue
         payloads.update(latest)
-    missing_holdings=[p.symbol for p in positions if p.symbol not in payloads]
+    missing_holdings=[sym for sym in tracked_symbols if sym not in payloads]
     for sym in missing_holdings:
         snap=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol==sym).order_by(AnalysisSnapshot.created_at.desc()).first()
         if snap:
@@ -238,10 +240,21 @@ def _dashboard_state(db):
         row={"id":p.id,"symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account,"price":price,"previous_close":previous_close or None,"day_change_pct":day_change_pct,"pnl":pnl,"action":a.get("action","ANALYSIS QUEUED"),"ai_score":a.get("ai_score"),"action_plan":a.get("action_plan"),"action_reason":a.get("action_reason"),"currency":currency,"decision_confidence":a.get("decision_confidence"),"value_base":value_base,"stock_risk":srisk,"sector":sector,"category":a.get("category"),"material_events":(a.get("news") or {}).get("material_events",0),"system_signal":system_signal(a,True) if a else "WATCH","portfolio_rank_score":rank.get("score",0)}
         pos_views.append(row);risk_rows.append(row);owned[p.symbol]=row
 
+    paper_owned={}
+    for p in paper_positions:
+        a=payloads.get(p.symbol,{})
+        price=float(a.get("price") or p.avg_cost or 0)
+        currency=_currency_for(p.symbol,a);rate=fx.get(currency)
+        paper_owned[p.symbol]={
+            "symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost,
+            "value_base":(price*p.shares*rate) if price and rate else 0.0,
+        }
+    owned_symbols=set(owned) | set(paper_owned)
+
     account=account_risk(risk_rows,cash,target_profile=risk_profile)
     portfolio_value=float(account.get("total") or cash)
     optimizer=build_optimizer_plan(
-        payloads,set(owned),profile=risk_profile,
+        payloads,owned_symbols,profile=risk_profile,
         visible_limit=settings.optimizer_visible_limit,
         shortlist_limit=settings.optimizer_shortlist_limit,
     )
@@ -252,10 +265,11 @@ def _dashboard_state(db):
         sym=rankrow["symbol"]
         c=candidate_map.get(sym)
         a=payloads.get(sym) or {}
-        is_owned=sym in owned
+        is_owned=sym in owned_symbols
+        owned_row=owned.get(sym) or paper_owned.get(sym) or {}
         level=active_level(a,is_owned)
         currency=_currency_for(sym,a);rate=fx.get(currency)
-        existing_value=owned.get(sym,{}).get("value_base",0.0)
+        existing_value=owned_row.get("value_base",0.0)
         optimizer_approved=rankrow.get("bucket") in {"INVEST NOW","ROTATE IN"}
         explicit_add=is_owned and str(a.get("action") or "").upper()=="ADD"
         if optimizer_approved or explicit_add:
@@ -276,7 +290,7 @@ def _dashboard_state(db):
             "symbol":sym,"name":name,"price":view_price,"previous_close":view_previous_close or None,"day_change_pct":view_day_change_pct,"currency":currency,
             "category":a.get("category") or (c.category if c else "Watch"),"score":float(a.get("deterministic_score") or (c.score if c else 0) or 0),"ai_score":float(a.get("ai_score") or (c.ai_score if c else 0) or 0),
             "analyst_score":a.get("analyst_score"),"analyst_label":analyst_label(a),"action":a.get("action") or (c.action if c else "WATCH"),"action_reason":a.get("action_reason") or "",
-            "system_signal":signal,"owned":is_owned,"owned_shares":owned.get(sym,{}).get("shares"),"owned_avg":owned.get(sym,{}).get("avg_cost"),
+            "system_signal":signal,"owned":is_owned,"owned_shares":owned_row.get("shares"),"owned_avg":owned_row.get("avg_cost"),
             "level_label":level["label"],"level_value":level["value"],"distance":level["distance"],"distance_pct":level["distance_pct"],
             "target":(a.get("levels") or {}).get("target"),"stop":(a.get("levels") or {}).get("stop"),"risk_reward":a.get("risk_reward"),
             "expected_yield_pct":a.get("expected_yield_pct"),
@@ -292,9 +306,16 @@ def _dashboard_state(db):
         radar_views.append(view)
 
     approved_buy_symbols={r["symbol"] for r in optimizer["selected_new"]}
+    paper_owned_symbols=set(paper_owned)
     alerts=[]
     for a in raw_alerts:
         if _is_snoozed(a) or not _attentionworthy_alert(a):continue
+        # A paper position is already owned even if it is not in the manual
+        # Position table. Suppress stale/new-entry BUY alerts for owned paper
+        # holdings unless the underlying portfolio action is explicitly ADD.
+        if a.symbol in paper_owned_symbols and str(a.action or "").upper() in {"STRONG BUY","BUY","STARTER BUY","CONSIDER BUY","BUY NOW","BREAKOUT BUY","CONSIDER BUYING NOW","CONSIDER STARTER BUY"}:
+            if str((payloads.get(a.symbol) or {}).get("action") or "").upper() != "ADD":
+                continue
         # In the current paper-only workflow, a buy-level alert must agree with
         # the Top-20 allocator. This prevents raw CONSIDER/BUY signals outside the
         # actionable allocation set from looking like paper-trade decisions.
