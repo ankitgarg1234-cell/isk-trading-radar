@@ -226,13 +226,16 @@ def _dashboard_state(db):
     pos_views=[];risk_rows=[];owned={}
     for p in positions:
         a=payloads.get(p.symbol,{})
-        price=float(a.get("price") or 0);pnl=(price/p.avg_cost-1)*100 if price and p.avg_cost else None
+        price=float(a.get("price") or 0)
+        previous_close=float(a.get("previous_close") or 0)
+        pnl=(price/p.avg_cost-1)*100 if price and p.avg_cost else None
+        day_change_pct=((price/previous_close)-1)*100 if price and previous_close else None
         currency=_currency_for(p.symbol,a);rate=fx.get(currency)
         value_base=(price*p.shares*rate) if price and rate else 0.0
         srisk=stock_risk_score(a) if a else 50.0
         sector=(a.get("fundamentals") or {}).get("sector") or "Unknown"
         rank=candidate_rank_score(a) if a else {"score":0}
-        row={"id":p.id,"symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account,"price":price,"pnl":pnl,"action":a.get("action","ANALYSIS QUEUED"),"ai_score":a.get("ai_score"),"action_plan":a.get("action_plan"),"action_reason":a.get("action_reason"),"currency":currency,"decision_confidence":a.get("decision_confidence"),"value_base":value_base,"stock_risk":srisk,"sector":sector,"category":a.get("category"),"material_events":(a.get("news") or {}).get("material_events",0),"system_signal":system_signal(a,True) if a else "WATCH","portfolio_rank_score":rank.get("score",0)}
+        row={"id":p.id,"symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account,"price":price,"previous_close":previous_close or None,"day_change_pct":day_change_pct,"pnl":pnl,"action":a.get("action","ANALYSIS QUEUED"),"ai_score":a.get("ai_score"),"action_plan":a.get("action_plan"),"action_reason":a.get("action_reason"),"currency":currency,"decision_confidence":a.get("decision_confidence"),"value_base":value_base,"stock_risk":srisk,"sector":sector,"category":a.get("category"),"material_events":(a.get("news") or {}).get("material_events",0),"system_signal":system_signal(a,True) if a else "WATCH","portfolio_rank_score":rank.get("score",0)}
         pos_views.append(row);risk_rows.append(row);owned[p.symbol]=row
 
     account=account_risk(risk_rows,cash,target_profile=risk_profile)
@@ -263,8 +266,11 @@ def _dashboard_state(db):
         if prev and prev.get("action") and prev.get("action")!=a.get("action"):changed=f"{prev.get('action')} → {a.get('action')}"
         fundamentals=a.get("fundamentals") or {};name=fundamentals.get("companyName") or a.get("company_name") or sym
         signal=system_signal(a,is_owned)
+        view_price=float(a.get("price") or (c.price if c else 0) or 0)
+        view_previous_close=float(a.get("previous_close") or 0)
+        view_day_change_pct=((view_price/view_previous_close)-1)*100 if view_price and view_previous_close else None
         view={
-            "symbol":sym,"name":name,"price":float(a.get("price") or (c.price if c else 0) or 0),"currency":currency,
+            "symbol":sym,"name":name,"price":view_price,"previous_close":view_previous_close or None,"day_change_pct":view_day_change_pct,"currency":currency,
             "category":a.get("category") or (c.category if c else "Watch"),"score":float(a.get("deterministic_score") or (c.score if c else 0) or 0),"ai_score":float(a.get("ai_score") or (c.ai_score if c else 0) or 0),
             "analyst_score":a.get("analyst_score"),"analyst_label":analyst_label(a),"action":a.get("action") or (c.action if c else "WATCH"),"action_reason":a.get("action_reason") or "",
             "system_signal":signal,"owned":is_owned,"owned_shares":owned.get(sym,{}).get("shares"),"owned_avg":owned.get(sym,{}).get("avg_cost"),
@@ -476,13 +482,15 @@ def alert_detail(alert_id:int):
         pd={"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account} if p else None
         level=active_level(payload,bool(p)) if payload else {"label":"—","value":"—","distance":"—"}
         price=float(payload.get("price") or (snap.price if snap else 0) or 0)
+        previous_close=float(payload.get("previous_close") or 0)
+        day_change_pct=((price/previous_close)-1)*100 if price and previous_close else None
         pnl=((price/p.avg_cost-1)*100) if p and p.avg_cost and price else None
         thesis=payload.get("thesis_assessment") or {}
         news=payload.get("news") or {}
         return {
             "alert":{"id":a.id,"symbol":a.symbol,"title":a.title,"message":a.message,"severity":a.severity,"action":a.action,"created_at":a.created_at.isoformat() if a.created_at else None},
             "analysis":{
-                "price":price,"system_score":payload.get("deterministic_score"),"ai_score":payload.get("ai_score"),
+                "price":price,"previous_close":previous_close or None,"day_change_pct":day_change_pct,"system_score":payload.get("deterministic_score"),"ai_score":payload.get("ai_score"),
                 "analyst_score":payload.get("analyst_score"),"analyst_label":analyst_label(payload) if payload else "No consensus",
                 "action":payload.get("action") or a.action,"reason":payload.get("action_reason") or a.message,
                 "confidence":payload.get("decision_confidence"),"active_level":level,

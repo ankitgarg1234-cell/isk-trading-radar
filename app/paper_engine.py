@@ -318,12 +318,22 @@ def paper_status(db) -> dict:
     equity, invested, pos_rows = _equity(db, account, analyses)
     snap = db.query(PaperSnapshot).filter(PaperSnapshot.account == PAPER_ACCOUNT).order_by(PaperSnapshot.created_at.desc()).first()
     trades = db.query(PaperTrade).filter(PaperTrade.account == PAPER_ACCOUNT).order_by(PaperTrade.created_at.desc()).limit(12).all()
-    for row, pos in zip(pos_rows, positions):
+    positions_by_symbol = {p.symbol: p for p in positions}
+    for row in pos_rows:
+        pos = positions_by_symbol.get(row.get("symbol"))
+        if pos is None:
+            continue
         cost_basis = float(pos.shares or 0) * float(pos.avg_cost or 0)
         pnl = float(row.get("value") or 0) - cost_basis
+        analysis = analyses.get(pos.symbol) or {}
+        previous_close = float(analysis.get("previous_close") or 0)
+        price = float(row.get("price") or 0)
+        day_change_pct = ((price / previous_close) - 1) * 100 if price > 0 and previous_close > 0 else None
         row["cost_basis"] = round(cost_basis, 2)
         row["pnl"] = round(pnl, 2)
         row["pnl_pct"] = round((pnl / cost_basis * 100) if cost_basis else 0.0, 2)
+        row["previous_close"] = round(previous_close, 4) if previous_close > 0 else None
+        row["day_change_pct"] = round(day_change_pct, 2) if day_change_pct is not None else None
         row["weight_pct"] = round((float(row.get("value") or 0) / equity * 100) if equity else 0.0, 2)
         row["entry_rank_score"] = round(float(pos.rank_score_at_entry or 0), 2)
         row["reason"] = pos.reason or ""

@@ -288,3 +288,28 @@ def test_scan_once_rechecks_top20_every_cycle_even_without_new_signal(monkeypatc
     assert second["paper_top20_recheck"] is True
     assert calls == [True]
 
+def test_paper_percentages_separate_daily_move_from_entry_pnl():
+    with SessionLocal() as db:
+        db.add(PaperAccount(account="Optimizer Paper", starting_cash=10000, cash=5000, benchmark_symbol="SPY", enabled=True))
+        # Insert out of alphabetical order to prove paper_status does not rely on
+        # database row order when attaching cost basis / P&L to symbols.
+        db.add(PaperPosition(account="Optimizer Paper", symbol="BBB", shares=10, avg_cost=100, rank_score_at_entry=70, reason="B"))
+        db.add(PaperPosition(account="Optimizer Paper", symbol="AAA", shares=5, avg_cost=80, rank_score_at_entry=80, reason="A"))
+        a = payload("AAA", score=85, price=110)
+        a["previous_close"] = 100
+        b = payload("BBB", score=80, price=50)
+        b["previous_close"] = 55
+        db.add(RadarCandidate(symbol="AAA", category="Core", action="BUY NOW", score=85, ai_score=88, price=110, portfolio_rank_score=85, current_json=json.dumps(a)))
+        db.add(RadarCandidate(symbol="BBB", category="Core", action="BUY NOW", score=80, ai_score=88, price=50, portfolio_rank_score=80, current_json=json.dumps(b)))
+        db.commit()
+
+    with SessionLocal() as db:
+        status = paper_status(db)
+    by_symbol = {r["symbol"]: r for r in status["positions"]}
+    assert by_symbol["AAA"]["day_change_pct"] == 10.0
+    assert by_symbol["AAA"]["pnl_pct"] == 37.5
+    assert by_symbol["AAA"]["reason"] == "A"
+    assert by_symbol["BBB"]["day_change_pct"] == -9.09
+    assert by_symbol["BBB"]["pnl_pct"] == -50.0
+    assert by_symbol["BBB"]["reason"] == "B"
+

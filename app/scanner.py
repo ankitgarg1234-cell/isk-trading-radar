@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import gc
 import hashlib
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -717,6 +718,10 @@ class RadarService:
             run_paper_cycle(self.provider, entry_event=paper_top20_recheck)
         except Exception as e:
             errors.append(f"paper trading: {type(e).__name__}")
+        # Release cyclic/transient analysis objects promptly between cycles. This
+        # is a secondary guard; the primary 502 fix is keeping heavyweight PDF
+        # parsing out of the live process.
+        gc.collect()
         self.last_scan = datetime.now(timezone.utc)
         self.scan_count += 1
         self.last_deep_analyzed = ok
