@@ -106,7 +106,7 @@
         {% for label,value in account_risk.breakdown.items() %}<div><span>{{ label }}</span><div class="risk-bar"><i style="width:{{ [value,100]|min }}%"></i></div><b>{{ '%.0f'|format(value) }}</b></div>{% endfor %}
       </div>
     </div>
-    <p class="footnote">Risk profile affects position-size caps, cash-buffer preferences and whether a stock fits the portfolio. It does not change the stock's deterministic or AI score.</p>
+    <p class="footnote">Risk profile sets the stop-loss risk budget and cash-buffer preference. Portfolio Priority score sets the target allocation; risk can only cap that target, never increase it.</p>
   </section>
 
   <section class="panel alert-panel">
