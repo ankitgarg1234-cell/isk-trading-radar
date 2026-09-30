@@ -582,7 +582,7 @@ class RadarService:
         explosive_pool = [
             r for r in results
             if float(r.get("price") or 0) >= 5
-            and float(r.get("dollar_volume") or 0) >= 20_000_000
+            and float(r.get("avg_dollar_volume_20") or r.get("dollar_volume") or 0) >= 20_000_000
             and (
                 float(r.get("change_5_pct") or 0) >= 3
                 or float(r.get("change_20_pct") or 0) >= 7
@@ -598,11 +598,11 @@ class RadarService:
         core_pool = [
             r for r in results
             if float(r.get("price") or 0) >= 5
-            and float(r.get("dollar_volume") or 0) >= 10_000_000
+            and float(r.get("avg_dollar_volume_20") or r.get("dollar_volume") or 0) >= 10_000_000
         ]
         core_pool.sort(
             key=lambda r: (
-                float(r.get("dollar_volume") or 0),
+                float(r.get("avg_dollar_volume_20") or r.get("dollar_volume") or 0),
                 float(r.get("near_20d_high") or 0),
             ),
             reverse=True,
@@ -626,11 +626,11 @@ class RadarService:
                 [
                     r for r in results
                     if float(r.get("price") or 0) >= 5
-                    and float(r.get("dollar_volume") or 0) >= 10_000_000
+                    and float(r.get("avg_dollar_volume_20") or r.get("dollar_volume") or 0) >= 10_000_000
                 ],
                 key=lambda r: (
                     float(r.get("scan_score") or 0),
-                    float(r.get("dollar_volume") or 0),
+                    float(r.get("avg_dollar_volume_20") or r.get("dollar_volume") or 0),
                 ),
                 reverse=True,
             )
