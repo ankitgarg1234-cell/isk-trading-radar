@@ -343,6 +343,28 @@ def _dashboard_state(db):
     alerts=sorted(alerts,key=_alert_priority)[:20]
 
     paper=paper_status(db)
+
+    lane_refresh_pending = 0
+    explosive_evaluated = 0
+    explosive_near_misses = 0
+    blocker_counts = {}
+    for a in payloads.values():
+        if not isinstance(a, dict) or not a.get("symbol"):
+            continue
+        if "lane_qualified" not in a or "lane" not in a:
+            lane_refresh_pending += 1
+            continue
+        explosive_evaluated += 1
+        if a.get("core_quality_qualified") is True and a.get("explosive_qualified") is not True:
+            explosive_near_misses += 1
+        if a.get("explosive_qualified") is not True:
+            for blocker in a.get("explosive_blockers") or []:
+                blocker_counts[blocker] = blocker_counts.get(blocker, 0) + 1
+    explosive_top_blockers = [
+        {"label": label, "count": count}
+        for label, count in sorted(blocker_counts.items(), key=lambda kv: (-kv[1], kv[0]))[:4]
+    ]
+
     summary={
         "buy_now":len(optimizer["selected_new"]),
         "portfolio_actions":sum(v["system_signal"] in {"SELL","STRONG SELL","TAKE PROFIT"} and v["owned"] for v in radar_views),
@@ -353,7 +375,18 @@ def _dashboard_state(db):
         "explosive_count":sum(1 for v in radar_views if v.get("lane")=="EXPLOSIVE"),
     }
     lane_counts=optimizer.get("lane_counts") or {}
-    optimizer_summary={"version":optimizer["version"],"live_gating":settings.optimizer_live_gating,"visible":len(radar_views),"shortlist":len(optimizer["shortlist"]),"invest_now":len(optimizer["selected_new"]),"owned":optimizer["owned_count"],"position_cap_enabled":optimizer.get("position_cap_enabled",False),"allocation_policy":optimizer.get("allocation_policy"),"rotations":len(optimizer["rotations"]),"core_quality":lane_counts.get("core_quality",0),"explosive":lane_counts.get("explosive",0)}
+    optimizer_summary={
+        "version":optimizer["version"],"live_gating":settings.optimizer_live_gating,
+        "visible":len(radar_views),"shortlist":len(optimizer["shortlist"]),
+        "invest_now":len(optimizer["selected_new"]),"owned":optimizer["owned_count"],
+        "position_cap_enabled":optimizer.get("position_cap_enabled",False),
+        "allocation_policy":optimizer.get("allocation_policy"),"rotations":len(optimizer["rotations"]),
+        "core_quality":lane_counts.get("core_quality",0),"explosive":lane_counts.get("explosive",0),
+        "lane_refresh_pending":lane_refresh_pending,
+        "explosive_evaluated":explosive_evaluated,
+        "explosive_near_misses":explosive_near_misses,
+        "explosive_top_blockers":explosive_top_blockers,
+    }
     display_radar_views=sorted(
         radar_views,
         key=lambda v: (0 if v.get("lane")=="CORE_QUALITY" else 1, int(v.get("market_rank") or 999)),
