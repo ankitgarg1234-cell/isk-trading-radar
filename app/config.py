@@ -54,6 +54,12 @@ class Settings:
     # Government / strategic-capital monitor. This evidence is shadow-only until
     # walk-forward + forward paper testing proves incremental value versus SPY.
     strategic_capital_enabled: bool = _bool("STRATEGIC_CAPITAL_ENABLED", True)
+    # PDF disclosure parsing is intentionally disabled in the live web/scanner
+    # process by default. pypdf can temporarily consume hundreds of MB while
+    # parsing the annual/periodic disclosure files, which exceeds the 512 MB
+    # Render web-service limit and causes restart/502 loops. Lightweight
+    # strategic/news/USAspending evidence remains enabled.
+    strategic_disclosure_pdf_enabled: bool = _bool("STRATEGIC_DISCLOSURE_PDF_ENABLED", False)
     strategic_official_refresh_hours: int = int(os.getenv("STRATEGIC_OFFICIAL_REFRESH_HOURS", "24"))
     strategic_enrich_per_cycle: int = int(os.getenv("STRATEGIC_ENRICH_PER_CYCLE", "4"))
     strategic_enrich_interval_seconds: int = int(os.getenv("STRATEGIC_ENRICH_INTERVAL_SECONDS", "120"))
