@@ -310,13 +310,15 @@ def suggested_position_size(
     target_position_value = total * (target_pct / 100.0)
     desired_increment = max(0.0, target_position_value - max(0.0, existing_value))
 
-    risk_factor = 1.0 if fit == "GOOD FIT" else 0.75 if fit == "STRETCH" else 0.50
-    risk_budget = total * (p["risk_per_trade_pct"] / 100.0) * risk_factor
-    existing_shares = (existing_value / price_base) if price_base > 0 else 0.0
-    existing_stop_risk = existing_shares * stop_risk_base
-    remaining_risk_budget = max(0.0, risk_budget - existing_stop_risk)
-    risk_share_cap = remaining_risk_budget / stop_risk_base if stop_risk_base > 0 else 0.0
-    risk_capital = risk_share_cap * price_base
+    # The score ladder is the primary sizing curve. Safety must not routinely
+    # flatten higher scores into the same lot size. Full score-target sizing is
+    # allowed when the stop is within 15%; wider stops scale the target down.
+    # Independently, loss-at-stop may not exceed 2% of total portfolio equity.
+    stop_pct = ((price - stop) / price) if price > stop else 0.0
+    stop_width_capital = desired_increment if stop_pct <= 0.15 else desired_increment * (0.15 / stop_pct)
+    absolute_loss_budget = total * 0.02
+    absolute_loss_capital = (absolute_loss_budget / stop_pct) if stop_pct > 0 else desired_increment
+    risk_capital = min(desired_increment, stop_width_capital, absolute_loss_capital)
 
     capital_limit = min(desired_increment, risk_capital, deployable_cash)
     raw_shares = capital_limit / price_base if price_base > 0 else 0.0
@@ -333,7 +335,7 @@ def suggested_position_size(
     binding = min(caps, key=caps.get) if caps else "unknown"
     reason = (
         f"Priority {final_score:.1f}/100 → {target_pct:.0f}% target; "
-        f"final size capped by {binding} using {p['risk_per_trade_pct']}% {profile.lower()} risk budget"
+        f"final size capped by {binding}; safety only reduces targets for >15% stop width or >2% portfolio loss-at-stop"
     )
     if shares <= 0 and desired_increment > 0:
         reason += "; whole-share price is above the current safe/deployable amount"
