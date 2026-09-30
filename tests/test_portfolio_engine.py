@@ -43,3 +43,12 @@ def test_account_risk_flags_concentrated_portfolio():
     assert r["score"] > 50
     assert r["largest_position_pct"] >= 70
     assert r["gap"] > 0
+
+def test_primary_buy_69_is_starter_buy_consistently():
+    a=sample_analysis()
+    a["action"]="CONSIDER BUYING NOW"
+    a["deterministic_score"]=69
+    a["ai_score"]=76
+    a["entry_zone_status"]="PRIMARY_BUY"
+    assert system_signal(a,False) == "STARTER BUY"
+
