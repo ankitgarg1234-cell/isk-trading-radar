@@ -38,6 +38,10 @@ def test_dashboard_renders_shell_and_import_features():
     assert "SCREENSHOT / OCR POSITION IMPORT" in body
     assert "ANALYZE ANY COMPANY OR SYMBOL" in body
     assert "TRADE LEDGER" in body
+    assert "Capital movement proposals" not in body
+    assert body.count("MANUAL RESEARCH QUEUE") == 1
+    assert 'id="analyzeSymbol"' in body
+    assert 'id="symbolSuggestions"' in body
 
 
 def test_manual_position_and_trade_ledger_persist():
@@ -377,3 +381,44 @@ def test_analysis_refresh_forces_strategic_official_refresh(monkeypatch):
     r = client.get('/analysis/NVDA?refresh=1')
     assert r.status_code == 200
     assert called == {"symbol": "NVDA", "strategic_refresh": True}
+
+
+def test_manual_analysis_request_is_deduplicated_by_symbol(monkeypatch):
+    monkeypatch.setattr(mainmod.radar.provider,"resolve_symbol",lambda q:{"symbol":"CRDO","name":"Credo Technology","source":"test"})
+    monkeypatch.setattr(mainmod.radar,"analyze_symbol",lambda *args,**kwargs: full_payload("CRDO"))
+    r1=client.post('/analyze',data={"symbol":"Credo Technology","source_note":"Manual"},follow_redirects=False)
+    r2=client.post('/analyze',data={"symbol":"CRDO","source_note":"Analyst upgrade"},follow_redirects=False)
+    assert r1.status_code == 303 and r2.status_code == 303
+    with SessionLocal() as db:
+        rows=db.query(mainmod.AnalysisRequest).filter(mainmod.AnalysisRequest.symbol=="CRDO").all()
+        assert len(rows) == 1
+        assert rows[0].source_note == "Analyst upgrade"
+    body=client.get('/').text
+    assert body.count('href="/analysis/CRDO"') >= 1
+    queue_start=body.index("MANUAL RESEARCH QUEUE")
+    queue_end=body.index("</section>",queue_start)
+    assert body[queue_start:queue_end].count('href="/analysis/CRDO"') == 1
+
+
+def test_symbol_search_autocomplete_returns_ticker_and_company(monkeypatch):
+    monkeypatch.setattr(mainmod.radar.provider,"us_equity_universe",lambda:[
+        {"symbol":"CRDO","name":"Credo Technology Group Holding Ltd","exchange":"NASDAQ"},
+        {"symbol":"CRM","name":"Salesforce Inc","exchange":"NYSE"},
+        {"symbol":"CRED","name":"Example Cred Corp","exchange":"NASDAQ"},
+    ])
+    r=client.get('/api/symbol-search?q=credo')
+    assert r.status_code == 200
+    rows=r.json()["results"]
+    assert rows[0]["symbol"] == "CRDO"
+    assert rows[0]["name"].startswith("Credo Technology")
+    assert rows[0]["exchange"] == "NASDAQ"
+
+
+def test_symbol_search_prioritizes_ticker_prefix(monkeypatch):
+    monkeypatch.setattr(mainmod.radar.provider,"us_equity_universe",lambda:[
+        {"symbol":"CRDO","name":"Credo Technology","exchange":"NASDAQ"},
+        {"symbol":"CRM","name":"Salesforce Inc","exchange":"NYSE"},
+        {"symbol":"CRC","name":"California Resources","exchange":"NYSE"},
+    ])
+    rows=client.get('/api/symbol-search?q=cr').json()["results"]
+    assert [x["symbol"] for x in rows[:3]] == ["CRC","CRDO","CRM"]
