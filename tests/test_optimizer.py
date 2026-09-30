@@ -224,7 +224,7 @@ def test_gwre_style_policy_change_rechecks_without_buy_state_transition(monkeypa
     assert radar._paper_entry_event(dict(gwre)) is False
 
 
-def test_scan_once_policy_invalidation_forces_full_paper_optimizer_run(monkeypatch):
+def test_scan_once_rechecks_top20_every_cycle_even_without_new_signal(monkeypatch):
     import app.scanner as scanner_mod
 
     radar = RadarService(provider=object(), ai=object())
@@ -240,10 +240,12 @@ def test_scan_once_policy_invalidation_forces_full_paper_optimizer_run(monkeypat
     monkeypatch.setattr(scanner_mod, "run_paper_cycle", fake_paper_cycle)
     first = radar.scan_once(force=True)
     assert first["paper_optimizer_invalidated"] is True
+    assert first["paper_top20_recheck"] is True
     assert calls == [True]
 
     calls.clear()
     second = radar.scan_once(force=True)
     assert second["paper_optimizer_invalidated"] is False
-    assert calls == [False]
+    assert second["paper_top20_recheck"] is True
+    assert calls == [True]
 
