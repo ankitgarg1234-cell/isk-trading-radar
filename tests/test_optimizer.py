@@ -1,9 +1,9 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from fastapi.testclient import TestClient
 
-from app.db import SessionLocal, RadarCandidate, PaperAccount, PaperPosition, PaperTrade
+from app.db import SessionLocal, RadarCandidate, PaperAccount, PaperPosition, PaperTrade, PaperSnapshot
 from app.main import app
 from app.paper_engine import run_paper_cycle, paper_status, _candidate_payloads
 from app.portfolio_engine import build_optimizer_plan, candidate_rank_score
@@ -325,3 +325,65 @@ def test_paper_percentages_separate_daily_move_from_entry_pnl():
     assert by_symbol["BBB"]["pnl_pct"] == -50.0
     assert by_symbol["BBB"]["reason"] == "B"
 
+
+
+def test_paper_summary_absolute_daily_and_legacy_trade_split():
+    now = datetime.now(timezone.utc)
+    a = payload("AAA", score=85, price=105)
+    a["previous_close"] = 100
+    with SessionLocal() as db:
+        db.add(PaperAccount(
+            account="Optimizer Paper", starting_cash=10000, cash=9000,
+            benchmark_symbol="SPY", enabled=True, started_at=now-timedelta(days=2),
+        ))
+        db.add(PaperPosition(
+            account="Optimizer Paper", symbol="AAA", shares=10,
+            avg_cost=100, rank_score_at_entry=80, reason="valid buy",
+        ))
+        db.add(RadarCandidate(
+            symbol="AAA", category="Core", action="BUY NOW", score=85, ai_score=88,
+            price=105, portfolio_rank_score=80, current_json=json.dumps(a),
+        ))
+        db.add(PaperSnapshot(
+            account="Optimizer Paper", equity=9900, cash=9000, invested=900,
+            benchmark_price=100, portfolio_return_pct=-1, benchmark_return_pct=0,
+            excess_return_pct=-1, drawdown_pct=-1, positions_count=1,
+            created_at=now-timedelta(days=1),
+        ))
+        db.add(PaperTrade(
+            account="Optimizer Paper", symbol="AAA", side="BUY", shares=10,
+            price=100, fees=1, rank_score=80, reason="valid buy",
+            created_at=now-timedelta(hours=2),
+        ))
+        db.add(PaperTrade(
+            account="Optimizer Paper", symbol="AAA", side="SELL", shares=1,
+            price=101, fees=0.1, rank_score=80,
+            reason="REBALANCE — fund newly qualified uncapped Top-20 entries",
+            created_at=now-timedelta(hours=1),
+        ))
+        db.commit()
+
+    with SessionLocal() as db:
+        status = paper_status(db)
+    assert status["equity"] == 10050.0
+    assert status["absolute_return"] == 50.0
+    assert status["daily_pnl"] == 150.0
+    assert status["daily_pnl_pct"] == 1.52
+    assert status["trade_count"] == 1
+    assert status["legacy_trade_count"] == 1
+    assert status["trades"][0]["side"] == "BUY"
+    assert status["legacy_trades"][0]["legacy_rebalance"] is True
+
+
+def test_existing_paper_account_migrates_to_sp500_total_return_benchmark():
+    now = datetime.now(timezone.utc)
+    with SessionLocal() as db:
+        db.add(PaperAccount(
+            account="Optimizer Paper", starting_cash=10000, cash=10000,
+            benchmark_symbol="SPY", enabled=True, started_at=now-timedelta(days=1),
+        ))
+        db.commit()
+    run_paper_cycle(BenchProvider(), force_rebalance=True)
+    with SessionLocal() as db:
+        acct = db.query(PaperAccount).one()
+        assert acct.benchmark_symbol == "^SP500TR"
