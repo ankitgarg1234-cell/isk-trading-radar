@@ -469,6 +469,10 @@ def entry_attention_signal(a: dict) -> str | None:
         return None
     if a.get("lane") not in {"CORE_QUALITY", "EXPLOSIVE"}:
         return None
+    if _float(a.get("price")) < 5.0:
+        return None
+    if bool((a.get("promotion_risk") or {}).get("hard_reject")):
+        return None
     if bool((a.get("thesis_assessment") or {}).get("invalidated")):
         return None
     if a.get("negative_news_override"):
@@ -635,7 +639,9 @@ def build_optimizer_plan(
         rank = candidate_rank_score(a)
         lane = rank.get("lane")
         lane_qualified = a.get("lane_qualified") is True and lane in {"CORE_QUALITY", "EXPLOSIVE"}
-        if not lane_qualified:
+        hard_price_ok = _float(a.get("price")) >= 5.0
+        hard_promotion_ok = not bool((a.get("promotion_risk") or {}).get("hard_reject"))
+        if not lane_qualified or not hard_price_ok or not hard_promotion_ok:
             continue
         srisk = rank["stock_risk"]
         fit = risk_fit(srisk, profile)
