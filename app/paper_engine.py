@@ -110,7 +110,8 @@ def _trade_cost(gross: float) -> float:
 
 
 def _sell(db, account: PaperAccount, pos: PaperPosition, price: float, shares: float, reason: str, rank_score: float = 0.0) -> None:
-    shares = min(float(pos.shares), max(0.0, float(shares)))
+    # Avanza-style paper execution: whole shares only.
+    shares = math.floor(min(float(pos.shares), max(0.0, float(shares))) + 1e-9)
     if shares <= 0 or price <= 0:
         return
     gross = shares * price
@@ -125,18 +126,12 @@ def _sell(db, account: PaperAccount, pos: PaperPosition, price: float, shares: f
 
 
 def _buy(db, account: PaperAccount, symbol: str, price: float, target_value: float, rank_score: float, reason: str) -> float:
-    """Paper-buy up to target_value, allowing fractional shares.
-
-    Fractional paper shares keep the uncapped Top-20 policy testable with finite
-    capital: an expensive qualified stock must not be silently skipped merely
-    because one whole share costs more than its equal-cash allocation.
-    """
+    """Paper-buy up to target_value using whole shares only."""
     if price <= 0 or target_value <= 0 or account.cash <= 0:
         return 0.0
     fee_rate = max(0.0, settings.paper_trade_cost_bps) / 10000.0
     spendable = min(float(target_value), float(account.cash))
-    shares = spendable / (price * (1.0 + fee_rate))
-    shares = math.floor(shares * 1_000_000) / 1_000_000
+    shares = math.floor(spendable / (price * (1.0 + fee_rate)) + 1e-12)
     if shares <= 0:
         return 0.0
     gross = shares * price
@@ -154,6 +149,42 @@ def _buy(db, account: PaperAccount, symbol: str, price: float, target_value: flo
         db.add(PaperPosition(account=PAPER_ACCOUNT, symbol=symbol, shares=shares, avg_cost=price, rank_score_at_entry=rank_score, reason=reason[:255]))
     db.add(PaperTrade(account=PAPER_ACCOUNT, symbol=symbol, side="BUY", shares=shares, price=price, fees=fee, rank_score=rank_score, reason=reason[:255]))
     return shares
+
+
+def _normalise_whole_share_positions(db, account: PaperAccount, analyses: dict[str, dict]) -> list[dict]:
+    """Repair legacy fractional paper positions without creating fake SELL trades.
+
+    Fractional positions were produced by an earlier paper-allocation bug. We
+    floor them to whole shares and return the fractional mark-to-market value to
+    paper cash, preserving account equity at the correction instant.
+    """
+    corrections = []
+    positions = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).all()
+    now = datetime.now(timezone.utc)
+    for pos in positions:
+        original = float(pos.shares or 0)
+        whole = math.floor(original + 1e-9)
+        fraction = max(0.0, original - whole)
+        if fraction <= 1e-9:
+            continue
+        a = analyses.get(pos.symbol) or {}
+        price = float(a.get("price") or pos.avg_cost or 0)
+        cash_credit = fraction * price if price > 0 else 0.0
+        account.cash += cash_credit
+        corrections.append({
+            "symbol": pos.symbol,
+            "from_shares": original,
+            "to_shares": whole,
+            "cash_credit": cash_credit,
+        })
+        if whole <= 0:
+            db.delete(pos)
+        else:
+            pos.shares = whole
+            pos.updated_at = now
+    if corrections:
+        db.flush()
+    return corrections
 
 
 def _equity(db, account: PaperAccount, analyses: dict[str, dict]) -> tuple[float, float, list[dict]]:
@@ -184,6 +215,12 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
         analyses = _candidate_payloads(db, [p.symbol for p in paper_positions], ranked_limit=0)
         pref = db.query(PortfolioPreference).filter(PortfolioPreference.account == "Main").first()
         profile = normalise_profile(pref.risk_profile if pref else "MEDIUM")
+
+        # One-time state repair for positions created by the old fractional-share
+        # allocator. This is bookkeeping correction, not a market SELL.
+        whole_share_corrections = _normalise_whole_share_positions(db, account, analyses)
+        if whole_share_corrections:
+            paper_positions = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).all()
 
         # Immediate risk management uses the existing thesis-gated position action.
         for p in list(paper_positions):
@@ -240,19 +277,36 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
 
             if new_rows:
                 # Never sell an intact holding merely to fund another qualified
-                # candidate. Paper sells are reserved for thesis-invalidated
-                # EXIT/REDUCE or explicit TAKE PARTIAL PROFIT handled above.
-                # New qualified names share only the cash already available.
-                for idx, r in enumerate(new_rows):
-                    remaining = len(new_rows) - idx
-                    if remaining <= 0 or account.cash <= 0:
-                        break
+                # candidate. Whole-share execution means finite cash can make some
+                # otherwise-qualified names temporarily unaffordable.
+                priced_rows = []
+                fee_rate = max(0.0, settings.paper_trade_cost_bps) / 10000.0
+                for r in new_rows:
                     price = float((r["analysis"] or {}).get("price") or 0)
-                    allocation = float(account.cash) / remaining
-                    _buy(
-                        db, account, r["symbol"], price, allocation, r["rank_score"],
-                        f"Top-20 qualified #{r['market_rank']} {r['entry_signal']} — funded from available cash only",
-                    )
+                    if price > 0:
+                        priced_rows.append((r, price, price * (1.0 + fee_rate)))
+
+                total_one_share_cost = sum(x[2] for x in priced_rows)
+                if priced_rows and total_one_share_cost <= float(account.cash or 0):
+                    # If cash can fund one share of every qualified name, reserve
+                    # that minimum first, then spread any residual capital evenly.
+                    residual = float(account.cash) - total_one_share_cost
+                    extra_each = residual / len(priced_rows)
+                    for r, price, one_share_cost in priced_rows:
+                        _buy(
+                            db, account, r["symbol"], price, one_share_cost + extra_each, r["rank_score"],
+                            f"Top-20 qualified #{r['market_rank']} {r['entry_signal']} — whole-share allocation",
+                        )
+                else:
+                    # Otherwise buy in portfolio-rank order while at least one
+                    # whole share remains affordable. Never create fractional dust.
+                    for r, price, one_share_cost in priced_rows:
+                        if float(account.cash or 0) + 1e-9 < one_share_cost:
+                            continue
+                        _buy(
+                            db, account, r["symbol"], price, one_share_cost, r["rank_score"],
+                            f"Top-20 qualified #{r['market_rank']} {r['entry_signal']} — one whole share from available cash",
+                        )
 
             db.flush()
             if force_rebalance or daily_due:
@@ -289,6 +343,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
             "rebalanced": rebalance_due,
             "entry_event": entry_due,
             "daily_rebalance": bool(force_rebalance or daily_due),
+            "whole_share_corrections": whole_share_corrections,
         }
 
 
