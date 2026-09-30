@@ -15,7 +15,7 @@ def strong_fundamentals():
         "revenueGrowth":.30,"earningsGrowth":.35,"grossMargins":.65,"operatingMargins":.24,
         "returnOnEquity":.28,"debtToEquity":35,"forwardPE":28,
         "targetMeanPrice":150,"targetHighPrice":175,"targetLowPrice":105,
-        "recommendationMean":1.7,"sector":"Technology"
+        "recommendationMean":1.7,"sector":"Technology","marketCap":5_000_000_000
     }
 
 
