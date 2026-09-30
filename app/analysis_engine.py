@@ -447,7 +447,10 @@ def classify_lane(
 
     strategic_catalyst, strategic_evidence = _strategic_catalyst(bundle)
     news_catalyst = bool(news.get("catalysts")) and int(news.get("material_events") or 0) >= 1
-    catalyst_verified = news_catalyst or strategic_catalyst
+    # Government / political / connected-capital evidence is intentionally
+    # shadow-only in v2. It is recorded for validation but cannot independently
+    # qualify an Explosive setup or change Portfolio Priority.
+    catalyst_verified = news_catalyst
     volume_explained = not promotion["unexplained_extreme_volume"]
     explosive = (
         core_quality
