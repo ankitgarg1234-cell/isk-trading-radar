@@ -553,37 +553,49 @@ def build_optimizer_plan(
             "strategic_capital_shadow": rank.get("strategic_capital_shadow") or {},
         })
     rows.sort(key=lambda r: (r["rank_score"], r["expected_yield_pct"]), reverse=True)
+    effective_shortlist_limit = max(1, min(shortlist_limit, max(1, visible_limit)))
     for i, r in enumerate(rows, 1):
         r["market_rank"] = i
         r["bucket"] = "RESERVE"
         r["optimizer_action"] = "PASS"
+        r["decision_reason"] = f"PASS — Rank #{i}; Top-{effective_shortlist_limit} shortlist required"
 
     visible = rows[:max(1, visible_limit)]
     shortlist = visible[:max(1, min(shortlist_limit, len(visible)))]
     for r in shortlist:
         r["bucket"] = "SHORTLIST"
-        r["optimizer_action"] = "WATCH CLOSELY"
+        r["optimizer_action"] = "PASS"
+        r["decision_reason"] = "PASS — awaiting portfolio eligibility checks"
     for r in visible:
         if r["owned"]:
             r["bucket"] = "PORTFOLIO"
             r["optimizer_action"] = "HOLD / MANAGE"
+            r["decision_reason"] = "HOLD / MANAGE — already held in the portfolio"
 
     owned_rows = [r for r in rows if r["owned"]]
 
     selected_new = []
     # Aim for six holdings, never exceed seven, and never force weak candidates.
+    # Every shortlist row gets BUY or an explicit PASS reason; no silent BUYs.
     open_slots = max(0, min(target_positions, max_positions) - len(owned))
     for r in shortlist:
-        if open_slots <= 0:
-            break
         if r["owned"]:
             continue
         if r["entry_signal"] not in INVESTABLE_ENTRY_ACTIONS:
+            r["decision_reason"] = f"PASS — current entry signal {r['entry_signal'] or 'NONE'} is not investable"
             continue
-        if r["rank_score"] < min_rank_score or r["risk_fit"] == "ABOVE TARGET":
+        if r["rank_score"] < min_rank_score:
+            r["decision_reason"] = f"PASS — portfolio priority {r['rank_score']:.1f} is below {min_rank_score:.1f} minimum"
+            continue
+        if r["risk_fit"] == "ABOVE TARGET":
+            r["decision_reason"] = "PASS — stock risk is above the selected portfolio risk profile"
+            continue
+        if open_slots <= 0:
+            r["decision_reason"] = f"PASS — target portfolio slots already allocated ({min(target_positions, max_positions)} target)"
             continue
         r["bucket"] = "INVEST NOW"
         r["optimizer_action"] = r["entry_signal"]
+        r["decision_reason"] = f"{r['entry_signal']} — selected at portfolio rank #{r['market_rank']}"
         selected_new.append(r)
         open_slots -= 1
 
@@ -601,6 +613,7 @@ def build_optimizer_plan(
                 if rank_gap >= rotation_gap and yield_gap >= rotation_yield_gap:
                     candidate["bucket"] = "ROTATE IN"
                     candidate["optimizer_action"] = "ROTATE"
+                    candidate["decision_reason"] = f"ROTATE — stronger than {held['symbol']} by {rank_gap:.1f} priority pts and {yield_gap:.1f} expected-return pts"
                     rotations.append({
                         "symbol_from": held["symbol"],
                         "symbol_to": candidate["symbol"],

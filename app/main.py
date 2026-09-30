@@ -280,7 +280,7 @@ def _dashboard_state(db):
             "suggested_shares":sizing.get("shares",0),"suggested_capital":sizing.get("capital",0),"sizing_reason":sizing.get("reason",""),
             "projected_risk":projected.get("score") if projected else None,"changed":changed,
             "updated_at":c.updated_at.isoformat() if c and c.updated_at else None,
-            "market_rank":rankrow.get("market_rank"),"portfolio_rank_score":rankrow.get("rank_score"),"optimizer_bucket":rankrow.get("bucket"),"optimizer_action":rankrow.get("optimizer_action"),
+            "market_rank":rankrow.get("market_rank"),"portfolio_rank_score":rankrow.get("rank_score"),"optimizer_bucket":rankrow.get("bucket"),"optimizer_action":rankrow.get("optimizer_action"),"optimizer_decision_reason":rankrow.get("decision_reason"),
             "rank_components":rankrow.get("rank_components"),"ai_confirmation":rankrow.get("ai_confirmation"),"analyst_confirmation":rankrow.get("analyst_confirmation"),
             "strategic_capital":a.get("strategic_capital") or {},
             "strategic_capital_shadow":rankrow.get("strategic_capital_shadow") or {},

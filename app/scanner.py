@@ -157,6 +157,11 @@ class RadarService:
         # optimizer needs an immediate event-driven run.  It is intentionally
         # not stored in Neon; a service restart may cause one harmless recheck.
         self._paper_entry_state: dict[str, tuple] = {}
+        # Portfolio eligibility/config state is deliberately separate from the
+        # per-symbol BUY state. A service restart or a material optimizer-policy
+        # change must force one full Top-20 re-evaluation even when a stock stays
+        # BUY -> BUY (the GWRE missed-entry failure mode).
+        self._paper_optimizer_policy_state: str | None = None
         self._last_strategic_enrich_at: datetime | None = None
 
     def market_open(self, now=None):
@@ -580,6 +585,47 @@ class RadarService:
         ordered = priority + discovery_symbols + broad_symbols
         return list(dict.fromkeys(s.upper() for s in ordered if s))
 
+    def _paper_optimizer_policy_fingerprint(self) -> str:
+        """Fingerprint every rule that can change paper-entry eligibility.
+
+        This is intentionally independent of ticker signal transitions. Removing
+        a sector/tier restriction, changing risk profile or changing optimizer
+        thresholds must invalidate the prior portfolio selection even if GWRE (or
+        any other candidate) remains BUY before and after the change.
+        """
+        with SessionLocal() as db:
+            pref = db.query(PortfolioPreference).filter(PortfolioPreference.account == "Main").first()
+            profile = normalise_profile(pref.risk_profile if pref else "MEDIUM")
+        material = {
+            "policy_version": "eligibility-v2-no-sector-no-tier",
+            "risk_profile": profile,
+            "visible_limit": settings.optimizer_visible_limit,
+            "shortlist_limit": settings.optimizer_shortlist_limit,
+            "target_positions": settings.optimizer_target_positions,
+            "max_positions": settings.optimizer_max_positions,
+            "min_rank_score": settings.optimizer_min_rank_score,
+            "rotation_gap": settings.optimizer_rotation_gap,
+            "rotation_yield_gap": settings.optimizer_rotation_yield_gap,
+            "paper_trade_cost_bps": settings.paper_trade_cost_bps,
+            "investable_entry_actions": sorted(INVESTABLE_ENTRY_ACTIONS),
+            # Explicitly encode the current policy: these legacy constraints are gone.
+            "sector_position_cap": None,
+            "per_tier_max_positions": None,
+        }
+        return hashlib.sha1(json.dumps(material, sort_keys=True, default=str).encode("utf-8")).hexdigest()
+
+    def _paper_optimizer_invalidation_event(self) -> bool:
+        """Return True once when optimizer eligibility/config becomes stale.
+
+        The first open-market scan after a service restart intentionally returns
+        True. That one harmless recheck prevents stale portfolio decisions after a
+        deployment that changes eligibility rules.
+        """
+        current = self._paper_optimizer_policy_fingerprint()
+        previous = self._paper_optimizer_policy_state
+        self._paper_optimizer_policy_state = current
+        return previous != current
+
     def _paper_entry_event(self, full: dict) -> bool:
         """True when an investable candidate materially changes this scan.
 
@@ -633,7 +679,11 @@ class RadarService:
         batch = syms[: settings.scan_batch_size]
         ok = 0
         errors: list[str] = []
-        paper_entry_event = False
+        # Portfolio-rule/config changes are first-class optimizer events. This is
+        # what makes an already-actionable BUY such as GWRE get reconsidered after
+        # a blocking restriction is removed; no BUY -> BUY transition is required.
+        optimizer_policy_event = self._paper_optimizer_invalidation_event()
+        paper_entry_event = optimizer_policy_event
         paper_event_symbols: list[str] = []
         for sym in batch:
             try:
@@ -658,9 +708,11 @@ class RadarService:
         except Exception as e:
             errors.append(f"portfolio optimizer: {type(e).__name__}")
         try:
-            # Entry decisions are event-driven: all newly actionable names from
-            # this completed scan are coalesced into one optimizer run.  Broader
-            # portfolio rotation remains on the daily cadence inside paper_engine.
+            # Entry decisions are event-driven. A run is triggered by either a
+            # material ticker event OR a portfolio-eligibility/config invalidation.
+            # The paper engine then reloads and re-ranks the complete current Top 20,
+            # so a BUY does not need to leave BUY and become BUY again to be seen.
+            # Broader portfolio rotation remains on the daily cadence.
             run_paper_cycle(self.provider, entry_event=paper_entry_event)
         except Exception as e:
             errors.append(f"paper trading: {type(e).__name__}")
@@ -675,6 +727,7 @@ class RadarService:
             "universe_deep_candidates": self.last_universe_candidates,
             "universe_start": self.last_universe_start,
             "paper_entry_event": paper_entry_event,
+            "paper_optimizer_invalidated": optimizer_policy_event,
             "paper_event_symbols": paper_event_symbols,
         }
 

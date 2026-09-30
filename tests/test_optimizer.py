@@ -156,3 +156,76 @@ def test_scanner_entry_event_is_material_and_not_repeated_for_same_state():
     changed = dict(p)
     changed["expected_yield_pct"] = 5
     assert radar._paper_entry_event(changed) is True
+
+def test_optimizer_has_no_per_tier_max_two_cap():
+    analyses = {}
+    for i in range(6):
+        p = payload(f"TIER{i}", score=95-i, sector="Technology", expected=35-i)
+        p["tier"] = "A"
+        analyses[p["symbol"]] = p
+    plan = build_optimizer_plan(
+        analyses, profile="HIGH", visible_limit=20, shortlist_limit=10,
+        target_positions=6, max_positions=7, min_rank_score=62
+    )
+    assert len(plan["selected_new"]) == 6
+
+
+def test_actionable_visible_candidate_always_has_buy_or_explicit_pass_reason():
+    analyses = {
+        f"R{i:02d}": payload(f"R{i:02d}", score=95-i, sector="Technology", expected=35-i * 0.2)
+        for i in range(12)
+    }
+    plan = build_optimizer_plan(
+        analyses, profile="HIGH", visible_limit=20, shortlist_limit=10,
+        target_positions=6, max_positions=7, min_rank_score=62
+    )
+    assert all(r.get("decision_reason") for r in plan["visible"])
+    rank_11 = plan["visible"][10]
+    assert rank_11["entry_signal"] in {"STRONG BUY", "BUY", "STARTER BUY"}
+    assert rank_11["optimizer_action"] == "PASS"
+    assert "Top-10 shortlist required" in rank_11["decision_reason"]
+
+
+def test_gwre_style_policy_change_rechecks_without_buy_state_transition(monkeypatch):
+    from dataclasses import replace
+    import app.scanner as scanner_mod
+
+    radar = RadarService(provider=object(), ai=object())
+    gwre = payload("GWRE", score=77, sector="Technology", expected=25, price=100)
+    assert radar._paper_entry_event(gwre) is True
+    assert radar._paper_entry_event(dict(gwre)) is False
+
+    assert radar._paper_optimizer_invalidation_event() is True
+    assert radar._paper_optimizer_invalidation_event() is False
+
+    monkeypatch.setattr(
+        scanner_mod, "settings",
+        replace(scanner_mod.settings, optimizer_min_rank_score=scanner_mod.settings.optimizer_min_rank_score + 1),
+    )
+    assert radar._paper_optimizer_invalidation_event() is True
+    assert radar._paper_entry_event(dict(gwre)) is False
+
+
+def test_scan_once_policy_invalidation_forces_full_paper_optimizer_run(monkeypatch):
+    import app.scanner as scanner_mod
+
+    radar = RadarService(provider=object(), ai=object())
+    monkeypatch.setattr(radar, "candidate_symbols", lambda: [])
+    monkeypatch.setattr(radar, "_enrich_strategic_top_candidates", lambda: (False, []))
+    monkeypatch.setattr(radar, "_sync_rotation_alerts", lambda: None)
+    calls = []
+
+    def fake_paper_cycle(provider, *, force_rebalance=False, entry_event=False):
+        calls.append(entry_event)
+        return {"status": "ok"}
+
+    monkeypatch.setattr(scanner_mod, "run_paper_cycle", fake_paper_cycle)
+    first = radar.scan_once(force=True)
+    assert first["paper_optimizer_invalidated"] is True
+    assert calls == [True]
+
+    calls.clear()
+    second = radar.scan_once(force=True)
+    assert second["paper_optimizer_invalidated"] is False
+    assert calls == [False]
+
