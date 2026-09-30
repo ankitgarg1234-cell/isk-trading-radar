@@ -215,3 +215,12 @@ def test_kushner_affinity_news_is_captured_as_connected_capital_shadow_evidence(
     assert events
     assert events[0]["type"] == "TRUMP_FAMILY_OR_CONNECTED_CAPITAL"
     assert events[0]["source_quality"] == "HIGH-CREDIBILITY MEDIA"
+
+
+def test_explosive_requires_thirty_percent_remaining_upside():
+    b = bundle()
+    b["fundamentals"]["marketCap"] = 5_000_000_000
+    result = score_bundle(b)
+    assert result["expected_yield_pct"] < 30
+    assert result["explosive_qualified"] is False
+    assert result["lane"] in {"CORE_QUALITY", None}
