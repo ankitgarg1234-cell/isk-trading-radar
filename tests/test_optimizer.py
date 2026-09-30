@@ -3,7 +3,7 @@ from datetime import datetime, timezone, timedelta
 
 from fastapi.testclient import TestClient
 
-from app.db import SessionLocal, RadarCandidate, PaperAccount, PaperPosition, PaperTrade, PaperSnapshot
+from app.db import SessionLocal, RadarCandidate, PaperAccount, PaperPosition, PaperTrade, PaperSnapshot, Alert
 from app.main import app
 from app.paper_engine import run_paper_cycle, paper_status, _candidate_payloads
 from app.portfolio_engine import build_optimizer_plan, candidate_rank_score
@@ -515,11 +515,49 @@ def test_max_drawdown_reports_positive_historical_magnitude():
     assert status["current_drawdown_pct"] == 2.0
 
 
-def test_dashboard_paper_counts_link_to_matching_sections():
+def test_dashboard_uses_one_open_positions_paper_section_only():
     html = client.get("/").text
-    assert 'href="#paperPortfolio"' in html
-    assert 'id="paperPortfolio"' in html
-    assert 'href="#paperValidTrades"' in html
-    assert 'id="paperValidTrades"' in html
-    assert 'paperOpenPositionCountJournal' not in html
-    assert '>Origin<' in html
+    assert 'id="paperOpenPositions"' in html
+    assert 'id="paperOpenPositionsTable"' in html
+    assert 'href="#paperOpenPositionsTable"' in html
+    assert 'Recent valid paper trades' not in html
+    assert 'Recent paper trades' not in html
+    assert 'Legacy allocator audit' not in html
+    assert 'id="paperPortfolio"' not in html
+    assert 'id="paperPositionCards"' not in html
+    assert 'id="paperTradesBody"' not in html
+    assert '>Origin<' not in html
+
+
+def test_paper_owned_symbol_is_hold_and_stale_buy_alert_is_hidden():
+    now = datetime.now(timezone.utc)
+    a = payload("NOW", score=80, price=134.0)
+    a["action"] = "BUY NOW"
+    with SessionLocal() as db:
+        db.add(PaperAccount(
+            account="Optimizer Paper", starting_cash=10000, cash=8500,
+            benchmark_symbol="^SP500TR", enabled=True, started_at=now-timedelta(days=1),
+        ))
+        db.add(PaperPosition(
+            account="Optimizer Paper", symbol="NOW", shares=11, avg_cost=129.16,
+            rank_score_at_entry=86.9, reason="Optimizer #1 BUY",
+        ))
+        db.add(RadarCandidate(
+            symbol="NOW", category="Core", action="BUY NOW", score=80, ai_score=87,
+            price=134.0, portfolio_rank_score=88, current_json=json.dumps(a),
+            updated_at=now,
+        ))
+        db.add(Alert(
+            symbol="NOW", alert_type="buy_level", severity="high",
+            title="NOW: Entry level reached — BUY",
+            message="Primary Buy reached", action="BUY", acknowledged=False,
+            created_at=now,
+        ))
+        db.commit()
+
+    html = client.get("/").text
+    idx = html.index('data-symbol="NOW"')
+    row_html = html[idx:idx+3500]
+    assert 'signal-hold' in row_html
+    assert 'HOLD / DON&#39;T ADD' in row_html or "HOLD / DON'T ADD" in row_html
+    assert 'NOW: Entry level reached — BUY' not in html
