@@ -365,3 +365,15 @@ def test_attention_queue_hides_legacy_wait_watch_hold_alerts():
     actions=[a['action'] for a in live['alerts']]
     assert 'WAIT MORE' not in actions
     assert 'BUY' in actions
+
+
+def test_analysis_refresh_forces_strategic_official_refresh(monkeypatch):
+    called = {}
+    def fake_analyze(symbol, persist=True, strategic_refresh=False):
+        called["symbol"] = symbol
+        called["strategic_refresh"] = strategic_refresh
+        return full_payload(symbol)
+    monkeypatch.setattr(mainmod.radar, "analyze_symbol", fake_analyze)
+    r = client.get('/analysis/NVDA?refresh=1')
+    assert r.status_code == 200
+    assert called == {"symbol": "NVDA", "strategic_refresh": True}

@@ -1,40 +1,47 @@
-# Government / Strategic Capital Shadow Patch
+# Strategic-capital automatic enrichment + USAspending resilience fix
 
-## What changed
-- Adds a separate **Government / Strategic Capital** evidence layer.
-- Tracks company-specific federal awards/contracts/grants/loans through USAspending.gov.
-- Detects government equity/stake language and administration-specific company actions in current news.
-- Separates **Donald Trump personal disclosed interest** from **Trump administration action** and from **Trump-family interest**.
-- Checks the configured certified President Trump OGE annual financial disclosure PDF and reports a company/ticker mention as **DISCLOSURE MENTION — REVIEW SOURCE** rather than assuming it is a stock purchase.
-- Tracks sector-policy evidence and government demand/capital evidence.
-- Adds provenance/status to stock detail and a compact GOV badge/detail to the Top-20 Radar.
-- Stores a `shadow_rank_adjustment` for later validation, but **does not add it to rank-v1 or the deterministic 100-point score**.
+## Why this patch is needed
 
-## Why shadow-only
-This factor is new. It must prove incremental value in walk-forward and forward paper trading before it can influence the 5–7 stock portfolio.
+Two issues were visible in the NVDA detail panel:
 
-## Network / Neon safeguards
-- Normal market scans use the news already fetched for the stock; no additional government API call per ticker.
-- Official enrichment is limited to the optimizer Top 20.
-- Default: four stale candidates per enrichment batch, at most once every 15 minutes.
-- Each company official check is cached for 24 hours.
-- Compact current-state payloads retain only the most relevant strategic events.
+1. Official government/disclosure evidence only advanced through the background queue while the regular U.S. market scanner was running. `scan_once()` returned immediately outside U.S. regular market hours, so a Swedish-morning visit could leave Top-20 names unchecked until a manual **Refresh analysis**.
+2. A single non-2xx USAspending response raised `HTTPStatusError`, aborted the entire federal-spending pass, and that failure could be cached too long. The UI therefore showed `UNAVAILABLE (HTTPStatusError)` and product/reseller coverage stayed `NOT CHECKED`.
 
-## New environment variables
-- `STRATEGIC_CAPITAL_ENABLED=true`
-- `STRATEGIC_OFFICIAL_REFRESH_HOURS=24`
-- `STRATEGIC_ENRICH_PER_CYCLE=4`
-- `STRATEGIC_ENRICH_INTERVAL_SECONDS=900`
-- `STRATEGIC_USASPENDING_LOOKBACK_DAYS=730`
-- `TRUMP_OGE_DISCLOSURE_URL=<current certified OGE PDF>`
+## Changes
 
-The patch already contains the current 2026 certified President Trump disclosure URL as the default. Update the variable when OGE publishes a newer annual disclosure.
+### `app/scanner.py`
+- Strategic-capital Top-20 enrichment now runs even while the U.S. equity market is closed.
+- Successful official checks retain the normal 24-hour TTL.
+- Partial/failed checks use the short retry TTL (`STRATEGIC_ERROR_RETRY_SECONDS`, default 600 seconds).
+- The Top-20 queue still processes only a bounded number per cycle, avoiding large Neon reads/writes.
 
-## Dependency
-Adds `pypdf>=5.0,<7` for reading the certified OGE PDF. Failure to retrieve or parse the disclosure never blocks the scanner; status becomes UNKNOWN/UNAVAILABLE.
+### `app/config.py`
+- Default strategic enrichment cadence changed from 900 seconds to 120 seconds.
+- Added `STRATEGIC_ERROR_RETRY_SECONDS` (default 600).
+- Added `STRATEGIC_USASPENDING_MAX_ATTEMPTS` (default 2).
 
-## Important interpretation rules
-- Presidential praise/mention alone does not receive investment weight.
-- Government action is not treated as Donald Trump personal investment.
-- Donald Trump Jr./other family activity is not labelled as Donald Trump activity.
-- `NOT FOUND IN CHECKED DISCLOSURE` means only that the configured disclosure did not match the company/ticker; it is not a universal proof of no economic interest.
+With the default 4 names per cycle, a stable Top 20 normally gets a first background pass in about 10 minutes rather than about 75 minutes.
+
+### `app/strategic_capital.py`
+- USAspending queries are split by award class (contracts, non-loan assistance, loans) so type-specific fields/sort keys are not mixed in one request.
+- Product/vendor keyword searches are also split by award class.
+- One failed component no longer erases successful components.
+- Retryable HTTP/network failures get a bounded retry.
+- Partial results are reported as `PARTIAL — AUTO RETRY`; complete outages as `TEMPORARILY UNAVAILABLE — AUTO RETRY` instead of leaking the raw Python exception name.
+- Failed/partial USAspending results use the short retry cache instead of the 24-hour success cache.
+- Component status and a sanitized last error are retained for diagnosis.
+- Duplicate indirect awards are deduplicated before totals are calculated.
+- `official_check_status` is now `COMPLETE`, `PARTIAL`, or `NOT CHECKED`, letting the scanner choose the right TTL.
+
+## Scoring / trading behavior
+
+No change to deterministic score, rank-v1, paper-trading thresholds, or live trading logic. Government/strategic-capital remains shadow-only.
+
+## Deployment
+
+Replace:
+- `app/config.py`
+- `app/scanner.py`
+- `app/strategic_capital.py`
+
+No database migration is required. The `.env.example` additions are optional; defaults are in code.

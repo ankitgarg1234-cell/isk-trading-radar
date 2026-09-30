@@ -78,3 +78,137 @@ def test_compact_payload_limits_strategic_event_volume_and_fingerprint_changes_m
     f1 = _strategic_fingerprint(compact["strategic_capital"])
     compact["strategic_capital"]["government_equity_stake"] = "EVIDENCE FOUND"
     assert _strategic_fingerprint(compact["strategic_capital"]) != f1
+
+
+def test_periodic_disclosure_parser_detects_company_purchase_and_amount_range():
+    text = """Executive Branch Personnel Public Financial Disclosure Report: Periodic Transaction Report
+    NVIDIA CORP (NVDA) Purchase 04/09/2026 $1,000,001 - $5,000,000
+    """
+    matches = StrategicCapitalProvider._match_disclosure_text(text, "NVIDIA Corporation", "NVDA")
+    assert matches
+    assert matches[0]["action"] == "PURCHASE"
+    assert matches[0]["date"] == "04/09/2026"
+    assert matches[0]["amount_range"] == "$1,000,001 - $5,000,000"
+
+
+def test_trump_personal_disclosure_checks_periodic_reports_not_just_annual(monkeypatch):
+    p = StrategicCapitalProvider()
+    periodic = """Executive Branch Personnel Public Financial Disclosure Report: Periodic Transaction Report
+    NVIDIA CORP (NVDA) Purchase 04/09/2026 $1,000,001 - $5,000,000
+    """
+    annual = "Annual financial disclosure without the company name"
+
+    def fake_doc(url, force=False):
+        return (periodic, "CHECKED") if "Periodic-Transaction-Report" in url else (annual, "CHECKED")
+
+    monkeypatch.setattr(p, "_document_text", fake_doc)
+    out = p._trump_personal_disclosure("NVIDIA Corporation", "NVDA", force=True)
+    assert out["status"].startswith("VERIFIED TRANSACTION DISCLOSURE")
+    assert out["sources_checked"] >= 2
+    assert any(e["type"] == "TRUMP_PERSONAL_DISCLOSURE_TRANSACTION" for e in out["events"])
+
+
+def test_usaspending_keyword_search_captures_indirect_product_procurement_without_calling_it_company_revenue():
+    class R:
+        def __init__(self, payload): self.payload = payload
+        def raise_for_status(self): return None
+        def json(self): return self.payload
+
+    class Client:
+        def __init__(self): self.calls = 0
+        def post(self, url, json):
+            self.calls += 1
+            if self.calls in (1, 2):
+                return R({"results": []})
+            return R({"results": [{
+                "Award ID": "ABC123", "Recipient Name": "TECH RESELLER LLC",
+                "Start Date": "2026-08-01", "Award Amount": 25000000,
+                "Awarding Agency": "Department of Defense",
+                "Description": "Annual NVIDIA enterprise software and GPU support subscription",
+            }]})
+
+    p = StrategicCapitalProvider()
+    p.client = Client()
+    StrategicCapitalProvider._award_cache.clear()
+    out = p._usa_spending_awards("NVIDIA Corporation", "NVDA", force=True)
+    assert out["total_amount"] == 0
+    assert out["indirect_mention_award_amount"] == 25000000
+    assert any(e["type"] == "FEDERAL_PRODUCT_OR_VENDOR_MENTION" for e in out["events"])
+    assert out["events"][0]["relationship"] == "INDIRECT / PRIME AWARD TO ANOTHER RECIPIENT"
+
+
+def test_periodic_parser_keeps_adjacent_purchase_and_sale_rows_separate():
+    text = """Periodic Transaction Report
+    NVIDIA CORP purchase 4/15/2026 $100,001 - $250,000
+    NVIDIA CORP sale 4/17/2026 $1,000,001 - $5,000,000
+    NVIDIA CORP purchase 4/27/2026 $500,001 - $1,000,000
+    """
+    matches = StrategicCapitalProvider._match_disclosure_text(text, "NVIDIA Corporation", "NVDA")
+    rows = [(m["action"], m["date"], m["amount_range"]) for m in matches[:3]]
+    assert rows == [
+        ("PURCHASE", "4/15/2026", "$100,001 - $250,000"),
+        ("SALE", "4/17/2026", "$1,000,001 - $5,000,000"),
+        ("PURCHASE", "4/27/2026", "$500,001 - $1,000,000"),
+    ]
+
+
+def test_whitehouse_investment_tracker_is_admin_interest_not_government_capital():
+    class R:
+        text = '<html><body><table><tr><td>NVIDIA</td><td>$608 Billion</td><td>Technology & AI</td></tr></table></body></html>'
+        def raise_for_status(self): return None
+    class Client:
+        def get(self, *args, **kwargs): return R()
+
+    p = StrategicCapitalProvider()
+    p.client = Client()
+    StrategicCapitalProvider._html_cache.clear()
+    out = p._whitehouse_investment_tracker('NVIDIA Corporation', 'NVDA', force=True)
+    assert out['status'] == 'EVIDENCE FOUND'
+    assert out['events'][0]['type'] == 'ADMINISTRATION_HIGHLIGHTED_INVESTMENT'
+    assert out['events'][0]['direction'] == 'CONTEXT'
+    assert 'not U.S. government investment' in out['events'][0]['description']
+
+
+def test_usaspending_component_failure_is_partial_and_scheduled_for_retry(monkeypatch):
+    import httpx
+
+    class R:
+        def __init__(self, payload=None, status_code=200):
+            self.payload = payload or {"results": []}
+            self.status_code = status_code
+            req = httpx.Request("POST", "https://api.usaspending.gov/api/v2/search/spending_by_award/")
+            self._response = httpx.Response(status_code, request=req, json={"detail": "temporary upstream failure"})
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise httpx.HTTPStatusError("bad response", request=self._response.request, response=self._response)
+        def json(self):
+            return self.payload if self.status_code < 400 else {"detail": "temporary upstream failure"}
+
+    class Client:
+        def post(self, url, json):
+            codes = (json.get("filters") or {}).get("award_type_codes") or []
+            if codes == ["A", "B", "C", "D"] and "recipient_search_text" in (json.get("filters") or {}):
+                return R(status_code=503)
+            return R()
+
+    p = StrategicCapitalProvider()
+    p.client = Client()
+    StrategicCapitalProvider._award_cache.clear()
+    out = p._usa_spending_awards("NVIDIA Corporation", "NVDA", force=True)
+    assert out["status"] == "PARTIAL — AUTO RETRY"
+    assert out["retry_recommended"] is True
+    assert out["component_status"]["direct_contracts"] == "HTTP 503"
+    assert out["component_status"]["direct_assistance"] == "CHECKED"
+    assert "HTTPStatusError" not in out["status"]
+
+
+def test_market_closed_scan_still_runs_strategic_background_enrichment(monkeypatch):
+    from app.scanner import RadarService
+
+    service = RadarService(provider=object(), ai=object())
+    monkeypatch.setattr(service, "market_open", lambda now=None: False)
+    monkeypatch.setattr(service, "_enrich_strategic_top_candidates", lambda: (True, ["NVDA", "GWRE"]))
+    out = service.scan_once(False)
+    assert out["status"] == "market_closed"
+    assert out["strategic_changed"] is True
+    assert out["strategic_enriched"] == ["NVDA", "GWRE"]

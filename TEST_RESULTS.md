@@ -1,12 +1,11 @@
-# Test Results
+# Test results
 
-- Command: `pytest -q tests`
-- Result: **84 passed / 0 failed**
-- Python compileall: passed
+Reconstructed current dashboard with all prior production patches, then overlaid this fix.
 
-New regression coverage verifies:
-- Government equity / administration action is not misclassified as Donald Trump personal investment.
-- Donald Trump personal-interest mentions and Trump-family mentions stay separate.
-- Strategic-capital evidence is shadow-only and cannot change rank-v1.
-- Federal-award materiality can be normalized to company revenue.
-- Compact payload/event limits protect managed-Postgres egress.
+- `pytest -q`: **92 passed / 0 failed**
+- `python -m py_compile` on changed runtime files: **passed**
+
+New regression coverage includes:
+- USAspending component failure returns partial results and schedules automatic retry instead of exposing `HTTPStatusError`.
+- Market-closed scanner cycles still execute strategic-capital background enrichment.
+- Existing government/Trump disclosure, optimizer, scanner, paper-trading, alerts, web UI and decision tests remain green.
