@@ -212,3 +212,11 @@ def test_market_closed_scan_still_runs_strategic_background_enrichment(monkeypat
     assert out["status"] == "market_closed"
     assert out["strategic_changed"] is True
     assert out["strategic_enriched"] == ["NVDA", "GWRE"]
+
+def test_live_service_defers_heavy_disclosure_pdf_parsing():
+    p = StrategicCapitalProvider()
+    result = p._trump_personal_disclosure("Acme Corp", "ACME")
+    assert result["source_status"] == "DISABLED IN LIVE WEB PROCESS"
+    assert result["events"] == []
+    assert result["sources_checked"] == 0
+
