@@ -706,7 +706,7 @@ class RadarService:
             "sector_position_cap": None,
             "per_tier_max_positions": None,
             "shortlist_entry_gate": None,
-            "min_rank_entry_gate": None,
+            "portfolio_priority_sizing_floor": 68,
             "risk_fit_entry_gate": None,
         }
         return hashlib.sha1(json.dumps(material, sort_keys=True, default=str).encode("utf-8")).hexdigest()
