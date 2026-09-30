@@ -345,7 +345,11 @@ def _dashboard_state(db):
     }
     lane_counts=optimizer.get("lane_counts") or {}
     optimizer_summary={"version":optimizer["version"],"live_gating":settings.optimizer_live_gating,"visible":len(radar_views),"shortlist":len(optimizer["shortlist"]),"invest_now":len(optimizer["selected_new"]),"owned":optimizer["owned_count"],"position_cap_enabled":optimizer.get("position_cap_enabled",False),"allocation_policy":optimizer.get("allocation_policy"),"rotations":len(optimizer["rotations"]),"core_quality":lane_counts.get("core_quality",0),"explosive":lane_counts.get("explosive",0)}
-    return {"positions":pos_views,"trades":trades,"analyses":analyses_req,"alerts":alerts,"candidates":radar_views,"cash":cash,"reserve":reserve,"risk_profile":risk_profile,"risk_profiles":RISK_PROFILES,"account_risk":account,"base_currency":base_currency,"summary":summary,"optimizer":optimizer_summary,"paper":paper}
+    display_radar_views=sorted(
+        radar_views,
+        key=lambda v: (0 if v.get("lane")=="CORE_QUALITY" else 1, int(v.get("market_rank") or 999)),
+    )
+    return {"positions":pos_views,"trades":trades,"analyses":analyses_req,"alerts":alerts,"candidates":display_radar_views,"cash":cash,"reserve":reserve,"risk_profile":risk_profile,"risk_profiles":RISK_PROFILES,"account_risk":account,"base_currency":base_currency,"summary":summary,"optimizer":optimizer_summary,"paper":paper}
 
 
 @app.get("/",response_class=HTMLResponse)
