@@ -152,6 +152,45 @@ def test_entry_event_buys_immediately_without_resetting_daily_rotation_clock():
         assert abs(acct.last_rebalance_at.replace(tzinfo=timezone.utc).timestamp() - now.timestamp()) < 1
 
 
+def test_uncapped_policy_rebalances_existing_paper_capital_to_fund_new_qualified_name():
+    now = datetime.now(timezone.utc)
+    old = payload("OLD", score=72, sector="Industrials", expected=12, price=100)
+    old["entry_zone_status"] = "WATCH"
+    old["action"] = "HOLD — DON'T ADD"
+    new = payload("NEW", score=90, sector="Technology", expected=30, price=100)
+
+    with SessionLocal() as db:
+        db.add(PaperAccount(
+            account="Optimizer Paper", starting_cash=10000, cash=0,
+            benchmark_symbol="SPY", enabled=True, last_rebalance_at=now,
+        ))
+        db.add(PaperPosition(
+            account="Optimizer Paper", symbol="OLD", shares=100,
+            avg_cost=100, rank_score_at_entry=70, reason="legacy capped allocation",
+        ))
+        db.add(RadarCandidate(
+            symbol="OLD", category="Core", action=old["action"], score=72, ai_score=88,
+            price=100, portfolio_rank_score=candidate_rank_score(old)["score"],
+            current_json=json.dumps(old),
+        ))
+        db.add(RadarCandidate(
+            symbol="NEW", category="Core", action="BUY NOW", score=90, ai_score=88,
+            price=100, portfolio_rank_score=candidate_rank_score(new)["score"],
+            current_json=json.dumps(new),
+        ))
+        db.commit()
+
+    result = run_paper_cycle(BenchProvider(), entry_event=True)
+    assert result["rebalanced"] is True
+    with SessionLocal() as db:
+        old_pos = db.query(PaperPosition).filter(PaperPosition.symbol == "OLD").one()
+        new_pos = db.query(PaperPosition).filter(PaperPosition.symbol == "NEW").one()
+        acct = db.query(PaperAccount).one()
+        assert 0 < old_pos.shares < 100
+        assert new_pos.shares > 0
+        assert acct.cash >= 0
+
+
 def test_normal_cycle_can_load_only_current_holdings_without_top20_egress():
     with SessionLocal() as db:
         for i in range(30):
