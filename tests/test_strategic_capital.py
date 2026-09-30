@@ -11,8 +11,12 @@ def _base_payload():
         "action": "BUY NOW", "negative_news_override": None,
         "thesis_assessment": {"invalidated": False},
         "levels": {"buy_low": 98, "buy_high": 102, "better_low": 90, "better_high": 93, "stop": 88, "target": 125},
-        "technicals": {"atr": 2, "relative_volume": 1.2, "change20_pct": 4},
-        "news": {"material_events": 0}, "fundamentals": {"sector": "Technology"},
+        "technicals": {"atr": 2, "relative_volume": 1.2, "change20_pct": 4, "avg_dollar_volume_20": 50_000_000},
+        "news": {"score":9,"label":"Neutral","material_events":1,"catalysts":[],"items":[]},
+        "fundamentals": {"sector":"Technology","marketCap":2_000_000_000,"revenueGrowth":.20,"quarterlyRevenueGrowth":.18,"earningsGrowth":.20,"grossMargins":.60,"operatingMargins":.15,"returnOnEquity":.18,"debtToEquity":40,"forwardPE":28},
+        "breakdown":{"Fundamentals":17,"Catalyst":9,"News":9,"Momentum":10,"Sector":7,"Valuation":7,"Risk/Reward":8},
+        "data_quality_pct":100,"fundamental_confidence":"high",
+        "promotion_risk":{"hard_block":False,"explosive_block":False,"flags":[]},"catalyst_assessment":{"tier":"C","strength":30},
     }
 
 
@@ -40,7 +44,7 @@ def test_donald_trump_personal_interest_is_separate_from_family_interest():
     assert events[1]["type"] == "TRUMP_FAMILY_INTEREST"
 
 
-def test_strategic_capital_is_shadow_only_and_does_not_change_rank_v1():
+def test_verified_positive_strategic_capital_has_small_bounded_rank_v2_effect():
     a = _base_payload()
     b = dict(a)
     b["strategic_capital"] = {
@@ -50,7 +54,9 @@ def test_strategic_capital_is_shadow_only_and_does_not_change_rank_v1():
         "trump_administration_action": "EVIDENCE FOUND",
         "trump_personal_disclosure": {"status": "NOT FOUND IN CHECKED DISCLOSURE"},
     }
-    assert candidate_rank_score(a)["score"] == candidate_rank_score(b)["score"]
+    base=candidate_rank_score(a)["score"]
+    enriched=candidate_rank_score(b)["score"]
+    assert 0 < enriched-base <= 2.0
     assert candidate_rank_score(b)["strategic_capital_shadow"]["shadow_rank_adjustment"] == 7.6
 
 
@@ -220,3 +226,21 @@ def test_live_service_defers_heavy_disclosure_pdf_parsing():
     assert result["events"] == []
     assert result["sources_checked"] == 0
 
+
+
+def test_kushner_and_affinity_news_are_tracked_as_connected_context_not_auto_positive():
+    p=StrategicCapitalProvider()
+    events=p.classify_news("ACME",[
+        {"title":"Jared Kushner's Affinity Partners invests in Acme shares","publisher":"Reuters","link":"https://reuters.com/k"}
+    ])
+    assert len(events)==1
+    assert events[0]["type"] in {"TRUMP_FAMILY_INTEREST","CONNECTED_CAPITAL_INTEREST"}
+    assert events[0]["direction"] == "CONTEXT"
+
+    base=_base_payload()
+    rank0=candidate_rank_score(base)["score"]
+    base["strategic_capital"]={
+        "mode":"SHADOW_ONLY","direction":"CONTEXT","evidence_strength":90,
+        "trump_family_interest":"EVIDENCE FOUND","connected_capital_interest":"EVIDENCE FOUND",
+    }
+    assert candidate_rank_score(base)["score"] == rank0
