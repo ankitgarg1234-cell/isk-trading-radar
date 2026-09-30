@@ -73,9 +73,9 @@
       <div class="paper-position-cards" id="paperPositionCards">
         {% for p in paper.positions %}
         <a class="paper-position-card" href="/analysis/{{ p.symbol }}">
-          <div class="paper-position-top"><b>{{ p.symbol }}</b><span class="{{ 'pos' if p.pnl >= 0 else 'neg' }}">{{ '%+.2f%%'|format(p.pnl_pct) }}</span></div>
-          <div class="paper-position-meta"><span>{{ p.shares|int if p.shares == p.shares|int else p.shares }} sh @ ${{ '%.2f'|format(p.avg_cost) }}</span><span>${{ '%.0f'|format(p.value) }} • {{ '%.1f'|format(p.weight_pct) }}%</span></div>
-          <small>Entry rank {{ '%.1f'|format(p.entry_rank_score) }}/100{% if p.reason %} • {{ p.reason }}{% endif %}</small>
+          <div class="paper-position-top"><b>{{ p.symbol }}</b><span class="{{ 'pos' if p.day_change_pct is not none and p.day_change_pct >= 0 else 'neg' if p.day_change_pct is not none else '' }}">Day {{ ('%+.2f%%'|format(p.day_change_pct)) if p.day_change_pct is not none else '—' }}</span></div>
+          <div class="paper-position-meta"><span>{{ p.shares|int if p.shares == p.shares|int else p.shares }} sh @ ${{ '%.2f'|format(p.avg_cost) }}</span><span>${{ '%.0f'|format(p.value) }} • {{ '%.1f'|format(p.weight_pct) }}% wt</span></div>
+          <small>P&amp;L since entry <span class="{{ 'pos' if p.pnl_pct >= 0 else 'neg' }}">{{ '%+.2f%%'|format(p.pnl_pct) }}</span> • Entry rank {{ '%.1f'|format(p.entry_rank_score) }}/100{% if p.reason %} • {{ p.reason }}{% endif %}</small>
         </a>
         {% endfor %}
         {% if not paper.positions %}<div class="empty paper-empty-card">No optimizer paper positions yet.</div>{% endif %}
