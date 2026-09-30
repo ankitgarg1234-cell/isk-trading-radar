@@ -517,10 +517,11 @@ def build_optimizer_plan(
     rotation_gap: float = 12.0,
     rotation_yield_gap: float = 8.0,
 ) -> dict:
-    """Rank candidates and allocate scarce portfolio slots.
+    """Rank candidates and select every qualified entry inside the visible Top 20.
 
-    Full-market scanning remains unchanged. This function only controls the funnel
-    presented to the user and which candidates may receive capital.
+    Full-market scanning remains unchanged. The legacy target/max/min-rank/rotation
+    arguments are retained for call compatibility but no longer gate paper entries.
+    Ranking still determines which names are in the visible Top-20 universe.
     """
     owned = {str(s).upper() for s in owned_symbols}
     profile = normalise_profile(profile)
@@ -553,78 +554,44 @@ def build_optimizer_plan(
             "strategic_capital_shadow": rank.get("strategic_capital_shadow") or {},
         })
     rows.sort(key=lambda r: (r["rank_score"], r["expected_yield_pct"]), reverse=True)
-    effective_shortlist_limit = max(1, min(shortlist_limit, max(1, visible_limit)))
     for i, r in enumerate(rows, 1):
         r["market_rank"] = i
         r["bucket"] = "RESERVE"
         r["optimizer_action"] = "PASS"
-        r["decision_reason"] = f"PASS — Rank #{i}; Top-{effective_shortlist_limit} shortlist required"
+        r["decision_reason"] = f"PASS — outside the current Top-{max(1, visible_limit)} allocation universe"
 
     visible = rows[:max(1, visible_limit)]
     shortlist = visible[:max(1, min(shortlist_limit, len(visible)))]
-    for r in shortlist:
-        r["bucket"] = "SHORTLIST"
-        r["optimizer_action"] = "PASS"
-        r["decision_reason"] = "PASS — awaiting portfolio eligibility checks"
+    shortlist_symbols = {r["symbol"] for r in shortlist}
+
+    selected_new = []
+    # Uncapped allocation policy:
+    # every currently actionable candidate inside the ranked Top 20 is eligible
+    # for paper capital. Rank, sector, tier, risk-fit and holding count do NOT gate
+    # selection. The shortlist remains a review label only.
     for r in visible:
         if r["owned"]:
             r["bucket"] = "PORTFOLIO"
             r["optimizer_action"] = "HOLD / MANAGE"
             r["decision_reason"] = "HOLD / MANAGE — already held in the portfolio"
+            continue
+        if r["entry_signal"] in INVESTABLE_ENTRY_ACTIONS:
+            r["bucket"] = "INVEST NOW"
+            r["optimizer_action"] = r["entry_signal"]
+            r["decision_reason"] = (
+                f"{r['entry_signal']} — qualified inside Top-{max(1, visible_limit)}; "
+                "no holding-count, sector, tier, rank-threshold or risk-fit gate"
+            )
+            selected_new.append(r)
+            continue
+        r["bucket"] = "SHORTLIST" if r["symbol"] in shortlist_symbols else "RESERVE"
+        r["optimizer_action"] = "PASS"
+        r["decision_reason"] = f"PASS — current entry signal {r['entry_signal'] or 'NONE'} is not investable"
 
-    owned_rows = [r for r in rows if r["owned"]]
-
-    selected_new = []
-    # Aim for six holdings, never exceed seven, and never force weak candidates.
-    # Every shortlist row gets BUY or an explicit PASS reason; no silent BUYs.
-    open_slots = max(0, min(target_positions, max_positions) - len(owned))
-    for r in shortlist:
-        if r["owned"]:
-            continue
-        if r["entry_signal"] not in INVESTABLE_ENTRY_ACTIONS:
-            r["decision_reason"] = f"PASS — current entry signal {r['entry_signal'] or 'NONE'} is not investable"
-            continue
-        if r["rank_score"] < min_rank_score:
-            r["decision_reason"] = f"PASS — portfolio priority {r['rank_score']:.1f} is below {min_rank_score:.1f} minimum"
-            continue
-        if r["risk_fit"] == "ABOVE TARGET":
-            r["decision_reason"] = "PASS — stock risk is above the selected portfolio risk profile"
-            continue
-        if open_slots <= 0:
-            r["decision_reason"] = f"PASS — target portfolio slots already allocated ({min(target_positions, max_positions)} target)"
-            continue
-        r["bucket"] = "INVEST NOW"
-        r["optimizer_action"] = r["entry_signal"]
-        r["decision_reason"] = f"{r['entry_signal']} — selected at portfolio rank #{r['market_rank']}"
-        selected_new.append(r)
-        open_slots -= 1
-
+    # With no holding-count cap there is no need to sell an intact holding merely
+    # to make room for another qualified candidate. Thesis-gated exits/reductions
+    # remain handled by the position-management layer.
     rotations = []
-    if len(owned) >= target_positions:
-        investable_new = [r for r in shortlist if not r["owned"] and r["entry_signal"] in INVESTABLE_ENTRY_ACTIONS and r["risk_fit"] != "ABOVE TARGET"]
-        weakest = sorted(owned_rows, key=lambda r: r["rank_score"])
-        for candidate in investable_new:
-            for held in weakest:
-                if candidate["symbol"] == held["symbol"]:
-                    continue
-                rank_gap = candidate["rank_score"] - held["rank_score"]
-                yield_gap = candidate["expected_yield_pct"] - held["expected_yield_pct"]
-                # Rotation is an opportunity-cost decision, not a thesis-invalidating sell.
-                if rank_gap >= rotation_gap and yield_gap >= rotation_yield_gap:
-                    candidate["bucket"] = "ROTATE IN"
-                    candidate["optimizer_action"] = "ROTATE"
-                    candidate["decision_reason"] = f"ROTATE — stronger than {held['symbol']} by {rank_gap:.1f} priority pts and {yield_gap:.1f} expected-return pts"
-                    rotations.append({
-                        "symbol_from": held["symbol"],
-                        "symbol_to": candidate["symbol"],
-                        "rank_gap": round(rank_gap, 1),
-                        "yield_gap": round(yield_gap, 1),
-                        "title": f"ROTATE {held['symbol']} → {candidate['symbol']}",
-                        "detail": f"Portfolio-priority gap {rank_gap:.1f} pts and deterministic expected-return gap {yield_gap:.1f} pts; thesis on {held['symbol']} may still be intact.",
-                    })
-                    break
-            if rotations:
-                break
 
     return {
         "version": RANK_VERSION,
@@ -632,9 +599,11 @@ def build_optimizer_plan(
         "shortlist": shortlist,
         "selected_new": selected_new,
         "rotations": rotations,
-        "target_positions": target_positions,
-        "max_positions": max_positions,
+        "position_cap_enabled": False,
+        "target_positions": None,
+        "max_positions": None,
         "owned_count": len(owned),
         "visible_limit": visible_limit,
         "shortlist_limit": shortlist_limit,
+        "allocation_policy": "TOP20_ALL_QUALIFIED",
     }
