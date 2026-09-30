@@ -16,6 +16,8 @@ def payload(symbol, score=85, sector="Technology", expected=25, ai=88, price=100
     return {
         "symbol":symbol,"price":price,"deterministic_score":score,"ai_score":ai,"analyst_score":78,
         "expected_yield_pct":expected,"risk_reward":3.0,"decision_confidence":"high","category":"Core",
+        "lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,
+        "core_quality_qualified":True,"explosive_qualified":False,
         "entry_zone_status":"PRIMARY_BUY","action":"BUY NOW","negative_news_override":None,
         "thesis_assessment":{"invalidated":False},
         "levels":{"buy_low":price*.97,"buy_high":price*1.02,"better_low":price*.9,"better_high":price*.93,"stop":price*.88,"target":price*1.3},
@@ -74,7 +76,7 @@ def test_primary_buy_69_is_investable_and_selected():
 
 
 def test_risk_fit_does_not_block_qualified_top20_entry():
-    high_risk = payload("RISKY", score=90, sector="Technology", expected=35, price=4)
+    high_risk = payload("RISKY", score=90, sector="Technology", expected=35, price=10)
     high_risk["category"] = "Explosive Runner"
     high_risk["technicals"] = {"atr": 1.2, "relative_volume": 3.0, "change20_pct": 35}
     plan = build_optimizer_plan({"RISKY": high_risk}, profile="LOW", visible_limit=20, shortlist_limit=10)
@@ -83,6 +85,24 @@ def test_risk_fit_does_not_block_qualified_top20_entry():
     assert row["risk_fit"] == "ABOVE TARGET"
     assert row["bucket"] == "INVEST NOW"
     assert len(plan["selected_new"]) == 1
+
+def test_optimizer_never_admits_sub_five_stock_even_if_payload_claims_lane_qualified():
+    a = payload("CHEAP", score=95, sector="Technology", expected=40, price=4.99)
+    a["lane"] = "EXPLOSIVE"
+    a["lane_label"] = "Explosive Lane"
+    a["explosive_qualified"] = True
+    plan = build_optimizer_plan({"CHEAP": a}, profile="HIGH", visible_limit=20)
+    assert plan["visible"] == []
+    assert plan["selected_new"] == []
+
+
+def test_optimizer_excludes_pre_v2_category_only_payload():
+    a = payload("STALE", score=95, price=25)
+    for key in ("lane", "lane_label", "lane_qualified", "core_quality_qualified", "explosive_qualified"):
+        a.pop(key, None)
+    a["category"] = "Core"
+    plan = build_optimizer_plan({"STALE": a}, profile="HIGH", visible_limit=20)
+    assert plan["visible"] == []
 
 
 def test_ai_is_confirmation_not_part_of_portfolio_rank_math():
