@@ -261,7 +261,7 @@ class RadarService:
             cand.price = full.get("price", 0)
             rank = candidate_rank_score(full)
             cand.portfolio_rank_score = rank.get("score", 0)
-            cand.rank_version = rank.get("version", "rank-v1")
+            cand.rank_version = rank.get("version", "rank-v2-lanes")
             cand.current_json = compact_json
             cand.updated_at = now
 
@@ -358,7 +358,7 @@ class RadarService:
 
         This is intentionally rate-limited and shadow-only: it prevents the scanner
         from hammering USAspending/OGE and prevents a new political factor from
-        silently changing the validated rank-v1 portfolio rules.
+        silently changing the validated rank-v2 portfolio rules.
         """
         if not settings.strategic_capital_enabled or not hasattr(self.provider, "strategic"):
             return False, []
@@ -785,7 +785,7 @@ class RadarService:
             strategic_changed, strategic_symbols = self._enrich_strategic_top_candidates()
             if strategic_changed:
                 # Re-run the paper optimizer once so the latest evidence is present
-                # in the forward-test decision record. rank-v1 itself is unchanged.
+                # in the forward-test decision record. Portfolio Priority v2 itself is unchanged.
                 paper_entry_event = True
                 paper_event_symbols.extend(s for s in strategic_symbols if s not in paper_event_symbols)
         except Exception as e:
