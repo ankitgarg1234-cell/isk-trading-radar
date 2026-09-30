@@ -64,7 +64,13 @@ TRUMP_PERSONAL_FINANCIAL_TERMS = {
     "buys", "bought", "purchases", "purchased", "invests", "invested", "investment",
     "owns", "owned", "ownership", "beneficial owner", "stake", "shares", "stock", "equity",
 }
-TRUMP_FAMILY_TERMS = {"donald trump jr", "donald j. trump jr", "eric trump", "ivanka trump", "trump family"}
+TRUMP_FAMILY_TERMS = {
+    "donald trump jr", "donald j. trump jr", "eric trump", "ivanka trump",
+    "jared kushner", "trump family",
+}
+CONNECTED_CAPITAL_TERMS = {
+    "affinity partners", "a fin management", "1789 capital",
+}
 
 
 def _norm(text: str) -> str:
@@ -161,6 +167,7 @@ class StrategicCapitalProvider:
             quality = self._source_quality(item)
             government_context = _contains_any(text, GOV_TERMS | TRUMP_ADMIN_TERMS)
             family_context = _contains_any(text, TRUMP_FAMILY_TERMS)
+            connected_capital_context = _contains_any(text, CONNECTED_CAPITAL_TERMS)
             direct_capital = _contains_any(text, DIRECT_CAPITAL_TERMS)
             negative = _contains_any(text, NEGATIVE_POLICY_TERMS)
             positive = _contains_any(text, POSITIVE_POLICY_TERMS)
@@ -183,6 +190,10 @@ class StrategicCapitalProvider:
                 direction = "CONTEXT"
             elif family_context and _contains_any(text, TRUMP_PERSONAL_FINANCIAL_TERMS):
                 etype = "TRUMP_FAMILY_INTEREST"
+                materiality = "MEDIUM"
+                direction = "CONTEXT"
+            elif connected_capital_context and _contains_any(text, TRUMP_PERSONAL_FINANCIAL_TERMS | DIRECT_CAPITAL_TERMS):
+                etype = "CONNECTED_CAPITAL_INTEREST"
                 materiality = "MEDIUM"
                 direction = "CONTEXT"
             elif government_context and direct_capital:
@@ -677,6 +688,7 @@ class StrategicCapitalProvider:
         summary = self._summary(deduped, annual_revenue, federal_amount)
         trump_admin = [e for e in deduped if e.get("type") == "ADMINISTRATION_HIGHLIGHTED_INVESTMENT" or (e.get("type") in {"ADMINISTRATION_STRATEGIC_ACTION", "POLICY_OR_ADMINISTRATION_SIGNAL", "GOVERNMENT_EQUITY_STAKE", "GOVERNMENT_CAPITAL_OR_DEMAND"} and _contains_any(str(e.get("title") or ""), TRUMP_ADMIN_TERMS))]
         family = [e for e in deduped if e.get("type") == "TRUMP_FAMILY_INTEREST"]
+        connected_capital = [e for e in deduped if e.get("type") in {"TRUMP_FAMILY_INTEREST", "CONNECTED_CAPITAL_INTEREST"}]
         government_equity = [e for e in deduped if e.get("type") == "GOVERNMENT_EQUITY_STAKE"]
         sector_policy = [e for e in deduped if e.get("type") == "POLICY_OR_ADMINISTRATION_SIGNAL" and e.get("direction") in {"POSITIVE", "NEGATIVE"}]
         government_demand = [e for e in deduped if e.get("type") in {"FEDERAL_AWARD", "FEDERAL_LOAN_OR_GUARANTEE", "FEDERAL_PRODUCT_OR_VENDOR_MENTION", "GOVERNMENT_CAPITAL_OR_DEMAND"}]
@@ -719,6 +731,7 @@ class StrategicCapitalProvider:
             "trump_administration_action": "EVIDENCE FOUND" if trump_admin else "NONE FOUND IN CURRENT EVIDENCE",
             "trump_personal_disclosure": personal,
             "trump_family_interest": "EVIDENCE FOUND" if family else "NONE FOUND IN CURRENT EVIDENCE",
+            "connected_capital_interest": "EVIDENCE FOUND" if connected_capital else "NONE FOUND IN CURRENT EVIDENCE",
             "whitehouse_investment_tracker": wh_tracker,
             "federal_awards": federal,
             "official_checked_at": checked_at,
@@ -731,5 +744,5 @@ class StrategicCapitalProvider:
                 "trump_disclosure_sources_checked": personal.get("sources_checked", 0),
                 "whitehouse_investment_tracker": wh_tracker.get("source_status") or "NOT CHECKED",
             },
-            "source_note": "Official-source evidence and news context. Political mentions alone do not affect rank-v1.",
+            "source_note": "Official-source evidence and connected-capital news context. Political/family mentions alone never qualify a stock or create a positive rank adjustment.",
         }
