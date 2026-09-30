@@ -64,7 +64,7 @@ def _candidate_payloads(
     """Load only the compact candidate rows needed for this paper cycle.
 
     Normal scanner cycles pass ``ranked_limit=0`` and therefore read only the
-    current paper holdings (at most seven).  The Top-20 ranked candidates are
+    current paper holdings. The Top-20 ranked candidates are
     loaded only when an entry event or the daily rebalance actually needs the
     optimizer.  This keeps Neon egress bounded while preserving immediate entry
     decisions.
@@ -231,49 +231,19 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
             ]
 
             if new_rows:
-                # If legacy holdings consumed the available cash, proportionally
-                # rebalance existing positions to fund the newly qualified names.
-                # This is a capital-allocation rebalance, not a thesis REDUCE/EXIT.
-                equity, _, _ = _equity(db, account, analyses)
-                desired_count = max(1, len(current) + len(new_rows))
-                target_per_name = equity / desired_count if equity > 0 else 0.0
-                required_new_cash = target_per_name * len(new_rows)
-                if target_per_name > 0 and account.cash + 1e-9 < required_new_cash and current:
-                    shortfall = required_new_cash - account.cash
-                    fee_rate = max(0.0, settings.paper_trade_cost_bps) / 10000.0
-                    gross_to_raise = shortfall / max(1e-9, 1.0 - fee_rate)
-                    trim_rows = []
-                    trim_value = 0.0
-                    for pos in current:
-                        a = analyses.get(pos.symbol) or {}
-                        price = float(a.get("price") or pos.avg_cost or 0)
-                        value = float(pos.shares or 0) * price
-                        if price > 0 and value > 0:
-                            trim_rows.append((pos, price, value))
-                            trim_value += value
-                    for pos, price, value in trim_rows:
-                        gross_piece = min(value, gross_to_raise * (value / trim_value)) if trim_value else 0.0
-                        shares_to_sell = gross_piece / price if price > 0 else 0.0
-                        if shares_to_sell > 0:
-                            _sell(
-                                db, account, pos, price, shares_to_sell,
-                                "REBALANCE — fund newly qualified uncapped Top-20 entries",
-                                pos.rank_score_at_entry,
-                            )
-                    db.flush()
-
-                # Fractional paper shares make the equal-allocation policy feasible
-                # even when a stock price exceeds its per-name cash allocation.
+                # Never sell an intact holding merely to fund another qualified
+                # candidate. Paper sells are reserved for thesis-invalidated
+                # EXIT/REDUCE or explicit TAKE PARTIAL PROFIT handled above.
+                # New qualified names share only the cash already available.
                 for idx, r in enumerate(new_rows):
                     remaining = len(new_rows) - idx
                     if remaining <= 0 or account.cash <= 0:
                         break
                     price = float((r["analysis"] or {}).get("price") or 0)
-                    fair_share = float(account.cash) / remaining
-                    allocation = min(target_per_name, fair_share) if target_per_name > 0 else fair_share
+                    allocation = float(account.cash) / remaining
                     _buy(
                         db, account, r["symbol"], price, allocation, r["rank_score"],
-                        f"Top-20 qualified #{r['market_rank']} {r['entry_signal']} — uncapped allocation",
+                        f"Top-20 qualified #{r['market_rank']} {r['entry_signal']} — funded from available cash only",
                     )
 
             db.flush()

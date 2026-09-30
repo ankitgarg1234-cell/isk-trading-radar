@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from app.market import SECFundamentalsProvider, YahooMarketProvider, sic_to_sector
 from app.analysis_engine import score_bundle
 from .helpers import bundle, strong_fundamentals
@@ -102,3 +103,34 @@ def test_analyst_is_optional_for_high_decision_confidence():
     assert "analyst consensus" not in result["missing_inputs"]
     assert "analyst consensus" in result["optional_missing_inputs"]
     assert result["evidence_sources"]["fundamentals"]["source"] == "SEC EDGAR/XBRL"
+
+
+def test_previous_close_uses_prior_session_not_chart_range_reference():
+    provider = YahooMarketProvider()
+    prev_ts = int(datetime(2026, 9, 29, 20, 0, tzinfo=timezone.utc).timestamp())
+    cur_ts = int(datetime(2026, 9, 30, 20, 0, tzinfo=timezone.utc).timestamp())
+    chart = {
+        "meta": {
+            "regularMarketPrice": 134.0,
+            "chartPreviousClose": 184.0,
+            "previousClose": 184.0,
+            "regularMarketTime": cur_ts,
+            "currency": "USD",
+            "exchangeName": "NYSE",
+        },
+        "timestamp": [prev_ts, cur_ts],
+        "indicators": {
+            "quote": [{
+                "open": [131.0, 133.0],
+                "high": [133.0, 135.0],
+                "low": [130.0, 132.0],
+                "close": [132.0, 134.0],
+                "volume": [1000, 1200],
+            }],
+            "adjclose": [{"adjclose": [132.0, 134.0]}],
+        },
+    }
+    rows, current, previous, currency, exchange = provider._rows_from_chart(chart)
+    assert current == 134.0
+    assert previous == 132.0
+    assert previous != 184.0
