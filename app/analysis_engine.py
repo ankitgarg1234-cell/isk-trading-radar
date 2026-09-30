@@ -413,6 +413,34 @@ def _strategic_catalyst(bundle: dict) -> tuple[bool, list[str]]:
         evidence.append(str(event.get("title") or event.get("type")))
     return bool(evidence), evidence[:4]
 
+def _verified_news_catalyst(news: dict, relvol: float) -> tuple[bool, list[str]]:
+    """Require a material catalyst from a credible or primary-release source.
+
+    Explosive qualification must not be created by social/secondary chatter.
+    At extreme volume (>=8x), require a concrete event term even for a primary
+    company release so generic promotional partnerships cannot explain the move.
+    """
+    strong_terms = {
+        "earnings", "guidance", "fda", "approval", "contract", "acquisition",
+        "merger", "trial", "phase 3", "phase iii", "buyback",
+    }
+    evidence: list[str] = []
+    for item in news.get("items") or []:
+        title = str(item.get("title") or "")
+        title_l = title.lower()
+        if item.get("materiality") != "high":
+            continue
+        credibility = str(item.get("credibility") or "standard")
+        if credibility not in {"high", "primary-release"}:
+            continue
+        matched = [term for term in CATALYST if term in title_l]
+        if not matched:
+            continue
+        if relvol >= 8.0 and not any(term in title_l for term in strong_terms):
+            continue
+        evidence.append(title)
+    return bool(evidence), evidence[:4]
+
 
 def classify_lane(
     bundle: dict, *, fs: float, fconf: str, news: dict, t: dict,
@@ -434,8 +462,8 @@ def classify_lane(
         and fconf in {"medium", "high"}
         and total_score >= 68
         and not negative_override
-        and (not avg_dollar or avg_dollar >= CORE_MIN_AVG_DOLLAR_VOLUME)
-        and (not market_cap or market_cap >= MIN_MARKET_CAP)
+        and avg_dollar >= CORE_MIN_AVG_DOLLAR_VOLUME
+        and market_cap >= MIN_MARKET_CAP
     )
     if fs < MIN_FUNDAMENTAL_SCORE:
         core_reasons.append(f"fundamentals {fs:.1f}/20 below {MIN_FUNDAMENTAL_SCORE:.0f}/20 floor")
@@ -443,14 +471,21 @@ def classify_lane(
         core_reasons.append("fundamental evidence confidence is low")
     if total_score < 68:
         core_reasons.append(f"system conviction {total_score:.1f}/100 below 68")
+    if market_cap <= 0:
+        core_reasons.append("market-cap evidence unavailable")
+    elif market_cap < MIN_MARKET_CAP:
+        core_reasons.append(f"market cap ${market_cap/1_000_000:.0f}M below ${MIN_MARKET_CAP/1_000_000:.0f}M floor")
+    if avg_dollar <= 0:
+        core_reasons.append("20d average dollar-volume evidence unavailable")
+    elif avg_dollar < CORE_MIN_AVG_DOLLAR_VOLUME:
+        core_reasons.append(f"20d average dollar volume ${avg_dollar/1_000_000:.1f}M below ${CORE_MIN_AVG_DOLLAR_VOLUME/1_000_000:.0f}M floor")
     core_reasons.extend(promotion["reasons"])
 
     strategic_catalyst, strategic_evidence = _strategic_catalyst(bundle)
-    news_catalyst = bool(news.get("catalysts")) and int(news.get("material_events") or 0) >= 1
+    catalyst_verified, catalyst_evidence = _verified_news_catalyst(news, relvol)
     # Government / political / connected-capital evidence is intentionally
     # shadow-only in v2. It is recorded for validation but cannot independently
     # qualify an Explosive setup or change Portfolio Priority.
-    catalyst_verified = news_catalyst
     volume_explained = not promotion["unexplained_extreme_volume"]
     explosive = (
         core_quality
@@ -474,8 +509,9 @@ def classify_lane(
             f"relative volume {relvol:.2f}x",
             f"20d move {change20:+.1f}%",
             f"modeled remaining upside {expected_upside_pct:.1f}%",
-            "material catalyst verified",
+            "material catalyst verified from credible/primary evidence",
         ]
+        reasons.extend(catalyst_evidence[:2])
         reasons.extend(strategic_evidence[:2])
     elif core_quality:
         lane = CORE_LANE
@@ -500,6 +536,7 @@ def classify_lane(
         "promotion_risk": promotion,
         "lane_reasons": reasons,
         "catalyst_verified": catalyst_verified,
+        "catalyst_evidence": catalyst_evidence,
         "strategic_catalyst_evidence": strategic_evidence,
     }
 
@@ -626,6 +663,7 @@ def score_bundle(bundle: dict) -> dict:
         "promotion_risk": lane_info["promotion_risk"],
         "lane_reasons": lane_info["lane_reasons"],
         "catalyst_verified": lane_info["catalyst_verified"],
+        "catalyst_evidence": lane_info.get("catalyst_evidence") or [],
         "strategic_catalyst_evidence": lane_info["strategic_catalyst_evidence"],
         "breakdown": breakdown,
         "fundamental_reasons": freasons,
