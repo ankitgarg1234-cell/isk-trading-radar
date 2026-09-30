@@ -11,6 +11,9 @@ client=TestClient(app)
 def full_payload(symbol="TEST"):
     return {
         "symbol":symbol,"price":100,"provider":"fake","asof":"now","category":"Core","action":"BUY NOW","action_reason":"Test reason","position":None,
+        "lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,
+        "core_quality_qualified":True,"explosive_qualified":False,
+        "promotion_risk":{"hard_reject":False,"promotional_risk":False},
         "deterministic_score":88,"analyst_score":80,"ai_score":92,"risk_reward":3.2,"expected_yield_pct":25,"analyst_expected_yield_pct":20,"ai_expected_yield_pct":30,
         "deterministic_holding_period_min_days":30,"deterministic_holding_period_max_days":180,"analyst_holding_period_min_days":180,"analyst_holding_period_max_days":365,"holding_period_min_days":20,"holding_period_max_days":60,
         "levels":{"buy_low":95,"buy_high":100,"better_low":90,"better_high":93,"breakout":105,"stop":88,"target":130,"do_not_chase":112},
