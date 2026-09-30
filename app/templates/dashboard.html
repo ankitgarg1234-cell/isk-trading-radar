@@ -49,12 +49,12 @@
 
   <section class="two-col optimizer-overview">
     <div class="panel">
-      <div class="section-title-row"><div><span class="kicker">PORTFOLIO FUNNEL</span><h2>Scan thousands → show 20 → own 5–7</h2></div><span class="pill {{ 'green' if optimizer.live_gating else 'amber' }}">{{ optimizer.version }} • {{ 'LIVE' if optimizer.live_gating else 'SHADOW' }}</span></div>
+      <div class="section-title-row"><div><span class="kicker">PORTFOLIO FUNNEL</span><h2>Scan thousands → show 20 → buy every qualified signal</h2></div><span class="pill {{ 'green' if optimizer.live_gating else 'amber' }}">{{ optimizer.version }} • {{ 'LIVE' if optimizer.live_gating else 'SHADOW' }}</span></div>
       <div class="funnel-grid">
         <div><span>Market scan</span><b>{{ scanner.universe_size or '—' }}</b><small>U.S. equities scanned internally</small></div>
         <div><span>Visible Radar</span><b id="optimizerVisible">{{ optimizer.visible }}</b><small>Maximum 20 ranked opportunities</small></div>
-        <div><span>Serious shortlist</span><b id="optimizerShortlist">{{ optimizer.shortlist }}</b><small>Top 8–10 for close review</small></div>
-        <div><span>Invest now</span><b id="optimizerInvest">{{ optimizer.invest_now }}</b><small>Only optimizer-approved new positions</small></div>
+        <div><span>Review shortlist</span><b id="optimizerShortlist">{{ optimizer.shortlist }}</b><small>Top 8–10 for review only — not an entry gate</small></div>
+        <div><span>Invest now</span><b id="optimizerInvest">{{ optimizer.invest_now }}</b><small>Every qualified STRONG BUY / BUY / STARTER BUY inside Top 20</small></div>
       </div>
       <p class="footnote">The deterministic stock score is unchanged. Portfolio Priority is a separate capital-allocation rank. AI and analyst views remain confirmation signals and are not blended into the rank. {% if not optimizer.live_gating %}Live buy alerts remain on the existing production rules until the paper/walk-forward validation gate is passed.{% endif %}</p>
     </div>
@@ -65,10 +65,10 @@
         <div><span>Radar return</span><b id="paperReturn" class="{{ 'pos' if paper.started and paper.return_pct >= 0 else 'neg' if paper.started else '' }}">{{ ('%+.2f%%'|format(paper.return_pct)) if paper.started else '—' }}</b></div>
         <div><span>SPY total return</span><b id="paperBenchmark">{{ ('%+.2f%%'|format(paper.benchmark_return_pct)) if paper.started else '—' }}</b></div>
         <div><span>Excess vs SPY</span><b id="paperExcess" class="{{ 'pos' if paper.started and paper.excess_return_pct > 0 else 'neg' if paper.started and paper.excess_return_pct < 0 else '' }}">{{ ('%+.2f%%'|format(paper.excess_return_pct)) if paper.started else '—' }}</b></div>
-        <div><span>Positions</span><b id="paperPositionCount">{{ paper.position_count if paper.started else 0 }}</b><small>Target {{ optimizer.target_positions }} • max {{ optimizer.max_positions }}</small></div>
+        <div><span>Positions</span><b id="paperPositionCount">{{ paper.position_count if paper.started else 0 }}</b><small>No holding-count cap</small></div>
         <div><span>Max drawdown</span><b id="paperDrawdown">{{ ('%.2f%%'|format(paper.drawdown_pct)) if paper.started else '—' }}</b></div>
       </div>
-      <p class="footnote paper-cadence">New STRONG BUY / BUY / STARTER BUY signals are evaluated immediately after the scanner cycle. Multiple signals are coalesced into one optimizer run; broader portfolio rotations remain daily to avoid churn.</p>
+      <p class="footnote paper-cadence">New STRONG BUY / BUY / STARTER BUY signals are evaluated immediately after the scanner cycle. Every qualifying name inside the current Top 20 is eligible for paper capital; there is no holding-count, sector or tier cap.</p>
       <div class="paper-holdings-head"><span>Current paper positions</span><small>These are the positions actually bought by the optimizer.</small></div>
       <div class="paper-position-cards" id="paperPositionCards">
         {% for p in paper.positions %}
@@ -223,7 +223,7 @@
       {% if not candidates %}<tr><td colspan="10" class="empty">Radar will populate after analysis/scan runs.</td></tr>{% endif %}
     </tbody></table></div>
     <div id="radarNoResults" class="empty hidden">No Radar stocks match the current filters.</div>
-    <p class="footnote">Only the optimizer-ranked Top 20 are shown. SHORTLIST means close review; INVEST NOW means the candidate has earned one of the limited 5–7 portfolio slots. RESERVE is visible but receives no capital.</p>
+    <p class="footnote">Only the optimizer-ranked Top 20 are shown. SHORTLIST is a review label only. Any Top-20 STRONG BUY / BUY / STARTER BUY is marked INVEST NOW and is eligible for paper capital; there is no portfolio slot cap.</p>
   </section>
 
   <section class="two-col">
