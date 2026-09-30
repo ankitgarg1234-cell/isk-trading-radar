@@ -295,7 +295,21 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
 def paper_status(db) -> dict:
     account = db.query(PaperAccount).filter(PaperAccount.account == PAPER_ACCOUNT).first()
     if not account:
-        return {"enabled": settings.paper_trading_enabled, "started": False, "starting_cash": settings.paper_starting_cash, "positions": [], "trades": []}
+        return {
+            "enabled": settings.paper_trading_enabled,
+            "started": False,
+            "starting_cash": settings.paper_starting_cash,
+            "positions": [],
+            "trades": [],
+            "legacy_trades": [],
+            "position_count": 0,
+            "trade_count": 0,
+            "legacy_trade_count": 0,
+            "absolute_return": 0.0,
+            "daily_pnl": 0.0,
+            "daily_pnl_pct": 0.0,
+            "benchmark_label": "S&P 500 Total Return",
+        }
     positions = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).order_by(PaperPosition.symbol).all()
     analyses = _candidate_payloads(db, [p.symbol for p in positions], ranked_limit=0)
     equity, invested, pos_rows = _equity(db, account, analyses)
