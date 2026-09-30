@@ -24,13 +24,16 @@ def payload(symbol, score=85, sector="Technology", expected=25, ai=88, price=100
     }
 
 
-def test_optimizer_funnel_caps_visible_and_portfolio_slots():
+def test_optimizer_buys_every_qualified_name_inside_top20():
     analyses={f"S{i:02d}":payload(f"S{i:02d}",score=95-i,sector=f"Sector{i%5}",expected=35-i*.3) for i in range(30)}
     plan=build_optimizer_plan(analyses,profile="HIGH",visible_limit=20,shortlist_limit=10,target_positions=6,max_positions=7)
     assert len(plan["visible"])==20
     assert len(plan["shortlist"])==10
-    assert len(plan["selected_new"])<=6
-    assert all(r["bucket"] in {"INVEST NOW","SHORTLIST","RESERVE","PORTFOLIO","ROTATE IN"} for r in plan["visible"])
+    assert len(plan["selected_new"])==20
+    assert plan["position_cap_enabled"] is False
+    assert plan["target_positions"] is None
+    assert plan["max_positions"] is None
+    assert all(r["bucket"]=="INVEST NOW" for r in plan["visible"])
 
 
 
@@ -45,7 +48,7 @@ def test_optimizer_has_no_sector_position_cap():
         analyses, profile="HIGH", visible_limit=20, shortlist_limit=10,
         target_positions=6, max_positions=7, min_rank_score=62
     )
-    assert len(plan["selected_new"]) == 6
+    assert len(plan["selected_new"]) == 8
     assert {r["sector"] for r in plan["selected_new"]} == {"Technology"}
 
 
@@ -56,6 +59,18 @@ def test_optimizer_does_not_force_five_positions_when_only_three_qualify():
     }
     plan=build_optimizer_plan(analyses,profile="HIGH",target_positions=6,max_positions=7,min_rank_score=62)
     assert len(plan["selected_new"])==3
+
+
+def test_risk_fit_does_not_block_qualified_top20_entry():
+    high_risk = payload("RISKY", score=90, sector="Technology", expected=35, price=4)
+    high_risk["category"] = "Explosive Runner"
+    high_risk["technicals"] = {"atr": 1.2, "relative_volume": 3.0, "change20_pct": 35}
+    plan = build_optimizer_plan({"RISKY": high_risk}, profile="LOW", visible_limit=20, shortlist_limit=10)
+    row = plan["visible"][0]
+    assert row["entry_signal"] in {"STRONG BUY", "BUY", "STARTER BUY"}
+    assert row["risk_fit"] == "ABOVE TARGET"
+    assert row["bucket"] == "INVEST NOW"
+    assert len(plan["selected_new"]) == 1
 
 
 def test_ai_is_confirmation_not_part_of_portfolio_rank_math():
@@ -74,7 +89,8 @@ def test_dashboard_never_returns_more_than_twenty_radar_rows():
     d=client.get('/api/live').json()
     assert len(d["candidates"])==20
     assert d["optimizer"]["visible"]==20
-    assert d["optimizer"]["max_positions"]==7
+    assert d["optimizer"]["position_cap_enabled"] is False
+    assert "max_positions" not in d["optimizer"]
 
 
 class BenchProvider:
@@ -82,7 +98,7 @@ class BenchProvider:
         return {"meta":{"regularMarketPrice":500.0}}
 
 
-def test_paper_cycle_starts_at_10000_and_never_exceeds_seven_positions():
+def test_paper_cycle_starts_at_10000_and_can_hold_all_qualified_names():
     sectors=["Technology","Healthcare","Industrials","Energy","Utilities","Financial Services","Consumer Cyclical"]
     with SessionLocal() as db:
         for i in range(10):
@@ -96,7 +112,8 @@ def test_paper_cycle_starts_at_10000_and_never_exceeds_seven_positions():
         acct=db.query(PaperAccount).one()
         positions=db.query(PaperPosition).all()
         assert acct.starting_cash==10000
-        assert 1 <= len(positions) <= 7
+        assert len(positions) == 10
+        assert all(p.shares > 0 for p in positions)
         assert acct.cash >= 0
 
 
@@ -170,7 +187,7 @@ def test_optimizer_has_no_per_tier_max_two_cap():
     assert len(plan["selected_new"]) == 6
 
 
-def test_actionable_visible_candidate_always_has_buy_or_explicit_pass_reason():
+def test_actionable_rank_11_is_bought_because_shortlist_is_review_only():
     analyses = {
         f"R{i:02d}": payload(f"R{i:02d}", score=95-i, sector="Technology", expected=35-i * 0.2)
         for i in range(12)
@@ -182,8 +199,9 @@ def test_actionable_visible_candidate_always_has_buy_or_explicit_pass_reason():
     assert all(r.get("decision_reason") for r in plan["visible"])
     rank_11 = plan["visible"][10]
     assert rank_11["entry_signal"] in {"STRONG BUY", "BUY", "STARTER BUY"}
-    assert rank_11["optimizer_action"] == "PASS"
-    assert "Top-10 shortlist required" in rank_11["decision_reason"]
+    assert rank_11["optimizer_action"] == rank_11["entry_signal"]
+    assert rank_11["bucket"] == "INVEST NOW"
+    assert "no holding-count" in rank_11["decision_reason"]
 
 
 def test_gwre_style_policy_change_rechecks_without_buy_state_transition(monkeypatch):
@@ -200,7 +218,7 @@ def test_gwre_style_policy_change_rechecks_without_buy_state_transition(monkeypa
 
     monkeypatch.setattr(
         scanner_mod, "settings",
-        replace(scanner_mod.settings, optimizer_min_rank_score=scanner_mod.settings.optimizer_min_rank_score + 1),
+        replace(scanner_mod.settings, optimizer_visible_limit=scanner_mod.settings.optimizer_visible_limit + 1),
     )
     assert radar._paper_optimizer_invalidation_event() is True
     assert radar._paper_entry_event(dict(gwre)) is False
