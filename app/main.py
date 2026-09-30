@@ -178,7 +178,7 @@ def _dashboard_state(db):
 
     # Read only the strongest/freshest compact rows. Full-market scanning continues
     # in the background; the dashboard is intentionally capped at 20 opportunities.
-    fresh_cutoff=datetime.now(timezone.utc)-timedelta(days=4)
+    fresh_cutoff=datetime.now(timezone.utc)-timedelta(hours=18)
     candidates=(db.query(RadarCandidate)
         .filter(RadarCandidate.updated_at >= fresh_cutoff)
         .order_by(RadarCandidate.portfolio_rank_score.desc(),RadarCandidate.updated_at.desc())
@@ -282,7 +282,7 @@ def _dashboard_state(db):
         optimizer_approved=rankrow.get("bucket") in {"INVEST NOW","ROTATE IN"}
         explicit_add=is_owned and str(a.get("action") or "").upper()=="ADD"
         if optimizer_approved or explicit_add:
-            sizing=suggested_position_size(a,cash=cash,reserve_cash=reserve,portfolio_value=portfolio_value,profile=risk_profile,fx_rate_to_base=rate or 0,existing_value=existing_value,whole_shares=True)
+            sizing=suggested_position_size(a,cash=cash,reserve_cash=reserve,portfolio_value=portfolio_value,profile=risk_profile,fx_rate_to_base=rate or 0,existing_value=existing_value,whole_shares=True,conviction_score=rankrow.get("rank_score"))
         elif is_owned:
             sizing={"shares":0,"capital":0,"fit":rankrow.get("risk_fit","UNKNOWN"),"stock_risk":rankrow.get("stock_risk",stock_risk_score(a)),"reason":"Existing position — HOLD / DON'T ADD; no additional paper order"}
         else:
@@ -297,14 +297,14 @@ def _dashboard_state(db):
         view_day_change_pct=((view_price/view_previous_close)-1)*100 if view_price and view_previous_close else None
         view={
             "symbol":sym,"name":name,"price":view_price,"previous_close":view_previous_close or None,"day_change_pct":view_day_change_pct,"currency":currency,
-            "category":a.get("category") or (c.category if c else "Watch"),"score":float(a.get("deterministic_score") or (c.score if c else 0) or 0),"ai_score":float(a.get("ai_score") or (c.ai_score if c else 0) or 0),
+            "category":a.get("category") or (c.category if c else "Watch"),"lane":rankrow.get("lane") or CORE_LANE,"core_quality_badge":bool((rankrow.get("lane_qualification") or {}).get("core_quality_badge")),"score":float(a.get("deterministic_score") or (c.score if c else 0) or 0),"ai_score":float(a.get("ai_score") or (c.ai_score if c else 0) or 0),
             "analyst_score":a.get("analyst_score"),"analyst_label":analyst_label(a),"action":a.get("action") or (c.action if c else "WATCH"),"action_reason":a.get("action_reason") or "",
             "system_signal":signal,"owned":is_owned,"owned_shares":owned_row.get("shares"),"owned_avg":owned_row.get("avg_cost"),
             "level_label":level["label"],"level_value":level["value"],"distance":level["distance"],"distance_pct":level["distance_pct"],
             "target":(a.get("levels") or {}).get("target"),"stop":(a.get("levels") or {}).get("stop"),"risk_reward":a.get("risk_reward"),
             "expected_yield_pct":a.get("expected_yield_pct"),
             "stock_risk":sizing.get("stock_risk",stock_risk_score(a)),"risk_band":risk_band(sizing.get("stock_risk",stock_risk_score(a))),"risk_fit":sizing.get("fit",rankrow.get("risk_fit","UNKNOWN")),
-            "suggested_shares":sizing.get("shares",0),"suggested_capital":sizing.get("capital",0),"sizing_reason":sizing.get("reason",""),
+            "suggested_shares":sizing.get("shares",0),"suggested_capital":sizing.get("capital",0),"sizing_reason":sizing.get("reason",""),"target_allocation_pct":sizing.get("target_allocation_pct",0),"sizing_binding_constraint":sizing.get("binding_constraint"),
             "projected_risk":projected.get("score") if projected else None,"changed":changed,
             "updated_at":c.updated_at.isoformat() if c and c.updated_at else None,
             "market_rank":rankrow.get("market_rank"),"portfolio_rank_score":rankrow.get("rank_score"),"optimizer_bucket":rankrow.get("bucket"),"optimizer_action":rankrow.get("optimizer_action"),"optimizer_decision_reason":rankrow.get("decision_reason"),
@@ -313,6 +313,11 @@ def _dashboard_state(db):
             "strategic_capital_shadow":rankrow.get("strategic_capital_shadow") or {},
         }
         radar_views.append(view)
+
+    radar_views.sort(key=lambda v: (
+        0 if v.get("lane") == CORE_LANE else 1,
+        int(v.get("market_rank") or 999),
+    ))
 
     approved_buy_symbols={r["symbol"] for r in optimizer["selected_new"]}
     paper_owned_symbols=set(paper_owned)
@@ -339,8 +344,11 @@ def _dashboard_state(db):
         "deployable_cash":max(0,cash-reserve),
         "best_candidate":next((v for v in radar_views if v.get("optimizer_bucket")=="INVEST NOW"),None),
         "visible_candidates":len(radar_views),"shortlist_count":len(optimizer["shortlist"]),"position_cap_enabled":optimizer.get("position_cap_enabled",False),
+        "core_lane_count":sum(v.get("lane")==CORE_LANE for v in radar_views),
+        "explosive_lane_count":sum(v.get("lane")==EXPLOSIVE_LANE for v in radar_views),
     }
-    optimizer_summary={"version":optimizer["version"],"live_gating":settings.optimizer_live_gating,"visible":len(radar_views),"shortlist":len(optimizer["shortlist"]),"invest_now":len(optimizer["selected_new"]),"owned":optimizer["owned_count"],"position_cap_enabled":optimizer.get("position_cap_enabled",False),"allocation_policy":optimizer.get("allocation_policy"),"rotations":len(optimizer["rotations"])}
+    lane_counts=optimizer.get("lane_counts") or {}
+    optimizer_summary={"version":optimizer["version"],"live_gating":settings.optimizer_live_gating,"visible":len(radar_views),"shortlist":len(optimizer["shortlist"]),"invest_now":len(optimizer["selected_new"]),"owned":optimizer["owned_count"],"position_cap_enabled":optimizer.get("position_cap_enabled",False),"allocation_policy":optimizer.get("allocation_policy"),"rotations":len(optimizer["rotations"]),"core_lane":lane_counts.get(CORE_LANE,0),"explosive_lane":lane_counts.get(EXPLOSIVE_LANE,0)}
     return {"positions":pos_views,"trades":trades,"analyses":analyses_req,"alerts":alerts,"candidates":radar_views,"cash":cash,"reserve":reserve,"risk_profile":risk_profile,"risk_profiles":RISK_PROFILES,"account_risk":account,"base_currency":base_currency,"summary":summary,"optimizer":optimizer_summary,"paper":paper}
 
 
