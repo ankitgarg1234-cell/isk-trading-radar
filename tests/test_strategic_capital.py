@@ -62,6 +62,7 @@ def test_official_award_materiality_is_normalized_to_company_revenue_without_sco
         "checked_at": "2026-09-29T20:00:00+00:00",
     }
     p._trump_personal_disclosure = lambda company, symbol: {"status":"NOT FOUND IN CHECKED DISCLOSURE"}
+    p._whitehouse_investment_tracker = lambda company, symbol: {"status":"NOT FOUND", "source_status":"CHECKED", "events":[]}
     g = p.assess("ACME", company_name="Acme Corp", annual_revenue=1_000_000_000, fetch_official=True)
     assert g["federal_amount_to_revenue_pct"] == 25.0
     assert g["direction"] == "POSITIVE"
@@ -92,6 +93,12 @@ def test_periodic_disclosure_parser_detects_company_purchase_and_amount_range():
 
 
 def test_trump_personal_disclosure_checks_periodic_reports_not_just_annual(monkeypatch):
+    from dataclasses import replace
+    import app.strategic_capital as strategic_module
+    monkeypatch.setattr(
+        strategic_module, "settings",
+        replace(strategic_module.settings, strategic_disclosure_pdf_enabled=True),
+    )
     p = StrategicCapitalProvider()
     periodic = """Executive Branch Personnel Public Financial Disclosure Report: Periodic Transaction Report
     NVIDIA CORP (NVDA) Purchase 04/09/2026 $1,000,001 - $5,000,000
