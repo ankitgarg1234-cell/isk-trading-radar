@@ -12,7 +12,8 @@ def history(start=60.0, days=260, daily=0.25, last_volume_multiplier=2.2):
 
 def strong_fundamentals():
     return {
-        "revenueGrowth":.30,"earningsGrowth":.35,"grossMargins":.65,"operatingMargins":.24,
+        "marketCap":2_000_000_000,"floatShares":50_000_000,
+        "revenueGrowth":.30,"quarterlyRevenueGrowth":.28,"earningsGrowth":.35,"grossMargins":.65,"operatingMargins":.24,
         "returnOnEquity":.28,"debtToEquity":35,"forwardPE":28,
         "targetMeanPrice":150,"targetHighPrice":175,"targetLowPrice":105,
         "recommendationMean":1.7,"sector":"Technology"
@@ -39,6 +40,8 @@ def bundle(fundamentals=None, news=None, price=124.75):
         "symbol":"TEST","price":price,"previous_close":123.0,"currency":"USD","exchange":"NMS",
         "history":history(),"fundamentals":fundamentals if fundamentals is not None else strong_fundamentals(),
         "news":news if news is not None else positive_news(),
+        "corporate_actions":{"splits_1y":[],"recent_reverse_split":False},
+        "strategic_capital":{"direction":"NONE","evidence_strength":0,"events":[]},
         "sector_benchmark":{"symbol":"XLK","price":250,"history":history(start=180,daily=.28,last_volume_multiplier=1.1)},
         "provider":"fake","asof":"2026-09-27T12:00:00+00:00"
     }
