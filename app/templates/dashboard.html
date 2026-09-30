@@ -54,7 +54,7 @@
     <div class="panel">
       <div class="section-title-row"><div><span class="kicker">PORTFOLIO FUNNEL</span><h2>Scan thousands → show 20 → buy every qualified signal</h2></div><span class="pill {{ 'green' if optimizer.live_gating else 'amber' }}">{{ optimizer.version }} • {{ 'LIVE' if optimizer.live_gating else 'SHADOW' }}</span></div>
       <div class="funnel-grid">
-        <div><span>Market scan</span><b>{{ scanner.universe_size or '—' }}</b><small>U.S. equities scanned internally</small></div>
+        <div><span>Market scan</span><b>{{ scanner.universe_size or '—' }}</b><small>Deep discovery this cycle: <span id="scannerCoreCount">{{ scanner.last_universe_core_candidates }}</span> Core • <span id="scannerExplosiveCount">{{ scanner.last_universe_explosive_candidates }}</span> Explosive</small></div>
         <div><span>Visible Radar</span><b id="optimizerVisible">{{ optimizer.visible }}</b><small><span id="optimizerCore">{{ optimizer.core_quality }}</span> Core • <span id="optimizerExplosive">{{ optimizer.explosive }}</span> Explosive</small></div>
         <div><span>Review shortlist</span><b id="optimizerShortlist">{{ optimizer.shortlist }}</b><small>Top 8–10 for review only — not an entry gate</small></div>
         <div><span>Invest now</span><b id="optimizerInvest">{{ optimizer.invest_now }}</b><small>Every qualified STRONG BUY / BUY / STARTER BUY inside Top 20</small></div>
@@ -71,7 +71,7 @@
         <div><span>Daily P&amp;L</span><b id="paperDailyPnl" class="{{ 'pos' if paper.started and paper.daily_pnl >= 0 else 'neg' if paper.started else '' }}">{{ ('$%+.2f / %+.2f%%'|format(paper.daily_pnl, paper.daily_pnl_pct)) if paper.started else '—' }}</b><small>vs prior U.S. trading-day equity</small></div>
         <div><span>S&amp;P 500 total return</span><b id="paperBenchmark">{{ ('%+.2f%%'|format(paper.benchmark_return_pct)) if paper.started else '—' }}</b></div>
         <div><span>Excess vs S&amp;P 500</span><b id="paperExcess" class="{{ 'pos' if paper.started and paper.excess_return_pct > 0 else 'neg' if paper.started and paper.excess_return_pct < 0 else '' }}">{{ ('%+.2f%%'|format(paper.excess_return_pct)) if paper.started else '—' }}</b></div>
-        <div><span>Open positions</span><a class="paper-count-link" href="#paperOpenPositionsTable"><b id="paperPositionCount">{{ paper.position_count if paper.started else 0 }}</b></a><small>Current optimizer holdings</small></div>
+        <div><span>Open positions</span><a class="paper-count-link" href="#paperOpenPositionsTable"><b id="paperPositionCount">{{ paper.position_count if paper.started else 0 }}</b></a><small><span id="paperCoreCount">{{ paper.core_position_count|default(0) }}</span> Core • <span id="paperExplosiveCount">{{ paper.explosive_position_count|default(0) }}</span> Explosive</small></div>
         <div><span>Max drawdown</span><b id="paperDrawdown">{{ ('%.2f%%'|format(paper.drawdown_pct)) if paper.started else '—' }}</b><small>largest peak-to-trough loss</small></div>
       </div>
       <p class="footnote paper-cadence">New STRONG BUY / BUY / STARTER BUY signals are evaluated immediately after the scanner cycle. Every qualifying name inside the current Top 20 is eligible for paper capital; there is no holding-count, sector or tier cap.</p>
