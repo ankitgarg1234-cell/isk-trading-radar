@@ -413,7 +413,8 @@ def _strategic_catalyst(bundle: dict) -> tuple[bool, list[str]]:
 
 def classify_lane(
     bundle: dict, *, fs: float, fconf: str, news: dict, t: dict,
-    catalyst_score: float, total_score: float, negative_override: str | None,
+    catalyst_score: float, total_score: float, expected_upside_pct: float,
+    negative_override: str | None,
 ) -> dict:
     promotion = _promotion_risk(bundle, news, t)
     f = bundle.get("fundamentals") or {}
@@ -453,6 +454,7 @@ def classify_lane(
         and catalyst_verified
         and catalyst_score >= 8
         and total_score >= 75
+        and expected_upside_pct >= 30.0
         and volume_explained
         and not promotion["dilution_risk"]
     )
@@ -465,6 +467,7 @@ def classify_lane(
             f"20d dollar liquidity ${avg_dollar/1_000_000:.1f}M",
             f"relative volume {relvol:.2f}x",
             f"20d move {change20:+.1f}%",
+            f"modeled remaining upside {expected_upside_pct:.1f}%",
             "material catalyst verified",
         ]
         reasons.extend(strategic_evidence[:2])
@@ -587,7 +590,8 @@ def score_bundle(bundle: dict) -> dict:
     deterministic_expected = round(max(-50, min(150, rr_up * 100)), 1)
     lane_info = classify_lane(
         bundle, fs=fs, fconf=fconf, news=news, t=t,
-        catalyst_score=catalyst, total_score=total, negative_override=override,
+        catalyst_score=catalyst, total_score=total, expected_upside_pct=deterministic_expected,
+        negative_override=override,
     )
     category = "Explosive Runner" if lane_info["lane"] == EXPLOSIVE_LANE else "Core" if lane_info["lane"] == CORE_LANE else "Watch"
     deterministic_horizon = (1, 20) if lane_info["lane"] == EXPLOSIVE_LANE else (30, 365) if lane_info["lane"] == CORE_LANE else (30, 365)
