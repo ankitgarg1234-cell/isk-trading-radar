@@ -64,7 +64,7 @@ def _candidate_payloads(
     """Load only the compact candidate rows needed for this paper cycle.
 
     Normal scanner cycles pass ``ranked_limit=0`` and therefore read only the
-    current paper holdings (at most seven).  The Top-20 ranked candidates are
+    current paper holdings. The Top-20 ranked candidates are
     loaded only when an entry event or the daily rebalance actually needs the
     optimizer.  This keeps Neon egress bounded while preserving immediate entry
     decisions.
@@ -235,7 +235,6 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                 # candidate. Paper sells are reserved for thesis-invalidated
                 # EXIT/REDUCE or explicit TAKE PARTIAL PROFIT handled above.
                 # New qualified names share only the cash already available.
-                available_cash = max(0.0, float(account.cash or 0.0))
                 for idx, r in enumerate(new_rows):
                     remaining = len(new_rows) - idx
                     if remaining <= 0 or account.cash <= 0:
