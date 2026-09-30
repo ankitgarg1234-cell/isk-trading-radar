@@ -234,3 +234,53 @@ def test_recent_reverse_split_is_hard_rejected_without_extra_feed():
     assert result["lane_qualified"] is False
     assert result["promotion_risk"]["hard_reject"] is True
     assert any("recent reverse split" in x for x in result["promotion_risk"]["reasons"])
+
+
+def test_existing_position_risk_is_subtracted_before_add_sizing():
+    a = _core_payload("ADDME", score=100, price=100)
+    a["levels"]["stop"] = 95
+    # $100k portfolio, Medium risk budget = $750. Existing $10k position
+    # carries ~$500 stop risk, leaving ~$250 risk budget / ~$5k ADD ceiling.
+    sized = suggested_position_size(
+        a, cash=90_000, reserve_cash=0, portfolio_value=100_000,
+        profile="MEDIUM", fx_rate_to_base=1, existing_value=10_000,
+        whole_shares=False,
+    )
+    assert sized["target_allocation_pct"] == 15
+    assert round(sized["existing_risk_amount"], 2) == 500.00
+    assert round(sized["remaining_risk_budget"], 2) == 250.00
+    assert sized["capital"] <= 5_000.01
+
+
+def test_paper_engine_executes_only_explicit_add_toward_score_target():
+    now = datetime.now(timezone.utc)
+    a = _core_payload("ADDME", score=100, price=100)
+    a["levels"]["stop"] = 95
+    # Persisted global state can still look like a new-entry BUY. The paper
+    # cycle must re-evaluate it with the actual position and derive ADD.
+    a["action"] = "BUY NOW"
+    rank = candidate_rank_score(a)["score"]
+    with SessionLocal() as db:
+        db.add(PaperAccount(
+            account="Optimizer Paper", starting_cash=10_000, cash=9_000,
+            benchmark_symbol="^SP500TR", benchmark_start_price=100,
+            benchmark_last_price=100, enabled=True, last_rebalance_at=now,
+        ))
+        db.add(PaperPosition(
+            account="Optimizer Paper", symbol="ADDME", shares=10, avg_cost=100,
+            rank_score_at_entry=rank, reason="Core Quality Lane • Top-20 #1 BUY",
+            opened_at=now,
+        ))
+        db.add(RadarCandidate(
+            symbol="ADDME", category="Core", action="BUY NOW", score=100, ai_score=95,
+            price=100, portfolio_rank_score=rank, current_json=json.dumps(a),
+        ))
+        db.commit()
+
+    run_paper_cycle(BenchProvider(), entry_event=True)
+    with SessionLocal() as db:
+        pos = db.query(PaperPosition).filter(PaperPosition.symbol == "ADDME").one()
+        assert 10 < pos.shares <= 15
+        buys = db.query(PaperTrade).filter(PaperTrade.symbol == "ADDME", PaperTrade.side == "BUY").all()
+        assert len(buys) == 1
+        assert "ADD" in buys[0].reason
