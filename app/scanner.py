@@ -36,6 +36,9 @@ def _attention_buy_signal(full: dict, has_position: bool = False) -> tuple[str |
     Monitoring states below 68 stay in the Radar and never become attention alerts.
     Material bearish/thesis-invalidated setups are blocked from buy attention.
     """
+    # Raw alert persistence must obey the same lane eligibility as the optimizer.
+    if not (full.get("lane") or classify_lane(full).get("lane")):
+        return None, None
     if bool((full.get("thesis_assessment") or {}).get("invalidated")):
         return None, None
     if full.get("negative_news_override"):
