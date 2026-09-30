@@ -15,6 +15,7 @@ class BenchProvider:
 
 
 def _core_payload(symbol="CORE", score=90, price=10):
+    factor = score / 100.0
     return {
         "symbol": symbol,
         "price": price,
@@ -26,6 +27,15 @@ def _core_payload(symbol="CORE", score=90, price=10):
         "core_quality_qualified": True,
         "explosive_qualified": False,
         "deterministic_score": score,
+        "breakdown": {
+            "Fundamentals": 20 * factor,
+            "Catalyst": 15 * factor,
+            "Valuation": 10 * factor,
+            "Momentum": 15 * factor,
+            "Risk/Reward": 10 * factor,
+            "Sector": 10 * factor,
+        },
+        "data_quality_pct": 100 * factor,
         "expected_yield_pct": 30,
         "risk_reward": 3.5,
         "decision_confidence": "high",
