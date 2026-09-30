@@ -134,3 +134,30 @@ def test_previous_close_uses_prior_session_not_chart_range_reference():
     assert current == 134.0
     assert previous == 132.0
     assert previous != 184.0
+
+
+def test_quick_scan_does_not_reward_large_negative_move_like_positive_move(monkeypatch):
+    provider=YahooMarketProvider()
+
+    def make_chart(direction):
+        closes=[]
+        for i in range(21):
+            closes.append(100 + direction * (10 * i / 20))
+        volumes=[1_000_000]*20+[2_000_000]
+        ts=[int(datetime(2026,9,1+i,20,0,tzinfo=timezone.utc).timestamp()) for i in range(21)]
+        return {
+            "meta":{"regularMarketPrice":closes[-1],"regularMarketTime":ts[-1],"currency":"USD","exchangeName":"NASDAQ"},
+            "timestamp":ts,
+            "indicators":{"quote":[{
+                "open":closes,"high":[x+1 for x in closes],"low":[x-1 for x in closes],
+                "close":closes,"volume":volumes,
+            }],"adjclose":[{"adjclose":closes}]},
+        }
+
+    monkeypatch.setattr(provider,"chart",lambda symbol,range_,interval: make_chart(1 if symbol=="UP" else -1))
+    up=provider.quick_scan("UP")
+    down=provider.quick_scan("DOWN")
+    assert up["scan_score"] > down["scan_score"]
+    assert up["qualifies_explosive"] is True
+    assert down["qualifies_explosive"] is False
+    assert down["change_20_pct"] < 0

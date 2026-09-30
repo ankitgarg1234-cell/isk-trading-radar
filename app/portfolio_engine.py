@@ -4,6 +4,8 @@ import math
 from collections import defaultdict
 from typing import Any
 
+from .config import settings
+
 RISK_PROFILES = {
     "LOW": {
         "label": "Low Risk",
@@ -156,7 +158,7 @@ def system_signal(a: dict, owned: bool = False) -> str:
         return "HOLD"
 
     if action in {"BUY NOW", "BREAKOUT BUY"}:
-        return "STRONG BUY" if ai >= 88 and det >= 80 else "BUY"
+        return entry_attention_signal(a) or "WATCH"
     if action in {"CONSIDER BUYING NOW", "CONSIDER STARTER BUY"}:
         entry = entry_attention_signal(a)
         if entry:
@@ -242,6 +244,26 @@ def risk_fit(stock_risk: float, profile: str) -> str:
     return "ABOVE TARGET"
 
 
+def score_target_pct(score: float) -> float:
+    """Map final Portfolio Priority score to the agreed target allocation ladder."""
+    s = _float(score)
+    if s < 68:
+        return 0.0
+    if s < 75:
+        return 2.0
+    if s < 80:
+        return 4.0
+    if s < 85:
+        return 6.0
+    if s < 90:
+        return 8.0
+    if s < 95:
+        return 10.0
+    if s < 98:
+        return 12.0
+    return 15.0
+
+
 def suggested_position_size(
     a: dict,
     *,
@@ -252,7 +274,9 @@ def suggested_position_size(
     fx_rate_to_base: float = 1.0,
     existing_value: float = 0.0,
     whole_shares: bool = True,
+    conviction_score: float | None = None,
 ) -> dict:
+    """Score-led sizing: conviction sets the target; risk/cash can only cap it."""
     profile = normalise_profile(profile)
     p = RISK_PROFILES[profile]
     price = _float(a.get("price"))
@@ -260,46 +284,78 @@ def suggested_position_size(
     if price <= 0 or stop <= 0 or stop >= price or fx_rate_to_base <= 0:
         return {"shares": 0, "reason": "Sizing unavailable until price, stop and FX are valid", "fit": "UNKNOWN"}
 
+    final_score = _float(conviction_score if conviction_score is not None else candidate_rank_score(a).get("score"))
+    target_pct = score_target_pct(final_score)
     stock_risk = stock_risk_score(a)
     fit = risk_fit(stock_risk, profile)
     deployable_cash = max(0.0, cash - reserve_cash)
+    if target_pct <= 0:
+        return {
+            "shares": 0, "capital": 0.0, "fit": fit, "stock_risk": stock_risk,
+            "profile": profile, "conviction_score": round(final_score, 1),
+            "target_allocation_pct": 0.0,
+            "reason": f"Portfolio Priority {final_score:.1f}/100 is below the 68 sizing threshold",
+        }
     if deployable_cash <= 0:
-        return {"shares": 0, "reason": "No deployable cash after strategic reserve", "fit": fit, "stock_risk": stock_risk}
-    # Risk fit is advisory for sizing, never an entry veto. Under the uncapped
-    # Top-20 policy every qualified entry must receive capital; higher-risk names
-    # may receive a smaller suggested size but cannot be silently blocked.
+        return {
+            "shares": 0, "capital": 0.0, "fit": fit, "stock_risk": stock_risk,
+            "profile": profile, "conviction_score": round(final_score, 1),
+            "target_allocation_pct": target_pct,
+            "reason": "No deployable cash after strategic reserve",
+        }
 
     price_base = price * fx_rate_to_base
     stop_risk_base = (price - stop) * fx_rate_to_base
-    total = max(portfolio_value, deployable_cash)
-    risk_budget = total * (p["risk_per_trade_pct"] / 100)
-    max_pct = p["max_explosive_pct"] if a.get("category") == "Explosive Runner" else p["max_position_pct"]
-    max_value = total * (max_pct / 100)
-    remaining_position_room = max(0.0, max_value - existing_value)
+    total = max(_float(portfolio_value), deployable_cash)
+    target_position_value = total * (target_pct / 100.0)
+    desired_increment = max(0.0, target_position_value - max(0.0, existing_value))
 
-    by_risk = risk_budget / stop_risk_base if stop_risk_base > 0 else 0
-    by_cap = remaining_position_room / price_base if price_base > 0 else 0
-    by_cash = deployable_cash / price_base if price_base > 0 else 0
-    shares = min(by_risk, by_cap, by_cash)
-    if fit == "STRETCH":
-        shares *= 0.6
-    elif fit == "ABOVE TARGET":
-        shares *= 0.35
-    shares = math.floor(shares) if whole_shares else round(shares, 4)
+    # The score ladder is the primary sizing curve. Safety must not routinely
+    # flatten higher scores into the same lot size. Full score-target sizing is
+    # allowed when the stop is within 15%; wider stops scale the target down.
+    # Independently, loss-at-stop may not exceed 2% of total portfolio equity.
+    stop_pct = ((price - stop) / price) if price > stop else 0.0
+    stop_width_capital = desired_increment if stop_pct <= 0.15 else desired_increment * (0.15 / stop_pct)
+    absolute_loss_budget = total * 0.02
+    absolute_loss_capital = (absolute_loss_budget / stop_pct) if stop_pct > 0 else desired_increment
+    risk_capital = min(desired_increment, stop_width_capital, absolute_loss_capital)
+
+    capital_limit = min(desired_increment, risk_capital, deployable_cash)
+    raw_shares = capital_limit / price_base if price_base > 0 else 0.0
+    shares = math.floor(raw_shares + 1e-12) if whole_shares else round(raw_shares, 4)
     shares = max(0, shares)
     capital = shares * price_base
     risk_amount = shares * stop_risk_base
+
+    caps = {
+        "score target": desired_increment,
+        "stop-risk ceiling": risk_capital,
+        "available cash": deployable_cash,
+    }
+    binding = min(caps, key=caps.get) if caps else "unknown"
+    reason = (
+        f"Priority {final_score:.1f}/100 → {target_pct:.0f}% target; "
+        f"final size capped by {binding}; safety only reduces targets for >15% stop width or >2% portfolio loss-at-stop"
+    )
+    if shares <= 0 and desired_increment > 0:
+        reason += "; whole-share price is above the current safe/deployable amount"
+
     return {
         "shares": shares,
         "capital": round(capital, 2),
         "risk_amount": round(risk_amount, 2),
         "risk_pct_portfolio": round((risk_amount / total * 100) if total else 0, 2),
-        "weight_after_pct": round(((existing_value + capital) / (total + capital) * 100) if total + capital else 0, 1),
+        "weight_after_pct": round(((existing_value + capital) / total * 100) if total else 0, 1),
         "cash_after": round(max(0, cash - capital), 2),
         "fit": fit,
         "stock_risk": stock_risk,
         "profile": profile,
-        "reason": f"Sized from {p['risk_per_trade_pct']}% risk/trade, {max_pct}% position cap and available cash",
+        "conviction_score": round(final_score, 1),
+        "target_allocation_pct": target_pct,
+        "target_position_value": round(target_position_value, 2),
+        "risk_capital_limit": round(risk_capital, 2),
+        "binding_constraint": binding,
+        "reason": reason,
     }
 
 
@@ -327,7 +383,7 @@ def account_risk(position_rows: list[dict], cash: float, *, target_profile: str 
     event_value = 0.0
     for p, v, r in zip(position_rows, values, stock_risks):
         sectors[str(p.get("sector") or "Unknown")] += v
-        if r >= 70 or p.get("category") == "Explosive Runner":
+        if r >= 70 or p.get("category") in {"Explosive Runner", EXPLOSIVE_LANE}:
             speculative += v
         if _float(p.get("material_events")) >= 1:
             event_value += v
@@ -398,20 +454,121 @@ def projected_risk(account_rows: list[dict], cash: float, candidate: dict, sizin
     return account_risk(account_rows + [pseudo], max(0, cash - capital), target_profile=target_profile)
 
 
-RANK_VERSION = "rank-v1"
+RANK_VERSION = "rank-v2-lanes"
 INVESTABLE_ENTRY_ACTIONS = {"STRONG BUY", "BUY", "STARTER BUY"}
+CORE_LANE = "Core Quality Lane"
+EXPLOSIVE_LANE = "Explosive Lane"
 
 
 def _clamp(v: float, lo: float = 0.0, hi: float = 100.0) -> float:
     return max(lo, min(hi, v))
 
 
-def entry_attention_signal(a: dict) -> str | None:
-    """Portfolio-layer entry label using the agreed deterministic ladder.
+def classify_lane(a: dict) -> dict:
+    """Classify a fully analysed company into exactly one investable discovery lane."""
+    f = a.get("fundamentals") or {}
+    t = a.get("technicals") or {}
+    breakdown = a.get("breakdown") or {}
+    evidence = a.get("lane_evidence") or {}
+    promo = a.get("promotion_risk") or evidence.get("promotion_risk") or {}
+    catalyst = a.get("catalyst_assessment") or evidence.get("catalyst") or {}
+    strategic = a.get("strategic_capital") or {}
 
-    This intentionally does not blend AI/analyst scores into the decision.
-    They remain separate confirmation signals.
-    """
+    price = _float(a.get("price"))
+    market_cap = _float(f.get("marketCap") or evidence.get("market_cap"))
+    avg_dollar_volume = _float(t.get("avg_dollar_volume_20") or evidence.get("avg_dollar_volume_20"))
+    fs = _float(breakdown.get("Fundamentals"))
+    valuation = _float(breakdown.get("Valuation"), 5.0)
+    momentum = _float(breakdown.get("Momentum"))
+    det = _float(a.get("deterministic_score"))
+    expected = _float(a.get("expected_yield_pct"))
+    relvol = _float(t.get("relative_volume"))
+    confidence = str(a.get("decision_confidence") or "medium").lower()
+    negative_override = bool(a.get("negative_news_override"))
+    invalidated = bool((a.get("thesis_assessment") or {}).get("invalidated"))
+
+    hard_reasons = []
+    if price < settings.core_min_price:
+        hard_reasons.append(f"price below USD {settings.core_min_price:g} floor")
+    if avg_dollar_volume < settings.core_min_dollar_volume:
+        hard_reasons.append("20-day dollar liquidity below Core floor")
+    if market_cap < settings.core_min_market_cap:
+        hard_reasons.append("verified market cap below/unavailable for USD 500M floor")
+    if fs < 14:
+        hard_reasons.append("fundamental quality below 14/20")
+    if confidence == "low":
+        hard_reasons.append("decision evidence confidence is low")
+    if promo.get("hard_block"):
+        hard_reasons.append("promotion/distress hard block")
+    if negative_override or invalidated:
+        hard_reasons.append("material negative/thesis override")
+
+    fundamental_quality = not hard_reasons
+
+    rg_value = f.get("revenueGrowth")
+    qrg_value = f.get("quarterlyRevenueGrowth")
+    eg_value = f.get("earningsGrowth") if f.get("earningsGrowth") is not None else f.get("growth")
+    om_value = f.get("operatingMargins")
+    rg_raw = _float(rg_value) if rg_value is not None else None
+    qrg_raw = _float(qrg_value) if qrg_value is not None else None
+    eg_raw = _float(eg_value) if eg_value is not None else None
+    om_raw = _float(om_value) if om_value is not None else None
+    rg = rg_raw * (100 if abs(rg_raw) <= 2 else 1) if rg_raw is not None else None
+    qrg = qrg_raw * (100 if abs(qrg_raw) <= 2 else 1) if qrg_raw is not None else None
+    eg = eg_raw * (100 if abs(eg_raw) <= 2 else 1) if eg_raw is not None else None
+    op_margin = om_raw * (100 if abs(om_raw) <= 2 else 1) if om_raw is not None else None
+    durability = bool(
+        (rg is not None and rg >= 5)
+        or (qrg is not None and qrg >= 5)
+        or (eg is not None and eg >= 0)
+        or (op_margin is not None and op_margin > 0)
+    )
+    core_quality = bool(fundamental_quality and durability and valuation >= 3)
+
+    catalyst_tier = str(catalyst.get("tier") or "NONE").upper()
+    strategic_positive = (
+        str(strategic.get("direction") or "").upper() == "POSITIVE"
+        and _float(strategic.get("evidence_strength")) >= 25
+    )
+    explosive_reasons = []
+    if not fundamental_quality:
+        explosive_reasons.extend(hard_reasons)
+    if market_cap < settings.explosive_min_market_cap:
+        explosive_reasons.append("Explosive lane requires verified market cap >= USD 500M")
+    if avg_dollar_volume < settings.explosive_min_dollar_volume:
+        explosive_reasons.append("20-day dollar liquidity below Explosive floor")
+    if relvol < settings.explosive_min_relative_volume:
+        explosive_reasons.append("relative volume below Explosive threshold")
+    if expected < settings.explosive_min_expected_return_pct:
+        explosive_reasons.append("modeled remaining upside below 30%")
+    if momentum < 9:
+        explosive_reasons.append("momentum confirmation below 9/15")
+    if det < 75:
+        explosive_reasons.append("deterministic conviction below 75")
+    if catalyst_tier not in {"A", "B"} and not strategic_positive:
+        explosive_reasons.append("no Tier A/B catalyst or strong verified strategic-capital evidence")
+    if promo.get("explosive_block"):
+        explosive_reasons.append("promotional/unexplained-volume risk")
+    explosive = not explosive_reasons
+
+    lane = EXPLOSIVE_LANE if explosive else CORE_LANE if core_quality else None
+    return {
+        "lane": lane,
+        "fundamental_quality": fundamental_quality,
+        "core_quality": core_quality,
+        "explosive": explosive,
+        "core_reasons": hard_reasons + ([] if durability else ["durable growth/profitability evidence not established"]),
+        "explosive_reasons": explosive_reasons,
+        "core_quality_badge": bool(explosive and core_quality),
+        "max_trading_sessions": settings.explosive_max_trading_sessions if explosive else None,
+    }
+
+
+def entry_attention_signal(a: dict) -> str | None:
+    """Agreed 68/75/85 entry ladder, gated by investable lane qualification."""
+    lane = classify_lane(a)
+    if not lane.get("lane"):
+        return None
     if bool((a.get("thesis_assessment") or {}).get("invalidated")):
         return None
     if a.get("negative_news_override"):
@@ -435,42 +592,49 @@ def entry_attention_signal(a: dict) -> str | None:
         return "STRONG BUY"
     if score >= 75:
         return "BUY"
-    if score >= 68 and zone in {"BETTER_BUY", "PRIMARY_BUY"}:
+    if score >= 68:
         return "STARTER BUY"
     return None
 
 
 def candidate_rank_score(a: dict) -> dict:
-    """Transparent deterministic portfolio-priority score (0-100).
-
-    The stock's deterministic score remains untouched. This second score answers a
-    different question: among already-analysed candidates, which deserves scarce
-    portfolio capital first? AI/analyst opinions are reported as confirmations but
-    are deliberately not blended into the arithmetic.
-    """
+    """Portfolio Priority v2: quality-first, lane-gated and non-duplicative."""
     det = _clamp(_float(a.get("deterministic_score")))
     expected = _float(a.get("expected_yield_pct"))
-    rr = max(0.0, _float(a.get("risk_reward")))
-    confidence = str(a.get("decision_confidence") or "medium").lower()
-    srisk = stock_risk_score(a)
+    breakdown = a.get("breakdown") or {}
+    strategic = a.get("strategic_capital") or {}
+    lane = classify_lane(a)
 
-    conviction_pts = det * 0.50
-    upside_pts = _clamp(expected, 0, 35) / 35 * 20
-    rr_pts = _clamp(rr, 0, 3.5) / 3.5 * 15
-    confidence_pts = 10.0 if confidence == "high" else 6.0 if confidence == "medium" else 0.0
-    risk_pts = max(0.0, 100.0 - srisk) / 100 * 5
+    fundamentals_pts = _clamp(_float(breakdown.get("Fundamentals")), 0, 20) / 20 * 30
+    base_catalyst = _clamp(_float(breakdown.get("Catalyst")), 0, 15) / 15 * 10
+    news_score = _clamp(_float(breakdown.get("News")), 0, 15)
+    positive_news_pts = max(0.0, news_score - 7.5) / 7.5 * 3
+    strategic_pts = 0.0
+    if str(strategic.get("direction") or "").upper() == "POSITIVE":
+        strategic_pts = min(2.0, _float(strategic.get("evidence_strength")) / 50.0 * 2.0)
+    catalyst_pts = min(15.0, base_catalyst + positive_news_pts + strategic_pts)
+    valuation_pts = _clamp(_float(breakdown.get("Valuation")), 0, 10) / 10 * 15
+    momentum_pts = _clamp(_float(breakdown.get("Momentum")), 0, 15) / 15 * 15
+    rr_model_pts = _clamp(_float(breakdown.get("Risk/Reward")), 0, 10) / 10 * 6
+    upside_pts = _clamp(expected, 0, 35) / 35 * 4
+    rr_upside_pts = rr_model_pts + upside_pts
+    sector_pts = _clamp(_float(breakdown.get("Sector")), 0, 10)
+    evidence_pts = _clamp(_float(a.get("data_quality_pct")), 0, 100) / 100 * 5
+
     penalty = 0.0
     if a.get("negative_news_override"):
         penalty += 20
     if bool((a.get("thesis_assessment") or {}).get("invalidated")):
         penalty += 35
     if str(a.get("entry_zone_status") or "").upper() in {"DO_NOT_CHASE", "INVALIDATED"}:
-        penalty += 12
+        penalty += 8
 
-    total = _clamp(conviction_pts + upside_pts + rr_pts + confidence_pts + risk_pts - penalty)
+    total = _clamp(
+        fundamentals_pts + catalyst_pts + valuation_pts + momentum_pts
+        + rr_upside_pts + sector_pts + evidence_pts - penalty
+    )
     ai = a.get("ai_score")
     analyst = a.get("analyst_score")
-    strategic = a.get("strategic_capital") or {}
     ai_confirmation = "UNAVAILABLE"
     analyst_confirmation = "UNAVAILABLE"
     if ai is not None:
@@ -482,18 +646,22 @@ def candidate_rank_score(a: dict) -> dict:
     return {
         "score": round(total, 1),
         "version": RANK_VERSION,
+        "lane": lane.get("lane"),
+        "lane_qualification": lane,
         "entry_signal": entry_attention_signal(a),
         "components": {
-            "Deterministic conviction": round(conviction_pts, 1),
-            "Expected upside": round(upside_pts, 1),
-            "Risk/reward": round(rr_pts, 1),
-            "Evidence confidence": round(confidence_pts, 1),
-            "Risk efficiency": round(risk_pts, 1),
+            "Fundamental quality & growth": round(fundamentals_pts, 1),
+            "Catalyst / strategic evidence": round(catalyst_pts, 1),
+            "Valuation vs growth": round(valuation_pts, 1),
+            "Momentum & volume": round(momentum_pts, 1),
+            "Risk/reward & remaining upside": round(rr_upside_pts, 1),
+            "Sector strength": round(sector_pts, 1),
+            "Evidence quality": round(evidence_pts, 1),
             "Penalties": round(-penalty, 1),
         },
         "ai_confirmation": ai_confirmation,
         "analyst_confirmation": analyst_confirmation,
-        "stock_risk": srisk,
+        "stock_risk": stock_risk_score(a),
         "strategic_capital_shadow": {
             "mode": strategic.get("mode") or "UNAVAILABLE",
             "label": strategic.get("label") or "NONE",
@@ -505,6 +673,8 @@ def candidate_rank_score(a: dict) -> dict:
             "sector_policy_support": strategic.get("sector_policy_support") or "UNKNOWN",
             "trump_administration_action": strategic.get("trump_administration_action") or "UNKNOWN",
             "trump_personal_disclosure": (strategic.get("trump_personal_disclosure") or {}).get("status") or "UNKNOWN",
+            "trump_family_interest": strategic.get("trump_family_interest") or "UNKNOWN",
+            "connected_capital_interest": strategic.get("connected_capital_interest") or "UNKNOWN",
         },
     }
 
@@ -538,14 +708,15 @@ def build_optimizer_plan(
         if not sym:
             continue
         rank = candidate_rank_score(a)
+        if not rank.get("lane"):
+            continue
         srisk = rank["stock_risk"]
         fit = risk_fit(srisk, profile)
         sector = str((a.get("fundamentals") or {}).get("sector") or "Unknown")
-        adjusted = rank["score"] - (6 if fit == "STRETCH" else 20 if fit == "ABOVE TARGET" else 0)
         rows.append({
             "symbol": sym,
             "analysis": a,
-            "rank_score": round(_clamp(adjusted), 1),
+            "rank_score": round(_clamp(rank["score"]), 1),
             "raw_rank_score": rank["score"],
             "rank_components": rank["components"],
             "entry_signal": rank["entry_signal"],
@@ -554,6 +725,8 @@ def build_optimizer_plan(
             "risk_fit": fit,
             "stock_risk": srisk,
             "sector": sector,
+            "lane": rank.get("lane"),
+            "lane_qualification": rank.get("lane_qualification") or {},
             "owned": sym in owned,
             "expected_yield_pct": _float(a.get("expected_yield_pct")),
             "strategic_capital_shadow": rank.get("strategic_capital_shadow") or {},
@@ -597,14 +770,23 @@ def build_optimizer_plan(
                     "does not create another paper buy"
                 )
             continue
-        if r["entry_signal"] in INVESTABLE_ENTRY_ACTIONS:
+        if r["entry_signal"] in INVESTABLE_ENTRY_ACTIONS and r["rank_score"] >= 68:
             r["bucket"] = "INVEST NOW"
             r["optimizer_action"] = r["entry_signal"]
             r["decision_reason"] = (
-                f"{r['entry_signal']} — qualified inside Top-{max(1, visible_limit)}; "
-                "no holding-count, sector, tier, rank-threshold or risk-fit gate"
+                f"{r['entry_signal']} — lane-qualified inside Top-{max(1, visible_limit)} "
+                f"with Portfolio Priority {r['rank_score']:.1f}/100; "
+                "no holding-count, sector, tier or risk-fit gate"
             )
             selected_new.append(r)
+            continue
+        if r["entry_signal"] in INVESTABLE_ENTRY_ACTIONS and r["rank_score"] < 68:
+            r["bucket"] = "SHORTLIST" if r["symbol"] in shortlist_symbols else "RESERVE"
+            r["optimizer_action"] = "PASS"
+            r["decision_reason"] = (
+                f"PASS — deterministic entry is {r['entry_signal']}, but Portfolio Priority "
+                f"{r['rank_score']:.1f}/100 is below the 68 score-sizing floor"
+            )
             continue
         r["bucket"] = "SHORTLIST" if r["symbol"] in shortlist_symbols else "RESERVE"
         r["optimizer_action"] = "PASS"
@@ -628,4 +810,8 @@ def build_optimizer_plan(
         "visible_limit": visible_limit,
         "shortlist_limit": shortlist_limit,
         "allocation_policy": "TOP20_ALL_QUALIFIED",
+        "lane_counts": {
+            CORE_LANE: sum(r.get("lane") == CORE_LANE for r in visible),
+            EXPLOSIVE_LANE: sum(r.get("lane") == EXPLOSIVE_LANE for r in visible),
+        },
     }

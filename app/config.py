@@ -19,12 +19,23 @@ class Settings:
     scan_interval_seconds: int = int(os.getenv("SCAN_INTERVAL_SECONDS", "120"))
     # Maximum number of symbols sent through the expensive full-analysis pipeline per cycle.
     # Broad-market coverage is handled separately by the rotating universe prefilter.
-    scan_batch_size: int = int(os.getenv("SCAN_BATCH_SIZE", "28"))
-    universe_prefilter_batch_size: int = int(os.getenv("UNIVERSE_PREFILTER_BATCH_SIZE", "120"))
-    universe_deep_candidates: int = int(os.getenv("UNIVERSE_DEEP_CANDIDATES", "10"))
+    scan_batch_size: int = int(os.getenv("SCAN_BATCH_SIZE", "32"))
+    universe_prefilter_batch_size: int = int(os.getenv("UNIVERSE_PREFILTER_BATCH_SIZE", "160"))
+    universe_deep_candidates: int = int(os.getenv("UNIVERSE_DEEP_CANDIDATES", "12"))
     discovery_deep_candidates: int = int(os.getenv("DISCOVERY_DEEP_CANDIDATES", "8"))
-    priority_deep_limit: int = int(os.getenv("PRIORITY_DEEP_LIMIT", "12"))
+    priority_deep_limit: int = int(os.getenv("PRIORITY_DEEP_LIMIT", "8"))
     quick_scan_workers: int = int(os.getenv("QUICK_SCAN_WORKERS", "8"))
+    incumbent_refresh_per_cycle: int = int(os.getenv("INCUMBENT_REFRESH_PER_CYCLE", "4"))
+
+    # Lane qualification. These are hard eligibility floors, not ranking bonuses.
+    core_min_price: float = float(os.getenv("CORE_MIN_PRICE", "5"))
+    core_min_market_cap: float = float(os.getenv("CORE_MIN_MARKET_CAP", "500000000"))
+    core_min_dollar_volume: float = float(os.getenv("CORE_MIN_DOLLAR_VOLUME", "10000000"))
+    explosive_min_market_cap: float = float(os.getenv("EXPLOSIVE_MIN_MARKET_CAP", "500000000"))
+    explosive_min_dollar_volume: float = float(os.getenv("EXPLOSIVE_MIN_DOLLAR_VOLUME", "20000000"))
+    explosive_min_relative_volume: float = float(os.getenv("EXPLOSIVE_MIN_RELATIVE_VOLUME", "1.5"))
+    explosive_min_expected_return_pct: float = float(os.getenv("EXPLOSIVE_MIN_EXPECTED_RETURN_PCT", "30"))
+    explosive_max_trading_sessions: int = int(os.getenv("EXPLOSIVE_MAX_TRADING_SESSIONS", "20"))
     disable_scanner: bool = _bool("DISABLE_SCANNER", False)
     max_upload_mb: int = int(os.getenv("MAX_UPLOAD_MB", "8"))
     # Browser live polling is intentionally slower than the scanner cadence.

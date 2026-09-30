@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import math
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -11,7 +11,10 @@ from .db import (
     SessionLocal, RadarCandidate, PortfolioPreference,
     PaperAccount, PaperPosition, PaperTrade, PaperSnapshot,
 )
-from .portfolio_engine import build_optimizer_plan, candidate_rank_score, normalise_profile
+from .portfolio_engine import (
+    build_optimizer_plan, candidate_rank_score, normalise_profile, suggested_position_size,
+    classify_lane, CORE_LANE, EXPLOSIVE_LANE,
+)
 from .analysis_engine import position_action
 
 PAPER_ACCOUNT = "Optimizer Paper"
@@ -23,6 +26,74 @@ def _utc(dt: datetime | None) -> datetime | None:
     if dt is None:
         return None
     return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def _observed(d: date) -> date:
+    if d.weekday() == 5:
+        return d - timedelta(days=1)
+    if d.weekday() == 6:
+        return d + timedelta(days=1)
+    return d
+
+
+def _nth_weekday(year: int, month: int, weekday: int, n: int) -> date:
+    d = date(year, month, 1)
+    return d + timedelta(days=((weekday - d.weekday()) % 7) + (n - 1) * 7)
+
+
+def _last_weekday(year: int, month: int, weekday: int) -> date:
+    d = date(year + (month == 12), 1 if month == 12 else month + 1, 1) - timedelta(days=1)
+    return d - timedelta(days=(d.weekday() - weekday) % 7)
+
+
+def _easter_sunday(year: int) -> date:
+    # Anonymous Gregorian algorithm; used only to derive Good Friday.
+    a = year % 19; b = year // 100; cc = year % 100; d = b // 4; e = b % 4
+    f = (b + 8) // 25; g = (b - f + 1) // 3; h = (19 * a + b - d - g + 15) % 30
+    i = cc // 4; k = cc % 4; l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    month = (h + l - 7 * m + 114) // 31
+    day = ((h + l - 7 * m + 114) % 31) + 1
+    return date(year, month, day)
+
+
+def _nyse_holidays(year: int) -> set[date]:
+    holidays = {
+        _observed(date(year, 1, 1)),
+        _nth_weekday(year, 1, 0, 3),   # MLK
+        _nth_weekday(year, 2, 0, 3),   # Washington's Birthday
+        _easter_sunday(year) - timedelta(days=2),  # Good Friday
+        _last_weekday(year, 5, 0),     # Memorial Day
+        _observed(date(year, 6, 19)),  # Juneteenth
+        _observed(date(year, 7, 4)),
+        _nth_weekday(year, 9, 0, 1),   # Labor Day
+        _nth_weekday(year, 11, 3, 4),  # Thanksgiving
+        _observed(date(year, 12, 25)),
+    }
+    # New Year's Day can be observed on Dec 31 of the previous calendar year.
+    holidays.add(_observed(date(year + 1, 1, 1)))
+    return holidays
+
+
+def trading_sessions_elapsed(opened_at: datetime | None, now: datetime | None = None) -> int:
+    opened = _utc(opened_at)
+    current = _utc(now or datetime.now(timezone.utc))
+    if not opened or not current:
+        return 0
+    start = opened.astimezone(NY).date()
+    end = current.astimezone(NY).date()
+    if end <= start:
+        return 0
+    holidays: set[date] = set()
+    for year in range(start.year - 1, end.year + 2):
+        holidays |= _nyse_holidays(year)
+    count = 0
+    d = start + timedelta(days=1)
+    while d <= end:
+        if d.weekday() < 5 and d not in holidays:
+            count += 1
+        d += timedelta(days=1)
+    return count
 
 
 def _benchmark_prices(provider, started_at: datetime, symbol: str = BENCHMARK_SYMBOL) -> tuple[float | None, float | None]:
@@ -79,10 +150,13 @@ def _candidate_payloads(
     """
     rows = []
     if ranked_limit > 0:
-        rows = db.query(RadarCandidate).order_by(
+        fresh_cutoff = datetime.now(timezone.utc) - timedelta(hours=18)
+        rows = db.query(RadarCandidate).filter(
+            RadarCandidate.updated_at >= fresh_cutoff
+        ).order_by(
             RadarCandidate.portfolio_rank_score.desc(),
             RadarCandidate.updated_at.desc(),
-        ).limit(max(1, ranked_limit)).all()
+        ).limit(max(40, ranked_limit * 6)).all()
     have = {r.symbol for r in rows}
     missing = [s for s in (extra_symbols or []) if s not in have]
     if missing:
@@ -125,13 +199,17 @@ def _sell(db, account: PaperAccount, pos: PaperPosition, price: float, shares: f
         pos.updated_at = datetime.now(timezone.utc)
 
 
-def _buy(db, account: PaperAccount, symbol: str, price: float, target_value: float, rank_score: float, reason: str) -> float:
-    """Paper-buy up to target_value using whole shares only."""
+def _buy(
+    db, account: PaperAccount, symbol: str, price: float, target_value: float,
+    rank_score: float, reason: str, entry_lane: str = CORE_LANE,
+) -> float:
+    """Paper-buy whole shares up to a gross stock-capital target."""
     if price <= 0 or target_value <= 0 or account.cash <= 0:
         return 0.0
     fee_rate = max(0.0, settings.paper_trade_cost_bps) / 10000.0
-    spendable = min(float(target_value), float(account.cash))
-    shares = math.floor(spendable / (price * (1.0 + fee_rate)) + 1e-12)
+    by_target = math.floor(float(target_value) / price + 1e-12)
+    by_cash = math.floor(float(account.cash) / (price * (1.0 + fee_rate)) + 1e-12)
+    shares = max(0, min(by_target, by_cash))
     if shares <= 0:
         return 0.0
     gross = shares * price
@@ -143,10 +221,15 @@ def _buy(db, account: PaperAccount, symbol: str, price: float, target_value: flo
         pos.avg_cost = ((pos.avg_cost * pos.shares) + gross) / total_shares
         pos.shares = total_shares
         pos.rank_score_at_entry = rank_score
+        if not pos.entry_lane:
+            pos.entry_lane = entry_lane
         pos.reason = reason[:255]
         pos.updated_at = datetime.now(timezone.utc)
     else:
-        db.add(PaperPosition(account=PAPER_ACCOUNT, symbol=symbol, shares=shares, avg_cost=price, rank_score_at_entry=rank_score, reason=reason[:255]))
+        db.add(PaperPosition(
+            account=PAPER_ACCOUNT, symbol=symbol, shares=shares, avg_cost=price,
+            rank_score_at_entry=rank_score, entry_lane=entry_lane, reason=reason[:255],
+        ))
     db.add(PaperTrade(account=PAPER_ACCOUNT, symbol=symbol, side="BUY", shares=shares, price=price, fees=fee, rank_score=rank_score, reason=reason[:255]))
     return shares
 
@@ -222,10 +305,29 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
         if whole_share_corrections:
             paper_positions = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).all()
 
-        # Immediate risk management uses the existing thesis-gated position action.
+        # Immediate risk management plus the explicit 20-session Explosive thesis clock.
         for p in list(paper_positions):
             a = analyses.get(p.symbol) or {}
             price = float(a.get("price") or 0)
+            if not p.entry_lane:
+                current_lane = classify_lane(a).get("lane")
+                p.entry_lane = current_lane or CORE_LANE
+            if p.entry_lane == EXPLOSIVE_LANE:
+                sessions = trading_sessions_elapsed(p.opened_at, now)
+                if sessions >= settings.explosive_max_trading_sessions and a and price:
+                    lane_now = classify_lane(a)
+                    if lane_now.get("core_quality"):
+                        p.entry_lane = CORE_LANE
+                        p.reason = f"Graduated from Explosive after {sessions} trading sessions — Core quality remains qualified"
+                        p.updated_at = now
+                    else:
+                        rank_score = candidate_rank_score(a).get("score", p.rank_score_at_entry)
+                        _sell(
+                            db, account, p, price, p.shares,
+                            f"Explosive thesis expired after {sessions} trading sessions — no Core qualification",
+                            rank_score,
+                        )
+                        continue
             action = str(a.get("action") or "").upper()
             if a and price:
                 try:
@@ -265,8 +367,8 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                 shortlist_limit=settings.optimizer_shortlist_limit,
             )
 
-            # Buy every newly qualified Top-20 name. There is no holding-count,
-            # sector, tier, rank-threshold or risk-fit gate.
+            # Allocate every qualified new entry plus explicit ADD using the same
+            # score-led sizing engine displayed on the dashboard.
             new_rows = [
                 r for r in plan["selected_new"]
                 if not db.query(PaperPosition).filter(
@@ -274,39 +376,61 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                     PaperPosition.symbol == r["symbol"],
                 ).first()
             ]
+            add_rows = [r for r in plan["visible"] if r.get("optimizer_action") == "ADD"]
+            allocation_rows = new_rows + add_rows
 
-            if new_rows:
-                # Never sell an intact holding merely to fund another qualified
-                # candidate. Whole-share execution means finite cash can make some
-                # otherwise-qualified names temporarily unaffordable.
-                priced_rows = []
+            if allocation_rows and float(account.cash or 0) > 0:
+                equity_before, _, _ = _equity(db, account, analyses)
+                proposed = []
+                for r in allocation_rows:
+                    a = r["analysis"] or {}
+                    price = float(a.get("price") or 0)
+                    if price <= 0:
+                        continue
+                    pos = db.query(PaperPosition).filter(
+                        PaperPosition.account == PAPER_ACCOUNT,
+                        PaperPosition.symbol == r["symbol"],
+                    ).first()
+                    existing_value = float(pos.shares * price) if pos else 0.0
+                    sizing = suggested_position_size(
+                        a,
+                        cash=float(account.cash or 0),
+                        reserve_cash=0.0,
+                        portfolio_value=equity_before,
+                        profile=profile,
+                        fx_rate_to_base=1.0,
+                        existing_value=existing_value,
+                        whole_shares=True,
+                        conviction_score=r["rank_score"],
+                    )
+                    desired = float(sizing.get("capital") or 0)
+                    if desired > 0:
+                        proposed.append((r, price, desired, sizing))
+
                 fee_rate = max(0.0, settings.paper_trade_cost_bps) / 10000.0
-                for r in new_rows:
-                    price = float((r["analysis"] or {}).get("price") or 0)
-                    if price > 0:
-                        priced_rows.append((r, price, price * (1.0 + fee_rate)))
+                gross_cash_capacity = float(account.cash or 0) / (1.0 + fee_rate)
+                total_desired = sum(x[2] for x in proposed)
+                scale = min(1.0, gross_cash_capacity / total_desired) if total_desired > 0 else 0.0
 
-                total_one_share_cost = sum(x[2] for x in priced_rows)
-                if priced_rows and total_one_share_cost <= float(account.cash or 0):
-                    # If cash can fund one share of every qualified name, reserve
-                    # that minimum first, then spread any residual capital evenly.
-                    residual = float(account.cash) - total_one_share_cost
-                    extra_each = residual / len(priced_rows)
-                    for r, price, one_share_cost in priced_rows:
-                        _buy(
-                            db, account, r["symbol"], price, one_share_cost + extra_each, r["rank_score"],
-                            f"Top-20 qualified #{r['market_rank']} {r['entry_signal']} — whole-share allocation",
-                        )
-                else:
-                    # Otherwise buy in portfolio-rank order while at least one
-                    # whole share remains affordable. Never create fractional dust.
-                    for r, price, one_share_cost in priced_rows:
-                        if float(account.cash or 0) + 1e-9 < one_share_cost:
-                            continue
-                        _buy(
-                            db, account, r["symbol"], price, one_share_cost, r["rank_score"],
-                            f"Top-20 qualified #{r['market_rank']} {r['entry_signal']} — one whole share from available cash",
-                        )
+                for r, price, desired, sizing in proposed:
+                    scaled_target = desired * scale
+                    lane_name = r.get("lane") or CORE_LANE
+                    action_word = "ADD" if r.get("optimizer_action") == "ADD" else r.get("entry_signal")
+                    _buy(
+                        db, account, r["symbol"], price, scaled_target, r["rank_score"],
+                        (
+                            f"Top-20 #{r['market_rank']} {lane_name} {action_word} — "
+                            f"priority {r['rank_score']:.1f}/100, score target {sizing.get('target_allocation_pct', 0):.0f}%"
+                            + (f", cash-scaled {scale:.2f}x" if scale < 0.999 else "")
+                        ),
+                        entry_lane=lane_name if not db.query(PaperPosition).filter(
+                            PaperPosition.account == PAPER_ACCOUNT,
+                            PaperPosition.symbol == r["symbol"],
+                        ).first() else (db.query(PaperPosition).filter(
+                            PaperPosition.account == PAPER_ACCOUNT,
+                            PaperPosition.symbol == r["symbol"],
+                        ).first().entry_lane or lane_name),
+                    )
 
             db.flush()
             if force_rebalance or daily_due:
@@ -358,6 +482,8 @@ def paper_status(db) -> dict:
             "trades": [],
             "legacy_trades": [],
             "position_count": 0,
+            "core_position_count": 0,
+            "explosive_position_count": 0,
             "trade_count": 0,
             "legacy_trade_count": 0,
             "normalized_legacy_position_count": 0,
@@ -392,6 +518,11 @@ def paper_status(db) -> dict:
         row["day_change_pct"] = round(day_change_pct, 2) if day_change_pct is not None else None
         row["weight_pct"] = round((float(row.get("value") or 0) / equity * 100) if equity else 0.0, 2)
         row["entry_rank_score"] = round(float(pos.rank_score_at_entry or 0), 2)
+        row["lane"] = pos.entry_lane or classify_lane(analysis).get("lane") or CORE_LANE
+        row["trading_sessions_held"] = trading_sessions_elapsed(pos.opened_at)
+        row["explosive_sessions_remaining"] = max(
+            0, settings.explosive_max_trading_sessions - row["trading_sessions_held"]
+        ) if row["lane"] == EXPLOSIVE_LANE else None
         row["reason"] = pos.reason or ""
         row["opened_at"] = pos.opened_at.isoformat() if pos.opened_at else None
     all_trade_rows = [{
@@ -474,6 +605,8 @@ def paper_status(db) -> dict:
         "current_drawdown_pct": round(current_drawdown_pct, 2),
         "positions": pos_rows,
         "position_count": len(pos_rows),
+        "core_position_count": sum(r.get("lane") == CORE_LANE for r in pos_rows),
+        "explosive_position_count": sum(r.get("lane") == EXPLOSIVE_LANE for r in pos_rows),
         "trades": trade_rows,
         "trade_count": len(trade_rows),
         "legacy_trades": legacy_trade_rows,

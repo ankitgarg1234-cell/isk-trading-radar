@@ -5,8 +5,11 @@ from fastapi.testclient import TestClient
 
 from app.db import SessionLocal, RadarCandidate, PaperAccount, PaperPosition, PaperTrade, PaperSnapshot, Alert
 from app.main import app
-from app.paper_engine import run_paper_cycle, paper_status, _candidate_payloads
-from app.portfolio_engine import build_optimizer_plan, candidate_rank_score
+from app.paper_engine import run_paper_cycle, paper_status, _candidate_payloads, trading_sessions_elapsed
+from app.portfolio_engine import (
+    build_optimizer_plan, candidate_rank_score, classify_lane, suggested_position_size,
+    score_target_pct, CORE_LANE, EXPLOSIVE_LANE,
+)
 from app.scanner import RadarService
 
 client=TestClient(app)
@@ -15,13 +18,33 @@ client=TestClient(app)
 def payload(symbol, score=85, sector="Technology", expected=25, ai=88, price=100):
     return {
         "symbol":symbol,"price":price,"deterministic_score":score,"ai_score":ai,"analyst_score":78,
-        "expected_yield_pct":expected,"risk_reward":3.0,"decision_confidence":"high","category":"Core",
-        "entry_zone_status":"PRIMARY_BUY","action":"BUY NOW","negative_news_override":None,
+        "expected_yield_pct":expected,"risk_reward":3.0,"decision_confidence":"high","data_quality_pct":100,
+        "category":"Core","entry_zone_status":"PRIMARY_BUY","action":"BUY NOW","negative_news_override":None,
         "thesis_assessment":{"invalidated":False},
         "levels":{"buy_low":price*.97,"buy_high":price*1.02,"better_low":price*.9,"better_high":price*.93,"stop":price*.88,"target":price*1.3},
-        "technicals":{"atr":2,"relative_volume":1.2,"change20_pct":5},"news":{"material_events":0},
-        "fundamentals":{"sector":sector},
+        "technicals":{"atr":2,"relative_volume":1.2,"change20_pct":5,"avg_dollar_volume_20":50_000_000},
+        "news":{"score":9,"label":"Neutral","material_events":1,"high_negative_events":0,"catalysts":[],"items":[]},
+        "fundamentals":{
+            "sector":sector,"marketCap":2_000_000_000,"revenueGrowth":.20,"quarterlyRevenueGrowth":.18,
+            "earningsGrowth":.20,"grossMargins":.60,"operatingMargins":.15,"returnOnEquity":.18,
+            "debtToEquity":40,"forwardPE":28,
+        },
+        "breakdown":{"Fundamentals":16,"Catalyst":8,"News":9,"Momentum":10,"Sector":7,"Valuation":7,"Analyst confirmation":4,"Risk/Reward":8},
+        "fundamental_confidence":"high",
+        "promotion_risk":{"hard_block":False,"explosive_block":False,"flags":[]},
+        "catalyst_assessment":{"tier":"C","strength":30},
+        "strategic_capital":{"direction":"NONE","evidence_strength":0},
     }
+
+
+def explosive_payload(symbol="BOOM", score=90, price=100):
+    p=payload(symbol,score=score,expected=40,price=price)
+    p["category"]="Explosive Runner"
+    p["technicals"].update({"relative_volume":2.5,"change20_pct":20,"avg_dollar_volume_20":80_000_000})
+    p["breakdown"].update({"Catalyst":13,"News":12,"Momentum":12,"Sector":8,"Valuation":7,"Risk/Reward":9})
+    p["news"].update({"score":12,"material_events":2,"catalysts":["earnings","guidance"]})
+    p["catalyst_assessment"]={"tier":"A","strength":80}
+    return p
 
 
 def test_optimizer_buys_every_qualified_name_inside_top20():
@@ -73,13 +96,18 @@ def test_primary_buy_69_is_investable_and_selected():
     assert row in plan["selected_new"]
 
 
-def test_risk_fit_does_not_block_qualified_top20_entry():
-    high_risk = payload("RISKY", score=90, sector="Technology", expected=35, price=4)
-    high_risk["category"] = "Explosive Runner"
-    high_risk["technicals"] = {"atr": 1.2, "relative_volume": 3.0, "change20_pct": 35}
+def test_penny_stock_is_hard_excluded_even_with_explosive_momentum():
+    penny = explosive_payload("PENNY", score=95, price=4)
+    plan = build_optimizer_plan({"PENNY": penny}, profile="HIGH", visible_limit=20, shortlist_limit=10)
+    assert plan["visible"] == []
+    assert plan["selected_new"] == []
+
+
+def test_risk_fit_is_advisory_not_an_entry_veto_for_eligible_stock():
+    high_risk = explosive_payload("RISKY", score=90, price=10)
+    high_risk["technicals"].update({"atr":4.0,"relative_volume":3.0,"change20_pct":35,"avg_dollar_volume_20":80_000_000})
     plan = build_optimizer_plan({"RISKY": high_risk}, profile="LOW", visible_limit=20, shortlist_limit=10)
     row = plan["visible"][0]
-    assert row["entry_signal"] in {"STRONG BUY", "BUY", "STARTER BUY"}
     assert row["risk_fit"] == "ABOVE TARGET"
     assert row["bucket"] == "INVEST NOW"
     assert len(plan["selected_new"]) == 1
@@ -137,7 +165,7 @@ def test_paper_status_exposes_position_identity_pnl_and_recent_trades():
         assert "trades" in status
         if status["positions"]:
             row = status["positions"][0]
-            for key in ("symbol", "shares", "avg_cost", "price", "value", "pnl", "pnl_pct", "weight_pct", "entry_rank_score", "reason"):
+            for key in ("symbol", "lane", "shares", "avg_cost", "price", "value", "pnl", "pnl_pct", "weight_pct", "entry_rank_score", "reason"):
                 assert key in row
         if status["trades"]:
             trade = status["trades"][0]
@@ -213,7 +241,7 @@ def test_normal_cycle_can_load_only_current_holdings_without_top20_egress():
         rows = _candidate_payloads(db, ["E29"], ranked_limit=0)
         assert set(rows) == {"E29"}
         ranked = _candidate_payloads(db, ["E29"], ranked_limit=20)
-        assert len(ranked) <= 21
+        assert len(ranked) == 30
         assert "E29" in ranked
 
 
@@ -223,7 +251,7 @@ def test_scanner_entry_event_is_material_and_not_repeated_for_same_state():
     assert radar._paper_entry_event(p) is True
     assert radar._paper_entry_event(dict(p)) is False
     changed = dict(p)
-    changed["expected_yield_pct"] = 5
+    changed["deterministic_score"] = 90
     assert radar._paper_entry_event(changed) is True
 
 def test_optimizer_has_no_per_tier_max_two_cap():
@@ -561,3 +589,168 @@ def test_paper_owned_symbol_is_hold_and_stale_buy_alert_is_hidden():
     assert 'signal-hold' in row_html
     assert 'HOLD / DON&#39;T ADD' in row_html or "HOLD / DON'T ADD" in row_html
     assert 'NOW: Entry level reached — BUY' not in html
+
+
+def test_score_target_ladder_caps_at_fifteen_percent():
+    cases={67:0,68:2,74:2,75:4,79:4,80:6,84:6,85:8,89:8,90:10,94:10,95:12,97:12,98:15,100:15}
+    assert {s:score_target_pct(s) for s in cases} == cases
+
+
+def test_score_led_size_increases_with_conviction_until_15pct_cap():
+    p=payload("SIZE",price=100)
+    values=[]
+    for score in (74,79,84,89,94,97,99):
+        s=suggested_position_size(
+            p,cash=10000,reserve_cash=0,portfolio_value=10000,profile="MEDIUM",
+            fx_rate_to_base=1,existing_value=0,whole_shares=True,conviction_score=score,
+        )
+        values.append((score,s["shares"],s["target_allocation_pct"]))
+    assert [x[1] for x in values] == [2,4,6,8,10,12,15]
+    assert values[-1][2] == 15
+
+
+def test_risk_safety_can_reduce_but_never_increase_score_target():
+    p=payload("WIDE",price=100)
+    p["levels"]["stop"]=50
+    s=suggested_position_size(
+        p,cash=10000,reserve_cash=0,portfolio_value=10000,profile="HIGH",
+        fx_rate_to_base=1,existing_value=0,whole_shares=True,conviction_score=99,
+    )
+    assert s["target_allocation_pct"] == 15
+    assert s["capital"] <= 1500
+    assert s["capital"] == 400
+    assert s["binding_constraint"] == "stop-risk ceiling"
+
+
+def test_same_score_has_same_target_allocation_in_core_and_explosive_lanes():
+    core=payload("CORE",score=90,price=100)
+    boom=explosive_payload("BOOM",score=90,price=100)
+    core_size=suggested_position_size(core,cash=10000,reserve_cash=0,portfolio_value=10000,profile="MEDIUM",conviction_score=94)
+    boom_size=suggested_position_size(boom,cash=10000,reserve_cash=0,portfolio_value=10000,profile="MEDIUM",conviction_score=94)
+    assert core_size["target_allocation_pct"] == boom_size["target_allocation_pct"] == 10
+
+
+def test_core_quality_lane_requires_verified_market_cap_liquidity_and_fundamentals():
+    good=payload("GOOD")
+    assert classify_lane(good)["lane"] == CORE_LANE
+    missing_cap=payload("NOCAP")
+    missing_cap["fundamentals"]["marketCap"]=None
+    assert classify_lane(missing_cap)["lane"] is None
+    illiquid=payload("ILLQ")
+    illiquid["technicals"]["avg_dollar_volume_20"]=2_000_000
+    assert classify_lane(illiquid)["lane"] is None
+    weak=payload("WEAK")
+    weak["breakdown"]["Fundamentals"]=10
+    assert classify_lane(weak)["lane"] is None
+
+
+def test_explosive_lane_requires_catalyst_volume_upside_and_no_promotion_flags():
+    good=explosive_payload()
+    lane=classify_lane(good)
+    assert lane["lane"] == EXPLOSIVE_LANE
+    assert lane["core_quality_badge"] is True
+
+    no_catalyst=explosive_payload("NOCAT")
+    no_catalyst["catalyst_assessment"]={"tier":"C","strength":25}
+    assert classify_lane(no_catalyst)["lane"] == CORE_LANE
+
+    low_volume=explosive_payload("LOWVOL")
+    low_volume["technicals"]["relative_volume"]=1.1
+    assert classify_lane(low_volume)["lane"] == CORE_LANE
+
+    low_upside=explosive_payload("LOWUP")
+    low_upside["expected_yield_pct"]=20
+    assert classify_lane(low_upside)["lane"] == CORE_LANE
+
+    promo=explosive_payload("PROMO")
+    promo["promotion_risk"]={"hard_block":False,"explosive_block":True,"flags":["unexplained extreme relative volume"]}
+    assert classify_lane(promo)["lane"] == CORE_LANE
+
+
+def test_reverse_split_hard_blocks_both_lanes():
+    p=explosive_payload("RSPLIT")
+    p["promotion_risk"]={"hard_block":True,"explosive_block":True,"flags":["reverse split within available 1-year history"]}
+    assert classify_lane(p)["lane"] is None
+
+
+def test_paper_allocation_uses_score_targets_not_equal_cash():
+    high=payload("HIGH",score=95,expected=35,price=100)
+    high["breakdown"]={"Fundamentals":20,"Catalyst":15,"News":15,"Momentum":15,"Sector":10,"Valuation":10,"Analyst confirmation":5,"Risk/Reward":10}
+    high["data_quality_pct"]=100
+    low=payload("LOW",score=85,expected=20,price=100)
+    high_rank=candidate_rank_score(high)["score"]
+    low_rank=candidate_rank_score(low)["score"]
+    assert high_rank > low_rank
+    with SessionLocal() as db:
+        db.add(PaperAccount(account="Optimizer Paper",starting_cash=10000,cash=10000,benchmark_symbol="^SP500TR",enabled=True))
+        for p,rank in ((high,high_rank),(low,low_rank)):
+            db.add(RadarCandidate(symbol=p["symbol"],category=p["category"],action="BUY NOW",score=p["deterministic_score"],ai_score=p["ai_score"],price=100,portfolio_rank_score=rank,current_json=json.dumps(p)))
+        db.commit()
+    run_paper_cycle(BenchProvider(),force_rebalance=True)
+    with SessionLocal() as db:
+        positions={p.symbol:p for p in db.query(PaperPosition).all()}
+        assert positions["HIGH"].shares > positions["LOW"].shares
+        assert all(float(p.shares).is_integer() for p in positions.values())
+
+
+def test_explosive_position_expires_after_twenty_sessions_when_not_core():
+    now=datetime.now(timezone.utc)
+    stale=payload("EXP",score=60,price=100)
+    stale["breakdown"]["Fundamentals"]=10
+    stale["action"]="HOLD"
+    stale["entry_zone_status"]="WATCH"
+    with SessionLocal() as db:
+        db.add(PaperAccount(account="Optimizer Paper",starting_cash=10000,cash=9000,benchmark_symbol="^SP500TR",enabled=True,last_rebalance_at=now))
+        db.add(PaperPosition(account="Optimizer Paper",symbol="EXP",shares=10,avg_cost=100,rank_score_at_entry=80,entry_lane=EXPLOSIVE_LANE,reason="explosive entry",opened_at=now-timedelta(days=40)))
+        db.add(RadarCandidate(symbol="EXP",category="Watch",action="HOLD",score=60,ai_score=60,price=100,portfolio_rank_score=50,current_json=json.dumps(stale)))
+        db.commit()
+    run_paper_cycle(BenchProvider(),entry_event=True)
+    with SessionLocal() as db:
+        assert db.query(PaperPosition).filter(PaperPosition.symbol=="EXP").first() is None
+        sell=db.query(PaperTrade).filter(PaperTrade.symbol=="EXP",PaperTrade.side=="SELL").one()
+        assert "Explosive thesis expired" in sell.reason
+
+
+def test_explosive_position_graduates_to_core_after_twenty_sessions_if_core_quality_holds():
+    now=datetime.now(timezone.utc)
+    core=payload("GRAD",score=80,price=100)
+    core["action"]="HOLD"
+    core["levels"].update({"buy_low":80,"buy_high":85,"better_low":72,"better_high":75,"breakout":120,"stop":65})
+    with SessionLocal() as db:
+        db.add(PaperAccount(account="Optimizer Paper",starting_cash=10000,cash=9000,benchmark_symbol="^SP500TR",enabled=True,last_rebalance_at=now))
+        db.add(PaperPosition(account="Optimizer Paper",symbol="GRAD",shares=10,avg_cost=90,rank_score_at_entry=80,entry_lane=EXPLOSIVE_LANE,reason="explosive entry",opened_at=now-timedelta(days=40)))
+        db.add(RadarCandidate(symbol="GRAD",category="Core",action="HOLD",score=80,ai_score=80,price=100,portfolio_rank_score=candidate_rank_score(core)["score"],current_json=json.dumps(core)))
+        db.commit()
+    run_paper_cycle(BenchProvider(),entry_event=True)
+    with SessionLocal() as db:
+        pos=db.query(PaperPosition).filter(PaperPosition.symbol=="GRAD").one()
+        assert pos.entry_lane == CORE_LANE
+        assert "Graduated from Explosive" in pos.reason
+
+
+def test_trading_session_clock_excludes_weekends():
+    opened=datetime(2026,9,4,20,0,tzinfo=timezone.utc)  # Friday
+    now=datetime(2026,9,8,20,0,tzinfo=timezone.utc)     # Tuesday after Labor Day
+    assert trading_sessions_elapsed(opened,now) == 1
+
+
+def test_priority_below_68_cannot_be_invest_now_when_size_is_zero():
+    p=payload("ZEROSIZE",score=80,expected=5,price=100)
+    p["breakdown"]={
+        "Fundamentals":14,"Catalyst":3,"News":7.5,"Momentum":3,
+        "Sector":3,"Valuation":3,"Analyst confirmation":3,"Risk/Reward":2,
+    }
+    rank=candidate_rank_score(p)["score"]
+    assert rank < 68
+    plan=build_optimizer_plan({"ZEROSIZE":p},profile="MEDIUM",visible_limit=20,shortlist_limit=10)
+    row=plan["visible"][0]
+    assert row["entry_signal"] in {"STRONG BUY","BUY","STARTER BUY"}
+    assert row["optimizer_action"] == "PASS"
+    assert row["bucket"] != "INVEST NOW"
+    assert "below the 68 score-sizing floor" in row["decision_reason"]
+    size=suggested_position_size(
+        p,cash=10000,reserve_cash=0,portfolio_value=10000,profile="MEDIUM",
+        conviction_score=rank,
+    )
+    assert size["target_allocation_pct"] == 0
+    assert size["shares"] == 0
