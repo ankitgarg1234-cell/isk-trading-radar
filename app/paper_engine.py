@@ -362,6 +362,7 @@ def paper_status(db) -> dict:
             "legacy_trade_count": 0,
             "normalized_legacy_position_count": 0,
             "normalized_legacy_symbols": [],
+            "current_valid_origin_count": 0,
             "current_drawdown_pct": 0.0,
             "absolute_return": 0.0,
             "daily_pnl": 0.0,
@@ -426,6 +427,10 @@ def paper_status(db) -> dict:
         t.symbol for t in origin_trades
         if abs(float(t.shares or 0) - round(float(t.shares or 0))) > 1e-9
     } & current_symbols)
+    normalized_legacy_set = set(normalized_legacy_symbols)
+    current_valid_origin_count = max(0, len(pos_rows) - len(normalized_legacy_symbols))
+    for row in pos_rows:
+        row["origin_type"] = "NORMALIZED LEGACY" if row.get("symbol") in normalized_legacy_set else "WHOLE-SHARE BUY"
 
     absolute_return = equity - float(account.starting_cash or 0)
     snapshots = db.query(PaperSnapshot).filter(
@@ -475,6 +480,7 @@ def paper_status(db) -> dict:
         "legacy_trade_count": len(legacy_trade_rows),
         "normalized_legacy_position_count": len(normalized_legacy_symbols),
         "normalized_legacy_symbols": normalized_legacy_symbols,
+        "current_valid_origin_count": current_valid_origin_count,
         "started_at": account.started_at,
         "updated_at": account.updated_at,
     }
