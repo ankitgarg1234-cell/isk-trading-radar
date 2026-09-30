@@ -122,7 +122,7 @@ class PaperAccount(Base):
     account: Mapped[str] = mapped_column(String(64), unique=True, index=True, default="Optimizer Paper")
     starting_cash: Mapped[float] = mapped_column(Float, default=10000.0)
     cash: Mapped[float] = mapped_column(Float, default=10000.0)
-    benchmark_symbol: Mapped[str] = mapped_column(String(16), default="SPY")
+    benchmark_symbol: Mapped[str] = mapped_column(String(16), default="^SP500TR")
     benchmark_start_price: Mapped[float] = mapped_column(Float, nullable=True)
     benchmark_last_price: Mapped[float] = mapped_column(Float, nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
