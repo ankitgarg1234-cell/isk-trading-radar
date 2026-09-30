@@ -770,14 +770,23 @@ def build_optimizer_plan(
                     "does not create another paper buy"
                 )
             continue
-        if r["entry_signal"] in INVESTABLE_ENTRY_ACTIONS:
+        if r["entry_signal"] in INVESTABLE_ENTRY_ACTIONS and r["rank_score"] >= 68:
             r["bucket"] = "INVEST NOW"
             r["optimizer_action"] = r["entry_signal"]
             r["decision_reason"] = (
-                f"{r['entry_signal']} — qualified inside Top-{max(1, visible_limit)}; "
-                "no holding-count, sector, tier, rank-threshold or risk-fit gate"
+                f"{r['entry_signal']} — lane-qualified inside Top-{max(1, visible_limit)} "
+                f"with Portfolio Priority {r['rank_score']:.1f}/100; "
+                "no holding-count, sector, tier or risk-fit gate"
             )
             selected_new.append(r)
+            continue
+        if r["entry_signal"] in INVESTABLE_ENTRY_ACTIONS and r["rank_score"] < 68:
+            r["bucket"] = "SHORTLIST" if r["symbol"] in shortlist_symbols else "RESERVE"
+            r["optimizer_action"] = "PASS"
+            r["decision_reason"] = (
+                f"PASS — deterministic entry is {r['entry_signal']}, but Portfolio Priority "
+                f"{r['rank_score']:.1f}/100 is below the 68 score-sizing floor"
+            )
             continue
         r["bucket"] = "SHORTLIST" if r["symbol"] in shortlist_symbols else "RESERVE"
         r["optimizer_action"] = "PASS"
