@@ -570,6 +570,11 @@ def candidate_rank_score(a: dict) -> dict:
     if not lane:
         cat = str(a.get("category") or "")
         lane = "EXPLOSIVE" if cat == "Explosive Runner" else "CORE_QUALITY" if cat == "Core" else None
+        # Transitional compatibility for compact pre-v2 candidates already in
+        # storage. Fresh score_bundle payloads always carry explicit lane state,
+        # so this cannot bypass the new fundamental/promotion gates after refresh.
+        if lane is None and "lane_qualified" not in a and det >= 68:
+            lane = "CORE_QUALITY"
 
     return {
         "score": round(total, 1),
