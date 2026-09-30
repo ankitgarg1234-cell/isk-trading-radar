@@ -49,8 +49,15 @@ def _core_payload(symbol="CORE", score=90, price=10):
 
 
 def test_lane_model_classifies_strong_catalyst_setup_as_explosive():
-    b = bundle()
+    b = bundle(price=100)
     b["fundamentals"]["marketCap"] = 5_000_000_000
+    # Recent tape is constructive near 100, while a prior fundamental/catalyst
+    # valuation anchor leaves >30% modeled upside. One isolated older high is
+    # intentionally not sufficient by itself: the test also carries strong
+    # fundamentals, material news and 2.2x relative volume.
+    rows = history(start=40, days=260, daily=.23, last_volume_multiplier=2.2)
+    rows[120].update({"open":139, "high":141, "low":138, "close":140, "volume":1_000_000})
+    b["history"] = rows
     result = score_bundle(b)
     assert result["lane"] == "EXPLOSIVE"
     assert result["lane_label"] == "Explosive Lane"
