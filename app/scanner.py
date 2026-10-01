@@ -855,6 +855,8 @@ class RadarService:
         core_quality_pass = 0
         rr_below_min_analyzed = 0
         rr_entry_eligible_analyzed = 0
+        rr_below_min_symbols: list[dict] = []
+        rr_entry_eligible_symbols: list[dict] = []
         qualified_symbols: list[str] = []
         qualified_owned_symbols: list[str] = []
         qualified_new_symbols: list[str] = []
@@ -887,10 +889,13 @@ class RadarService:
                     core_quality_pass += 1
                 if full.get("lane_qualified") is True:
                     lane_qualified += 1
-                    if float(full.get("risk_reward") or 0) >= MIN_ENTRY_RISK_REWARD:
+                    rr_value = float(full.get("risk_reward") or 0)
+                    if rr_value >= MIN_ENTRY_RISK_REWARD:
                         rr_entry_eligible_analyzed += 1
+                        rr_entry_eligible_symbols.append({"symbol": sym, "risk_reward": round(rr_value, 2)})
                     else:
                         rr_below_min_analyzed += 1
+                        rr_below_min_symbols.append({"symbol": sym, "risk_reward": round(rr_value, 2)})
                     qualified_symbols.append(sym)
                     if full.get("position"):
                         qualified_owned_symbols.append(sym)
@@ -974,6 +979,8 @@ class RadarService:
             "lane_qualified_analyzed": lane_qualified,
             "rr_entry_eligible_analyzed": rr_entry_eligible_analyzed,
             "rr_below_min_analyzed": rr_below_min_analyzed,
+            "rr_entry_eligible_symbols": rr_entry_eligible_symbols,
+            "rr_below_min_symbols": rr_below_min_symbols,
             "min_entry_risk_reward": MIN_ENTRY_RISK_REWARD,
             "effective_batch_size": effective_batch_size,
             "lane_core_analyzed": lane_core,
