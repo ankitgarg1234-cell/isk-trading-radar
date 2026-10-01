@@ -383,8 +383,14 @@ def _dashboard_state(db):
                 effective_optimizer_action = "NO ADD — TARGET FULL"
                 effective_optimizer_reason = "Raw ADD setup is present, but the existing paper position already meets/exceeds its score-led target. " + block_reason
             else:
-                effective_optimizer_action = "PAPER CASH / SIZE BLOCKED"
-                effective_optimizer_reason = block_reason
+                cash_left = float(paper_block.get("cash") or 0)
+                min_cost = float(paper_block.get("minimum_one_share_cost") or 0)
+                if min_cost > 0 and cash_left + 1e-9 < min_cost:
+                    effective_optimizer_action = "CAN'T COMPLETE — NO MONEY LEFT"
+                    effective_optimizer_reason = block_reason
+                else:
+                    effective_optimizer_action = "PAPER CASH / SIZE BLOCKED"
+                    effective_optimizer_reason = block_reason
         view_price=float(a.get("price") or (c.price if c else 0) or 0)
         view_previous_close=float(a.get("previous_close") or 0)
         view_day_change_pct=((view_price/view_previous_close)-1)*100 if view_price and view_previous_close else None
