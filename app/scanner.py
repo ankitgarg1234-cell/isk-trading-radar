@@ -539,6 +539,17 @@ class RadarService:
         ordered = positions + paper_positions + manual + watch + list(settings.radar_symbols)
         return list(dict.fromkeys(s.upper() for s in ordered if s))
 
+    def _refresh_universe_size(self) -> int:
+        """Refresh the eligible U.S. universe count without running a market scan.
+
+        This keeps dashboard metadata accurate after a deploy/restart even while
+        the regular session is closed. The full rotating prefilter/deep-analysis
+        path still runs only when the scanner is allowed to scan the market.
+        """
+        universe = self.provider.us_equity_universe()
+        self.universe_size = len(universe)
+        return self.universe_size
+
     def _universe_slice(self) -> list[dict]:
         universe = self.provider.us_equity_universe()
         self.universe_size = len(universe)
@@ -740,10 +751,18 @@ class RadarService:
 
     def scan_once(self, force: bool = False):
         if not force and not self.market_open():
+            # Universe metadata is safe to refresh while the market is closed.
+            # Without this, a fresh process starts at universe_size=0 and the
+            # dashboard misleadingly says "loading" until the next open scan.
+            errors: list[str] = []
+            if self.universe_size <= 0:
+                try:
+                    self._refresh_universe_size()
+                except Exception as e:
+                    errors.append(f"universe metadata: {type(e).__name__}")
             # Official-source evidence is not market-data dependent. Keep the
             # Top-20 strategic-capital queue moving even while U.S. equities are
             # closed so users do not have to open every stock and click Refresh.
-            errors: list[str] = []
             strategic_changed = False
             strategic_symbols: list[str] = []
             try:
