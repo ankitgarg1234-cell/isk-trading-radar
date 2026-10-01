@@ -37,7 +37,7 @@
       <button class="btn primary" type="submit">Analyze</button>
     </form>
     <form method="post" action="/risk-profile" class="risk-profile-form compact-risk-form">
-      <label for="riskProfile">Risk</label>
+      <label for="riskProfile">Target risk</label>
       <select id="riskProfile" name="risk_profile" onchange="this.form.submit()">
         {% for key, profile in risk_profiles.items() %}<option value="{{ key }}" {{ 'selected' if key == risk_profile else '' }}>{{ profile.label }}</option>{% endfor %}
       </select>
