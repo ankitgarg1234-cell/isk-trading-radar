@@ -498,8 +498,35 @@ def test_dashboard_tracks_manual_holdings_with_source_and_position_filters(monke
     assert row["source_detail"] == "Screenshot"
 
 
-def test_dashboard_keeps_sp500_comparison_visible():
+def test_dashboard_keeps_explicit_absolute_and_sp500_comparison_visible():
     body=client.get('/').text
-    assert "Paper vs S&amp;P 500" in body
+    assert "Absolute return" in body
+    assert "S&amp;P 500 return" in body
+    assert "Alpha vs S&amp;P 500" in body
+    assert 'id="paperAbsoluteReturn"' in body
+    assert 'id="paperReturn"' in body
     assert 'id="paperBenchmark"' in body
     assert 'id="paperExcess"' in body
+
+
+def test_manual_reallocation_only_follows_thesis_gated_reduce_or_exit():
+    candidates=[{"symbol":"BETTER","entry_signal":"BUY","market_rank":2,"rank_score":91.0}]
+    intact={"symbol":"HELD","action":"HOLD — DON'T ADD","pnl":-28.0}
+    suggestion=mainmod._manual_reallocation_suggestion(intact,candidates)
+    assert suggestion["status"] == "NO CHANGE"
+    assert suggestion["target"] is None
+    assert "loss alone is not a sell trigger" in suggestion["reason"]
+
+    invalidated={"symbol":"HELD","action":"REDUCE","pnl":-28.0}
+    suggestion=mainmod._manual_reallocation_suggestion(invalidated,candidates)
+    assert suggestion["status"] == "REDEPLOY"
+    assert suggestion["target"] == "BETTER"
+    assert "Book the loss only because the thesis/fundamentals are invalidated" in suggestion["reason"]
+
+
+def test_manual_reallocation_does_not_force_switch_without_replacement():
+    position={"symbol":"HELD","action":"EXIT","pnl":-12.0}
+    suggestion=mainmod._manual_reallocation_suggestion(position,[])
+    assert suggestion["status"] == "RAISE CASH"
+    assert suggestion["target"] is None
+    assert "do not force a switch" in suggestion["reason"]
