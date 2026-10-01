@@ -94,6 +94,8 @@ class RadarCandidate(Base):
     price: Mapped[float] = mapped_column(Float, default=0.0)
     portfolio_rank_score: Mapped[float] = mapped_column(Float, default=0.0, index=True)
     rank_version: Mapped[str] = mapped_column(String(32), default="rank-v1")
+    lane: Mapped[str] = mapped_column(String(24), nullable=True, index=True)
+    lane_qualified: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     # Compact current-state payload used by the live dashboard. Heavy one-year
     # price arrays are intentionally excluded to keep managed-Postgres egress low.
     current_json: Mapped[str] = mapped_column(Text, default="{}")
@@ -219,6 +221,8 @@ def _ensure_runtime_columns():
             "last_snapshot_key": "VARCHAR(128) DEFAULT ''",
             "portfolio_rank_score": "FLOAT DEFAULT 0",
             "rank_version": "VARCHAR(32) DEFAULT 'rank-v1'",
+            "lane": "VARCHAR(24) NULL",
+            "lane_qualified": "BOOLEAN DEFAULT FALSE",
         }
         for name, ddl in additions.items():
             if name not in cols:
