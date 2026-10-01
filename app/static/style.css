@@ -113,3 +113,19 @@
   .compact-title-row{align-items:flex-start}
   .compact-title-row .subtle{text-align:left}
 }
+
+
+/* holdings-and-position-filters */
+.manual-holdings-head{margin-top:16px;padding-top:12px;border-top:1px solid #273858}
+.manual-holdings-head>span{display:flex;align-items:center;gap:7px}
+.manual-holdings-head>span b{display:inline-flex;align-items:center;justify-content:center;min-width:23px;height:21px;padding:0 6px;border-radius:999px;background:#233656;border:1px solid #38527c;font-size:10px}
+.position-filter-row th{padding:6px 7px;background:#0d182b;position:sticky;top:32px;z-index:5}
+.position-filter-row input,.position-filter-row select{min-width:76px;padding:5px 6px;border-radius:6px;font-size:10px;background:#0a1425}
+.position-filter-row select{min-width:125px}
+.position-filter-table thead tr:first-child th{position:sticky;top:0;z-index:6}
+.position-filter-table tbody td small{max-width:260px}
+.compact-holdings-table{max-height:48vh}
+@media(max-width:760px){
+  .manual-holdings-head{align-items:flex-start;flex-direction:column}
+  .position-filter-row input,.position-filter-row select{min-width:90px}
+}

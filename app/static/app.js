@@ -54,6 +54,46 @@ function candidateRowsHtml(candidates,baseCurrency='SEK'){
   }).join('');
 }
 
+
+function manualPositionRowsHtml(positions){
+  if(!positions?.length)return '<tr class="empty-position-row"><td colspan="10" class="empty">No imported/manual holdings. Use Screenshot / OCR Position Import below to add them.</td></tr>';
+  return positions.map(p=>{
+    const lane=String(p.lane||'OUTSIDE_LANES');
+    const laneLabel=p.lane_label||(lane==='EXPLOSIVE'?'Explosive Lane':lane==='CORE_QUALITY'?'Core Quality Lane':'Outside Current Lanes');
+    const day=p.day_change_pct!=null?'<span class="'+(num(p.day_change_pct)>=0?'pos':'neg')+'">'+(num(p.day_change_pct)>=0?'+':'')+num(p.day_change_pct).toFixed(2)+'%</span>':'—';
+    const pnl=p.pnl!=null?'<span class="'+(num(p.pnl)>=0?'pos':'neg')+'">'+(num(p.pnl)>=0?'+':'')+num(p.pnl).toFixed(2)+'%</span>':'—';
+    const actionPlan=p.action_plan?.suggested_shares?'<small class="subtle">'+esc(p.action_plan.suggested_shares)+' shares suggested</small>':'';
+    return '<tr class="position-data-row"><td class="ticker"><a href="/analysis/'+encodeURIComponent(p.symbol)+'">'+esc(p.symbol)+'</a></td><td><span class="mini-badge">MANUAL</span><small>'+esc(p.source_detail||p.account||'Manual')+'</small></td><td><span class="lane-badge lane-'+lane.toLowerCase().replace(/_/g,'-')+'">'+esc(laneLabel)+'</span></td><td>'+esc(p.shares)+'</td><td>'+money(p.avg_cost,p.currency)+'</td><td>'+(p.price?money(p.price,p.currency):'—')+'</td><td>'+day+'</td><td>'+pnl+'</td><td>'+Math.round(num(p.stock_risk,50))+'/100<small>'+esc(p.sector||'Unknown')+'</small></td><td><span class="signal-chip '+signalClass(p.system_signal)+'">'+esc(p.system_signal||'WATCH')+'</span><small>'+esc(p.action||'ANALYSIS QUEUED')+'</small>'+(p.action_reason?'<small class="subtle"><b>Why:</b> '+esc(p.action_reason)+'</small>':'')+actionPlan+'</td></tr>';
+  }).join('');
+}
+
+function applyPositionTableFilters(table){
+  if(!table)return;
+  const body=document.getElementById(table.dataset.filterTable||'');if(!body)return;
+  const filters=[...table.querySelectorAll('.position-column-filter')];
+  const rows=[...body.querySelectorAll('.position-data-row')];
+  rows.forEach(row=>{
+    const cells=[...row.children];
+    const visible=filters.every(filter=>{
+      const q=String(filter.value||'').trim().toLowerCase();
+      if(!q)return true;
+      const col=Number(filter.dataset.col);
+      return String(cells[col]?.textContent||'').toLowerCase().includes(q);
+    });
+    row.classList.toggle('hidden',!visible);
+  });
+}
+function bindPositionTableFilters(scope=document){
+  scope.querySelectorAll?.('table.position-filter-table').forEach(table=>{
+    table.querySelectorAll('.position-column-filter').forEach(filter=>{
+      if(filter.dataset.filterBound==='1')return;
+      filter.dataset.filterBound='1';
+      filter.addEventListener(filter.tagName==='SELECT'?'change':'input',()=>applyPositionTableFilters(table));
+    });
+    applyPositionTableFilters(table);
+  });
+}
+
 function bindRadarRows(){
   $$('.radar-row').forEach(row=>row.onclick=(e)=>{
     if(e.target.closest('a,button,input,select'))return;
@@ -203,14 +243,16 @@ async function refreshLive(){
   try{
     const d=await jsonFetch('/api/live');
     const mb=$('#marketBadge'); if(mb){mb.textContent=d.market_open?'US MARKET OPEN':'US MARKET CLOSED';mb.className=`pill ${d.market_open?'green':'muted'}`}
-    const ls=$('#lastScan');if(ls)ls.textContent=d.last_scan||'not yet';const us=$('#universeSize');if(us)us.textContent=d.universe_size||'loading';if($('#scannerCoreCount'))$('#scannerCoreCount').textContent=d.universe_core_candidates??0;if($('#scannerExplosiveCount'))$('#scannerExplosiveCount').textContent=d.universe_explosive_candidates??0;
+    const ls=$('#lastScan');if(ls)ls.textContent=d.last_scan||'not yet';const us=$('#universeSize');if(us)us.textContent=d.universe_size||'initializing';if($('#scannerCoreCount'))$('#scannerCoreCount').textContent=d.universe_core_candidates??0;if($('#scannerExplosiveCount'))$('#scannerExplosiveCount').textContent=d.universe_explosive_candidates??0;
     const list=$('#alertsList');if(list){list.innerHTML=d.alerts.length?d.alerts.map(alertCardHtml).join(''):'<div class="empty">No action required right now.</div>';bindAlerts()}if($('#attentionCount'))$('#attentionCount').textContent=d.alerts.length;
     const tb=$('#candidateTable tbody');if(tb){tb.innerHTML=candidateRowsHtml(d.candidates,d.base_currency||'SEK');bindRadarRows();sortRadar()}
     if($('#buyNowCount'))$('#buyNowCount').textContent=d.summary?.buy_now??0;if($('#deployableCash'))$('#deployableCash').textContent=Math.round(num(d.summary?.deployable_cash));if($('#accountRiskScore'))$('#accountRiskScore').textContent=Math.round(num(d.account_risk?.score));if($('#accountRiskBand'))$('#accountRiskBand').textContent=`${d.account_risk?.band||'—'} • target ${d.account_risk?.target_label||''}`;
     if($('#optimizerVisible'))$('#optimizerVisible').textContent=d.optimizer?.visible??0;if($('#optimizerCore'))$('#optimizerCore').textContent=d.optimizer?.core_quality??0;if($('#optimizerExplosive'))$('#optimizerExplosive').textContent=d.optimizer?.explosive??0;if($('#optimizerShortlist'))$('#optimizerShortlist').textContent=d.optimizer?.shortlist??0;if($('#optimizerInvest'))$('#optimizerInvest').textContent=d.optimizer?.invest_now??0;
     const laneDiag=$('#laneDiagnostics');if(laneDiag){const o=d.optimizer||{},parts=[];if(num(o.lane_refresh_pending)>0)parts.push('<span><b>'+esc(o.lane_refresh_pending)+'</b> pre-v2/stale records excluded until refreshed.</span>');if(num(o.explosive)===0){const blockers=(o.explosive_top_blockers||[]).map(x=>esc(x.label)+' ('+esc(x.count)+')').join(', ');parts.push('<span><b>Explosive: 0 qualified.</b> '+esc(o.explosive_evaluated??0)+' fresh lane records evaluated; '+esc(o.explosive_near_misses??0)+' Core-quality near-misses.'+(blockers?' Top blockers: '+blockers+'.':'')+(d.market_open?'':' U.S. market is closed; broad discovery resumes next regular session, while “Run scan now” forces an after-hours refresh.')+'</span>')}laneDiag.innerHTML=parts.join('');laneDiag.classList.toggle('hidden',parts.length===0)}
-    const paper=d.paper||{};if($('#paperEquity'))$('#paperEquity').textContent=paper.started?('$'+Math.round(num(paper.equity))):'$10000';if($('#paperReturn'))$('#paperReturn').textContent=paper.started?`${num(paper.return_pct)>=0?'+':''}${num(paper.return_pct).toFixed(2)}%`:'—';if($('#paperAbsoluteReturn'))$('#paperAbsoluteReturn').textContent=paper.started?('$'+(num(paper.absolute_return)>=0?'+':'')+num(paper.absolute_return).toFixed(2)):'—';if($('#paperDailyPnl'))$('#paperDailyPnl').textContent=paper.started?('$'+(num(paper.daily_pnl)>=0?'+':'')+num(paper.daily_pnl).toFixed(2)+' / '+(num(paper.daily_pnl_pct)>=0?'+':'')+num(paper.daily_pnl_pct).toFixed(2)+'%'):'—';if($('#paperBenchmark'))$('#paperBenchmark').textContent=paper.started?`${num(paper.benchmark_return_pct)>=0?'+':''}${num(paper.benchmark_return_pct).toFixed(2)}%`:'—';if($('#paperExcess'))$('#paperExcess').textContent=paper.started?`${num(paper.excess_return_pct)>=0?'+':''}${num(paper.excess_return_pct).toFixed(2)}%`:'—';if($('#paperPositionCount'))$('#paperPositionCount').textContent=paper.position_count??0;if($('#paperCoreCount'))$('#paperCoreCount').textContent=paper.core_position_count??0;if($('#paperExplosiveCount'))$('#paperExplosiveCount').textContent=paper.explosive_position_count??0;const outside=$('#paperOutsideLaneCount'),outsideWrap=$('#paperOutsideLaneWrap');if(outside)outside.textContent=paper.outside_lane_position_count??0;if(outsideWrap)outsideWrap.classList.toggle('hidden',num(paper.outside_lane_position_count)===0);if($('#paperDrawdown'))$('#paperDrawdown').textContent=paper.started?`${num(paper.drawdown_pct).toFixed(2)}%`:'—';;
-    const pp=$('#paperPositionsBody');if(pp&&Array.isArray(paper.positions)){pp.innerHTML=paper.positions.length?paper.positions.map(p=>`<tr><td class="ticker"><a href="/analysis/${encodeURIComponent(p.symbol)}">${esc(p.symbol)}</a></td><td><span class="lane-badge lane-${String(p.lane||'OUTSIDE_LANES').toLowerCase().replace(/_/g,'-')}">${esc(p.lane_label||'Outside Current Lanes')}</span>${p.lane==='EXPLOSIVE'?`<small>Day ${esc(p.trading_sessions_held)}/20 • ${esc(p.explosive_sessions_remaining)} sessions left</small>`:p.graduated_from_explosive?'<small>Graduated from Explosive</small>':p.lane==='OUTSIDE_LANES'?'<small>Existing holding only — not eligible for a new Core/Explosive entry.</small>':''}</td><td>${esc(p.shares)}</td><td>${num(p.avg_cost).toFixed(2)}</td><td>$${num(p.price).toFixed(2)}</td><td class="${p.day_change_pct!=null?(num(p.day_change_pct)>=0?'pos':'neg'):''}">${p.day_change_pct!=null?`${num(p.day_change_pct)>=0?'+':''}${num(p.day_change_pct).toFixed(2)}%`:'—'}</td><td>$${Math.round(num(p.value))}</td><td class="${num(p.pnl)>=0?'pos':'neg'}">$${num(p.pnl)>=0?'+':''}${num(p.pnl).toFixed(2)} / ${num(p.pnl_pct)>=0?'+':''}${num(p.pnl_pct).toFixed(2)}%</td><td>${num(p.weight_pct).toFixed(1)}%</td><td>${num(p.entry_rank_score).toFixed(1)}/100</td><td class="reason-cell">${esc(p.reason||'—')}</td></tr>`).join(''):'<tr><td colspan="11" class="empty">No open paper positions yet.</td></tr>'}
+    const paper=d.paper||{};if($('#paperEquity'))$('#paperEquity').textContent=paper.started?('$'+Math.round(num(paper.equity))):'$10000';if($('#paperReturn'))$('#paperReturn').textContent=paper.started?`Paper ${num(paper.return_pct)>=0?'+':''}${num(paper.return_pct).toFixed(2)}%`:'Paper —';if($('#paperAbsoluteReturn'))$('#paperAbsoluteReturn').textContent=paper.started?('$'+(num(paper.absolute_return)>=0?'+':'')+num(paper.absolute_return).toFixed(2)):'—';if($('#paperDailyPnl'))$('#paperDailyPnl').textContent=paper.started?('$'+(num(paper.daily_pnl)>=0?'+':'')+num(paper.daily_pnl).toFixed(2)+' / '+(num(paper.daily_pnl_pct)>=0?'+':'')+num(paper.daily_pnl_pct).toFixed(2)+'%'):'—';if($('#paperBenchmark'))$('#paperBenchmark').textContent=paper.started?`${num(paper.benchmark_return_pct)>=0?'+':''}${num(paper.benchmark_return_pct).toFixed(2)}%`:'—';if($('#paperExcess'))$('#paperExcess').textContent=paper.started?`${num(paper.excess_return_pct)>=0?'+':''}${num(paper.excess_return_pct).toFixed(2)}%`:'—';if($('#paperPositionCount'))$('#paperPositionCount').textContent=paper.position_count??0;if($('#paperCoreCount'))$('#paperCoreCount').textContent=paper.core_position_count??0;if($('#paperExplosiveCount'))$('#paperExplosiveCount').textContent=paper.explosive_position_count??0;const outside=$('#paperOutsideLaneCount'),outsideWrap=$('#paperOutsideLaneWrap');if(outside)outside.textContent=paper.outside_lane_position_count??0;if(outsideWrap)outsideWrap.classList.toggle('hidden',num(paper.outside_lane_position_count)===0);if($('#paperDrawdown'))$('#paperDrawdown').textContent=paper.started?`${num(paper.drawdown_pct).toFixed(2)}%`:'—';;
+    const pp=$('#paperPositionsBody');if(pp&&Array.isArray(paper.positions)){pp.innerHTML=paper.positions.length?paper.positions.map(p=>`<tr class="position-data-row"><td class="ticker"><a href="/analysis/${encodeURIComponent(p.symbol)}">${esc(p.symbol)}</a></td><td><span class="lane-badge lane-${String(p.lane||'OUTSIDE_LANES').toLowerCase().replace(/_/g,'-')}">${esc(p.lane_label||'Outside Current Lanes')}</span>${p.lane==='EXPLOSIVE'?`<small>Day ${esc(p.trading_sessions_held)}/20 • ${esc(p.explosive_sessions_remaining)} sessions left</small>`:p.graduated_from_explosive?'<small>Graduated from Explosive</small>':p.lane==='OUTSIDE_LANES'?'<small>Existing holding only — not eligible for a new Core/Explosive entry.</small>':''}</td><td>${esc(p.shares)}</td><td>${num(p.avg_cost).toFixed(2)}</td><td>$${num(p.price).toFixed(2)}</td><td class="${p.day_change_pct!=null?(num(p.day_change_pct)>=0?'pos':'neg'):''}">${p.day_change_pct!=null?`${num(p.day_change_pct)>=0?'+':''}${num(p.day_change_pct).toFixed(2)}%`:'—'}</td><td>$${Math.round(num(p.value))}</td><td class="${num(p.pnl)>=0?'pos':'neg'}">$${num(p.pnl)>=0?'+':''}${num(p.pnl).toFixed(2)} / ${num(p.pnl_pct)>=0?'+':''}${num(p.pnl_pct).toFixed(2)}%</td><td>${num(p.weight_pct).toFixed(1)}%</td><td>${num(p.entry_rank_score).toFixed(1)}/100</td><td class="reason-cell">${esc(p.reason||'—')}</td></tr>`).join('') :'<tr class="empty-position-row"><td colspan="11" class="empty">No open paper positions yet.</td></tr>'}
+    const mp=$('#manualPositionsBody');if(mp&&Array.isArray(d.positions)){mp.innerHTML=manualPositionRowsHtml(d.positions);if($('#manualPositionCount'))$('#manualPositionCount').textContent=d.positions.length}
+    bindPositionTableFilters(document);
   }catch(e){console.debug('live refresh',e)}
 }
 bindAlerts();
@@ -288,4 +330,5 @@ function initAnalyzeAutocomplete(){
 initAnalyzeAutocomplete();
 
 bindRadarControls();
+bindPositionTableFilters(document);
 const poll=Number(document.body.dataset.livePoll||15)*1000;if($('#candidateTable')){setInterval(refreshLive,Math.max(10000,poll));}

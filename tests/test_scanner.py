@@ -17,6 +17,17 @@ class FakeProvider:
 class FakeAI: pass
 
 
+def test_closed_market_refreshes_universe_metadata_after_restart(monkeypatch):
+    r=RadarService(provider=FakeProvider(),ai=FakeAI())
+    monkeypatch.setattr(r,"market_open",lambda now=None: False)
+    monkeypatch.setattr(r,"_enrich_strategic_top_candidates",lambda: (False, []))
+    assert r.universe_size == 0
+    result=r.scan_once(force=False)
+    assert result["status"] == "market_closed"
+    assert result["universe_size"] == 150
+    assert r.universe_size == 150
+
+
 def test_market_open_regular_session_and_weekend():
     r=RadarService(provider=FakeProvider(),ai=FakeAI())
     ny=ZoneInfo("America/New_York")

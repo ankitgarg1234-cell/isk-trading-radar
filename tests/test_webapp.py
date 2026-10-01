@@ -470,3 +470,36 @@ def test_live_api_exposes_lane_discovery_and_position_counts():
     assert "explosive" in data["optimizer"]
     assert "core_position_count" in data["paper"]
     assert "explosive_position_count" in data["paper"]
+
+
+def test_dashboard_tracks_manual_holdings_with_source_and_position_filters(monkeypatch):
+    from app.db import RadarCandidate
+    payload=full_payload("MANUALX")
+    payload["action"]="HOLD"
+    payload["action_reason"]="Thesis remains intact; monitor the next catalyst."
+    payload["currency"]="USD"
+    monkeypatch.setattr(mainmod.radar.provider,"fx_rate",lambda a,b:1.0)
+    with SessionLocal() as db:
+        db.add(Position(symbol="MANUALX",shares=3,avg_cost=90,account="Screenshot"))
+        db.add(RadarCandidate(symbol="MANUALX",category="Core",action="HOLD",score=82,ai_score=84,price=100,current_json=json.dumps(payload)))
+        db.commit()
+    body=client.get('/').text
+    assert "Existing / manual holdings" in body
+    assert "MANUAL" in body
+    assert "Screenshot" in body
+    assert "Thesis remains intact; monitor the next catalyst." in body
+    assert 'id="manualPositionsBody"' in body
+    assert 'data-filter-table="paperPositionsBody"' in body
+    assert 'data-filter-table="manualPositionsBody"' in body
+    assert body.count('class="position-column-filter"') >= 21
+    live=client.get('/api/live').json()
+    row=next(x for x in live["positions"] if x["symbol"]=="MANUALX")
+    assert row["source_tag"] == "MANUAL"
+    assert row["source_detail"] == "Screenshot"
+
+
+def test_dashboard_keeps_sp500_comparison_visible():
+    body=client.get('/').text
+    assert "Paper vs S&amp;P 500" in body
+    assert 'id="paperBenchmark"' in body
+    assert 'id="paperExcess"' in body
