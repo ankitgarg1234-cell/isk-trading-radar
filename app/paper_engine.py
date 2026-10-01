@@ -12,7 +12,7 @@ from .db import (
     SessionLocal, RadarCandidate, PortfolioPreference,
     PaperAccount, PaperPosition, PaperTrade, PaperSnapshot,
 )
-from .portfolio_engine import build_optimizer_plan, candidate_rank_score, normalise_profile, suggested_position_size
+from .portfolio_engine import INVESTABLE_ENTRY_ACTIONS, build_optimizer_plan, candidate_rank_score, normalise_profile, suggested_position_size
 from .analysis_engine import position_action
 
 PAPER_ACCOUNT = "Optimizer Paper"
@@ -445,10 +445,9 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                 shortlist_limit=settings.optimizer_shortlist_limit,
             )
 
-            # Allocate both newly qualified names and explicit ADD signals.
-            # Existing holdings are never increased merely because they are owned:
-            # position_action() must explicitly return ADD, and the score/risk target
-            # must still have remaining room.
+            # Allocate newly qualified names, explicit ADD signals, and qualified
+            # holdings that remain actionable but were undersized by old whole-share
+            # floor rounding. Score/risk/cash limits still determine the target.
             current_by_symbol = {p.symbol: p for p in current}
             new_rows = [
                 r for r in plan["selected_new"]
@@ -549,6 +548,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                         })
                         continue
                     lane_label = str((r["analysis"] or {}).get("lane_label") or r.get("lane_label") or "Qualified Lane")
+                    existing_pos = current_by_symbol.get(r["symbol"]) if is_add else None
                     if is_add and existing_pos:
                         existing_reason = str(existing_pos.reason or "").upper()
                         if "GRADUATED TO CORE" in existing_reason or "CORE QUALITY LANE" in existing_reason:
