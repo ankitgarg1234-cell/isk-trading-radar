@@ -329,6 +329,84 @@ def _equity(db, account: PaperAccount, analyses: dict[str, dict]) -> tuple[float
     return account.cash + invested, invested, rows
 
 
+def _lane_evidence_reliable(a: dict) -> bool:
+    f = a.get("fundamentals") or {}
+    t = a.get("technicals") or {}
+    return bool(
+        str(a.get("fundamental_confidence") or "low").lower() in {"medium", "high"}
+        and float(f.get("marketCap") or 0) > 0
+        and float(t.get("avg_dollar_volume_20") or 0) > 0
+    )
+
+
+def _reconstruct_position_before_trade(db, trade: PaperTrade) -> dict | None:
+    history = db.query(PaperTrade).filter(
+        PaperTrade.account == PAPER_ACCOUNT,
+        PaperTrade.symbol == trade.symbol,
+        PaperTrade.created_at < trade.created_at,
+    ).order_by(PaperTrade.created_at.asc(), PaperTrade.id.asc()).all()
+    shares = 0.0
+    avg_cost = 0.0
+    rank_score = 0.0
+    reason = ""
+    opened_at = None
+    for row in history:
+        qty = float(row.shares or 0)
+        if str(row.side or "").upper() == "BUY" and qty > 0:
+            new_total = shares + qty
+            avg_cost = ((avg_cost * shares) + (float(row.price or 0) * qty)) / new_total if new_total > 0 else 0.0
+            shares = new_total
+            rank_score = float(row.rank_score or rank_score or 0)
+            reason = str(row.reason or reason or "")
+            opened_at = opened_at or row.created_at
+        elif str(row.side or "").upper() == "SELL" and qty > 0:
+            shares = max(0.0, shares - qty)
+            if shares <= 1e-9:
+                shares = 0.0
+                avg_cost = 0.0
+                opened_at = None
+    if shares <= 0:
+        return None
+    return {"shares": shares, "avg_cost": avg_cost, "rank_score": rank_score, "reason": reason, "opened_at": opened_at}
+
+
+def _repair_unreliable_lane_exits(db, account: PaperAccount, analyses: dict[str, dict], now: datetime) -> list[dict]:
+    cutoff = now - timedelta(hours=6)
+    trades = db.query(PaperTrade).filter(
+        PaperTrade.account == PAPER_ACCOUNT,
+        PaperTrade.side == "SELL",
+        PaperTrade.created_at >= cutoff,
+        PaperTrade.reason.like("OUTSIDE ACTIVE LANES%"),
+    ).order_by(PaperTrade.created_at.asc()).all()
+    repaired = []
+    for trade in trades:
+        a = analyses.get(trade.symbol) or {}
+        current_lane = a.get("lane") if a.get("lane_qualified") is True else None
+        unreliable = not _lane_evidence_reliable(a)
+        if not unreliable and current_lane not in {"CORE_QUALITY", "EXPLOSIVE"}:
+            continue
+        existing = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT, PaperPosition.symbol == trade.symbol).first()
+        if existing:
+            continue
+        prior = _reconstruct_position_before_trade(db, trade)
+        if not prior:
+            continue
+        proceeds = float(trade.shares or 0) * float(trade.price or 0) - float(trade.fees or 0)
+        if float(account.cash or 0) + 1e-9 < proceeds:
+            continue
+        account.cash -= proceeds
+        db.add(PaperPosition(
+            account=PAPER_ACCOUNT, symbol=trade.symbol, shares=prior["shares"],
+            avg_cost=prior["avg_cost"], rank_score_at_entry=prior["rank_score"],
+            reason=(prior["reason"] or "RESTORED AFTER UNRELIABLE LANE DATA")[:255],
+            opened_at=prior["opened_at"] or now, updated_at=now,
+        ))
+        db.delete(trade)
+        repaired.append({"symbol": trade.symbol, "shares": prior["shares"], "reason": "Reversed unreliable-data lane exit"})
+    if repaired:
+        db.flush()
+    return repaired
+
 def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: bool = False) -> dict:
     """Run one shadow-paper cycle. No broker or real Position/Trade rows are touched."""
     if not settings.paper_trading_enabled:
@@ -339,9 +417,21 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
         if not account.enabled:
             return {"status": "disabled"}
         paper_positions = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).all()
-        # Every scan needs only the current holdings for immediate thesis-gated
-        # risk management.  Do not pull the full candidate set from Neon here.
-        analyses = _candidate_payloads(db, [p.symbol for p in paper_positions], ranked_limit=0)
+        recent_forced_symbols = [
+            x.symbol for x in db.query(PaperTrade).filter(
+                PaperTrade.account == PAPER_ACCOUNT,
+                PaperTrade.side == "SELL",
+                PaperTrade.created_at >= now - timedelta(hours=6),
+                PaperTrade.reason.like("OUTSIDE ACTIVE LANES%"),
+            ).all()
+        ]
+        # Load current holdings plus any very recent forced-lane exits so transient
+        # evidence failures can be detected and safely reversed.
+        analysis_symbols = list(dict.fromkeys([p.symbol for p in paper_positions] + recent_forced_symbols))
+        analyses = _candidate_payloads(db, analysis_symbols, ranked_limit=0)
+        repaired_lane_exits = _repair_unreliable_lane_exits(db, account, analyses, now)
+        if repaired_lane_exits:
+            paper_positions = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).all()
         pref = db.query(PortfolioPreference).filter(PortfolioPreference.account == "Main").first()
         profile = normalise_profile(pref.risk_profile if pref else "MEDIUM")
 
@@ -365,7 +455,12 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
             # Paper capital may remain invested only in the two active lanes.
             # Missing/stale lane metadata is not enough to force a sale; an
             # explicit refreshed lane_qualified field is required.
-            if "lane_qualified" in a and current_lane not in {"CORE_QUALITY", "EXPLOSIVE"} and price > 0:
+            if (
+                "lane_qualified" in a
+                and current_lane not in {"CORE_QUALITY", "EXPLOSIVE"}
+                and _lane_evidence_reliable(a)
+                and price > 0
+            ):
                 qty = math.floor(float(p.shares or 0) + 1e-9)
                 rank_score = candidate_rank_score(a).get("score", 0) if a else p.rank_score_at_entry
                 if qty > 0:
@@ -618,6 +713,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
             "executed_orders": executed_orders,
             "blocked_orders": blocked_orders,
             "forced_lane_exits": forced_lane_exits,
+            "repaired_unreliable_lane_exits": repaired_lane_exits,
         }
 
 
