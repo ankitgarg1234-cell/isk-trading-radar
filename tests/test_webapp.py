@@ -170,7 +170,7 @@ def test_confirm_import_rejects_account_number_as_share_count(monkeypatch):
     assert r.json()["saved"] == 0
 
 
-def test_dashboard_shows_reason_for_position_action():
+def test_position_action_reason_is_preserved_after_manual_panel_is_removed():
     payload=full_payload("WHYX")
     payload["action"]="REDUCE"
     payload["action_reason"]="Bearish evidence and weakening momentum are both present; P&L 4.2%"
@@ -179,10 +179,12 @@ def test_dashboard_shows_reason_for_position_action():
         db.add(Position(symbol="WHYX",shares=8,avg_cost=95,account="Avanza"))
         db.add(AnalysisSnapshot(symbol="WHYX",price=99,deterministic_score=58,analyst_score=60,ai_score=55,expected_yield_pct=10,ai_expected_yield_pct=8,category="Core",action="REDUCE",payload_json=json.dumps(payload)))
         db.commit()
-    r=client.get('/')
-    assert r.status_code == 200
-    assert "Why:" in r.text
-    assert "Bearish evidence and weakening momentum are both present" in r.text
+    with SessionLocal() as db:
+        state=mainmod._dashboard_state(db)
+    row=next(x for x in state["positions"] if x["symbol"]=="WHYX")
+    assert row["action_reason"] == "Bearish evidence and weakening momentum are both present; P&L 4.2%"
+    assert row["action_plan"]["suggested_shares"] == 2
+    assert "CURRENT POSITIONS" not in client.get('/').text
 
 
 def test_health_reports_storage_backend():
