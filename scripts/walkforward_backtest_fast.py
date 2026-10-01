@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse, importlib.util, json, math, requests, sys
+import argparse, importlib.util, json, math, requests, sys, time
 from collections import defaultdict
 from datetime import date, timedelta
 from pathlib import Path
@@ -10,6 +10,24 @@ spec=importlib.util.spec_from_file_location("wf",ROOT/"scripts"/"walkforward_bac
 wf=importlib.util.module_from_spec(spec)
 sys.modules["wf"]=wf
 spec.loader.exec_module(wf)
+
+def resilient_jget(session,url,params=None,lim=None):
+    """Bound historical-data latency: retry briefly, then skip missing source."""
+    err=None
+    for i in range(3):
+        try:
+            if lim:lim.wait()
+            r=session.get(url,params=params,timeout=(5,12))
+            if r.status_code in (429,500,502,503,504):
+                raise RuntimeError(f"HTTP {r.status_code}")
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            err=e
+            time.sleep(0.5*(i+1))
+    raise RuntimeError(str(err))
+
+wf.jget=resilient_jget
 
 DEEP_LIMIT=80
 
@@ -113,14 +131,22 @@ def main():
         if i%25==0:print("Prefilter",i,"/",len(weeks),"unique deep",len(candidate_union),flush=True)
     print("SEC candidate union",len(candidate_union),flush=True)
 
-    lim=wf.Limiter(5);ss=requests.Session();ss.headers.update({"User-Agent":"ISK Trading Radar research https://github.com/ankitgarg1234-cell/isk-trading-radar","Accept":"application/json","Accept-Encoding":"gzip, deflate"})
+    lim=wf.Limiter(7);ss=requests.Session();ss.headers.update({"User-Agent":"ISK Trading Radar research https://github.com/ankitgarg1234-cell/isk-trading-radar","Accept":"application/json","Accept-Encoding":"gzip, deflate"})
     tm=wf.ticker_map(ss,cache,lim);fmap={};fdates={}
-    for i,sym in enumerate(sorted(candidate_union),1):
+    def fetch_fact(sym):
         cik=tm.get(sym)
-        if cik:
-            f=wf.facts(ss,cache,lim,sym,cik)
-            if f:fmap[sym]=f;fdates[sym]=wf.filing_dates(f,start-timedelta(days=400),end)
-        if i%50==0:print("SEC",i,"/",len(candidate_union),flush=True)
+        if not cik:return sym,None
+        z=requests.Session();z.headers.update(ss.headers)
+        return sym,wf.facts(z,cache,lim,sym,cik)
+    syms=sorted(candidate_union)
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        fs=[ex.submit(fetch_fact,sym) for sym in syms]
+        for i,fut in enumerate(as_completed(fs),1):
+            sym,f=fut.result()
+            if f:
+                fmap[sym]=f
+                fdates[sym]=wf.filing_dates(f,start-timedelta(days=400),end)
+            if i%50==0:print("SEC",i,"/",len(syms),flush=True)
     usable=set(market)&set(fmap);print("Usable deep candidates",len(usable),flush=True)
 
     # Replay continuous 3-year portfolio. Holdings stay in the deep set even if

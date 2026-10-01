@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import importlib.util, json, requests, sys
+import importlib.util, json, requests, sys, time
 from collections import defaultdict
 from datetime import date, timedelta
 from pathlib import Path
@@ -16,6 +16,24 @@ def load_module(name,path):
     return mod
 
 wf=load_module("wf_monthly_base",ROOT/"scripts"/"walkforward_backtest.py")
+def resilient_jget(session,url,params=None,lim=None):
+    """Bound historical-data latency: retry briefly, then skip missing source."""
+    err=None
+    for i in range(3):
+        try:
+            if lim:lim.wait()
+            r=session.get(url,params=params,timeout=(5,12))
+            if r.status_code in (429,500,502,503,504):
+                raise RuntimeError(f"HTTP {r.status_code}")
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            err=e
+            time.sleep(0.5*(i+1))
+    raise RuntimeError(str(err))
+
+wf.jget=resilient_jget
+
 fast=load_module("wf_monthly_fast",ROOT/"scripts"/"walkforward_backtest_fast.py")
 DEEP_LIMIT=40
 START=date(2024,1,1);END=date(2026,10,1)
@@ -69,14 +87,22 @@ def main():
         deep_by_date[d]=chosen;candidate_union.update(chosen)
     print("Candidate union",len(candidate_union),flush=True)
 
-    lim=wf.Limiter(6);ss=requests.Session();ss.headers.update({"User-Agent":"ISK Trading Radar research https://github.com/ankitgarg1234-cell/isk-trading-radar","Accept":"application/json","Accept-Encoding":"gzip, deflate"})
+    lim=wf.Limiter(7);ss=requests.Session();ss.headers.update({"User-Agent":"ISK Trading Radar research https://github.com/ankitgarg1234-cell/isk-trading-radar","Accept":"application/json","Accept-Encoding":"gzip, deflate"})
     tm=wf.ticker_map(ss,cache,lim);fmap={};fdates={}
-    for i,sym in enumerate(sorted(candidate_union),1):
+    def fetch_fact(sym):
         cik=tm.get(sym)
-        if cik:
-            f=wf.facts(ss,cache,lim,sym,cik)
-            if f:fmap[sym]=f;fdates[sym]=wf.filing_dates(f,START-timedelta(days=400),END)
-        if i%25==0:print("SEC",i,"/",len(candidate_union),flush=True)
+        if not cik:return sym,None
+        z=requests.Session();z.headers.update(ss.headers)
+        return sym,wf.facts(z,cache,lim,sym,cik)
+    syms=sorted(candidate_union)
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        fs=[ex.submit(fetch_fact,sym) for sym in syms]
+        for i,fut in enumerate(as_completed(fs),1):
+            sym,f=fut.result()
+            if f:
+                fmap[sym]=f
+                fdates[sym]=wf.filing_dates(f,START-timedelta(days=400),END)
+            if i%25==0:print("SEC",i,"/",len(syms),flush=True)
     usable=set(market)&set(fmap);print("Usable",len(usable),flush=True)
 
     members=set(members0);bydate=defaultdict(list)
