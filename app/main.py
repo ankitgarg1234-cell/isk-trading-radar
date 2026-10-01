@@ -471,6 +471,7 @@ def _dashboard_state(db):
         "invest_now":len(optimizer["selected_new"]),"owned":optimizer["owned_count"],
         "position_cap_enabled":optimizer.get("position_cap_enabled",False),
         "allocation_policy":optimizer.get("allocation_policy"),"rotations":len(optimizer["rotations"]),
+        "min_entry_risk_reward":optimizer.get("min_entry_risk_reward",2.0),
         "core_quality":lane_counts.get("core_quality",0),"explosive":lane_counts.get("explosive",0),
         "lane_refresh_pending":lane_refresh_pending,
         "explosive_evaluated":explosive_evaluated,
