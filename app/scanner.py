@@ -7,7 +7,7 @@ import json
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 
 from .config import settings
@@ -898,6 +898,25 @@ class RadarService:
         self.scan_count += 1
         self.last_deep_analyzed = ok
         self.last_error = "; ".join(errors[:5]) if errors else None
+        persisted_qualified_symbols: list[str] = []
+        persisted_qualified_owned: list[str] = []
+        persisted_qualified_new: list[str] = []
+        try:
+            cutoff = datetime.now(timezone.utc) - timedelta(days=4)
+            with SessionLocal() as db:
+                rows = (
+                    db.query(RadarCandidate)
+                    .filter(RadarCandidate.lane_qualified == True, RadarCandidate.updated_at >= cutoff)
+                    .order_by(RadarCandidate.portfolio_rank_score.desc(), RadarCandidate.updated_at.desc())
+                    .limit(max(20, settings.optimizer_visible_limit))
+                    .all()
+                )
+                owned_now = {p.symbol for p in db.query(Position).all()} | {p.symbol for p in db.query(PaperPosition).all()}
+                persisted_qualified_symbols = [r.symbol for r in rows]
+                persisted_qualified_owned = [r.symbol for r in rows if r.symbol in owned_now]
+                persisted_qualified_new = [r.symbol for r in rows if r.symbol not in owned_now]
+        except Exception as e:
+            errors.append(f"persisted qualified telemetry: {type(e).__name__}")
         return {
             "status": "ok", "analyzed": ok, "errors": errors, "candidates": len(syms),
             "universe_size": self.universe_size,
@@ -913,6 +932,9 @@ class RadarService:
             "qualified_symbols": qualified_symbols,
             "qualified_owned_symbols": qualified_owned_symbols,
             "qualified_new_symbols": qualified_new_symbols,
+            "persisted_qualified_symbols": persisted_qualified_symbols,
+            "persisted_qualified_owned_symbols": persisted_qualified_owned,
+            "persisted_qualified_new_symbols": persisted_qualified_new,
             "core_top_blockers": [
                 {"label": label, "count": count}
                 for label, count in sorted(core_blocker_counts.items(), key=lambda kv: (-kv[1], kv[0]))[:5]
