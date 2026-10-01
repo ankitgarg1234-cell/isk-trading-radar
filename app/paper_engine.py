@@ -371,7 +371,9 @@ def _reconstruct_position_before_trade(db, trade: PaperTrade) -> dict | None:
 
 
 def _repair_unreliable_lane_exits(db, account: PaperAccount, analyses: dict[str, dict], now: datetime) -> list[dict]:
-    cutoff = now - timedelta(hours=6)
+    # Only repair very recent forced exits. Older outside-lane liquidations were
+    # intentional portfolio cleanup and must not be resurrected.
+    cutoff = now - timedelta(minutes=20)
     trades = db.query(PaperTrade).filter(
         PaperTrade.account == PAPER_ACCOUNT,
         PaperTrade.side == "SELL",
@@ -452,6 +454,22 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
             action = str(a.get("action") or "").upper()
             reason_upper = str(p.reason or "").upper()
             current_lane = a.get("lane") if a.get("lane_qualified") is True else None
+            # Incident cleanup: TTAN was an intentional legacy/outside-lane exit
+            # that was briefly resurrected by the first overly-broad repair pass.
+            # Keep it only if it has genuinely re-qualified into an active lane.
+            if p.symbol == "TTAN" and current_lane not in {"CORE_QUALITY", "EXPLOSIVE"} and price > 0:
+                qty = math.floor(float(p.shares or 0) + 1e-9)
+                if qty > 0:
+                    _sell(
+                        db, account, p, price, qty,
+                        "LEGACY OUTSIDE-LANE CLEANUP — capital released",
+                        candidate_rank_score(a).get("score", 0) if a else p.rank_score_at_entry,
+                    )
+                    forced_lane_exits.append({
+                        "symbol": p.symbol, "shares": qty, "price": round(price, 4),
+                        "reason": "Legacy outside-lane cleanup after repair correction",
+                    })
+                continue
             # Paper capital may remain invested only in the two active lanes.
             # Missing/stale lane metadata is not enough to force a sale; an
             # explicit refreshed lane_qualified field is required.
