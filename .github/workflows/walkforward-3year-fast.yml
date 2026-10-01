@@ -1,0 +1,53 @@
+name: 2024-2026 Fast Two-Stage Walk-Forward
+
+on:
+  push:
+    paths:
+      - scripts/walkforward_backtest_fast.py
+      - .github/workflows/walkforward-3year-fast.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: walkforward-3year-fast
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: .backtest_cache
+          key: walkforward-v1-3year-fast
+          restore-keys: |
+            walkforward-v1-3year-2024-2026
+            walkforward-v1-2022-2026
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pandas lxml requests
+      - name: Validate
+        run: |
+          python -m py_compile scripts/walkforward_backtest.py scripts/walkforward_backtest_fast.py
+      - name: Run fast two-stage replay
+        env:
+          PYTHONPATH: .
+          SEC_USER_AGENT: "ISK Trading Radar research contact https://github.com/ankitgarg1234-cell/isk-trading-radar"
+        run: |
+          python scripts/walkforward_backtest_fast.py
+      - name: Commit results
+        run: |
+          git config user.name "isk-backtest-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add backtests/results/walkforward_2024_2026_fast.json backtests/results/walkforward_2024_2026_fast.md
+          git diff --cached --quiet && exit 0
+          git commit -m "Update 2024-2026 fast walk-forward [skip ci]"
+          git push
