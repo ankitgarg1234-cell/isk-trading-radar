@@ -7,7 +7,9 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location("wf",ROOT/"scripts"/"walkforward_backtest.py")
-wf=importlib.util.module_from_spec(spec);spec.loader.exec_module(wf)
+wf=importlib.util.module_from_spec(spec)
+sys.modules["wf"]=wf
+spec.loader.exec_module(wf)
 
 DEEP_LIMIT=80
 
