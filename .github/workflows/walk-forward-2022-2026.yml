@@ -35,7 +35,7 @@ jobs:
       - name: Reconstruct and validate backtest
         run: |
           mkdir -p backtest_results
-          cat backtest/.parts/wf_*.b64 | tr -d '\n\r' | base64 -d > /tmp/walk_forward_2022_2026.py
+          cat backtest/.parts/wf_fix00a.b64 backtest/.parts/wf_fix00b.b64 backtest/.parts/wf_01.b64 backtest/.parts/wf_02.b64 backtest/.parts/wf_03.b64 backtest/.parts/wf_04.b64 backtest/.parts/wf_05.b64 backtest/.parts/wf_06.b64 backtest/.parts/wf_07.b64 | tr -d '\n\r' | base64 -d > /tmp/walk_forward_2022_2026.py
           python -m py_compile /tmp/walk_forward_2022_2026.py
           wc -c /tmp/walk_forward_2022_2026.py
           sha256sum /tmp/walk_forward_2022_2026.py
