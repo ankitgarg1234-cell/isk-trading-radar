@@ -681,6 +681,7 @@ def score_bundle(bundle: dict) -> dict:
         "explosive_holding_max_trading_sessions": lane_info["explosive_holding_max_trading_sessions"],
         "promotion_risk": lane_info["promotion_risk"],
         "lane_reasons": lane_info["lane_reasons"],
+        "core_blockers": lane_info.get("core_blockers") or [],
         "explosive_blockers": lane_info.get("explosive_blockers") or [],
         "catalyst_verified": lane_info["catalyst_verified"],
         "catalyst_evidence": lane_info.get("catalyst_evidence") or [],
