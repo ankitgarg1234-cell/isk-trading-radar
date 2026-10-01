@@ -222,6 +222,64 @@ def _buy(db, account: PaperAccount, symbol: str, price: float, target_value: flo
     return shares
 
 
+def _live_paper_price(provider, symbol: str, fallback: float = 0.0) -> tuple[float, str]:
+    try:
+        q = provider.quick_scan(symbol)
+        price = float((q or {}).get("price") or 0)
+        if price > 0:
+            return price, "live quick scan"
+    except Exception:
+        pass
+    return float(fallback or 0), "latest stored quote"
+
+
+def manual_paper_close(provider, symbol: str, shares: float | None = None) -> dict:
+    symbol = str(symbol or "").upper().strip()
+    if not symbol:
+        return {"status": "error", "message": "Ticker is required"}
+    with SessionLocal() as db:
+        account = _ensure_account(db)
+        pos = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT, PaperPosition.symbol == symbol).first()
+        if not pos:
+            return {"status": "error", "message": f"{symbol} is not an open paper position"}
+        payload = _candidate_payloads(db, [symbol], ranked_limit=0).get(symbol) or {}
+        price, price_source = _live_paper_price(provider, symbol, float(payload.get("price") or pos.avg_cost or 0))
+        if price <= 0:
+            return {"status": "error", "message": f"No usable price is available for {symbol}"}
+        qty = math.floor(float(pos.shares) if shares in (None, 0) else min(float(pos.shares), float(shares)) + 1e-9)
+        if qty <= 0:
+            return {"status": "error", "message": "Shares to close must be at least 1"}
+        before = float(account.cash or 0)
+        _sell(db, account, pos, price, qty, "MANUAL PAPER CLOSE", candidate_rank_score(payload).get("score", 0))
+        db.commit()
+        return {"status": "ok", "symbol": symbol, "side": "SELL", "shares": qty, "price": round(price, 4), "price_source": price_source, "cash_before": round(before, 2), "cash_after": round(float(account.cash or 0), 2)}
+
+
+def manual_paper_add(provider, symbol: str, shares: float) -> dict:
+    symbol = str(symbol or "").upper().strip()
+    qty = math.floor(float(shares or 0) + 1e-9)
+    if not symbol:
+        return {"status": "error", "message": "Ticker is required"}
+    if qty <= 0:
+        return {"status": "error", "message": "Shares to add must be at least 1 whole share"}
+    with SessionLocal() as db:
+        account = _ensure_account(db)
+        payload = _candidate_payloads(db, [symbol], ranked_limit=0).get(symbol) or {}
+        lane = payload.get("lane") if payload.get("lane_qualified") is True else None
+        if lane not in {"CORE_QUALITY", "EXPLOSIVE"}:
+            return {"status": "blocked", "message": f"{symbol} is not currently qualified for Core Quality or Explosive; manual paper buys remain lane-gated."}
+        price, price_source = _live_paper_price(provider, symbol, float(payload.get("price") or 0))
+        if price <= 0:
+            return {"status": "error", "message": f"No usable price is available for {symbol}"}
+        fee_rate = max(0.0, settings.paper_trade_cost_bps) / 10000.0
+        required = qty * price * (1.0 + fee_rate)
+        if required > float(account.cash or 0) + 1e-9:
+            return {"status": "blocked", "message": (f"Action can't be completed — no money left to take this action. Available paper cash ${float(account.cash or 0):.2f}; ${required:.2f} is required for {qty} whole share{'s' if qty != 1 else ''}."), "cash": round(float(account.cash or 0), 2), "required_cash": round(required, 2)}
+        before = float(account.cash or 0)
+        bought = _buy(db, account, symbol, price, required, candidate_rank_score(payload).get("score", 0), f"MANUAL PAPER ADD • {payload.get('lane_label') or lane}")
+        db.commit()
+        return {"status": "ok", "symbol": symbol, "side": "BUY", "shares": bought, "price": round(price, 4), "price_source": price_source, "cash_before": round(before, 2), "cash_after": round(float(account.cash or 0), 2)}
+
 def _normalise_whole_share_positions(db, account: PaperAccount, analyses: dict[str, dict]) -> list[dict]:
     """Repair legacy fractional paper positions without creating fake SELL trades.
 
@@ -291,6 +349,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
         # allocator. This is bookkeeping correction, not a market SELL.
         executed_orders: list[dict] = []
         blocked_orders: list[dict] = []
+        forced_lane_exits: list[dict] = []
         whole_share_corrections = _normalise_whole_share_positions(db, account, analyses)
         if whole_share_corrections:
             paper_positions = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).all()
@@ -302,6 +361,17 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
             price = float(a.get("price") or 0)
             action = str(a.get("action") or "").upper()
             reason_upper = str(p.reason or "").upper()
+            current_lane = a.get("lane") if a.get("lane_qualified") is True else None
+            # Paper capital may remain invested only in the two active lanes.
+            # Missing/stale lane metadata is not enough to force a sale; an
+            # explicit refreshed lane_qualified field is required.
+            if "lane_qualified" in a and current_lane not in {"CORE_QUALITY", "EXPLOSIVE"} and price > 0:
+                qty = math.floor(float(p.shares or 0) + 1e-9)
+                rank_score = candidate_rank_score(a).get("score", 0) if a else p.rank_score_at_entry
+                if qty > 0:
+                    _sell(db, account, p, price, qty, "OUTSIDE ACTIVE LANES — no longer eligible for Core Quality / Explosive; capital released", rank_score)
+                    forced_lane_exits.append({"symbol": p.symbol, "shares": qty, "price": round(price, 4), "reason": "No longer qualifies for Core Quality or Explosive"})
+                continue
             was_explosive = "EXPLOSIVE LANE" in reason_upper and "GRADUATED TO CORE" not in reason_upper
             sessions = trading_sessions_elapsed(p.opened_at, now)
             if was_explosive and sessions > 20 and price > 0:
@@ -520,6 +590,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
             "whole_share_corrections": whole_share_corrections,
             "executed_orders": executed_orders,
             "blocked_orders": blocked_orders,
+            "forced_lane_exits": forced_lane_exits,
         }
 
 
