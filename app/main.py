@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
-from sqlalchemy import text
+from sqlalchemy import text, or_
 from .config import settings
 from .db import engine, SessionLocal, Position, PaperPosition, AnalysisRequest, Trade, PortfolioCash, PortfolioPreference, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, storage_status
 from .analysis_engine import parse_positions_from_text, position_action, position_action_plan
@@ -217,12 +217,19 @@ def _dashboard_state(db):
     # Read only the strongest/freshest compact rows. Full-market scanning continues
     # in the background; the dashboard is intentionally capped at 20 opportunities.
     fresh_cutoff=datetime.now(timezone.utc)-timedelta(days=4)
+    # Fetch currently qualified rows first. The previous implementation ranked
+    # all recent rows before filtering lane qualification, so stale/unqualified
+    # high-rank rows could crowd fresh qualified names out of the 120-row fetch.
     candidates=(db.query(RadarCandidate)
-        .filter(RadarCandidate.updated_at >= fresh_cutoff)
+        .filter(
+            RadarCandidate.updated_at >= fresh_cutoff,
+            or_(
+                RadarCandidate.lane_qualified == True,
+                RadarCandidate.current_json.like('%"lane_qualified":true%'),
+            ),
+        )
         .order_by(RadarCandidate.portfolio_rank_score.desc(),RadarCandidate.updated_at.desc())
-        .limit(120).all())
-    if not candidates or max((float(getattr(c,"portfolio_rank_score",0) or 0) for c in candidates),default=0)<=0:
-        candidates=db.query(RadarCandidate).order_by(RadarCandidate.updated_at.desc()).limit(150).all()
+        .limit(200).all())
     have={c.symbol for c in candidates}
     tracked_symbols={p.symbol for p in positions} | {p.symbol for p in paper_positions}
     missing=[sym for sym in tracked_symbols if sym not in have]
