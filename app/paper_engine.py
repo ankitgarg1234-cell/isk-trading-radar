@@ -441,9 +441,14 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                         blocked_orders.append({
                             "symbol": r["symbol"],
                             "decision": "ADD" if is_add else str(r.get("entry_signal") or "BUY"),
-                            "reason": f"Executable allocation {scaled_capital:.2f} is below one whole share cost {one_share_cost:.2f}",
+                            "reason": (
+                                f"Action can't be completed — no money left to take this action. "
+                                f"Available paper cash ${float(account.cash or 0):.2f}; "
+                                f"minimum required for 1 whole share is ${one_share_cost:.2f}."
+                            ),
                             "target_capital": round(scaled_capital, 2),
                             "cash": round(float(account.cash or 0), 2),
+                            "minimum_one_share_cost": round(one_share_cost, 2),
                         })
                         continue
                     lane_label = str((r["analysis"] or {}).get("lane_label") or r.get("lane_label") or "Qualified Lane")
