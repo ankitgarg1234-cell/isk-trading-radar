@@ -23,6 +23,7 @@ STARTING=10000.0
 COST_BPS=10.0
 MIN_RR=2.0
 WIKI="https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+WIKI_HISTORY="https://en.wikipedia.org/wiki/Historical_components_of_the_S%26P_500"
 YAHOO="https://query1.finance.yahoo.com/v8/finance/chart/"
 SEC_TICKERS="https://www.sec.gov/files/company_tickers.json"
 SEC_FACTS="https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
@@ -86,7 +87,9 @@ def sp500_history(s):
     for _,r in cur.iterrows():
         t=norm(r.get(sc))
         if t:current.add(t);sectors[t]=str(r.get(gc) or "")
-    ch=next(x for x in tabs if col(list(x.columns),"added","ticker") and col(list(x.columns),"removed","ticker"))
+    hist_html=s.get(WIKI_HISTORY,headers={"User-Agent":"Mozilla/5.0"},timeout=30).text
+    hist_tabs=[flat(x) for x in pd.read_html(StringIO(hist_html))]
+    ch=next(x for x in hist_tabs if col(list(x.columns),"added","ticker") and col(list(x.columns),"removed","ticker"))
     dc=col(list(ch.columns),"date");ac=col(list(ch.columns),"added","ticker");rc=col(list(ch.columns),"removed","ticker")
     changes=[]
     for _,r in ch.iterrows():
