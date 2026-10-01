@@ -1,6 +1,6 @@
 from app.portfolio_engine import (
     RISK_PROFILES, account_risk, active_level, stock_risk_score,
-    suggested_position_size, system_signal,
+    build_optimizer_plan, entry_attention_signal, suggested_position_size, system_signal,
 )
 
 
@@ -14,6 +14,7 @@ def sample_analysis():
         "entry_zone_status":"PRIMARY_BUY","decision_confidence":"high",
         "levels":{"buy_low":95,"buy_high":101,"better_low":90,"better_high":93,"breakout":108,"stop":92,"target":130,"do_not_chase":115},
         "technicals":{"atr":3,"relative_volume":1.2,"change20_pct":6,"rsi":55,"ema20":98},
+        "risk_reward":3.5,
         "news":{"label":"Neutral","material_events":0,"high_negative_events":0},
         "fundamentals":{"sector":"Technology"},
     }
@@ -106,3 +107,37 @@ def test_whole_share_rounding_never_breaks_15pct_position_cap(monkeypatch):
     assert s["target_allocation_pct"] == 15.0
     assert s["shares"] == 1
     assert s["capital"] <= 1500
+
+
+def test_entry_attention_requires_minimum_2x_rr():
+    a=sample_analysis()
+    a["action"]="CONSIDER BUYING NOW"
+    a["deterministic_score"]=80
+    a["risk_reward"]=1.99
+    assert entry_attention_signal(a) is None
+    a["risk_reward"]=2.0
+    assert entry_attention_signal(a) == "BUY"
+
+
+def test_optimizer_filters_sub_2x_rr_and_backfills_better_match():
+    low=sample_analysis()
+    low["symbol"]="LOWRR"
+    low["risk_reward"]=1.8
+    low["deterministic_score"]=95
+
+    good=sample_analysis()
+    good["symbol"]="GOODRR"
+    good["risk_reward"]=2.4
+    good["deterministic_score"]=82
+
+    plan=build_optimizer_plan(
+        {"LOWRR":low,"GOODRR":good},
+        owned_symbols=set(),
+        profile="MEDIUM",
+        visible_limit=20,
+        shortlist_limit=20,
+    )
+    symbols=[r["symbol"] for r in plan["visible"]]
+    assert "LOWRR" not in symbols
+    assert "GOODRR" in symbols
+    assert plan["min_entry_risk_reward"] == 2.0
