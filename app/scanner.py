@@ -541,17 +541,21 @@ class RadarService:
                     stale.acknowledged = True
             db.commit()
 
-    def priority_symbols(self) -> list[str]:
-        """Symbols that deserve full analysis every cycle before broad-market candidates."""
+    def holding_symbols(self) -> list[str]:
+        """All open manual + paper holdings; never subject to the priority cap."""
         with SessionLocal() as db:
             positions = [p.symbol for p in db.query(Position).all()]
             paper_positions = [p.symbol for p in db.query(PaperPosition).all()]
+        return list(dict.fromkeys(s.upper() for s in (positions + paper_positions) if s))
+
+    def priority_symbols(self) -> list[str]:
+        """Non-holding symbols that deserve full analysis before broad-market candidates."""
+        with SessionLocal() as db:
             watch = [w.symbol for w in db.query(WatchlistItem).all()]
             manual = [a.symbol for a in db.query(AnalysisRequest).order_by(AnalysisRequest.created_at.desc()).limit(20).all()]
-        # Paper holdings are priority symbols too, so thesis/exit management is
-        # refreshed every scanner cycle without querying historical payloads.
-        ordered = positions + paper_positions + manual + watch + list(settings.radar_symbols)
-        return list(dict.fromkeys(s.upper() for s in ordered if s))
+        holdings = set(self.holding_symbols())
+        ordered = manual + watch + list(settings.radar_symbols)
+        return [s for s in dict.fromkeys(x.upper() for x in ordered if x) if s not in holdings]
 
     def _refresh_universe_size(self) -> int:
         """Refresh the eligible U.S. universe count without running a market scan.
@@ -684,14 +688,15 @@ class RadarService:
         return chosen[:limit]
 
     def candidate_symbols(self):
-        """Return the current deep-analysis queue, including a rotating whole-market slice."""
+        """Return the deep-analysis queue with every open holding guaranteed first."""
+        holdings = self.holding_symbols()
         priority = self.priority_symbols()[: settings.priority_deep_limit]
         discovered = self.provider.discover(100)
         discovered.sort(key=lambda x: float(x.get("change_pct") or 0), reverse=True)
         discovery_symbols = [d["symbol"] for d in discovered[: settings.discovery_deep_candidates]]
         broad = self._prefilter_universe(self._universe_slice())
         broad_symbols = [q["symbol"] for q in broad]
-        ordered = priority + discovery_symbols + broad_symbols
+        ordered = holdings + priority + discovery_symbols + broad_symbols
         return list(dict.fromkeys(s.upper() for s in ordered if s))
 
     def _paper_optimizer_policy_fingerprint(self) -> str:
@@ -849,9 +854,20 @@ class RadarService:
         paper_entry_event = optimizer_policy_event
         paper_top20_recheck = True
         paper_event_symbols: list[str] = []
+        holding_set = set(self.holding_symbols())
+        holding_quotes: list[dict] = []
         for sym in batch:
             try:
                 full = self.analyze_symbol(sym)
+                if sym in holding_set:
+                    current_price = float(full.get("price") or 0)
+                    previous_close = float(full.get("previous_close") or 0)
+                    holding_quotes.append({
+                        "symbol": sym,
+                        "price": round(current_price, 4),
+                        "previous_close": round(previous_close, 4) if previous_close else None,
+                        "day_change_pct": round(((current_price / previous_close) - 1) * 100, 2) if current_price and previous_close else None,
+                    })
                 if full.get("core_quality_qualified") is True:
                     core_quality_pass += 1
                 if full.get("lane_qualified") is True:
@@ -958,6 +974,8 @@ class RadarService:
             "paper_top20_recheck": paper_top20_recheck,
             "paper_optimizer_invalidated": optimizer_policy_event,
             "paper_event_symbols": paper_event_symbols,
+            "holding_quotes": holding_quotes,
+            "holding_count": len(holding_set),
             "paper_cash": paper_result.get("cash"),
             "paper_executed_orders": paper_result.get("executed_orders") or [],
             "paper_blocked_orders": paper_result.get("blocked_orders") or [],
