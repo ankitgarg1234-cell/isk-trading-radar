@@ -343,6 +343,11 @@ def _dashboard_state(db):
     for row in pos_views:
         row["reallocation"]=_manual_reallocation_suggestion(row,optimizer["selected_new"])
 
+    paper_blocked_by_symbol = {
+        str(x.get("symbol") or "").upper(): x
+        for x in ((radar.last_result or {}).get("paper_blocked_orders") or [])
+        if isinstance(x, dict) and x.get("symbol")
+    }
     radar_views=[]
     for rankrow in optimizer["visible"]:
         sym=rankrow["symbol"]
@@ -366,6 +371,20 @@ def _dashboard_state(db):
         if prev and prev.get("action") and prev.get("action")!=a.get("action"):changed=f"{prev.get('action')} → {a.get('action')}"
         fundamentals=a.get("fundamentals") or {};name=fundamentals.get("companyName") or a.get("company_name") or sym
         signal=system_signal(a,is_owned)
+        paper_block = paper_blocked_by_symbol.get(sym)
+        effective_optimizer_action = rankrow.get("optimizer_action")
+        effective_optimizer_reason = rankrow.get("decision_reason")
+        if paper_block:
+            block_decision = str(paper_block.get("decision") or "").upper()
+            block_reason = str(paper_block.get("reason") or "Paper execution constraint")
+            target_capital = float(paper_block.get("target_capital") or 0)
+            if block_decision == "ADD" and target_capital <= 0:
+                signal = "HOLD"
+                effective_optimizer_action = "NO ADD — TARGET FULL"
+                effective_optimizer_reason = "Raw ADD setup is present, but the existing paper position already meets/exceeds its score-led target. " + block_reason
+            else:
+                effective_optimizer_action = "PAPER CASH / SIZE BLOCKED"
+                effective_optimizer_reason = block_reason
         view_price=float(a.get("price") or (c.price if c else 0) or 0)
         view_previous_close=float(a.get("previous_close") or 0)
         view_day_change_pct=((view_price/view_previous_close)-1)*100 if view_price and view_previous_close else None
@@ -381,7 +400,7 @@ def _dashboard_state(db):
             "suggested_shares":sizing.get("shares",0),"suggested_capital":sizing.get("capital",0),"sizing_reason":sizing.get("reason",""),
             "projected_risk":projected.get("score") if projected else None,"changed":changed,
             "updated_at":c.updated_at.isoformat() if c and c.updated_at else None,
-            "market_rank":rankrow.get("market_rank"),"portfolio_rank_score":rankrow.get("rank_score"),"optimizer_bucket":rankrow.get("bucket"),"optimizer_action":rankrow.get("optimizer_action"),"optimizer_decision_reason":rankrow.get("decision_reason"),
+            "market_rank":rankrow.get("market_rank"),"portfolio_rank_score":rankrow.get("rank_score"),"optimizer_bucket":rankrow.get("bucket"),"optimizer_action":effective_optimizer_action,"optimizer_decision_reason":effective_optimizer_reason,"paper_execution_block":paper_block,
             "rank_components":rankrow.get("rank_components"),"ai_confirmation":rankrow.get("ai_confirmation"),"analyst_confirmation":rankrow.get("analyst_confirmation"),
             "strategic_capital":a.get("strategic_capital") or {},
             "strategic_capital_shadow":rankrow.get("strategic_capital_shadow") or {},
