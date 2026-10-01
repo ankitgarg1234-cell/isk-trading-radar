@@ -129,3 +129,20 @@
   .manual-holdings-head{align-items:flex-start;flex-direction:column}
   .position-filter-row input,.position-filter-row select{min-width:90px}
 }
+
+
+/* explicit-return-cards-and-reallocation */
+.return-metrics{grid-template-columns:repeat(7,minmax(0,1fr))}
+.return-metrics>div{min-width:0}
+.return-metrics>div b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reallocation-state{display:inline-flex;width:max-content;align-items:center;padding:2px 7px;border-radius:999px;border:1px solid #365071;background:#132039;font-size:10px;font-weight:900;letter-spacing:.04em}
+.realloc-redeploy{border-color:#4d805e;background:#14291d}
+.realloc-raise-cash{border-color:#876d3f;background:#2c2415}
+.realloc-no-change{border-color:#3b4c66;background:#111c2f;color:#aebbd0}
+#manualPositionsBody td:last-child{min-width:220px;max-width:320px}
+@media(max-width:1500px){
+  .return-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(max-width:900px){
+  .return-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

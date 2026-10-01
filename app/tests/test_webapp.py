@@ -157,11 +157,11 @@ def test_confirm_import_rejects_account_number_as_share_count(monkeypatch):
     assert r.json()["saved"] == 0
 
 
-def test_position_action_reason_is_preserved_after_manual_panel_is_removed():
+def test_manual_holding_recomputes_stale_sell_state_instead_of_panic_selling():
     payload=full_payload("WHYX")
     payload["action"]="REDUCE"
-    payload["action_reason"]="Bearish evidence and weakening momentum are both present; P&L 4.2%"
-    payload["action_plan"]={"suggested_shares":2,"actual_percent":25.0,"remaining_shares":6,"rationale":"Reduce risk while keeping a smaller position for reassessment"}
+    payload["action_reason"]="Legacy momentum-only reduce state"
+    payload["action_plan"]={"suggested_shares":2,"actual_percent":25.0,"remaining_shares":6,"rationale":"Legacy"}
     with SessionLocal() as db:
         db.add(Position(symbol="WHYX",shares=8,avg_cost=95,account="Avanza"))
         db.add(AnalysisSnapshot(symbol="WHYX",price=99,deterministic_score=58,analyst_score=60,ai_score=55,expected_yield_pct=10,ai_expected_yield_pct=8,category="Core",action="REDUCE",payload_json=json.dumps(payload)))
@@ -169,8 +169,10 @@ def test_position_action_reason_is_preserved_after_manual_panel_is_removed():
     with SessionLocal() as db:
         state=mainmod._dashboard_state(db)
     row=next(x for x in state["positions"] if x["symbol"]=="WHYX")
-    assert row["action_reason"] == "Bearish evidence and weakening momentum are both present; P&L 4.2%"
-    assert row["action_plan"]["suggested_shares"] == 2
+    assert row["action"] == "ADD"
+    assert "thesis intact" in row["action_reason"].lower()
+    assert row["action_plan"] is None
+    assert row["reallocation"]["status"] == "NO CHANGE"
     assert "CURRENT POSITIONS" not in client.get('/').text
 
 
