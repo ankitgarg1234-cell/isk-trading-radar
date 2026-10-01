@@ -836,13 +836,25 @@ class RadarService:
                 "errors": errors,
             }
         syms = self.candidate_symbols()
-        batch = syms[: settings.scan_batch_size]
+        # The configured broad-market deep candidates must actually reach full
+        # analysis. A fixed 32-name cap previously let holdings/watch/discovery
+        # consume most slots, leaving only a handful of the 16 broad candidates.
+        required_batch = (
+            len(self.holding_symbols())
+            + settings.priority_deep_limit
+            + settings.discovery_deep_candidates
+            + settings.universe_deep_candidates
+        )
+        effective_batch_size = min(48, max(settings.scan_batch_size, required_batch))
+        batch = syms[:effective_batch_size]
         ok = 0
         errors: list[str] = []
         lane_core = 0
         lane_explosive = 0
         lane_qualified = 0
         core_quality_pass = 0
+        rr_below_min_analyzed = 0
+        rr_entry_eligible_analyzed = 0
         qualified_symbols: list[str] = []
         qualified_owned_symbols: list[str] = []
         qualified_new_symbols: list[str] = []
@@ -875,6 +887,10 @@ class RadarService:
                     core_quality_pass += 1
                 if full.get("lane_qualified") is True:
                     lane_qualified += 1
+                    if float(full.get("risk_reward") or 0) >= MIN_ENTRY_RISK_REWARD:
+                        rr_entry_eligible_analyzed += 1
+                    else:
+                        rr_below_min_analyzed += 1
                     qualified_symbols.append(sym)
                     if full.get("position"):
                         qualified_owned_symbols.append(sym)
@@ -956,6 +972,10 @@ class RadarService:
             "universe_explosive_candidates": self.last_universe_explosive_candidates,
             "universe_start": self.last_universe_start,
             "lane_qualified_analyzed": lane_qualified,
+            "rr_entry_eligible_analyzed": rr_entry_eligible_analyzed,
+            "rr_below_min_analyzed": rr_below_min_analyzed,
+            "min_entry_risk_reward": MIN_ENTRY_RISK_REWARD,
+            "effective_batch_size": effective_batch_size,
             "lane_core_analyzed": lane_core,
             "lane_explosive_analyzed": lane_explosive,
             "core_quality_pass_analyzed": core_quality_pass,
