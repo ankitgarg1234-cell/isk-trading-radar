@@ -38,7 +38,7 @@ class Settings:
     # Every Top-20 STRONG BUY / BUY / STARTER BUY is eligible for paper capital.
     # The shortlist is review-only. Legacy target/max/rank/rotation settings are
     # retained for deployment compatibility but no longer gate paper entries.
-    optimizer_live_gating: bool = _bool("OPTIMIZER_LIVE_GATING", False)
+    optimizer_live_gating: bool = _bool("OPTIMIZER_LIVE_GATING", True)
     optimizer_visible_limit: int = int(os.getenv("OPTIMIZER_VISIBLE_LIMIT", "20"))
     optimizer_shortlist_limit: int = int(os.getenv("OPTIMIZER_SHORTLIST_LIMIT", "10"))
     optimizer_target_positions: int = int(os.getenv("OPTIMIZER_TARGET_POSITIONS", "6"))  # legacy, ignored for entry gating
