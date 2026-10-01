@@ -183,9 +183,9 @@ function applyRadarFilters(){
       &&sizeStateOk&&numericMatch(sizeMetricValue,sizeOp,sizeValue);
     row.classList.toggle('hidden',!ok);const det=document.querySelector(`[data-detail-for="${CSS.escape(row.dataset.symbol)}"]`);if(det&&!ok)det.classList.add('hidden');if(ok)visible++;
   });
-  $('.lane-group-row').forEach(h=>{
+  $$('.lane-group-row').forEach(h=>{
     const lane=h.dataset.laneHeader||'';
-    const count=$('.radar-row').filter(r=>r.dataset.lane===lane&&!r.classList.contains('hidden')).length;
+    const count=$$('.radar-row').filter(r=>r.dataset.lane===lane&&!r.classList.contains('hidden')).length;
     h.classList.toggle('hidden',count===0);
     const em=h.querySelector('em');if(em)em.textContent=`${count} stock${count===1?'':'s'}`;
   });
@@ -287,7 +287,7 @@ async function refreshLive(){
 }
 bindAlerts();
 async function runScanNow(){
-  const buttons=$('.scan-now-trigger');
+  const buttons=$$('.scan-now-trigger');
   buttons.forEach(b=>{b.disabled=true;b.textContent='Scanning…'});
   try{
     const d=await jsonFetch('/api/scan-now',{method:'POST'});
@@ -297,7 +297,7 @@ async function runScanNow(){
   }catch(e){toast('Scan failed: '+e.message)}
   finally{buttons.forEach(b=>{b.disabled=false;b.textContent='Run scan now'})}
 }
-$('.scan-now-trigger').forEach(b=>b.onclick=runScanNow);
+$$('.scan-now-trigger').forEach(b=>b.onclick=runScanNow);
 
 let importPositions=[];
 function renderImport(rows){importPositions=rows||[];const wrap=$('#importPreview'),body=$('#importRows');if(!wrap||!body)return;wrap.classList.remove('hidden');body.innerHTML=importPositions.length?importPositions.map((r,i)=>`<tr data-i="${i}"><td><input data-k="symbol" value="${esc(r.symbol)}"></td><td><input data-k="shares" type="number" step="any" value="${esc(r.shares)}"></td><td><input data-k="avg_cost" type="number" step="any" value="${esc(r.avg_cost)}"></td><td><input data-k="account" value="${esc(r.account||'Screenshot')}"></td><td><button class="icon-btn remove-import" type="button">×</button></td></tr>`).join(''):'<tr><td colspan="5" class="empty">Nothing confidently extracted. Add/correct the OCR text or use manual entry.</td></tr>';$$('.remove-import').forEach(b=>b.onclick=()=>{b.closest('tr').remove()})}
