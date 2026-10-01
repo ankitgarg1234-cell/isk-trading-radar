@@ -317,8 +317,26 @@ def suggested_position_size(
     by_score = remaining_target_room / price_base if price_base > 0 else 0
     by_risk = remaining_risk_budget / stop_risk_base if stop_risk_base > 0 else 0
     by_cash = deployable_cash / price_base if price_base > 0 else 0
-    shares_raw = min(by_score, by_risk, by_cash)
-    shares = math.floor(shares_raw) if whole_shares else round(shares_raw, 4)
+
+    # Whole-share execution: approximate the score target with the nearest share,
+    # but never round through a hard risk, cash, or 15% portfolio-position ceiling.
+    # This prevents a 0.89-share target from becoming an artificial 0-share order
+    # while still blocking genuinely unaffordable/over-risk positions.
+    hard_position_cap_pct = 15.0
+    remaining_position_cap = max(
+        0.0,
+        total * (hard_position_cap_pct / 100) - max(0.0, existing_value),
+    )
+    by_position_cap = remaining_position_cap / price_base if price_base > 0 else 0
+    shares_raw = min(by_score, by_risk, by_cash, by_position_cap)
+    if whole_shares:
+        score_whole = math.floor(by_score + 0.5 + 1e-12) if by_score >= 0.5 else 0
+        risk_whole = math.floor(by_risk + 1e-12)
+        cash_whole = math.floor(by_cash + 1e-12)
+        cap_whole = math.floor(by_position_cap + 1e-12)
+        shares = min(score_whole, risk_whole, cash_whole, cap_whole)
+    else:
+        shares = round(shares_raw, 4)
     shares = max(0, shares)
     capital = shares * price_base
     risk_amount = shares * stop_risk_base
@@ -331,7 +349,11 @@ def suggested_position_size(
         limiting.append("stop-risk ceiling")
     if abs(shares_raw - by_cash) <= eps:
         limiting.append("available cash")
-    limiter = ", ".join(limiting) or "whole-share rounding"
+    if abs(shares_raw - by_position_cap) <= eps:
+        limiting.append("15% position cap")
+    if whole_shares and shares > math.floor(by_score + 1e-12):
+        limiting.append("nearest whole-share rounding")
+    limiter = ", ".join(dict.fromkeys(limiting)) or "whole-share rounding"
 
     return {
         "shares": shares,
@@ -346,6 +368,9 @@ def suggested_position_size(
         "portfolio_rank_score": round(rank_score, 1),
         "target_allocation_pct": target_pct,
         "target_capital": round(remaining_target_room, 2),
+        "score_target_shares_raw": round(by_score, 4),
+        "whole_share_target": int(shares) if whole_shares else None,
+        "hard_position_cap_pct": hard_position_cap_pct,
         "risk_capital_ceiling": round(by_risk * price_base, 2),
         "existing_risk_amount": round(existing_risk_amount, 2),
         "remaining_risk_budget": round(remaining_risk_budget, 2),
