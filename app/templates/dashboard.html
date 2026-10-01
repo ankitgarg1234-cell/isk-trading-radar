@@ -35,12 +35,12 @@
       </div>
       <select name="source_note" aria-label="Research source"><option>Manual</option><option>Recommended by friend</option><option>eToro</option><option>Analyst upgrade</option><option>Reddit/YouTube</option><option>News story</option><option>Other</option></select>
       <button class="btn primary" type="submit">Analyze</button>
-      <form method="post" action="/risk-profile" class="risk-profile-form compact-risk-form">
-        <label for="riskProfile">Risk</label>
-        <select id="riskProfile" name="risk_profile" onchange="this.form.submit()">
-          {% for key, profile in risk_profiles.items() %}<option value="{{ key }}" {{ 'selected' if key == risk_profile else '' }}>{{ profile.label }}</option>{% endfor %}
-        </select>
-      </form>
+    </form>
+    <form method="post" action="/risk-profile" class="risk-profile-form compact-risk-form">
+      <label for="riskProfile">Risk</label>
+      <select id="riskProfile" name="risk_profile" onchange="this.form.submit()">
+        {% for key, profile in risk_profiles.items() %}<option value="{{ key }}" {{ 'selected' if key == risk_profile else '' }}>{{ profile.label }}</option>{% endfor %}
+      </select>
     </form>
   </section>
 
@@ -82,7 +82,6 @@
   <section class="panel radar-panel">
     <div class="section-title-row">
       <div><span class="kicker">CONTINUOUS CROSS-SECTOR RADAR</span><h2>Top 20 ranked opportunities by lane</h2><p class="subtle">Only stocks that pass the Core Quality or Explosive qualification gate can enter the Top 20. The two lanes are grouped below; no fixed quota is imposed.</p></div>
-      <div class="status-line">Universe: <b id="universeSize">{{ scanner.universe_size or 'loading' }}</b> eligible U.S. equities • Last scan: <span id="lastScan">{{ scanner.last_scan or 'not yet' }}</span></div>
     </div>
 
     <div class="radar-service-toolbar">
