@@ -456,6 +456,7 @@ def classify_lane(
     near_high = float(t.get("near_20d_high") or 0)
 
     core_reasons = []
+    core_blockers: list[str] = []
     core_quality = (
         not promotion["hard_reject"]
         and fs >= MIN_FUNDAMENTAL_SCORE
@@ -466,19 +467,24 @@ def classify_lane(
         and market_cap >= MIN_MARKET_CAP
     )
     if fs < MIN_FUNDAMENTAL_SCORE:
-        core_reasons.append(f"fundamentals {fs:.1f}/20 below {MIN_FUNDAMENTAL_SCORE:.0f}/20 floor")
+        msg=f"fundamentals {fs:.1f}/20 below {MIN_FUNDAMENTAL_SCORE:.0f}/20 floor"
+        core_reasons.append(msg); core_blockers.append("fundamental score < 14/20")
     if fconf == "low":
-        core_reasons.append("fundamental evidence confidence is low")
+        core_reasons.append("fundamental evidence confidence is low"); core_blockers.append("fundamental evidence confidence low")
     if total_score < 68:
-        core_reasons.append(f"system conviction {total_score:.1f}/100 below 68")
+        core_reasons.append(f"system conviction {total_score:.1f}/100 below 68"); core_blockers.append("system conviction < 68")
+    if negative_override:
+        core_reasons.append(str(negative_override)); core_blockers.append("material negative-news override")
     if market_cap <= 0:
-        core_reasons.append("market-cap evidence unavailable")
+        core_reasons.append("market-cap evidence unavailable"); core_blockers.append("market-cap evidence unavailable")
     elif market_cap < MIN_MARKET_CAP:
-        core_reasons.append(f"market cap ${market_cap/1_000_000:.0f}M below ${MIN_MARKET_CAP/1_000_000:.0f}M floor")
+        core_reasons.append(f"market cap ${market_cap/1_000_000:.0f}M below ${MIN_MARKET_CAP/1_000_000:.0f}M floor"); core_blockers.append("market cap < $500M")
     if avg_dollar <= 0:
-        core_reasons.append("20d average dollar-volume evidence unavailable")
+        core_reasons.append("20d average dollar-volume evidence unavailable"); core_blockers.append("20d dollar-volume unavailable")
     elif avg_dollar < CORE_MIN_AVG_DOLLAR_VOLUME:
-        core_reasons.append(f"20d average dollar volume ${avg_dollar/1_000_000:.1f}M below ${CORE_MIN_AVG_DOLLAR_VOLUME/1_000_000:.0f}M floor")
+        core_reasons.append(f"20d average dollar volume ${avg_dollar/1_000_000:.1f}M below ${CORE_MIN_AVG_DOLLAR_VOLUME/1_000_000:.0f}M floor"); core_blockers.append("20d dollar liquidity < $10M")
+    if promotion["hard_reject"]:
+        core_blockers.append("promotion / reverse-split hard reject")
     core_reasons.extend(promotion["reasons"])
 
     strategic_catalyst, strategic_evidence = _strategic_catalyst(bundle)
@@ -546,6 +552,7 @@ def classify_lane(
         "explosive_holding_max_trading_sessions": EXPLOSIVE_MAX_TRADING_SESSIONS if explosive else None,
         "promotion_risk": promotion,
         "lane_reasons": reasons,
+        "core_blockers": core_blockers,
         "explosive_blockers": explosive_blockers,
         "catalyst_verified": catalyst_verified,
         "catalyst_evidence": catalyst_evidence,
