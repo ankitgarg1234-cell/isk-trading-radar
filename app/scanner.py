@@ -269,6 +269,8 @@ class RadarService:
             rank = candidate_rank_score(full)
             cand.portfolio_rank_score = rank.get("score", 0)
             cand.rank_version = rank.get("version", "rank-v2-lanes")
+            cand.lane = full.get("lane") if full.get("lane_qualified") is True else None
+            cand.lane_qualified = bool(full.get("lane_qualified") is True)
             cand.current_json = compact_json
             cand.updated_at = now
 
@@ -828,6 +830,9 @@ class RadarService:
         lane_explosive = 0
         lane_qualified = 0
         core_quality_pass = 0
+        qualified_symbols: list[str] = []
+        qualified_owned_symbols: list[str] = []
+        qualified_new_symbols: list[str] = []
         core_blocker_counts: dict[str, int] = {}
         explosive_blocker_counts: dict[str, int] = {}
         # Portfolio-rule/config changes remain diagnostic events, but paper
@@ -846,6 +851,11 @@ class RadarService:
                     core_quality_pass += 1
                 if full.get("lane_qualified") is True:
                     lane_qualified += 1
+                    qualified_symbols.append(sym)
+                    if full.get("position"):
+                        qualified_owned_symbols.append(sym)
+                    else:
+                        qualified_new_symbols.append(sym)
                 if full.get("lane") == "CORE_QUALITY":
                     lane_core += 1
                 elif full.get("lane") == "EXPLOSIVE":
@@ -900,6 +910,9 @@ class RadarService:
             "lane_core_analyzed": lane_core,
             "lane_explosive_analyzed": lane_explosive,
             "core_quality_pass_analyzed": core_quality_pass,
+            "qualified_symbols": qualified_symbols,
+            "qualified_owned_symbols": qualified_owned_symbols,
+            "qualified_new_symbols": qualified_new_symbols,
             "core_top_blockers": [
                 {"label": label, "count": count}
                 for label, count in sorted(core_blocker_counts.items(), key=lambda kv: (-kv[1], kv[0]))[:5]
