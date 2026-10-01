@@ -952,11 +952,16 @@ class RadarService:
     async def loop(self):
         self.running = True
         while True:
+            cycle_started = time.monotonic()
             try:
                 await asyncio.to_thread(self.scan_once, False)
             except Exception as e:
                 self.last_error = f"{type(e).__name__}: {e}"
-            await asyncio.sleep(max(30, settings.scan_interval_seconds))
+            # scan_interval_seconds is a start-to-start cadence, not an extra
+            # post-scan delay. A ~70s scan with a 120s interval should sleep
+            # ~50s, otherwise the wall-clock universe slicer skips 200-name slots.
+            elapsed = time.monotonic() - cycle_started
+            await asyncio.sleep(max(5, settings.scan_interval_seconds - elapsed))
 
 
 radar = RadarService()
