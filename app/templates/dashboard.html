@@ -60,7 +60,7 @@
   </div>
 
   <section class="panel alert-panel">
-    <div class="section-title-row compact-title-row"><div><span class="kicker">DECISION ALERTS</span><h2>What needs attention now <span class="inline-count" id="portfolioActionCount">{{ summary.portfolio_actions }}</span></h2></div><small class="subtle">Only actionable entries and thesis-gated portfolio actions.</small></div>
+    <div class="section-title-row compact-title-row"><div><span class="kicker">DECISION ALERTS</span><h2>What needs attention now <span class="inline-count" id="attentionCount">{{ alerts|length }}</span></h2></div><small class="subtle">Only actionable entries and thesis-gated portfolio actions.</small></div>
     <div id="alertsList" class="alert-list">
       {% if alerts %}{% for a in alerts %}
       <article class="alert-card {{ a.severity }}" data-alert-id="{{ a.id }}">
