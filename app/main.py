@@ -12,7 +12,7 @@ from .config import settings
 from .db import engine, SessionLocal, Position, PaperPosition, AnalysisRequest, Trade, PortfolioCash, PortfolioPreference, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, storage_status
 from .analysis_engine import parse_positions_from_text, position_action, position_action_plan
 from .portfolio_engine import RISK_PROFILES, ACTION_RANK, normalise_profile, stock_risk_score, system_signal, active_level, analyst_label, suggested_position_size, account_risk, projected_risk, risk_band, build_optimizer_plan, candidate_rank_score
-from .paper_engine import paper_status, reset_paper, run_paper_cycle
+from .paper_engine import paper_status, reset_paper, run_paper_cycle, manual_paper_add, manual_paper_close
 from .scanner import radar
 from .ai_engine import AIEngine
 
@@ -678,6 +678,30 @@ def paper_reset():
     with SessionLocal() as db:reset_paper(db)
     _invalidate_live_cache()
     return RedirectResponse("/",303)
+
+@app.post("/api/paper/positions/{symbol}/add")
+async def paper_manual_add(symbol:str, request:Request):
+    try:
+        data=await request.json()
+    except Exception:
+        data={}
+    result=manual_paper_add(radar.provider,symbol,float(data.get("shares") or 0))
+    _invalidate_live_cache()
+    code=200 if result.get("status")=="ok" else 409 if result.get("status")=="blocked" else 400
+    return JSONResponse(result,status_code=code)
+
+@app.post("/api/paper/positions/{symbol}/close")
+async def paper_manual_close(symbol:str, request:Request):
+    try:
+        data=await request.json()
+    except Exception:
+        data={}
+    shares=data.get("shares")
+    result=manual_paper_close(radar.provider,symbol,float(shares) if shares not in (None,"",0) else None)
+    _invalidate_live_cache()
+    code=200 if result.get("status")=="ok" else 400
+    return JSONResponse(result,status_code=code)
+
 
 @app.get("/api/live")
 def live():
