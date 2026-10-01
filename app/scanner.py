@@ -456,10 +456,15 @@ class RadarService:
             db.commit()
         return bool(changed_symbols), changed_symbols
 
-    def _sync_rotation_alerts(self):
-        """Gate live attention only after the optimizer has passed validation."""
+    def _sync_rotation_alerts(self, blocked_symbols: set[str] | None = None):
+        """Gate live attention only after the optimizer and paper executor agree.
+
+        A signal that cannot produce a paper order because of target-size, cash,
+        risk or whole-share constraints is not shown as an actionable alert.
+        """
         if not settings.optimizer_live_gating:
             return
+        blocked_symbols = {str(s).upper() for s in (blocked_symbols or set())}
         with SessionLocal() as db:
             position_rows = db.query(Position).all()
             paper_rows = db.query(PaperPosition).all()
@@ -494,9 +499,9 @@ class RadarService:
                 rotation_gap=settings.optimizer_rotation_gap,
                 rotation_yield_gap=settings.optimizer_rotation_yield_gap,
             )
-            approved = {r["symbol"]: r for r in plan["selected_new"]}
+            approved = {r["symbol"]: r for r in plan["selected_new"] if r["symbol"] not in blocked_symbols}
             for r in plan["visible"]:
-                if r.get("owned") and r.get("optimizer_action") == "ADD":
+                if r.get("owned") and r.get("optimizer_action") == "ADD" and r["symbol"] not in blocked_symbols:
                     approved[r["symbol"]] = r
             now = datetime.now(timezone.utc)
 
@@ -879,17 +884,23 @@ class RadarService:
                 paper_event_symbols.extend(s for s in strategic_symbols if s not in paper_event_symbols)
         except Exception as e:
             errors.append(f"strategic capital: {type(e).__name__}")
+        paper_result: dict = {"status": "not_run", "executed_orders": [], "blocked_orders": []}
         try:
-            self._sync_rotation_alerts()
-        except Exception as e:
-            errors.append(f"portfolio optimizer: {type(e).__name__}")
-        try:
-            # Re-evaluate the complete current Top 20 every market-open scan.
-            # The paper engine is idempotent for already-owned names, so this does
-            # not create repeat buys; it only catches newly qualified Top-20 names.
-            run_paper_cycle(self.provider, entry_event=paper_top20_recheck)
+            # Re-evaluate the complete current qualified Top 20 every market-open
+            # scan. Paper execution runs before alert reconciliation so "attention
+            # now" reflects what actually executed or what is genuinely blocked.
+            paper_result = run_paper_cycle(self.provider, entry_event=paper_top20_recheck)
         except Exception as e:
             errors.append(f"paper trading: {type(e).__name__}")
+        try:
+            blocked_symbols = {
+                str(x.get("symbol") or "").upper()
+                for x in (paper_result.get("blocked_orders") or [])
+                if x.get("symbol")
+            }
+            self._sync_rotation_alerts(blocked_symbols)
+        except Exception as e:
+            errors.append(f"portfolio optimizer: {type(e).__name__}")
         # Release cyclic/transient analysis objects promptly between cycles. This
         # is a secondary guard; the primary 502 fix is keeping heavyweight PDF
         # parsing out of the live process.
@@ -947,6 +958,9 @@ class RadarService:
             "paper_top20_recheck": paper_top20_recheck,
             "paper_optimizer_invalidated": optimizer_policy_event,
             "paper_event_symbols": paper_event_symbols,
+            "paper_cash": paper_result.get("cash"),
+            "paper_executed_orders": paper_result.get("executed_orders") or [],
+            "paper_blocked_orders": paper_result.get("blocked_orders") or [],
         }
 
     async def loop(self):
