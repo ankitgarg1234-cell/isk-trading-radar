@@ -26,6 +26,7 @@ WIKI="https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
 WIKI_HISTORY="https://en.wikipedia.org/wiki/Historical_components_of_the_S%26P_500"
 YAHOO="https://query1.finance.yahoo.com/v8/finance/chart/"
 SEC_TICKERS="https://www.sec.gov/files/company_tickers.json"
+SEC_TICKERS_MIRROR="https://raw.githubusercontent.com/Ancalagan/sec-data/main/company_tickers.json"
 SEC_FACTS="https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
 
 def sf(v):
@@ -142,10 +143,25 @@ def yahoo(s,cache,sym,start,end):
 def ticker_map(s,cache,lim):
     c=cache.get("sec","tickers")
     if c:return c
-    raw=jget(s,SEC_TICKERS,lim=lim);out={}
-    for x in raw.values():
-        t=norm(x.get("ticker"))
-        if t:out[t]=f"{int(x['cik_str']):010d}"
+    try:
+        raw=jget(s,SEC_TICKERS,lim=lim)
+        records=list(raw.values())
+        out={}
+        for x in records:
+            t=norm(x.get("ticker"))
+            if t:out[t]=f"{int(x['cik_str']):010d}"
+    except Exception:
+        # GitHub-hosted runners are sometimes blocked by www.sec.gov. This
+        # mirror contains only SEC's public ticker/CIK crosswalk; company facts
+        # below still come directly from data.sec.gov.
+        raw=jget(s,SEC_TICKERS_MIRROR)
+        fields=raw.get("fields") or []
+        out={}
+        for row in raw.get("data") or []:
+            x=dict(zip(fields,row))
+            t=norm(x.get("ticker"))
+            cik=x.get("cik")
+            if t and cik is not None:out[t]=f"{int(cik):010d}"
     cache.put("sec","tickers",out);return out
 
 def facts(s,cache,lim,sym,cik):
