@@ -241,6 +241,8 @@ class SECFundamentalsProvider:
         current_assets_fact = self._fact(facts, ("AssetsCurrent",))
         current_liab_fact = self._fact(facts, ("LiabilitiesCurrent",))
         ocf_fact = self._fact(facts, ("NetCashProvidedByUsedInOperatingActivities",))
+        dei = (facts.get("facts") or {}).get("dei") or {}
+        shares_outstanding_fact = dei.get("EntityCommonStockSharesOutstanding")
 
         revenue = self._annual_values(revenue_fact)
         net_income = self._annual_values(net_income_fact)
@@ -257,6 +259,7 @@ class SECFundamentalsProvider:
         equity = self._latest_instant(equity_fact)
         current_assets = self._latest_instant(current_assets_fact)
         current_liab = self._latest_instant(current_liab_fact)
+        shares_outstanding = self._latest_instant(shares_outstanding_fact, ("shares",))
 
         debt_tags = (
             "LongTermDebtAndFinanceLeaseObligationsCurrent",
@@ -287,6 +290,7 @@ class SECFundamentalsProvider:
             "debtToEquity": (debt_total / equity * 100) if debt_total and equity not in (None, 0) else None,
             "currentRatio": (current_assets / current_liab) if current_assets is not None and current_liab not in (None, 0) else None,
             "operatingCashConversion": (latest_ocf / latest_ni) if latest_ocf is not None and latest_ni not in (None, 0) else None,
+            "sharesOutstanding": shares_outstanding,
             "sector": sector,
             "industry": sic_desc or None,
             "sic": int(sic) if str(sic or "").isdigit() else sic,
@@ -400,7 +404,9 @@ class YahooMarketProvider:
         # Use SEC whenever Yahoo lacks a meaningful fundamental set. This is also a
         # provenance-first fallback: each field keeps the source that supplied it.
         yahoo_core = sum(yahoo.get(k) is not None for k in ("revenueGrowth", "earningsGrowth", "grossMargins", "operatingMargins", "returnOnEquity", "debtToEquity"))
-        if yahoo_core < 3:
+        # Market cap is a hard lane gate. If Yahoo omits it, pull SEC shares
+        # outstanding even when the rest of Yahoo fundamentals are usable.
+        if yahoo_core < 3 or yahoo.get("marketCap") in (None, ""):
             try:
                 sec = self.sec.fundamentals(symbol)
             except Exception as exc:
@@ -559,6 +565,11 @@ class YahooMarketProvider:
             except Exception:
                 continue
         fundamentals = self.fundamentals(symbol)
+        if fundamentals.get("marketCap") in (None, "", 0):
+            shares_outstanding = _safe_float(fundamentals.get("sharesOutstanding"))
+            if shares_outstanding and current:
+                fundamentals["marketCap"] = shares_outstanding * current
+                fundamentals["_market_cap_source"] = "SEC shares outstanding × Yahoo current price"
         news = self.news(symbol)
         strategic_capital = self.strategic.assess(
             symbol,
