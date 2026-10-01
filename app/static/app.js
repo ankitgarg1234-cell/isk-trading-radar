@@ -12,8 +12,16 @@ function laneHeaderHtml(lane,count){
   const note=lane==='EXPLOSIVE'?'Catalyst-driven • max 20 U.S. trading sessions • anti-promotion gate enforced':'Fundamental quality • durable growth • valuation-aware';
   return `<tr class="lane-group-row" data-lane-header="${esc(lane)}"><td colspan="10"><div><b>${label}</b><span>${note}</span><em>${count} stock${count===1?'':'s'}</em></div></td></tr>`;
 }
-function candidateRowsHtml(candidates,baseCurrency='SEK'){
-  if(!candidates?.length)return '<tr><td colspan="10" class="empty">Radar will populate after analysis/scan runs.</td></tr>';
+function radarEmptyMessage(scan={}){
+  if(scan.scan_in_progress)return 'Fresh market scan is running now. Qualified Core / Explosive names will appear as soon as this cycle completes.';
+  const r=scan.last_scan_result||{};
+  if(r.status==='ok')return `Latest scan completed: ${num(r.analyzed)} deep analyses; ${num(r.universe_prefiltered)}/${num(r.universe_size||scan.universe_size)} universe names prefiltered this cycle, but 0 stocks currently pass the Core Quality / Explosive lane gates.`;
+  if(r.status==='busy')return 'A scanner cycle is already running. This table will refresh automatically when it completes.';
+  if(scan.last_error)return `Latest scan did not complete: ${scan.last_error}. Use Run scan now to retry on demand.`;
+  return 'No completed qualifying scan is available yet. Use Run scan now to start one on demand.';
+}
+function candidateRowsHtml(candidates,baseCurrency='SEK',scan={}){
+  if(!candidates?.length)return `<tr id="radarEmptyState"><td colspan="10" class="empty">${esc(radarEmptyMessage(scan))}</td></tr>`;
   const grouped=['CORE_QUALITY','EXPLOSIVE'];
   return grouped.map(lane=>{
     const rows=candidates.filter(c=>(c.lane||'CORE_QUALITY')===lane);
@@ -248,7 +256,7 @@ async function refreshLive(){
     const mb=$('#marketBadge'); if(mb){mb.textContent=d.market_open?'US MARKET OPEN':'US MARKET CLOSED';mb.className=`pill ${d.market_open?'green':'muted'}`}
     const ls=$('#lastScan');if(ls)ls.textContent=d.last_scan||'not yet';const us=$('#universeSize');if(us)us.textContent=d.universe_size||'initializing';if($('#scannerCoreCount'))$('#scannerCoreCount').textContent=d.universe_core_candidates??0;if($('#scannerExplosiveCount'))$('#scannerExplosiveCount').textContent=d.universe_explosive_candidates??0;
     const list=$('#alertsList');if(list){list.innerHTML=d.alerts.length?d.alerts.map(alertCardHtml).join(''):'<div class="empty">No action required right now.</div>';bindAlerts()}if($('#attentionCount'))$('#attentionCount').textContent=d.alerts.length;
-    const tb=$('#candidateTable tbody');if(tb){tb.innerHTML=candidateRowsHtml(d.candidates,d.base_currency||'SEK');bindRadarRows();sortRadar()}
+    const tb=$('#candidateTable tbody');if(tb){tb.innerHTML=candidateRowsHtml(d.candidates,d.base_currency||'SEK',d);bindRadarRows();sortRadar()}
     if($('#buyNowCount'))$('#buyNowCount').textContent=d.summary?.buy_now??0;if($('#deployableCash'))$('#deployableCash').textContent=Math.round(num(d.summary?.deployable_cash));if($('#accountRiskScore'))$('#accountRiskScore').textContent=Math.round(num(d.account_risk?.score));if($('#accountRiskBand'))$('#accountRiskBand').textContent=`${d.account_risk?.band||'—'} • target ${d.account_risk?.target_label||''}`;
     if($('#optimizerVisible'))$('#optimizerVisible').textContent=d.optimizer?.visible??0;if($('#optimizerCore'))$('#optimizerCore').textContent=d.optimizer?.core_quality??0;if($('#optimizerExplosive'))$('#optimizerExplosive').textContent=d.optimizer?.explosive??0;if($('#optimizerShortlist'))$('#optimizerShortlist').textContent=d.optimizer?.shortlist??0;if($('#optimizerInvest'))$('#optimizerInvest').textContent=d.optimizer?.invest_now??0;
     const laneDiag=$('#laneDiagnostics');if(laneDiag){const o=d.optimizer||{},parts=[];if(num(o.lane_refresh_pending)>0)parts.push('<span><b>'+esc(o.lane_refresh_pending)+'</b> pre-v2/stale records excluded until refreshed.</span>');if(num(o.explosive)===0){const blockers=(o.explosive_top_blockers||[]).map(x=>esc(x.label)+' ('+esc(x.count)+')').join(', ');parts.push('<span><b>Explosive: 0 qualified.</b> '+esc(o.explosive_evaluated??0)+' fresh lane records evaluated; '+esc(o.explosive_near_misses??0)+' Core-quality near-misses.'+(blockers?' Top blockers: '+blockers+'.':'')+(d.market_open?'':' U.S. market is closed; broad discovery resumes next regular session, while “Run scan now” forces an after-hours refresh.')+'</span>')}laneDiag.innerHTML=parts.join('');laneDiag.classList.toggle('hidden',parts.length===0)}
@@ -259,7 +267,18 @@ async function refreshLive(){
   }catch(e){console.debug('live refresh',e)}
 }
 bindAlerts();
-const scan=$('#scanNow');if(scan)scan.onclick=async()=>{scan.disabled=true;scan.textContent='Scanning…';try{const d=await jsonFetch('/api/scan-now',{method:'POST'});toast(`Scan finished: ${d.analyzed||0} deep analyses; ${d.universe_prefiltered||0}/${d.universe_size||0} universe names prefiltered this cycle`);await refreshLive()}catch(e){toast('Scan failed: '+e.message)}finally{scan.disabled=false;scan.textContent='Run scan now'}};
+async function runScanNow(){
+  const buttons=$('.scan-now-trigger');
+  buttons.forEach(b=>{b.disabled=true;b.textContent='Scanning…'});
+  try{
+    const d=await jsonFetch('/api/scan-now',{method:'POST'});
+    if(d.status==='busy')toast('A scan is already running — the Radar will refresh when it completes.');
+    else toast(`Scan finished: ${d.analyzed||0} deep analyses; ${d.universe_prefiltered||0}/${d.universe_size||0} universe names prefiltered this cycle`);
+    await refreshLive();
+  }catch(e){toast('Scan failed: '+e.message)}
+  finally{buttons.forEach(b=>{b.disabled=false;b.textContent='Run scan now'})}
+}
+$('.scan-now-trigger').forEach(b=>b.onclick=runScanNow);
 
 let importPositions=[];
 function renderImport(rows){importPositions=rows||[];const wrap=$('#importPreview'),body=$('#importRows');if(!wrap||!body)return;wrap.classList.remove('hidden');body.innerHTML=importPositions.length?importPositions.map((r,i)=>`<tr data-i="${i}"><td><input data-k="symbol" value="${esc(r.symbol)}"></td><td><input data-k="shares" type="number" step="any" value="${esc(r.shares)}"></td><td><input data-k="avg_cost" type="number" step="any" value="${esc(r.avg_cost)}"></td><td><input data-k="account" value="${esc(r.account||'Screenshot')}"></td><td><button class="icon-btn remove-import" type="button">×</button></td></tr>`).join(''):'<tr><td colspan="5" class="empty">Nothing confidently extracted. Add/correct the OCR text or use manual entry.</td></tr>';$$('.remove-import').forEach(b=>b.onclick=()=>{b.closest('tr').remove()})}

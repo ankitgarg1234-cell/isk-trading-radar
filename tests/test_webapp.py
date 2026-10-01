@@ -31,6 +31,8 @@ def test_health_endpoint():
     r=client.get('/health')
     assert r.status_code == 200
     assert r.json()["status"] == "ok"
+    assert "scan_in_progress" in r.json()
+    assert "last_scan_result" in r.json()
 
 
 def test_dashboard_renders_compact_shell_and_retained_tools():
@@ -56,6 +58,8 @@ def test_dashboard_renders_compact_shell_and_retained_tools():
     assert 'id="paperCoreCount"' in body
     assert 'id="paperExplosiveCount"' in body
     assert 'id="radarSearch"' in body
+    assert 'id="scanNowRadar"' in body
+    assert body.count("scan-now-trigger") >= 2
     assert 'id="radarStockValue"' in body
     assert "Core Quality Lane" in body
     assert "Explosive Lane" in body

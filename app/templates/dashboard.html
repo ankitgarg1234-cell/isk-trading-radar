@@ -14,7 +14,7 @@
   <div class="top-actions">
     <span id="marketBadge" class="pill {{ 'green' if market_open else 'muted' }}">{{ 'US MARKET OPEN' if market_open else 'US MARKET CLOSED' }}</span>
     <span class="pill {{ 'green' if scanner.running else 'amber' }}">Scanner {{ 'active' if scanner.running else 'starting' }}</span>
-    <button id="scanNow" class="btn secondary" type="button">Run scan now</button>
+    <button id="scanNow" class="btn secondary scan-now-trigger" type="button">Run scan now</button>
     {% if auth_enabled %}<form method="post" action="/logout"><button class="btn ghost">Log out</button></form>{% endif %}
   </div>
 </header>
@@ -88,6 +88,7 @@
       <div class="radar-search"><input id="radarSearch" type="search" placeholder="Search ticker or company name" aria-label="Search the Radar"></div>
       <select id="radarSort" aria-label="Sort Radar"><option value="actionable">Most actionable</option><option value="ai">Highest AI score</option><option value="system">Highest system score</option><option value="distance">Closest trigger</option><option value="yield">Highest expected return</option><option value="price-low">Lowest price</option><option value="price-high">Highest price</option><option value="analyst">Highest analyst score</option><option value="risk-low">Lowest stock risk</option><option value="rr">Highest R/R</option><option value="size">Largest suggested capital</option></select>
       <div class="radar-filter-meta"><b id="columnFilterCount">0 filters</b><span>•</span><b id="radarResultCount">{{ candidates|length }} shown</b></div>
+      <button id="scanNowRadar" class="btn secondary scan-now-trigger" type="button">Run scan now</button>
       <button id="clearRadarFilters" class="btn ghost" type="button">Clear filters</button>
     </div>
 
@@ -166,7 +167,7 @@
       </tr>
       <tr class="radar-detail-row hidden" data-detail-for="{{ c.symbol }}"><td colspan="10"><div class="radar-detail-grid"><div><span>Why this action</span><b>{{ c.action_reason or 'Open full details for the evidence breakdown.' }}</b></div><div><span>Expected return</span><b>{{ ('%+.1f%%'|format(c.expected_yield_pct)) if c.expected_yield_pct is not none else '—' }}</b></div><div><span>Position sizing</span><b>{{ c.sizing_reason }}</b></div><div><span>What changed</span><b>{{ c.changed or 'No action-state change in the latest snapshot' }}</b></div>{% if c.owned %}<div><span>Current position</span><b>{{ c.owned_shares }} shares @ {{ c.owned_avg }}</b></div>{% endif %}<div><span>Target profile fit</span><b>{{ c.risk_fit }} for {{ risk_profiles[risk_profile].label }}</b></div><div><span>Portfolio priority</span><b>#{{ c.market_rank }} • {{ '%.1f'|format(c.portfolio_rank_score) }}/100 • {{ c.optimizer_bucket }}</b></div><div><span>Independent confirmation</span><b>AI {{ c.ai_confirmation }} • Analyst {{ c.analyst_confirmation }}</b></div><div><span>Government / strategic capital</span><b>{{ c.strategic_capital_shadow.label }} • {{ c.strategic_capital_shadow.direction }} • shadow {{ '%+0.1f'|format(c.strategic_capital_shadow.shadow_rank_adjustment|default(0)) }} pts</b><small>Recorded for validation; not included in Portfolio Priority v2.</small></div></div></td></tr>
       {% endfor %}
-      {% if not candidates %}<tr><td colspan="10" class="empty">Radar will populate after analysis/scan runs.</td></tr>{% endif %}
+      {% if not candidates %}<tr id="radarEmptyState"><td colspan="10" class="empty">{% if scanner.scan_in_progress %}Fresh market scan is running now. Qualified Core / Explosive names will appear as soon as this cycle completes.{% elif scanner.last_result and scanner.last_result.get('status') == 'ok' %}Latest scan completed: {{ scanner.last_result.get('analyzed', 0) }} deep analyses, {{ scanner.last_result.get('universe_prefiltered', 0) }}/{{ scanner.last_result.get('universe_size', scanner.universe_size) }} universe names prefiltered this cycle, but 0 stocks currently pass the Core Quality / Explosive lane gates.{% elif scanner.last_error %}Latest scan did not complete: {{ scanner.last_error }}. Use Run scan now to retry on demand.{% else %}No completed qualifying scan is available yet. Use Run scan now to start one on demand.{% endif %}</td></tr>{% endif %}
     </tbody></table></div>
     <div id="radarNoResults" class="empty hidden">No Radar stocks match the current filters.</div>
     <p class="footnote">Top 20 is selected across both qualified lanes using one Portfolio Priority score. Core and Explosive have different qualification rules, but the same conviction-based sizing ladder: 2% at 68–74 up to a 15% target at 98–100, subject only to stop-risk, cash and whole-share ceilings.</p>

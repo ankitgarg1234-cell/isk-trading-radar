@@ -4,6 +4,8 @@ import asyncio
 import gc
 import hashlib
 import json
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -148,6 +150,11 @@ class RadarService:
         self.running = False
         self.last_scan = None
         self.last_error = None
+        self.last_result = None
+        self.scan_in_progress = False
+        self.scan_started_at = None
+        self.last_scan_duration_seconds = None
+        self._scan_lock = threading.Lock()
         self.scan_count = 0
         self.universe_size = 0
         self.last_universe_prefiltered = 0
@@ -750,6 +757,41 @@ class RadarService:
         return False
 
     def scan_once(self, force: bool = False):
+        if not self._scan_lock.acquire(blocking=False):
+            return {
+                "status": "busy",
+                "message": "A scanner cycle is already in progress",
+                "started_at": self.scan_started_at.isoformat() if self.scan_started_at else None,
+                "last_scan": self.last_scan.isoformat() if self.last_scan else None,
+            }
+        self.scan_in_progress = True
+        self.scan_started_at = datetime.now(timezone.utc)
+        started = time.perf_counter()
+        result = None
+        try:
+            result = self._scan_once_impl(force)
+            self.last_result = result
+            return result
+        except Exception as e:
+            self.last_error = f"{type(e).__name__}: {e}"
+            self.last_result = {"status": "error", "error": self.last_error}
+            raise
+        finally:
+            self.last_scan_duration_seconds = round(time.perf_counter() - started, 2)
+            summary = dict(self.last_result or {})
+            summary.update({
+                "scan_count": self.scan_count,
+                "force": force,
+                "duration_seconds": self.last_scan_duration_seconds,
+                "market_open": self.market_open(),
+                "last_error": self.last_error,
+            })
+            print("SCAN_CYCLE " + json.dumps(summary, default=str, sort_keys=True), flush=True)
+            self.scan_in_progress = False
+            self.scan_started_at = None
+            self._scan_lock.release()
+
+    def _scan_once_impl(self, force: bool = False):
         if not force and not self.market_open():
             # Universe metadata is safe to refresh while the market is closed.
             # Without this, a fresh process starts at universe_size=0 and the

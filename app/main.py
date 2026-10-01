@@ -55,7 +55,7 @@ def logout(request:Request):request.session.clear();return RedirectResponse("/lo
 def health():
     try:
         with engine.connect() as conn:conn.execute(text("SELECT 1"))
-        return {"status":"ok","database":"connected","storage":storage_status(),"scanner_running":radar.running,"last_scan":radar.last_scan,"market_open":radar.market_open(),"live_poll_seconds":settings.live_poll_seconds,"dashboard_cache_seconds":settings.dashboard_cache_seconds}
+        return {"status":"ok","database":"connected","storage":storage_status(),"scanner_running":radar.running,"scan_in_progress":radar.scan_in_progress,"scan_started_at":radar.scan_started_at,"last_scan":radar.last_scan,"last_scan_duration_seconds":radar.last_scan_duration_seconds,"last_scan_result":radar.last_result,"last_error":radar.last_error,"market_open":radar.market_open(),"universe_size":radar.universe_size,"live_poll_seconds":settings.live_poll_seconds,"dashboard_cache_seconds":settings.dashboard_cache_seconds}
     except Exception as exc:return JSONResponse({"status":"degraded","database":str(exc)},status_code=503)
 
 def _candidate_payload(c: RadarCandidate) -> dict:
@@ -650,7 +650,7 @@ def paper_reset():
 @app.get("/api/live")
 def live():
     state=_cached_live_state()
-    return {"market_open":radar.market_open(),"scanner_running":radar.running,"last_scan":radar.last_scan,"last_error":radar.last_error,"universe_size":radar.universe_size,"universe_prefiltered":radar.last_universe_prefiltered,"universe_deep_candidates":radar.last_universe_candidates,"universe_core_candidates":radar.last_universe_core_candidates,"universe_explosive_candidates":radar.last_universe_explosive_candidates,"deep_analyzed":radar.last_deep_analyzed,"risk_profile":state["risk_profile"],"account_risk":state["account_risk"],"summary":state["summary"],"optimizer":state["optimizer"],"paper":state["paper"],"positions":state["positions"],"base_currency":state["base_currency"],"alerts":[{"id":a.id,"symbol":a.symbol,"title":a.title,"message":a.message,"severity":a.severity,"action":a.action,"alert_type":a.alert_type,"created_at":a.created_at.isoformat() if a.created_at else None} for a in state["alerts"]],"candidates":state["candidates"],"cache_seconds":settings.dashboard_cache_seconds}
+    return {"market_open":radar.market_open(),"scanner_running":radar.running,"scan_in_progress":radar.scan_in_progress,"scan_started_at":radar.scan_started_at,"last_scan":radar.last_scan,"last_scan_duration_seconds":radar.last_scan_duration_seconds,"last_scan_result":radar.last_result,"last_error":radar.last_error,"universe_size":radar.universe_size,"universe_prefiltered":radar.last_universe_prefiltered,"universe_deep_candidates":radar.last_universe_candidates,"universe_core_candidates":radar.last_universe_core_candidates,"universe_explosive_candidates":radar.last_universe_explosive_candidates,"deep_analyzed":radar.last_deep_analyzed,"risk_profile":state["risk_profile"],"account_risk":state["account_risk"],"summary":state["summary"],"optimizer":state["optimizer"],"paper":state["paper"],"positions":state["positions"],"base_currency":state["base_currency"],"alerts":[{"id":a.id,"symbol":a.symbol,"title":a.title,"message":a.message,"severity":a.severity,"action":a.action,"alert_type":a.alert_type,"created_at":a.created_at.isoformat() if a.created_at else None} for a in state["alerts"]],"candidates":state["candidates"],"cache_seconds":settings.dashboard_cache_seconds}
 
 @app.get("/api/alerts/{alert_id}")
 def alert_detail(alert_id:int):
