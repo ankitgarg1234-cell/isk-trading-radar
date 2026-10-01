@@ -12,7 +12,7 @@ from .db import (
     SessionLocal, RadarCandidate, PortfolioPreference,
     PaperAccount, PaperPosition, PaperTrade, PaperSnapshot,
 )
-from .portfolio_engine import INVESTABLE_ENTRY_ACTIONS, build_optimizer_plan, candidate_rank_score, normalise_profile, suggested_position_size
+from .portfolio_engine import INVESTABLE_ENTRY_ACTIONS, MIN_ENTRY_RISK_REWARD, build_optimizer_plan, candidate_rank_score, normalise_profile, suggested_position_size
 from .analysis_engine import position_action
 
 PAPER_ACCOUNT = "Optimizer Paper"
@@ -268,6 +268,9 @@ def manual_paper_add(provider, symbol: str, shares: float) -> dict:
         lane = payload.get("lane") if payload.get("lane_qualified") is True else None
         if lane not in {"CORE_QUALITY", "EXPLOSIVE"}:
             return {"status": "blocked", "message": f"{symbol} is not currently qualified for Core Quality or Explosive; manual paper buys remain lane-gated."}
+        risk_reward = float(payload.get("risk_reward") or 0)
+        if risk_reward < MIN_ENTRY_RISK_REWARD:
+            return {"status": "blocked", "message": f"{symbol} has modeled R/R {risk_reward:.2f}x. New/additional investment requires at least {MIN_ENTRY_RISK_REWARD:.1f}x.", "risk_reward": round(risk_reward, 2), "minimum_risk_reward": MIN_ENTRY_RISK_REWARD}
         price, price_source = _live_paper_price(provider, symbol, float(payload.get("price") or 0))
         if price <= 0:
             return {"status": "error", "message": f"No usable price is available for {symbol}"}
