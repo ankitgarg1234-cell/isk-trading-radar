@@ -459,7 +459,21 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                 if r.get("owned") and r.get("optimizer_action") == "ADD"
                 and r["symbol"] in current_by_symbol
             ]
-            allocation_rows = [(r, False) for r in new_rows] + [(r, True) for r in add_rows]
+            # Keep existing qualified holdings aligned with their score-led whole-
+            # share target when the underlying entry signal is still actionable.
+            # This also repairs positions previously undersized by floor rounding.
+            repair_rows = [
+                r for r in plan["visible"]
+                if r.get("owned")
+                and r["symbol"] in current_by_symbol
+                and r.get("optimizer_action") != "ADD"
+                and r.get("entry_signal") in INVESTABLE_ENTRY_ACTIONS
+            ]
+            allocation_rows = (
+                [(r, False, "NEW") for r in new_rows]
+                + [(r, True, "ADD") for r in add_rows]
+                + [(r, True, "TARGET REPAIR") for r in repair_rows]
+            )
 
             if allocation_rows:
                 # One sizing engine for dashboard and paper execution:
@@ -469,7 +483,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                 equity_now, _, _ = _equity(db, account, analyses)
                 fee_rate = max(0.0, settings.paper_trade_cost_bps) / 10000.0
                 desired = []
-                for r, is_add in allocation_rows:
+                for r, is_add, allocation_kind in allocation_rows:
                     a = r["analysis"] or {}
                     price = float(a.get("price") or 0)
                     if price <= 0:
@@ -484,27 +498,33 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                         profile=profile,
                         fx_rate_to_base=1.0,
                         existing_value=existing_value,
-                        whole_shares=False,
+                        whole_shares=True,
                     )
+                    rounded_shares = int(sizing.get("shares") or 0)
+                    one_share_cost = price * (1.0 + fee_rate)
+                    rounded_spend = rounded_shares * one_share_cost
+                    if rounded_shares <= 0:
+                        # Quietly skip target-repair rows that are already at/near
+                        # target; only surface an execution blocker for a genuine
+                        # new/add action.
+                        if allocation_kind != "TARGET REPAIR":
+                            blocked_orders.append({
+                                "symbol": r["symbol"],
+                                "decision": "ADD" if is_add else str(r.get("entry_signal") or "BUY"),
+                                "reason": sizing.get("reason") or "No executable whole-share size within score/risk/cash limits",
+                                "target_capital": float(sizing.get("target_capital") or 0),
+                                "cash": round(float(account.cash or 0), 2),
+                            })
+                        continue
                     target_capital = min(
-                        float(sizing.get("target_capital") or 0),
-                        float(sizing.get("risk_capital_ceiling") or 0),
+                        max(float(sizing.get("target_capital") or 0), rounded_spend),
                         float(account.cash or 0),
                     )
-                    if target_capital <= 0:
-                        blocked_orders.append({
-                            "symbol": r["symbol"],
-                            "decision": "ADD" if is_add else str(r.get("entry_signal") or "BUY"),
-                            "reason": sizing.get("reason") or "No remaining score/risk/cash capacity",
-                            "target_capital": float(sizing.get("target_capital") or 0),
-                            "cash": round(float(account.cash or 0), 2),
-                        })
-                        continue
-                    desired.append((r, price, sizing, target_capital, is_add))
+                    desired.append((r, price, sizing, target_capital, is_add, allocation_kind, rounded_shares))
 
                 total_desired = sum(x[3] for x in desired)
                 scale = min(1.0, (float(account.cash or 0) / total_desired)) if total_desired > 0 else 0.0
-                for r, price, sizing, target_capital, is_add in desired:
+                for r, price, sizing, target_capital, is_add, allocation_kind, rounded_shares in desired:
                     scaled_capital = target_capital * scale
                     one_share_cost = price * (1.0 + fee_rate)
                     if scaled_capital + 1e-9 < one_share_cost:
@@ -537,7 +557,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                             lane_label = "Explosive Lane"
                     target_pct = float(sizing.get("target_allocation_pct") or 0)
                     scale_note = f" • cash-scaled {scale:.2f}x" if scale < 0.999 else ""
-                    decision = "ADD" if is_add else str(r.get("entry_signal") or "BUY")
+                    decision = "ADD" if allocation_kind == "ADD" else "TARGET TOP-UP" if allocation_kind == "TARGET REPAIR" else str(r.get("entry_signal") or "BUY")
                     bought = _buy(
                         db, account, r["symbol"], price, scaled_capital, r["rank_score"],
                         (
