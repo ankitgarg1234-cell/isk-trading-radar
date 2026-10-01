@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse, bisect, copy, json, math, statistics, sys, threading, time
+import argparse, bisect, copy, json, math, os, statistics, sys, threading, time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
@@ -438,7 +438,11 @@ def main():
     b=yahoo(s,cache,"^SP500TR",start-timedelta(days=5),end+timedelta(days=2))
     if not b:
         b=yahoo(s,cache,"SPY",start-timedelta(days=5),end+timedelta(days=2))
-    lim=Limiter(7);ss=requests.Session();ss.headers["User-Agent"]="ISK-Trading-Dashboard point-in-time research";tm=ticker_map(ss,cache,lim);fmap={};fdates={}
+    lim=Limiter(5);ss=requests.Session();ss.headers.update({
+        "User-Agent":os.getenv("SEC_USER_AGENT","ISK Trading Radar research https://github.com/ankitgarg1234-cell/isk-trading-radar"),
+        "Accept-Encoding":"gzip, deflate",
+        "Accept":"application/json",
+    });tm=ticker_map(ss,cache,lim);fmap={};fdates={}
     for i,sym in enumerate(sorted(union),1):
         cik=tm.get(sym)
         if cik:
