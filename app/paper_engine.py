@@ -5,6 +5,7 @@ import math
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
+from sqlalchemy import or_
 
 from .config import settings
 from .db import (
@@ -144,7 +145,12 @@ def _candidate_payloads(
     """
     rows = []
     if ranked_limit > 0:
-        rows = db.query(RadarCandidate).order_by(
+        rows = db.query(RadarCandidate).filter(
+            or_(
+                RadarCandidate.lane_qualified == True,
+                RadarCandidate.current_json.like('%"lane_qualified":true%'),
+            )
+        ).order_by(
             RadarCandidate.portfolio_rank_score.desc(),
             RadarCandidate.updated_at.desc(),
         ).limit(max(1, ranked_limit)).all()
@@ -283,6 +289,8 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
 
         # One-time state repair for positions created by the old fractional-share
         # allocator. This is bookkeeping correction, not a market SELL.
+        executed_orders: list[dict] = []
+        blocked_orders: list[dict] = []
         whole_share_corrections = _normalise_whole_share_positions(db, account, analyses)
         if whole_share_corrections:
             paper_positions = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).all()
@@ -414,6 +422,13 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                         float(account.cash or 0),
                     )
                     if target_capital <= 0:
+                        blocked_orders.append({
+                            "symbol": r["symbol"],
+                            "decision": "ADD" if is_add else str(r.get("entry_signal") or "BUY"),
+                            "reason": sizing.get("reason") or "No remaining score/risk/cash capacity",
+                            "target_capital": float(sizing.get("target_capital") or 0),
+                            "cash": round(float(account.cash or 0), 2),
+                        })
                         continue
                     desired.append((r, price, sizing, target_capital, is_add))
 
@@ -423,6 +438,13 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                     scaled_capital = target_capital * scale
                     one_share_cost = price * (1.0 + fee_rate)
                     if scaled_capital + 1e-9 < one_share_cost:
+                        blocked_orders.append({
+                            "symbol": r["symbol"],
+                            "decision": "ADD" if is_add else str(r.get("entry_signal") or "BUY"),
+                            "reason": f"Executable allocation {scaled_capital:.2f} is below one whole share cost {one_share_cost:.2f}",
+                            "target_capital": round(scaled_capital, 2),
+                            "cash": round(float(account.cash or 0), 2),
+                        })
                         continue
                     lane_label = str((r["analysis"] or {}).get("lane_label") or r.get("lane_label") or "Qualified Lane")
                     if is_add and existing_pos:
@@ -434,13 +456,26 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                     target_pct = float(sizing.get("target_allocation_pct") or 0)
                     scale_note = f" • cash-scaled {scale:.2f}x" if scale < 0.999 else ""
                     decision = "ADD" if is_add else str(r.get("entry_signal") or "BUY")
-                    _buy(
+                    bought = _buy(
                         db, account, r["symbol"], price, scaled_capital, r["rank_score"],
                         (
                             f"{lane_label} • Top-20 #{r['market_rank']} {decision} • "
                             f"priority target {target_pct:.0f}%{scale_note}"
                         ),
                     )
+                    if bought > 0:
+                        executed_orders.append({
+                            "symbol": r["symbol"], "decision": decision, "shares": bought,
+                            "price": round(price, 4), "capital": round(bought * price, 2),
+                            "rank_score": round(float(r["rank_score"]), 1),
+                        })
+                    else:
+                        blocked_orders.append({
+                            "symbol": r["symbol"], "decision": decision,
+                            "reason": "No whole-share order could be executed with current cash/target limits",
+                            "target_capital": round(scaled_capital, 2),
+                            "cash": round(float(account.cash or 0), 2),
+                        })
 
             db.flush()
             if force_rebalance or daily_due:
@@ -478,6 +513,8 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
             "entry_event": entry_due,
             "daily_rebalance": bool(force_rebalance or daily_due),
             "whole_share_corrections": whole_share_corrections,
+            "executed_orders": executed_orders,
+            "blocked_orders": blocked_orders,
         }
 
 
