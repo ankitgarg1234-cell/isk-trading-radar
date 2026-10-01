@@ -230,5 +230,24 @@ def _ensure_runtime_columns():
                     conn.exec_driver_sql(f"ALTER TABLE radar_candidates ADD COLUMN {name} {ddl}")
     except Exception:
         pass
+    # Backfill lane columns from compact JSON for rows written before the
+    # explicit lane columns existed. This keeps currently qualified names visible
+    # immediately after deployment instead of waiting for every symbol to rescan.
+    try:
+        with engine.begin() as conn:
+            conn.exec_driver_sql(
+                """UPDATE radar_candidates
+                   SET lane_qualified=TRUE, lane='CORE_QUALITY'
+                   WHERE current_json LIKE '%"lane_qualified":true%'
+                     AND current_json LIKE '%"lane":"CORE_QUALITY"%'"""
+            )
+            conn.exec_driver_sql(
+                """UPDATE radar_candidates
+                   SET lane_qualified=TRUE, lane='EXPLOSIVE'
+                   WHERE current_json LIKE '%"lane_qualified":true%'
+                     AND current_json LIKE '%"lane":"EXPLOSIVE"%'"""
+            )
+    except Exception:
+        pass
 
 _ensure_runtime_columns()
