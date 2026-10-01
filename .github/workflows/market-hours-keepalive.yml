@@ -1,0 +1,26 @@
+name: U.S. market-hours keepalive
+
+on:
+  schedule:
+    # UTC window deliberately covers both U.S. daylight-saving and standard-time sessions.
+    # 13:02-21:57 UTC keeps the Render free web process warm before the open through after the close.
+    - cron: "2-57/5 13-21 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: market-hours-keepalive
+  cancel-in-progress: true
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Wake Render service and verify scanner health
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error             --retry 3             --retry-delay 10             --retry-all-errors             --connect-timeout 20             --max-time 180             https://isk-trading-radar.onrender.com/health
