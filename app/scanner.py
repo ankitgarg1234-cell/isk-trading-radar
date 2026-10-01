@@ -824,6 +824,12 @@ class RadarService:
         batch = syms[: settings.scan_batch_size]
         ok = 0
         errors: list[str] = []
+        lane_core = 0
+        lane_explosive = 0
+        lane_qualified = 0
+        core_quality_pass = 0
+        core_blocker_counts: dict[str, int] = {}
+        explosive_blocker_counts: dict[str, int] = {}
         # Portfolio-rule/config changes remain diagnostic events, but paper
         # allocation now re-evaluates the complete current Top 20 on every open-
         # market scanner cycle. This guarantees that a stock which stays BUY while
@@ -836,6 +842,18 @@ class RadarService:
         for sym in batch:
             try:
                 full = self.analyze_symbol(sym)
+                if full.get("core_quality_qualified") is True:
+                    core_quality_pass += 1
+                if full.get("lane_qualified") is True:
+                    lane_qualified += 1
+                if full.get("lane") == "CORE_QUALITY":
+                    lane_core += 1
+                elif full.get("lane") == "EXPLOSIVE":
+                    lane_explosive += 1
+                for blocker in full.get("core_blockers") or []:
+                    core_blocker_counts[blocker] = core_blocker_counts.get(blocker, 0) + 1
+                for blocker in full.get("explosive_blockers") or []:
+                    explosive_blocker_counts[blocker] = explosive_blocker_counts.get(blocker, 0) + 1
                 if self._paper_entry_event(full):
                     paper_entry_event = True
                     paper_event_symbols.append(sym)
@@ -878,6 +896,18 @@ class RadarService:
             "universe_core_candidates": self.last_universe_core_candidates,
             "universe_explosive_candidates": self.last_universe_explosive_candidates,
             "universe_start": self.last_universe_start,
+            "lane_qualified_analyzed": lane_qualified,
+            "lane_core_analyzed": lane_core,
+            "lane_explosive_analyzed": lane_explosive,
+            "core_quality_pass_analyzed": core_quality_pass,
+            "core_top_blockers": [
+                {"label": label, "count": count}
+                for label, count in sorted(core_blocker_counts.items(), key=lambda kv: (-kv[1], kv[0]))[:5]
+            ],
+            "explosive_top_blockers_cycle": [
+                {"label": label, "count": count}
+                for label, count in sorted(explosive_blocker_counts.items(), key=lambda kv: (-kv[1], kv[0]))[:5]
+            ],
             "paper_entry_event": paper_entry_event,
             "paper_top20_recheck": paper_top20_recheck,
             "paper_optimizer_invalidated": optimizer_policy_event,
