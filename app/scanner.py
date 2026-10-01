@@ -14,7 +14,7 @@ from .config import settings
 from .db import SessionLocal, Position, AnalysisRequest, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, PortfolioPreference, PaperPosition
 from .market import YahooMarketProvider
 from .analysis_engine import score_bundle, position_action, position_action_plan
-from .portfolio_engine import candidate_rank_score, build_optimizer_plan, normalise_profile, INVESTABLE_ENTRY_ACTIONS
+from .portfolio_engine import candidate_rank_score, build_optimizer_plan, normalise_profile, INVESTABLE_ENTRY_ACTIONS, MIN_ENTRY_RISK_REWARD
 from .paper_engine import run_paper_cycle
 from .ai_engine import AIEngine
 
@@ -38,6 +38,8 @@ def _attention_buy_signal(full: dict, has_position: bool = False) -> tuple[str |
     if full.get("lane_qualified") is False:
         return None, None
     if bool((full.get("thesis_assessment") or {}).get("invalidated")):
+        return None, None
+    if float(full.get("risk_reward") or 0) < MIN_ENTRY_RISK_REWARD:
         return None, None
     if full.get("negative_news_override"):
         return None, None
@@ -711,11 +713,12 @@ class RadarService:
             pref = db.query(PortfolioPreference).filter(PortfolioPreference.account == "Main").first()
             profile = normalise_profile(pref.risk_profile if pref else "MEDIUM")
         material = {
-            "policy_version": "eligibility-v3-top20-all-qualified",
+            "policy_version": "eligibility-v4-min-rr-2x",
             "risk_profile": profile,
             "visible_limit": settings.optimizer_visible_limit,
             "paper_trade_cost_bps": settings.paper_trade_cost_bps,
             "investable_entry_actions": sorted(INVESTABLE_ENTRY_ACTIONS),
+            "min_entry_risk_reward": MIN_ENTRY_RISK_REWARD,
             # Explicitly encode the uncapped policy. These values are intentionally
             # absent as eligibility gates and changing legacy env vars must not
             # change which qualified Top-20 names are bought.
