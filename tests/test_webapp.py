@@ -539,3 +539,25 @@ def test_manual_reallocation_does_not_force_switch_without_replacement():
     assert suggestion["status"] == "RAISE CASH"
     assert suggestion["target"] is None
     assert "do not force a switch" in suggestion["reason"]
+
+
+def test_dashboard_js_collection_selectors_do_not_crash_initialization():
+    from pathlib import Path
+    js = Path("app/static/app.js").read_text()
+    # Multi-row controls must use $$() (querySelectorAll wrapper), never $().
+    assert "$('.lane-group-row').forEach" not in js
+    assert "$('.radar-row').filter" not in js
+    assert "const buttons=$('.scan-now-trigger')" not in js
+    assert "$('.scan-now-trigger').forEach" not in js
+    assert "$$('.lane-group-row').forEach" in js
+    assert "$$('.scan-now-trigger').forEach" in js
+
+
+def test_position_filter_tables_have_matching_filter_columns():
+    body = client.get('/').text
+    assert 'data-filter-table="paperPositionsBody"' in body
+    assert 'data-filter-table="manualPositionsBody"' in body
+    assert 'aria-label="Filter paper stock"' in body
+    assert 'aria-label="Filter paper reason"' in body
+    assert 'aria-label="Filter manual stock"' in body
+    assert 'aria-label="Filter manual reallocation"' in body
