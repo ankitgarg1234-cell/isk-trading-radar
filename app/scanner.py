@@ -979,6 +979,7 @@ class RadarService:
             "paper_cash": paper_result.get("cash"),
             "paper_executed_orders": paper_result.get("executed_orders") or [],
             "paper_blocked_orders": paper_result.get("blocked_orders") or [],
+            "paper_forced_lane_exits": paper_result.get("forced_lane_exits") or [],
         }
 
     async def loop(self):
