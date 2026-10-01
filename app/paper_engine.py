@@ -512,9 +512,16 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                             "symbol": r["symbol"],
                             "decision": "ADD" if is_add else str(r.get("entry_signal") or "BUY"),
                             "reason": (
-                                f"Action can't be completed — no money left to take this action. "
-                                f"Available paper cash ${float(account.cash or 0):.2f}; "
-                                f"minimum required for 1 whole share is ${one_share_cost:.2f}."
+                                (
+                                    f"Action can't be completed — no money left to take this action. "
+                                    f"Available paper cash ${float(account.cash or 0):.2f}; "
+                                    f"minimum required for 1 whole share is ${one_share_cost:.2f}."
+                                )
+                                if float(account.cash or 0) + 1e-9 < one_share_cost
+                                else (
+                                    f"Action can't be completed — the score-based allocation is ${scaled_capital:.2f}, "
+                                    f"below the ${one_share_cost:.2f} cost of 1 whole share."
+                                )
                             ),
                             "target_capital": round(scaled_capital, 2),
                             "cash": round(float(account.cash or 0), 2),
