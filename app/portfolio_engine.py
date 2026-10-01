@@ -477,6 +477,7 @@ def projected_risk(account_rows: list[dict], cash: float, candidate: dict, sizin
 
 
 RANK_VERSION = "rank-v2-lanes"
+MIN_ENTRY_RISK_REWARD = 2.0
 INVESTABLE_ENTRY_ACTIONS = {"STRONG BUY", "BUY", "STARTER BUY"}
 
 
@@ -497,6 +498,8 @@ def entry_attention_signal(a: dict) -> str | None:
     if _float(a.get("price")) < 5.0:
         return None
     if bool((a.get("promotion_risk") or {}).get("hard_reject")):
+        return None
+    if _float(a.get("risk_reward")) < MIN_ENTRY_RISK_REWARD:
         return None
     if bool((a.get("thesis_assessment") or {}).get("invalidated")):
         return None
@@ -666,7 +669,9 @@ def build_optimizer_plan(
         lane_qualified = a.get("lane_qualified") is True and lane in {"CORE_QUALITY", "EXPLOSIVE"}
         hard_price_ok = _float(a.get("price")) >= 5.0
         hard_promotion_ok = not bool((a.get("promotion_risk") or {}).get("hard_reject"))
-        if not lane_qualified or not hard_price_ok or not hard_promotion_ok:
+        risk_reward = _float(a.get("risk_reward"))
+        hard_rr_ok = risk_reward >= MIN_ENTRY_RISK_REWARD
+        if not lane_qualified or not hard_price_ok or not hard_promotion_ok or not hard_rr_ok:
             continue
         srisk = rank["stock_risk"]
         fit = risk_fit(srisk, profile)
@@ -688,6 +693,8 @@ def build_optimizer_plan(
             "lane_label": rank.get("lane_label"),
             "owned": sym in owned,
             "expected_yield_pct": _float(a.get("expected_yield_pct")),
+            "risk_reward": risk_reward,
+            "rr_entry_eligible": hard_rr_ok,
             "strategic_capital_shadow": rank.get("strategic_capital_shadow") or {},
         })
     rows.sort(key=lambda r: (r["rank_score"], r["expected_yield_pct"]), reverse=True)
@@ -758,6 +765,7 @@ def build_optimizer_plan(
             "explosive": sum(1 for r in visible if r.get("lane") == "EXPLOSIVE"),
         },
         "position_cap_enabled": False,
+        "min_entry_risk_reward": MIN_ENTRY_RISK_REWARD,
         "target_positions": None,
         "max_positions": None,
         "owned_count": len(owned),
