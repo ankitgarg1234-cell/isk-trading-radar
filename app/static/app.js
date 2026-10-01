@@ -63,6 +63,25 @@ function candidateRowsHtml(candidates,baseCurrency='SEK',scan={}){
 }
 
 
+async function paperTradeRequest(symbol,action,shares){
+  const body=shares==null?{}:{shares:Number(shares)};
+  const r=await fetch(`/api/paper/positions/${encodeURIComponent(symbol)}/${action}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  let d={};try{d=await r.json()}catch(e){}
+  if(!r.ok)throw new Error(d.message||`Paper ${action} failed`);
+  return d;
+}
+function bindPaperPositionActions(scope=document){
+  scope.querySelectorAll?.('.paper-add-position').forEach(b=>b.onclick=async(e)=>{
+    e.stopPropagation();const symbol=b.dataset.symbol;const raw=prompt(`How many whole shares of ${symbol} do you want to add?`,'1');
+    if(raw==null)return;const shares=Math.floor(Number(raw));if(!Number.isFinite(shares)||shares<1){toast('Enter at least 1 whole share');return}
+    b.disabled=true;try{const d=await paperTradeRequest(symbol,'add',shares);toast(`Added ${d.shares} ${symbol} @ ${num(d.price).toFixed(2)}`);await refreshLive()}catch(err){toast(err.message)}finally{b.disabled=false}
+  });
+  scope.querySelectorAll?.('.paper-close-position').forEach(b=>b.onclick=async(e)=>{
+    e.stopPropagation();const symbol=b.dataset.symbol;const shares=b.dataset.shares;
+    if(!confirm(`Close the full ${symbol} paper position (${shares} shares) at the latest available price?`))return;
+    b.disabled=true;try{const d=await paperTradeRequest(symbol,'close',null);toast(`Closed ${d.shares} ${symbol} @ ${num(d.price).toFixed(2)}`);await refreshLive()}catch(err){toast(err.message)}finally{b.disabled=false}
+  });
+}
 function manualPositionRowsHtml(positions){
   if(!positions?.length)return '<tr class="empty-position-row"><td colspan="11" class="empty">No imported/manual holdings. Use Screenshot / OCR Position Import below to add them.</td></tr>';
   return positions.map(p=>{
@@ -261,7 +280,7 @@ async function refreshLive(){
     if($('#optimizerVisible'))$('#optimizerVisible').textContent=d.optimizer?.visible??0;if($('#optimizerCore'))$('#optimizerCore').textContent=d.optimizer?.core_quality??0;if($('#optimizerExplosive'))$('#optimizerExplosive').textContent=d.optimizer?.explosive??0;if($('#optimizerShortlist'))$('#optimizerShortlist').textContent=d.optimizer?.shortlist??0;if($('#optimizerInvest'))$('#optimizerInvest').textContent=d.optimizer?.invest_now??0;
     const laneDiag=$('#laneDiagnostics');if(laneDiag){const o=d.optimizer||{},parts=[];if(num(o.lane_refresh_pending)>0)parts.push('<span><b>'+esc(o.lane_refresh_pending)+'</b> pre-v2/stale records excluded until refreshed.</span>');if(num(o.explosive)===0){const blockers=(o.explosive_top_blockers||[]).map(x=>esc(x.label)+' ('+esc(x.count)+')').join(', ');parts.push('<span><b>Explosive: 0 qualified.</b> '+esc(o.explosive_evaluated??0)+' fresh lane records evaluated; '+esc(o.explosive_near_misses??0)+' Core-quality near-misses.'+(blockers?' Top blockers: '+blockers+'.':'')+(d.market_open?'':' U.S. market is closed; broad discovery resumes next regular session, while “Run scan now” forces an after-hours refresh.')+'</span>')}laneDiag.innerHTML=parts.join('');laneDiag.classList.toggle('hidden',parts.length===0)}
     const paper=d.paper||{};if($('#paperEquity'))$('#paperEquity').textContent=paper.started?('$'+Math.round(num(paper.equity))):'$10000';if($('#paperReturn'))$('#paperReturn').textContent=paper.started?`${num(paper.return_pct)>=0?'+':''}${num(paper.return_pct).toFixed(2)}%`:'—';if($('#paperAbsoluteReturn'))$('#paperAbsoluteReturn').textContent=paper.started?('$'+(num(paper.absolute_return)>=0?'+':'')+num(paper.absolute_return).toFixed(2)):'—';if($('#paperDailyPnl'))$('#paperDailyPnl').textContent=paper.started?('$'+(num(paper.daily_pnl)>=0?'+':'')+num(paper.daily_pnl).toFixed(2)+' / '+(num(paper.daily_pnl_pct)>=0?'+':'')+num(paper.daily_pnl_pct).toFixed(2)+'%'):'—';if($('#paperBenchmark'))$('#paperBenchmark').textContent=paper.started?`${num(paper.benchmark_return_pct)>=0?'+':''}${num(paper.benchmark_return_pct).toFixed(2)}%`:'—';if($('#paperExcess'))$('#paperExcess').textContent=paper.started?`${num(paper.excess_return_pct)>=0?'+':''}${num(paper.excess_return_pct).toFixed(2)}%`:'—';if($('#paperPositionCount'))$('#paperPositionCount').textContent=paper.position_count??0;if($('#paperCoreCount'))$('#paperCoreCount').textContent=paper.core_position_count??0;if($('#paperExplosiveCount'))$('#paperExplosiveCount').textContent=paper.explosive_position_count??0;const outside=$('#paperOutsideLaneCount'),outsideWrap=$('#paperOutsideLaneWrap');if(outside)outside.textContent=paper.outside_lane_position_count??0;if(outsideWrap)outsideWrap.classList.toggle('hidden',num(paper.outside_lane_position_count)===0);if($('#paperDrawdown'))$('#paperDrawdown').textContent=paper.started?`${num(paper.drawdown_pct).toFixed(2)}%`:'—';;
-    const pp=$('#paperPositionsBody');if(pp&&Array.isArray(paper.positions)){pp.innerHTML=paper.positions.length?paper.positions.map(p=>`<tr class="position-data-row"><td class="ticker"><a href="/analysis/${encodeURIComponent(p.symbol)}">${esc(p.symbol)}</a></td><td><span class="lane-badge lane-${String(p.lane||'OUTSIDE_LANES').toLowerCase().replace(/_/g,'-')}">${esc(p.lane_label||'Outside Current Lanes')}</span>${p.lane==='EXPLOSIVE'?`<small>Day ${esc(p.trading_sessions_held)}/20 • ${esc(p.explosive_sessions_remaining)} sessions left</small>`:p.graduated_from_explosive?'<small>Graduated from Explosive</small>':p.lane==='OUTSIDE_LANES'?'<small>Existing holding only — not eligible for a new Core/Explosive entry.</small>':''}</td><td>${esc(p.shares)}</td><td>${num(p.avg_cost).toFixed(2)}</td><td>$${num(p.price).toFixed(2)}</td><td class="${p.day_change_pct!=null?(num(p.day_change_pct)>=0?'pos':'neg'):''}">${p.day_change_pct!=null?`${num(p.day_change_pct)>=0?'+':''}${num(p.day_change_pct).toFixed(2)}%`:'—'}</td><td>$${Math.round(num(p.value))}</td><td class="${num(p.pnl)>=0?'pos':'neg'}">$${num(p.pnl)>=0?'+':''}${num(p.pnl).toFixed(2)} / ${num(p.pnl_pct)>=0?'+':''}${num(p.pnl_pct).toFixed(2)}%</td><td>${num(p.weight_pct).toFixed(1)}%</td><td>${num(p.entry_rank_score).toFixed(1)}/100</td><td class="reason-cell">${esc(p.reason||'—')}</td></tr>`).join('') :'<tr class="empty-position-row"><td colspan="11" class="empty">No open paper positions yet.</td></tr>'}
+    const pp=$('#paperPositionsBody');if(pp&&Array.isArray(paper.positions)){pp.innerHTML=paper.positions.length?paper.positions.map(p=>`<tr class="position-data-row"><td class="ticker"><a href="/analysis/${encodeURIComponent(p.symbol)}">${esc(p.symbol)}</a></td><td><span class="lane-badge lane-${String(p.lane||'OUTSIDE_LANES').toLowerCase().replace(/_/g,'-')}">${esc(p.lane_label||'Outside Current Lanes')}</span>${p.lane==='EXPLOSIVE'?`<small>Day ${esc(p.trading_sessions_held)}/20 • ${esc(p.explosive_sessions_remaining)} sessions left</small>`:p.graduated_from_explosive?'<small>Graduated from Explosive</small>':''}</td><td>${esc(p.shares)}</td><td>${num(p.avg_cost).toFixed(2)}</td><td>${num(p.price).toFixed(2)}</td><td class="${p.day_change_pct!=null?(num(p.day_change_pct)>=0?'pos':'neg'):''}">${p.day_change_pct!=null?`${num(p.day_change_pct)>=0?'+':''}${num(p.day_change_pct).toFixed(2)}%`:'—'}</td><td>${Math.round(num(p.value))}</td><td class="${num(p.pnl)>=0?'pos':'neg'}">${num(p.pnl)>=0?'+':''}${num(p.pnl).toFixed(2)} / ${num(p.pnl_pct)>=0?'+':''}${num(p.pnl_pct).toFixed(2)}%</td><td>${num(p.weight_pct).toFixed(1)}%</td><td>${num(p.entry_rank_score).toFixed(1)}/100</td><td class="reason-cell">${esc(p.reason||'—')}</td><td><div class="paper-row-actions"><button class="btn ghost paper-add-position" type="button" data-symbol="${esc(p.symbol)}">Add</button><button class="btn ghost paper-close-position" type="button" data-symbol="${esc(p.symbol)}" data-shares="${esc(p.shares)}">Close</button></div></td></tr>`).join('') :'<tr class="empty-position-row"><td colspan="12" class="empty">No open paper positions yet.</td></tr>';bindPaperPositionActions(pp)}
     const mp=$('#manualPositionsBody');if(mp&&Array.isArray(d.positions)){mp.innerHTML=manualPositionRowsHtml(d.positions);if($('#manualPositionCount'))$('#manualPositionCount').textContent=d.positions.length}
     bindPositionTableFilters(document);
   }catch(e){console.debug('live refresh',e)}
@@ -353,4 +372,11 @@ initAnalyzeAutocomplete();
 
 bindRadarControls();
 bindPositionTableFilters(document);
+bindPaperPositionActions(document);
+const paperManualBuy=$('#paperManualBuy');if(paperManualBuy)paperManualBuy.onclick=async()=>{
+  const symbol=String($('#paperManualSymbol')?.value||'').trim().toUpperCase();
+  const shares=Math.floor(Number($('#paperManualShares')?.value||0));
+  if(!symbol||!Number.isFinite(shares)||shares<1){toast('Enter a ticker and at least 1 whole share');return}
+  paperManualBuy.disabled=true;try{const d=await paperTradeRequest(symbol,'add',shares);toast(`Bought/added ${d.shares} ${symbol} @ $${num(d.price).toFixed(2)}`);$('#paperManualSymbol').value='';$('#paperManualShares').value='';await refreshLive()}catch(err){toast(err.message)}finally{paperManualBuy.disabled=false}
+};
 const poll=Number(document.body.dataset.livePoll||15)*1000;if($('#candidateTable')){setInterval(refreshLive,Math.max(10000,poll));}
