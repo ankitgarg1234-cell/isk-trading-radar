@@ -10,7 +10,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy import text
 from .config import settings
 from .db import engine, SessionLocal, Position, PaperPosition, AnalysisRequest, Trade, PortfolioCash, PortfolioPreference, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, storage_status
-from .analysis_engine import parse_positions_from_text, position_action
+from .analysis_engine import parse_positions_from_text, position_action, position_action_plan
 from .portfolio_engine import RISK_PROFILES, ACTION_RANK, normalise_profile, stock_risk_score, system_signal, active_level, analyst_label, suggested_position_size, account_risk, projected_risk, risk_band, build_optimizer_plan, candidate_rank_score
 from .paper_engine import paper_status, reset_paper, run_paper_cycle
 from .scanner import radar
@@ -160,6 +160,44 @@ def _is_snoozed(a: Alert, now: datetime | None = None) -> bool:
     if su.tzinfo is None:su=su.replace(tzinfo=timezone.utc)
     return su > now
 
+def _manual_reallocation_suggestion(position: dict, selected_new: list[dict]) -> dict:
+    """Suggest redeployment only after thesis-gated REDUCE/EXIT.
+
+    A loss, weak momentum, technical pressure or a low score alone must never
+    create a switch recommendation. The position-management layer already
+    guarantees REDUCE/EXIT only after explicit thesis/fundamental invalidation.
+    """
+    action=str(position.get("action") or "").upper()
+    pnl=position.get("pnl")
+    if action not in {"REDUCE","EXIT"}:
+        return {
+            "status":"NO CHANGE","target":None,
+            "reason":"No forced switch: price pressure, momentum weakness or a loss alone is not a sell trigger while the thesis remains intact.",
+        }
+    replacement=next((r for r in selected_new if r.get("symbol") != position.get("symbol")),None)
+    loss_text=(
+        "Book the loss only because the thesis/fundamentals are invalidated"
+        if pnl is not None and float(pnl) < 0
+        else "Exit/trim only because the thesis/fundamentals are invalidated"
+    )
+    if not replacement:
+        return {
+            "status":"RAISE CASH","target":None,
+            "reason":f"{loss_text}; no qualified replacement is actionable right now, so do not force a switch.",
+        }
+    return {
+        "status":"REDEPLOY",
+        "target":replacement.get("symbol"),
+        "target_signal":replacement.get("entry_signal"),
+        "target_rank":replacement.get("market_rank"),
+        "target_score":replacement.get("rank_score"),
+        "reason":(
+            f"{loss_text}; consider redeploying released capital into "
+            f"{replacement.get('symbol')} only while it remains an actionable "
+            f"{replacement.get('entry_signal') or 'BUY'} in the qualified Top-20."
+        ),
+    }
+
 def _dashboard_state(db):
     positions=db.query(Position).order_by(Position.symbol).all()
     paper_positions=db.query(PaperPosition).filter(PaperPosition.account=="Optimizer Paper").order_by(PaperPosition.symbol).all()
@@ -238,6 +276,18 @@ def _dashboard_state(db):
     for p in positions:
         a=payloads.get(p.symbol,{})
         price=float(a.get("price") or 0)
+        if a and price:
+            try:
+                manual_action,manual_reason=position_action(
+                    a,price,{"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account}
+                )
+                a["action"]=manual_action
+                a["action_reason"]=manual_reason
+                a["action_plan"]=position_action_plan(
+                    manual_action,a,price,{"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account}
+                )
+            except Exception:
+                pass
         previous_close=float(a.get("previous_close") or 0)
         pnl=(price/p.avg_cost-1)*100 if price and p.avg_cost else None
         day_change_pct=((price/previous_close)-1)*100 if price and previous_close else None
@@ -279,6 +329,12 @@ def _dashboard_state(db):
         shortlist_limit=settings.optimizer_shortlist_limit,
     )
     plan_by_symbol={r["symbol"]:r for r in optimizer["visible"]}
+
+    # Manual/broker holdings remain independent from the paper P&L, but they are
+    # still actively managed. A replacement is suggested only after a thesis-
+    # gated REDUCE/EXIT; mere drawdown or technical pressure never triggers it.
+    for row in pos_views:
+        row["reallocation"]=_manual_reallocation_suggestion(row,optimizer["selected_new"])
 
     radar_views=[]
     for rankrow in optimizer["visible"]:
