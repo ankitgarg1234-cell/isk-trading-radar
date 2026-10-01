@@ -15,7 +15,7 @@ function laneHeaderHtml(lane,count){
 function radarEmptyMessage(scan={}){
   if(scan.scan_in_progress)return 'Fresh market scan is running now. Qualified Core / Explosive names will appear as soon as this cycle completes.';
   const r=scan.last_scan_result||{};
-  if(r.status==='ok')return `Latest scan completed: ${num(r.analyzed)} deep analyses; ${num(r.universe_prefiltered)}/${num(r.universe_size||scan.universe_size)} universe names prefiltered this cycle, but 0 stocks currently pass the Core Quality / Explosive lane gates.`;
+  if(r.status==='ok'){const blockers=(r.core_top_blockers||[]).map(x=>String(x.label)+' ('+String(x.count)+')').join(', ');return 'Latest cycle completed: '+num(r.universe_prefiltered)+' of '+num(r.universe_size||scan.universe_size)+' stocks were quick-screened in this rotating slice; '+num(r.analyzed)+' priority/discovery/deep candidates received full analysis. '+num(r.lane_qualified_analyzed)+' of those fully analyzed names qualified for Core / Explosive in this cycle.'+(blockers?' Top Core blockers: '+blockers+'.':'')}
   if(r.status==='busy')return 'A scanner cycle is already running. This table will refresh automatically when it completes.';
   if(scan.last_error)return `Latest scan did not complete: ${scan.last_error}. Use Run scan now to retry on demand.`;
   return 'No completed qualifying scan is available yet. Use Run scan now to start one on demand.';
