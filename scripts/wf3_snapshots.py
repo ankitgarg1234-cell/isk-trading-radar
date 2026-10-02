@@ -3,7 +3,9 @@ from __future__ import annotations
 import argparse, gzip, json
 from datetime import date, timedelta
 from pathlib import Path
-import scripts.walkforward_backtest as wf
+ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT/"scripts"))
+import walkforward_backtest as wf
 
 def load_gz(path):
     with gzip.open(path,"rt",encoding="utf-8") as f:return json.load(f)
