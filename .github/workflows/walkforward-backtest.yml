@@ -1,10 +1,6 @@
 name: 2022-2026 Walk-Forward Backtest
 
 on:
-  push:
-    paths:
-      - scripts/walkforward_backtest.py
-      - .github/workflows/walkforward-backtest.yml
   workflow_dispatch:
 
 permissions:
