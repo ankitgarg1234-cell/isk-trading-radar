@@ -1,0 +1,54 @@
+name: WF3 Entry12 Ablation
+
+on:
+  push:
+    paths:
+      - scripts/wf3_entry12_ablation.py
+      - scripts/walkforward_backtest.py
+      - scripts/wf3_offline_valuein.py
+      - .github/workflows/wf3-entry12-ablation.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wf3-entry12-ablation
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pandas lxml requests
+      - name: Run corrected 12-percent entry ablation
+        run: python scripts/wf3_entry12_ablation.py
+      - name: Determinism rerun
+        run: |
+          cp backtests/results/wf3_entry12_ablation.json /tmp/a.json
+          python scripts/wf3_entry12_ablation.py
+          python - <<'PY'
+          import json
+          a=json.load(open('/tmp/a.json')); b=json.load(open('backtests/results/wf3_entry12_ablation.json'))
+          print('HASH_A',a['deterministic_hash'])
+          print('HASH_B',b['deterministic_hash'])
+          if a['deterministic_hash'] != b['deterministic_hash']:
+              raise SystemExit('determinism check failed')
+          print('DETERMINISM_PASS')
+          PY
+      - name: Commit result
+        run: |
+          git config user.name "isk-backtest-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add backtests/results/wf3_entry12_ablation.json backtests/results/wf3_entry12_ablation.md
+          git diff --cached --quiet && exit 0
+          git commit -m "Add corrected 12% entry-timing ablation [skip ci]"
+          git pull --rebase origin main
+          git push
