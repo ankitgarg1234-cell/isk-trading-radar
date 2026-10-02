@@ -197,9 +197,8 @@ def daily_curve(st,market,benchmark,start,end):
         if last is not None:
             for sym in list(held):
                 data=market.get(sym) or {}
-                for sp in data.get("splits") or []:
-                    sd=d(sp.get("date"))
-                    if sd and last<sd<=dd:held[sym]*=float(sp["numerator"])/float(sp["denominator"])
+                # Cached Yahoo OHLC is already split-adjusted; do not
+                # multiply replay shares again for split events.
                 for dv in data.get("dividends") or []:
                     x=d(dv.get("date"))
                     if x and last<x<=dd:cash+=held[sym]*float(dv["amount"])
