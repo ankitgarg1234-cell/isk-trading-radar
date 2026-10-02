@@ -169,6 +169,30 @@ def test_analysis_json_uses_saved_snapshot():
     assert r.json()["ai_score"] == 92
 
 
+def test_stale_scoring_version_forces_fresh_analysis(monkeypatch):
+    from app.db import RadarCandidate
+    stale=full_payload("CRDO")
+    stale["scoring_version"]="legacy-v1"
+    stale["deterministic_score"]=68
+    with SessionLocal() as db:
+        db.add(RadarCandidate(symbol="CRDO",category="Core",action="HOLD",score=68,ai_score=72,price=200,current_json=json.dumps(stale)))
+        db.commit()
+
+    fresh=full_payload("CRDO")
+    fresh["deterministic_score"]=79
+    calls=[]
+    def fake_analyze(symbol,persist=True,strategic_refresh=False):
+        calls.append((symbol,persist,strategic_refresh))
+        return fresh
+    monkeypatch.setattr(mainmod.radar,"analyze_symbol",fake_analyze)
+
+    r=client.get('/api/analysis/CRDO')
+    assert r.status_code == 200
+    assert r.json()["deterministic_score"] == 79
+    assert r.json()["scoring_version"] == SCORING_VERSION
+    assert calls and calls[0][0] == "CRDO"
+
+
 def test_confirm_import_rejects_account_number_as_share_count(monkeypatch):
     monkeypatch.setattr(mainmod.radar,"analyze_symbol",lambda symbol,persist=True: full_payload(symbol))
     r=client.post('/api/import/confirm',json={"positions":[{"symbol":"O","shares":40262928,"avg_cost":4,"account":"Screenshot"}]})
