@@ -6,7 +6,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 import requests
-import scripts.walkforward_backtest as wf
+import sys
+ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT/"scripts"))
+import walkforward_backtest as wf
 
 ETF_SYMBOLS=sorted(set(wf.ETF.values()))
 BENCHMARKS=["^SP500TR","SPY"]
