@@ -4,6 +4,7 @@ import argparse, gzip, json
 from collections import defaultdict
 from datetime import date, datetime, timezone
 from pathlib import Path
+import sys
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"scripts"))
 import walkforward_backtest as wf
