@@ -195,10 +195,32 @@ class RadarService:
         with SessionLocal() as db:
             p = db.query(Position).filter(Position.symbol == symbol).order_by(Position.created_at.desc()).first()
             pp = db.query(PaperPosition).filter(PaperPosition.symbol == symbol).order_by(PaperPosition.opened_at.desc()).first() if not p else None
+            pos_obj = p or pp
+            if pos_obj and getattr(pos_obj, "entry_target", None) in (None, 0):
+                target_plan = result.get("target_plan") or {}
+                horizon = result.get("holding_horizon") or {}
+                pos_obj.entry_target = target_plan.get("base_target")
+                pos_obj.entry_stretch_target = target_plan.get("stretch_target")
+                pos_obj.entry_stop = (result.get("levels") or {}).get("stop")
+                pos_obj.entry_horizon_days = horizon.get("max_days")
+                pos_obj.entry_plan_version = result.get("scoring_version")
+                db.commit()
             pd = (
-                {"shares": p.shares, "avg_cost": p.avg_cost, "account": p.account}
+                {
+                    "shares": p.shares, "avg_cost": p.avg_cost, "account": p.account,
+                    "opened_at": p.created_at,
+                    "entry_target": p.entry_target, "entry_stretch_target": p.entry_stretch_target,
+                    "entry_stop": p.entry_stop, "entry_horizon_days": p.entry_horizon_days,
+                    "entry_plan_version": p.entry_plan_version,
+                }
                 if p else
-                {"shares": pp.shares, "avg_cost": pp.avg_cost, "account": "Paper"}
+                {
+                    "shares": pp.shares, "avg_cost": pp.avg_cost, "account": "Paper",
+                    "opened_at": pp.opened_at,
+                    "entry_target": pp.entry_target, "entry_stretch_target": pp.entry_stretch_target,
+                    "entry_stop": pp.entry_stop, "entry_horizon_days": pp.entry_horizon_days,
+                    "entry_plan_version": pp.entry_plan_version,
+                }
                 if pp else None
             )
             prior = db.query(RadarCandidate).filter(RadarCandidate.symbol == symbol).first()
