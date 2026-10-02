@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import re
 import time
+from datetime import datetime, timezone
 from statistics import mean
 from typing import Any
 
@@ -956,6 +957,33 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
         pnl = (price / avg - 1) * 100 if avg else 0
         shares = float(position.get("shares") or 0)
         whole_share_account = "avanza" in str(position.get("account") or "").lower()
+        entry_target = float(position.get("entry_target") or lv.get("target") or 0)
+        entry_stretch = float(position.get("entry_stretch_target") or (result.get("target_plan") or {}).get("stretch_target") or entry_target)
+        entry_stop = float(position.get("entry_stop") or lv.get("stop") or 0)
+        horizon_days = int(position.get("entry_horizon_days") or (result.get("holding_horizon") or {}).get("max_days") or 0)
+        holding_days = None
+        opened_at = position.get("opened_at")
+        try:
+            opened_dt = opened_at if isinstance(opened_at, datetime) else datetime.fromisoformat(str(opened_at))
+            if opened_dt.tzinfo is None:
+                opened_dt = opened_dt.replace(tzinfo=timezone.utc)
+            holding_days = max(0, (datetime.now(timezone.utc) - opened_dt).days)
+        except Exception:
+            holding_days = None
+        entry_rr = None
+        if avg and entry_stop < avg < entry_target:
+            entry_rr = (entry_target - avg) / (avg - entry_stop)
+        result["position_plan"] = {
+            "avg_cost": round(avg, 2) if avg else None,
+            "entry_target": round(entry_target, 2) if entry_target else None,
+            "entry_stretch_target": round(entry_stretch, 2) if entry_stretch else None,
+            "entry_stop": round(entry_stop, 2) if entry_stop else None,
+            "entry_rr": round(entry_rr, 2) if entry_rr is not None else None,
+            "forward_rr": result.get("risk_reward"),
+            "holding_days": holding_days,
+            "review_horizon_days": horizon_days or None,
+            "plan_version": position.get("entry_plan_version"),
+        }
 
         # Hard rule: no panic sell. REDUCE/EXIT require explicit thesis/fundamental invalidation.
         if thesis["severe"]:
@@ -964,6 +992,23 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
         if thesis["invalidated"]:
             why = "; ".join(thesis["reasons"]) or "Investment thesis/fundamentals materially invalidated"
             return "REDUCE", f"{why}; unrealized P&L {pnl:.1f}%"
+
+        if entry_stretch and price >= entry_stretch and pnl > 0:
+            result["profit_take_pct"] = 50
+            result["profit_take_reason"] = f"Stretch target {entry_stretch:.2f} reached"
+            return "TAKE PARTIAL PROFIT", f"Stretch target {entry_stretch:.2f} reached with unrealized P&L {pnl:.1f}%; lock part of the gain and keep a runner while the thesis remains intact"
+        if entry_target and price >= entry_target and pnl > 0:
+            trim = 50 if (momentum_weak or bearish) else 25
+            result["profit_take_pct"] = trim
+            result["profit_take_reason"] = f"Base target {entry_target:.2f} reached"
+            return "TAKE PARTIAL PROFIT", f"Base target {entry_target:.2f} reached with unrealized P&L {pnl:.1f}%; take {trim}% profit rather than letting the target move indefinitely"
+
+        if horizon_days and holding_days is not None and holding_days >= horizon_days:
+            if pnl >= 8 and momentum_weak:
+                result["profit_take_pct"] = 25
+                result["profit_take_reason"] = f"Modeled {horizon_days}-day horizon elapsed with weakening momentum"
+                return "TAKE PARTIAL PROFIT", f"Modeled {horizon_days}-day horizon has elapsed; position is still up {pnl:.1f}% but momentum weakened, so harvest 25% and reassess"
+            result["position_plan"]["horizon_review_due"] = True
 
         if confidence == "low" and not severe_bearish:
             return "HOLD — DATA REVIEW", "Evidence coverage is incomplete; missing data is not treated as a sell signal"
@@ -983,6 +1028,8 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
             return "HOLD — DON'T ADD", f"Score is only {s:.0f}, but a low score by itself is not a sell signal; wait for explicit thesis deterioration"
         if zone in {"PRIMARY_BUY", "BETTER_BUY", "VALUE_CORRIDOR"} and s >= 75 and not bearish and confidence != "low":
             return "ADD", f"Position is in an active entry zone ({zone.replace('_', ' ').title()}) with score {s:.0f}, adequate evidence coverage, and thesis intact"
+        if result.get("position_plan", {}).get("horizon_review_due"):
+            return "HOLD — REBALANCE REVIEW", f"Modeled holding horizon has elapsed after {holding_days} days; thesis remains intact, so compare this position with stronger qualified opportunities rather than panic-selling"
         return "HOLD", f"Thesis intact; unrealized P&L {pnl:.1f}%"
 
     # New-position logic remains entry/risk oriented.
@@ -1044,8 +1091,8 @@ def position_action_plan(action: str, result: dict, price: float, position: dict
         rationale = "Full exit because the modeled thesis/stop is invalidated"
     elif action == "TAKE PARTIAL PROFIT":
         severe = (result.get("news") or {}).get("high_negative_events", 0) >= 1
-        pct_to_reduce = 50 if severe else 25
-        rationale = "Take part of the position off while retaining exposure if the thesis recovers"
+        pct_to_reduce = float(result.get("profit_take_pct") or (50 if severe else 25))
+        rationale = result.get("profit_take_reason") or "Take part of the position off while retaining exposure if the thesis remains intact"
     elif action == "REDUCE":
         pct_to_reduce = 50 if result.get("deterministic_score", 100) < 60 else 25
         rationale = "Reduce risk while keeping a smaller position for reassessment"
