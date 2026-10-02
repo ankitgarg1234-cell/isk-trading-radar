@@ -1,0 +1,637 @@
+{
+  "version": "wf3-idle-cash-sleeve-v1",
+  "period": {
+    "train": [
+      "2024-01-02",
+      "2025-12-31"
+    ],
+    "validation": [
+      "2026-01-01",
+      "2026-10-01"
+    ]
+  },
+  "fixed": {
+    "score_threshold": 68,
+    "min_initial_allocation_pct": 12,
+    "deep_candidates": 160,
+    "min_rr": 2.0,
+    "lane_entry_rules": "unchanged",
+    "position_cap_pct": 15,
+    "split_accounting": "corrected"
+  },
+  "sleeve_definition": {
+    "description": "Synthetic daily S&P Total Return sweep on the selected fraction of otherwise idle cash",
+    "purpose": "diagnostic alpha-overlay test",
+    "limitations": "idealized daily liquidity; no sleeve turnover cost; not yet an executable ETF implementation"
+  },
+  "results": [
+    {
+      "name": "score>=68/min12/sleeve0",
+      "sleeve_fraction": 0.0,
+      "full": {
+        "name": "score>=68/min12/sleeve0",
+        "end_value": 14204.44,
+        "total_return_pct": 42.04,
+        "cagr_pct": 13.63,
+        "max_drawdown_pct": -15.33,
+        "annual_returns_pct": {
+          "2024": 1.35,
+          "2025": 14.08,
+          "2026": 22.85
+        },
+        "trade_count": 8,
+        "win_rate_pct": null,
+        "average_holding_days": null,
+        "ending_cash": 2499.17,
+        "open_positions": 8
+      },
+      "train": {
+        "return_pct": 15.63,
+        "max_drawdown_pct": -12.5,
+        "start_equity": 10000.0,
+        "end_equity": 11562.57
+      },
+      "validation": {
+        "return_pct": 22.25,
+        "max_drawdown_pct": -15.33,
+        "start_equity": 11619.5,
+        "end_equity": 14204.44
+      },
+      "avg_cash_account_pct": 61.81,
+      "buy_count": 8,
+      "trades": [
+        {
+          "date": "2024-11-07",
+          "symbol": "MSFT",
+          "side": "BUY",
+          "shares": 3,
+          "price": 421.2799987792969,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 74.8
+        },
+        {
+          "date": "2024-11-13",
+          "symbol": "ANET",
+          "side": "BUY",
+          "shares": 12,
+          "price": 99.30999755859375,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 77.7
+        },
+        {
+          "date": "2025-02-06",
+          "symbol": "GOOGL",
+          "side": "BUY",
+          "shares": 6,
+          "price": 189.5,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 74.6
+        },
+        {
+          "date": "2025-05-23",
+          "symbol": "FSLR",
+          "side": "BUY",
+          "shares": 2,
+          "price": 154.00999450683594,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 72.9
+        },
+        {
+          "date": "2025-05-27",
+          "symbol": "PANW",
+          "side": "BUY",
+          "shares": 6,
+          "price": 188.6699981689453,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 73.7
+        },
+        {
+          "date": "2025-12-15",
+          "symbol": "APH",
+          "side": "BUY",
+          "shares": 21,
+          "price": 65.07499694824219,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 74.4
+        },
+        {
+          "date": "2026-04-20",
+          "symbol": "ADBE",
+          "side": "BUY",
+          "shares": 2,
+          "price": 249.49000549316406,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 74.4
+        },
+        {
+          "date": "2026-08-28",
+          "symbol": "LRCX",
+          "side": "BUY",
+          "shares": 2,
+          "price": 318.0299987792969,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 77.9
+        }
+      ]
+    },
+    {
+      "name": "score>=68/min12/sleeve50",
+      "sleeve_fraction": 0.5,
+      "full": {
+        "name": "score>=68/min12/sleeve50",
+        "end_value": 16916.51,
+        "total_return_pct": 69.17,
+        "cagr_pct": 21.1,
+        "max_drawdown_pct": -17.91,
+        "annual_returns_pct": {
+          "2024": 14.06,
+          "2025": 18.66,
+          "2026": 24.99
+        },
+        "trade_count": 8,
+        "win_rate_pct": null,
+        "average_holding_days": null,
+        "ending_cash": 3143.71,
+        "open_positions": 8
+      },
+      "train": {
+        "return_pct": 35.35,
+        "max_drawdown_pct": -17.91,
+        "start_equity": 10000.0,
+        "end_equity": 13534.53
+      },
+      "validation": {
+        "return_pct": 24.31,
+        "max_drawdown_pct": -16.21,
+        "start_equity": 13607.9,
+        "end_equity": 16916.51
+      },
+      "avg_cash_account_pct": 62.93,
+      "buy_count": 8,
+      "trades": [
+        {
+          "date": "2024-11-07",
+          "symbol": "MSFT",
+          "side": "BUY",
+          "shares": 3,
+          "price": 421.2799987792969,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 74.8
+        },
+        {
+          "date": "2024-11-13",
+          "symbol": "ANET",
+          "side": "BUY",
+          "shares": 14,
+          "price": 99.30999755859375,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 77.7
+        },
+        {
+          "date": "2025-02-06",
+          "symbol": "GOOGL",
+          "side": "BUY",
+          "shares": 7,
+          "price": 189.5,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 74.6
+        },
+        {
+          "date": "2025-05-23",
+          "symbol": "FSLR",
+          "side": "BUY",
+          "shares": 2,
+          "price": 154.00999450683594,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 72.9
+        },
+        {
+          "date": "2025-05-27",
+          "symbol": "PANW",
+          "side": "BUY",
+          "shares": 7,
+          "price": 188.6699981689453,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 73.7
+        },
+        {
+          "date": "2025-12-15",
+          "symbol": "APH",
+          "side": "BUY",
+          "shares": 25,
+          "price": 65.07499694824219,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 74.4
+        },
+        {
+          "date": "2026-04-20",
+          "symbol": "ADBE",
+          "side": "BUY",
+          "shares": 3,
+          "price": 249.49000549316406,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 74.4
+        },
+        {
+          "date": "2026-08-28",
+          "symbol": "LRCX",
+          "side": "BUY",
+          "shares": 3,
+          "price": 318.0299987792969,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 77.9
+        }
+      ]
+    },
+    {
+      "name": "score>=68/min12/sleeve75",
+      "sleeve_fraction": 0.75,
+      "full": {
+        "name": "score>=68/min12/sleeve75",
+        "end_value": 18380.21,
+        "total_return_pct": 83.8,
+        "cagr_pct": 24.81,
+        "max_drawdown_pct": -20.79,
+        "annual_returns_pct": {
+          "2024": 20.82,
+          "2025": 21.45,
+          "2026": 25.27
+        },
+        "trade_count": 8,
+        "win_rate_pct": null,
+        "average_holding_days": null,
+        "ending_cash": 3893.34,
+        "open_positions": 8
+      },
+      "train": {
+        "return_pct": 46.73,
+        "max_drawdown_pct": -20.79,
+        "start_equity": 10000.0,
+        "end_equity": 14672.6
+      },
+      "validation": {
+        "return_pct": 24.54,
+        "max_drawdown_pct": -16.72,
+        "start_equity": 14758.57,
+        "end_equity": 18380.21
+      },
+      "avg_cash_account_pct": 63.62,
+      "buy_count": 8,
+      "trades": [
+        {
+          "date": "2024-11-07",
+          "symbol": "MSFT",
+          "side": "BUY",
+          "shares": 3,
+          "price": 421.2799987792969,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 74.8
+        },
+        {
+          "date": "2024-11-13",
+          "symbol": "ANET",
+          "side": "BUY",
+          "shares": 15,
+          "price": 99.30999755859375,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 77.7
+        },
+        {
+          "date": "2025-02-06",
+          "symbol": "GOOGL",
+          "side": "BUY",
+          "shares": 8,
+          "price": 189.5,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 74.6
+        },
+        {
+          "date": "2025-05-23",
+          "symbol": "FSLR",
+          "side": "BUY",
+          "shares": 2,
+          "price": 154.00999450683594,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 72.9
+        },
+        {
+          "date": "2025-05-27",
+          "symbol": "PANW",
+          "side": "BUY",
+          "shares": 7,
+          "price": 188.6699981689453,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 73.7
+        },
+        {
+          "date": "2025-12-15",
+          "symbol": "APH",
+          "side": "BUY",
+          "shares": 27,
+          "price": 65.07499694824219,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 74.4
+        },
+        {
+          "date": "2026-04-20",
+          "symbol": "ADBE",
+          "side": "BUY",
+          "shares": 3,
+          "price": 249.49000549316406,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 74.4
+        },
+        {
+          "date": "2026-08-28",
+          "symbol": "LRCX",
+          "side": "BUY",
+          "shares": 3,
+          "price": 318.0299987792969,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 77.9
+        }
+      ]
+    },
+    {
+      "name": "score>=68/min12/sleeve100",
+      "sleeve_fraction": 1.0,
+      "full": {
+        "name": "score>=68/min12/sleeve100",
+        "end_value": 19910.17,
+        "total_return_pct": 99.1,
+        "cagr_pct": 28.5,
+        "max_drawdown_pct": -23.27,
+        "annual_returns_pct": {
+          "2024": 27.74,
+          "2025": 23.01,
+          "2026": 26.71
+        },
+        "trade_count": 8,
+        "win_rate_pct": null,
+        "average_holding_days": null,
+        "ending_cash": 4002.81,
+        "open_positions": 8
+      },
+      "train": {
+        "return_pct": 57.13,
+        "max_drawdown_pct": -23.27,
+        "start_equity": 10000.0,
+        "end_equity": 15712.59
+      },
+      "validation": {
+        "return_pct": 26.09,
+        "max_drawdown_pct": -17.62,
+        "start_equity": 15790.85,
+        "end_equity": 19910.17
+      },
+      "avg_cash_account_pct": 62.87,
+      "buy_count": 8,
+      "trades": [
+        {
+          "date": "2024-11-07",
+          "symbol": "MSFT",
+          "side": "BUY",
+          "shares": 4,
+          "price": 421.2799987792969,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 74.8
+        },
+        {
+          "date": "2024-11-13",
+          "symbol": "ANET",
+          "side": "BUY",
+          "shares": 15,
+          "price": 99.30999755859375,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 77.7
+        },
+        {
+          "date": "2025-02-06",
+          "symbol": "GOOGL",
+          "side": "BUY",
+          "shares": 8,
+          "price": 189.5,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 74.6
+        },
+        {
+          "date": "2025-05-23",
+          "symbol": "FSLR",
+          "side": "BUY",
+          "shares": 2,
+          "price": 154.00999450683594,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 72.9
+        },
+        {
+          "date": "2025-05-27",
+          "symbol": "PANW",
+          "side": "BUY",
+          "shares": 8,
+          "price": 188.6699981689453,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 73.7
+        },
+        {
+          "date": "2025-12-15",
+          "symbol": "APH",
+          "side": "BUY",
+          "shares": 29,
+          "price": 65.07499694824219,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 74.4
+        },
+        {
+          "date": "2026-04-20",
+          "symbol": "ADBE",
+          "side": "BUY",
+          "shares": 3,
+          "price": 249.49000549316406,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 74.4
+        },
+        {
+          "date": "2026-08-28",
+          "symbol": "LRCX",
+          "side": "BUY",
+          "shares": 4,
+          "price": 318.0299987792969,
+          "reason": "NEW STARTER BUY",
+          "lane": "CORE_QUALITY",
+          "rank": 77.9
+        }
+      ]
+    }
+  ],
+  "benchmark": {
+    "train": {
+      "return_pct": 48.21,
+      "max_drawdown_pct": -18.75
+    },
+    "validation": {
+      "return_pct": 12.73,
+      "max_drawdown_pct": -8.89
+    },
+    "full": {
+      "name": "S&P 500 Total Return",
+      "end_value": 16742.71,
+      "total_return_pct": 67.43,
+      "cagr_pct": 20.64,
+      "max_drawdown_pct": -18.75,
+      "annual_returns_pct": {
+        "2024": 25.73,
+        "2025": 17.88,
+        "2026": 12.97
+      }
+    }
+  },
+  "selected_on_train": {
+    "name": "score>=68/min12/sleeve0",
+    "sleeve_fraction": 0.0,
+    "full": {
+      "name": "score>=68/min12/sleeve0",
+      "end_value": 14204.44,
+      "total_return_pct": 42.04,
+      "cagr_pct": 13.63,
+      "max_drawdown_pct": -15.33,
+      "annual_returns_pct": {
+        "2024": 1.35,
+        "2025": 14.08,
+        "2026": 22.85
+      },
+      "trade_count": 8,
+      "win_rate_pct": null,
+      "average_holding_days": null,
+      "ending_cash": 2499.17,
+      "open_positions": 8
+    },
+    "train": {
+      "return_pct": 15.63,
+      "max_drawdown_pct": -12.5,
+      "start_equity": 10000.0,
+      "end_equity": 11562.57
+    },
+    "validation": {
+      "return_pct": 22.25,
+      "max_drawdown_pct": -15.33,
+      "start_equity": 11619.5,
+      "end_equity": 14204.44
+    },
+    "avg_cash_account_pct": 61.81,
+    "buy_count": 8,
+    "trades": [
+      {
+        "date": "2024-11-07",
+        "symbol": "MSFT",
+        "side": "BUY",
+        "shares": 3,
+        "price": 421.2799987792969,
+        "reason": "NEW STARTER BUY",
+        "lane": "CORE_QUALITY",
+        "rank": 74.8
+      },
+      {
+        "date": "2024-11-13",
+        "symbol": "ANET",
+        "side": "BUY",
+        "shares": 12,
+        "price": 99.30999755859375,
+        "reason": "NEW STARTER BUY",
+        "lane": "CORE_QUALITY",
+        "rank": 77.7
+      },
+      {
+        "date": "2025-02-06",
+        "symbol": "GOOGL",
+        "side": "BUY",
+        "shares": 6,
+        "price": 189.5,
+        "reason": "NEW STARTER BUY",
+        "lane": "CORE_QUALITY",
+        "rank": 74.6
+      },
+      {
+        "date": "2025-05-23",
+        "symbol": "FSLR",
+        "side": "BUY",
+        "shares": 2,
+        "price": 154.00999450683594,
+        "reason": "NEW STARTER BUY",
+        "lane": "CORE_QUALITY",
+        "rank": 72.9
+      },
+      {
+        "date": "2025-05-27",
+        "symbol": "PANW",
+        "side": "BUY",
+        "shares": 6,
+        "price": 188.6699981689453,
+        "reason": "NEW STARTER BUY",
+        "lane": "CORE_QUALITY",
+        "rank": 73.7
+      },
+      {
+        "date": "2025-12-15",
+        "symbol": "APH",
+        "side": "BUY",
+        "shares": 21,
+        "price": 65.07499694824219,
+        "reason": "NEW STARTER BUY",
+        "lane": "CORE_QUALITY",
+        "rank": 74.4
+      },
+      {
+        "date": "2026-04-20",
+        "symbol": "ADBE",
+        "side": "BUY",
+        "shares": 2,
+        "price": 249.49000549316406,
+        "reason": "NEW STARTER BUY",
+        "lane": "CORE_QUALITY",
+        "rank": 74.4
+      },
+      {
+        "date": "2026-08-28",
+        "symbol": "LRCX",
+        "side": "BUY",
+        "shares": 2,
+        "price": 318.0299987792969,
+        "reason": "NEW STARTER BUY",
+        "lane": "CORE_QUALITY",
+        "rank": 77.9
+      }
+    ]
+  },
+  "deterministic_hash": "b75808fbd257b2cbf9644a851fb808e4292e29d1ba42b7f64b16d7fadd458acb"
+}
