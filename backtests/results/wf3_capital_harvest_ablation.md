@@ -8,6 +8,8 @@ Stock selection and entry rules are identical across variants; only target alloc
 | 5% minimum initial | USD 11,305 | +13.05% | +4.57% | -6.74% | 83.7% | 58.0% | 7 | 0 | -54.38 pp |
 | 8% minimum initial | USD 11,994 | +19.94% | +6.85% | -10.07% | 76.2% | 44.0% | 7 | 0 | -47.49 pp |
 | 10% minimum initial | USD 12,418 | +24.18% | +8.20% | -11.44% | 72.9% | 37.8% | 7 | 0 | -43.25 pp |
+| 12% minimum initial | USD 12,960 | +29.60% | +9.90% | -13.85% | 66.9% | 28.0% | 7 | 0 | -37.83 pp |
+| 15% minimum initial | USD 13,567 | +35.67% | +11.75% | -15.70% | 62.1% | 18.3% | 7 | 0 | -31.76 pp |
 | 5% minimum + harvest | USD 11,294 | +12.94% | +4.53% | -2.98% | 91.9% | 84.3% | 11 | 17 | -54.49 pp |
 | 8% minimum + harvest | USD 11,750 | +17.50% | +6.05% | -6.06% | 87.1% | 78.8% | 10 | 16 | -49.93 pp |
 | 10% minimum + harvest | USD 12,155 | +21.55% | +7.37% | -6.59% | 85.6% | 76.1% | 10 | 16 | -45.88 pp |
