@@ -10,7 +10,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy import text, or_
 from .config import settings
 from .db import engine, SessionLocal, Position, PaperPosition, AnalysisRequest, Trade, PortfolioCash, PortfolioPreference, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, storage_status
-from .analysis_engine import parse_positions_from_text, position_action, position_action_plan
+from .analysis_engine import parse_positions_from_text, position_action, position_action_plan, SCORING_VERSION
 from .portfolio_engine import RISK_PROFILES, ACTION_RANK, normalise_profile, stock_risk_score, system_signal, active_level, analyst_label, suggested_position_size, account_risk, projected_risk, risk_band, build_optimizer_plan, candidate_rank_score
 from .paper_engine import paper_status, reset_paper, run_paper_cycle, manual_paper_add, manual_paper_close
 from .scanner import radar
@@ -642,6 +642,11 @@ def analysis_page(request:Request,symbol:str,refresh:int=0):
                 if s:
                     try:data=json.loads(s.payload_json)
                     except:data=None
+    # Never serve a deterministic score created by an older scoring algorithm.
+    # This prevents persisted pre-deploy snapshots from surviving a scoring fix.
+    if data is not None and data.get("scoring_version") != SCORING_VERSION:
+        try:data=radar.analyze_symbol(symbol,True)
+        except Exception:data=None
     if data is None:
         try:data=radar.analyze_symbol(symbol,True)
         except Exception as exc:data={"symbol":symbol,"error":str(exc),"deterministic_score":0,"analyst_score":None,"ai_score":0,"action":"DATA UNAVAILABLE","price":0,"breakdown":{},"levels":{},"technicals":{},"news":{"items":[],"label":"Unknown","score":0},"reasons":[],"risks":["Market-data request failed"],"sensitivity":[]}
@@ -655,11 +660,17 @@ def analysis_json(symbol:str, refresh:int=0):
     with SessionLocal() as db:
         c=db.query(RadarCandidate).filter(RadarCandidate.symbol==symbol).first()
         if c and c.current_json:
-            return _candidate_payload(c)
+            data=_candidate_payload(c)
+            if data.get("scoring_version") == SCORING_VERSION:
+                return data
         s=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol==symbol).order_by(AnalysisSnapshot.created_at.desc()).first()
         if s:
-            try:return json.loads(s.payload_json)
-            except Exception:pass
+            try:
+                data=json.loads(s.payload_json)
+                if data.get("scoring_version") == SCORING_VERSION:
+                    return data
+            except Exception:
+                pass
     return radar.analyze_symbol(symbol,True)
 
 @app.post("/api/scan-now")
