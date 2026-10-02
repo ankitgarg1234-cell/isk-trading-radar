@@ -648,7 +648,7 @@ def classify_lane(
         explosive_blockers.append("system conviction < 75")
     explosive_potential = expected_upside_pct if explosive_upside_pct is None else explosive_upside_pct
     if explosive_potential < 30.0:
-        explosive_blockers.append("modeled stretch upside < 30%")
+        explosive_blockers.append("modeled remaining upside < 30%")
     if not volume_explained:
         explosive_blockers.append("unexplained extreme volume")
     if promotion["dilution_risk"]:
@@ -793,10 +793,24 @@ def score_bundle(bundle: dict) -> dict:
     total = round(clamp(total), 1)
     deterministic_expected = round(max(-50, min(150, rr_up * 100)), 1)
     stretch_upside = ((target_plan["stretch_target"] / price) - 1) * 100 if price else 0.0
+    explosive_reference_upside = stretch_upside
+    for raw in (t.get("high52"), f.get("targetMeanPrice"), f.get("targetHighPrice")):
+        try:
+            level = float(raw)
+        except Exception:
+            continue
+        if price and level > price:
+            # Explosive qualification may use a credible stretch reference, but
+            # cap it so an extreme stale target cannot overwhelm the catalyst,
+            # liquidity, volume and conviction gates. This never feeds R/R.
+            explosive_reference_upside = max(
+                explosive_reference_upside,
+                min(60.0, (level / price - 1) * 100),
+            )
     lane_info = classify_lane(
         bundle, fs=fs, fconf=fconf, news=news, t=t,
         catalyst_score=catalyst, total_score=total, expected_upside_pct=deterministic_expected,
-        negative_override=override, explosive_upside_pct=stretch_upside,
+        negative_override=override, explosive_upside_pct=explosive_reference_upside,
     )
     category = "Explosive Runner" if lane_info["lane"] == EXPLOSIVE_LANE else "Core" if lane_info["lane"] == CORE_LANE else "Watch"
     horizon_plan = holding_horizon_plan(
