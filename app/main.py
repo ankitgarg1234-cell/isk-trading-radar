@@ -286,12 +286,12 @@ def _dashboard_state(db):
         if a and price:
             try:
                 manual_action,manual_reason=position_action(
-                    a,price,{"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account}
+                    a,price,{"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account,"opened_at":p.created_at,"entry_target":p.entry_target,"entry_stretch_target":p.entry_stretch_target,"entry_stop":p.entry_stop,"entry_horizon_days":p.entry_horizon_days,"entry_plan_version":p.entry_plan_version}
                 )
                 a["action"]=manual_action
                 a["action_reason"]=manual_reason
                 a["action_plan"]=position_action_plan(
-                    manual_action,a,price,{"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account}
+                    manual_action,a,price,{"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account,"opened_at":p.created_at,"entry_target":p.entry_target,"entry_stretch_target":p.entry_stretch_target,"entry_stop":p.entry_stop,"entry_horizon_days":p.entry_horizon_days,"entry_plan_version":p.entry_plan_version}
                 )
             except Exception:
                 pass
@@ -315,7 +315,7 @@ def _dashboard_state(db):
         if a and price:
             try:
                 paper_action,paper_reason=position_action(
-                    a,price,{"shares":p.shares,"avg_cost":p.avg_cost,"account":"Paper"}
+                    a,price,{"shares":p.shares,"avg_cost":p.avg_cost,"account":"Paper","opened_at":p.opened_at,"entry_target":p.entry_target,"entry_stretch_target":p.entry_stretch_target,"entry_stop":p.entry_stop,"entry_horizon_days":p.entry_horizon_days,"entry_plan_version":p.entry_plan_version}
                 )
                 a["action"]=paper_action
                 a["action_reason"]=paper_reason
@@ -734,7 +734,7 @@ def alert_detail(alert_id:int):
                 try:payload=json.loads(snap.payload_json)
                 except Exception:payload={}
         p=db.query(Position).filter(Position.symbol==a.symbol).order_by(Position.created_at.desc()).first()
-        pd={"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account} if p else None
+        pd={"shares":p.shares,"avg_cost":p.avg_cost,"account":p.account,"opened_at":p.created_at,"entry_target":p.entry_target,"entry_stretch_target":p.entry_stretch_target,"entry_stop":p.entry_stop,"entry_horizon_days":p.entry_horizon_days,"entry_plan_version":p.entry_plan_version} if p else None
         level=active_level(payload,bool(p)) if payload else {"label":"—","value":"—","distance":"—"}
         price=float(payload.get("price") or (snap.price if snap else 0) or 0)
         previous_close=float(payload.get("previous_close") or 0)

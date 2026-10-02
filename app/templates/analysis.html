@@ -8,7 +8,7 @@
     <div class="panel score-card"><span>Deterministic score</span><strong>{{ '%.0f'|format(d.deterministic_score or 0) }}</strong><small>/100</small></div>
     <div class="panel score-card"><span>Analyst score</span><strong>{{ ('%.0f'|format(d.analyst_score)) if d.analyst_score is not none else '—' }}</strong><small>{{ 'external consensus' if d.analyst_score is not none else (d.get('analyst_data_status') or 'not returned by current provider') }}</small></div>
     <div class="panel score-card"><span>AI contextual score</span><strong>{{ '%.0f'|format(d.ai_score or 0) }}</strong><small>{{ d.mode or '' }}</small></div>
-    <div class="panel score-card"><span>Risk / reward</span><strong>{{ '%.1f'|format(d.risk_reward or 0) }}×</strong><small>modeled</small></div>
+    <div class="panel score-card"><span>{{ 'Forward R/R' if d.position else 'Risk / reward' }}</span><strong>{{ '%.1f'|format(d.risk_reward or 0) }}×</strong><small>{% if d.get('position_plan') and d.get('position_plan').get('entry_rr') is not none %}Entry-plan R/R {{ '%.1f'|format(d.get('position_plan').get('entry_rr')) }}×{% else %}base target vs invalidation{% endif %}</small></div>
   </section>
 
   <section class="panel action-banner"><div><span class="kicker">POSITION-AWARE ACTION</span><h2>{{ d.action }}</h2><p>{{ d.action_reason }}</p>{% if d.get('action_plan') %}<p><b>Suggested size:</b> {% if d.get('action_plan').suggested_shares %}{{ d.get('action_plan').suggested_shares }} shares ({{ d.get('action_plan').actual_percent }}% of position), leaving {{ d.get('action_plan').remaining_shares }}{% else %}No partial quantity suggested{% endif %}. {{ d.get('action_plan').rationale }}</p>{% endif %}<p class="subtle">Evidence confidence: {{ d.get('decision_confidence') or 'unknown' }} • {{ d.get('data_quality_pct') or 0 }}% critical-evidence coverage{% if d.get('missing_inputs') %} • Missing critical: {{ d.get('missing_inputs')|join(', ') }}{% endif %}{% if d.get('optional_missing_inputs') %} • Optional unavailable: {{ d.get('optional_missing_inputs')|join(', ') }}{% endif %}</p></div>{% if d.position %}<div class="position-mini"><b>Current holding</b><span>{{ d.position.shares }} shares</span><span>Avg {{ ('%.2f SEK'|format(d.position.avg_cost)) if d.currency == 'SEK' else ('$%.2f'|format(d.position.avg_cost)) }}</span><span>{{ d.position.account }}</span></div>{% else %}<span class="pill muted">No current position found</span>{% endif %}</section>
@@ -25,7 +25,7 @@
   </section>
 
   <section class="three-col">
-    <div class="panel"><span class="kicker">EXPECTED YIELD</span><h3>Deterministic</h3><div class="large-value">{{ '%.1f'|format(d.expected_yield_pct or 0) }}%</div><p>{{ d.deterministic_holding_period_min_days }}–{{ d.deterministic_holding_period_max_days }} days modeled horizon</p></div>
+    <div class="panel"><span class="kicker">EXPECTED YIELD</span><h3>Base-case target</h3><div class="large-value">{{ '%.1f'|format(d.expected_yield_pct or 0) }}%</div><p>{{ d.deterministic_holding_period_min_days }}–{{ d.deterministic_holding_period_max_days }} days to modeled target</p>{% if d.get('holding_horizon') %}<p class="subtle">Review in ~{{ d.get('holding_horizon').get('review_days') }} days • {{ d.get('holding_horizon').get('rationale') }}</p>{% endif %}</div>
     <div class="panel"><span class="kicker">ANALYST VIEW</span><h3>Consensus target</h3><div class="large-value">{% if d.get('analyst_target_mean_price') is not none %}{{ ('%.2f SEK'|format(d.get('analyst_target_mean_price'))) if d.currency == 'SEK' else ('$%.2f'|format(d.get('analyst_target_mean_price'))) }}{% else %}—{% endif %}</div>{% if d.analyst_expected_yield_pct is not none %}<p><b>{{ '%+.1f%%'|format(d.analyst_expected_yield_pct) }}</b> vs current price</p>{% endif %}{% if d.get('analyst_target_low_price') is not none or d.get('analyst_target_high_price') is not none %}<p>Range: {{ d.get('analyst_target_low_price') or '—' }} to {{ d.get('analyst_target_high_price') or '—' }}{% if d.get('analyst_opinion_count') %} • {{ d.get('analyst_opinion_count') }} analysts{% endif %}</p>{% endif %}<p>{% if d.analyst_holding_period_min_days %}{{ d.analyst_holding_period_min_days }}–{{ d.analyst_holding_period_max_days }} days conventional target horizon{% else %}Target not returned by the current analyst-data feed{% endif %}</p></div>
     <div class="panel"><span class="kicker">AI VIEW</span><h3>Contextual scenario</h3><div class="large-value">{{ '%.1f'|format(d.ai_expected_yield_pct or 0) }}%</div><p>{{ d.holding_period_min_days }}–{{ d.holding_period_max_days }} days</p></div>
   </section>
@@ -33,13 +33,30 @@
   <section class="two-col">
     <div class="panel">
       <div class="section-title-row"><div><span class="kicker">ENTRY ENGINE</span><h2>Buying and risk levels</h2></div></div>
-      <div class="levels-grid"><div><span>Buy zone</span><b>${{ '%.2f'|format(d.levels.buy_low or 0) }}–${{ '%.2f'|format(d.levels.buy_high or 0) }}</b></div><div><span>Better buy</span><b>${{ '%.2f'|format(d.levels.better_low or 0) }}–${{ '%.2f'|format(d.levels.better_high or 0) }}</b></div><div><span>Breakout buy</span><b>&gt; ${{ '%.2f'|format(d.levels.breakout or 0) }}</b></div><div><span>Do not chase</span><b>&gt; ${{ '%.2f'|format(d.levels.do_not_chase or 0) }}</b></div><div><span>Stop / invalidation</span><b>${{ '%.2f'|format(d.levels.stop or 0) }}</b></div><div><span>Modeled target</span><b>${{ '%.2f'|format(d.levels.target or 0) }}</b></div></div>
+      <div class="levels-grid"><div><span>Buy zone</span><b>${{ '%.2f'|format(d.levels.buy_low or 0) }}–${{ '%.2f'|format(d.levels.buy_high or 0) }}</b></div><div><span>Better buy</span><b>${{ '%.2f'|format(d.levels.better_low or 0) }}–${{ '%.2f'|format(d.levels.better_high or 0) }}</b></div><div><span>Breakout buy</span><b>&gt; ${{ '%.2f'|format(d.levels.breakout or 0) }}</b></div><div><span>Do not chase</span><b>&gt; ${{ '%.2f'|format(d.levels.do_not_chase or 0) }}</b></div><div><span>Stop / invalidation</span><b>${{ '%.2f'|format(d.levels.stop or 0) }}</b></div><div><span>Base target</span><b>${{ '%.2f'|format(d.levels.target or 0) }}</b></div><div><span>Stretch target</span><b>${{ '%.2f'|format(d.levels.stretch_target or 0) }}</b></div><div><span>Target evidence</span><b>{{ (d.get('target_plan') or {}).get('target_source') or 'ATR/trend' }}</b></div></div>
     </div>
     <div class="panel">
       <div class="section-title-row"><div><span class="kicker">TECHNICAL STATE</span><h2>Momentum context</h2></div></div>
       <div class="kv"><span>EMA20</span><b>{{ '%.2f'|format(d.technicals.ema20 or 0) }}</b><span>EMA50</span><b>{{ '%.2f'|format(d.technicals.ema50 or 0) }}</b><span>EMA200</span><b>{{ '%.2f'|format(d.technicals.ema200 or 0) }}</b><span>RSI</span><b>{{ '%.1f'|format(d.technicals.rsi or 0) }}</b><span>Relative volume</span><b>{{ '%.2f'|format(d.technicals.relative_volume or 0) }}×</b><span>20d change</span><b>{{ '%.1f'|format(d.technicals.change20_pct or 0) }}%</b></div>
     </div>
   </section>
+
+  {% if d.position and d.get('position_plan') %}
+  <section class="panel">
+    <div class="section-title-row"><div><span class="kicker">POSITION MANAGEMENT</span><h2>Target and exit plan</h2></div><span class="pill">{{ d.action }}</span></div>
+    <div class="levels-grid">
+      <div><span>Average entry</span><b>${{ '%.2f'|format(d.get('position_plan').get('avg_cost') or 0) }}</b></div>
+      <div><span>Anchored base target</span><b>${{ '%.2f'|format(d.get('position_plan').get('entry_target') or 0) }}</b></div>
+      <div><span>Anchored stretch target</span><b>${{ '%.2f'|format(d.get('position_plan').get('entry_stretch_target') or 0) }}</b></div>
+      <div><span>Anchored invalidation</span><b>${{ '%.2f'|format(d.get('position_plan').get('entry_stop') or 0) }}</b></div>
+      <div><span>Entry-plan R/R</span><b>{% if d.get('position_plan').get('entry_rr') is not none %}{{ '%.2f'|format(d.get('position_plan').get('entry_rr')) }}×{% else %}—{% endif %}</b></div>
+      <div><span>Forward R/R</span><b>{{ '%.2f'|format(d.get('position_plan').get('forward_rr') or 0) }}×</b></div>
+      <div><span>Days held</span><b>{{ d.get('position_plan').get('holding_days') if d.get('position_plan').get('holding_days') is not none else '—' }}</b></div>
+      <div><span>Review horizon</span><b>{{ d.get('position_plan').get('review_horizon_days') or '—' }} days</b></div>
+    </div>
+    <p class="footnote">Base target reached → partial profit; stretch target reached → larger partial profit while the thesis remains intact. Thesis/fundamental invalidation remains the only automatic full-exit trigger for Core holdings.</p>
+  </section>
+  {% endif %}
 
   <section class="panel">
     <div class="section-title-row"><div><span class="kicker">DETERMINISTIC VS AI</span><h2>Why the scores were given</h2></div>{% if d.negative_news_override %}<span class="pill red">NEWS OVERRIDE</span>{% endif %}</div>

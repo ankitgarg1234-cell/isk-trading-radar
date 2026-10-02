@@ -23,6 +23,11 @@ class Position(Base):
     shares: Mapped[float] = mapped_column(Float)
     avg_cost: Mapped[float] = mapped_column(Float)
     account: Mapped[str] = mapped_column(String(64), default="Manual")
+    entry_target: Mapped[float | None] = mapped_column(Float, nullable=True)
+    entry_stretch_target: Mapped[float | None] = mapped_column(Float, nullable=True)
+    entry_stop: Mapped[float | None] = mapped_column(Float, nullable=True)
+    entry_horizon_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    entry_plan_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class AnalysisRequest(Base):
@@ -143,6 +148,11 @@ class PaperPosition(Base):
     avg_cost: Mapped[float] = mapped_column(Float)
     rank_score_at_entry: Mapped[float] = mapped_column(Float, default=0.0)
     reason: Mapped[str] = mapped_column(String(255), default="")
+    entry_target: Mapped[float | None] = mapped_column(Float, nullable=True)
+    entry_stretch_target: Mapped[float | None] = mapped_column(Float, nullable=True)
+    entry_stop: Mapped[float | None] = mapped_column(Float, nullable=True)
+    entry_horizon_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    entry_plan_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
     opened_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
@@ -212,6 +222,22 @@ def _ensure_runtime_columns():
                 conn.exec_driver_sql("ALTER TABLE alerts ADD COLUMN snoozed_until TIMESTAMP NULL")
     except Exception:
         pass
+    for table in ("positions", "paper_positions"):
+        try:
+            cols={c["name"] for c in inspect(engine).get_columns(table)}
+            additions={
+                "entry_target": "FLOAT NULL",
+                "entry_stretch_target": "FLOAT NULL",
+                "entry_stop": "FLOAT NULL",
+                "entry_horizon_days": "INTEGER NULL",
+                "entry_plan_version": "VARCHAR(64) NULL",
+            }
+            for name, ddl in additions.items():
+                if name not in cols:
+                    with engine.begin() as conn:
+                        conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}")
+        except Exception:
+            pass
     try:
         cols={c["name"] for c in inspect(engine).get_columns("radar_candidates")}
         additions={

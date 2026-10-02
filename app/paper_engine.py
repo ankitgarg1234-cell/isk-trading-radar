@@ -196,7 +196,7 @@ def _sell(db, account: PaperAccount, pos: PaperPosition, price: float, shares: f
         pos.updated_at = datetime.now(timezone.utc)
 
 
-def _buy(db, account: PaperAccount, symbol: str, price: float, target_value: float, rank_score: float, reason: str) -> float:
+def _buy(db, account: PaperAccount, symbol: str, price: float, target_value: float, rank_score: float, reason: str, analysis: dict | None = None) -> float:
     """Paper-buy up to target_value using whole shares only."""
     if price <= 0 or target_value <= 0 or account.cash <= 0:
         return 0.0
@@ -215,9 +215,27 @@ def _buy(db, account: PaperAccount, symbol: str, price: float, target_value: flo
         pos.shares = total_shares
         pos.rank_score_at_entry = rank_score
         pos.reason = reason[:255]
+        if analysis and getattr(pos, "entry_target", None) in (None, 0):
+            tp = analysis.get("target_plan") or {}
+            hp = analysis.get("holding_horizon") or {}
+            pos.entry_target = tp.get("base_target")
+            pos.entry_stretch_target = tp.get("stretch_target")
+            pos.entry_stop = (analysis.get("levels") or {}).get("stop")
+            pos.entry_horizon_days = hp.get("max_days")
+            pos.entry_plan_version = analysis.get("scoring_version")
         pos.updated_at = datetime.now(timezone.utc)
     else:
-        db.add(PaperPosition(account=PAPER_ACCOUNT, symbol=symbol, shares=shares, avg_cost=price, rank_score_at_entry=rank_score, reason=reason[:255]))
+        tp = (analysis or {}).get("target_plan") or {}
+        hp = (analysis or {}).get("holding_horizon") or {}
+        db.add(PaperPosition(
+            account=PAPER_ACCOUNT, symbol=symbol, shares=shares, avg_cost=price,
+            rank_score_at_entry=rank_score, reason=reason[:255],
+            entry_target=tp.get("base_target"),
+            entry_stretch_target=tp.get("stretch_target"),
+            entry_stop=((analysis or {}).get("levels") or {}).get("stop"),
+            entry_horizon_days=hp.get("max_days"),
+            entry_plan_version=(analysis or {}).get("scoring_version"),
+        ))
     db.add(PaperTrade(account=PAPER_ACCOUNT, symbol=symbol, side="BUY", shares=shares, price=price, fees=fee, rank_score=rank_score, reason=reason[:255]))
     return shares
 
@@ -279,7 +297,7 @@ def manual_paper_add(provider, symbol: str, shares: float) -> dict:
         if required > float(account.cash or 0) + 1e-9:
             return {"status": "blocked", "message": (f"Action can't be completed — no money left to take this action. Available paper cash ${float(account.cash or 0):.2f}; ${required:.2f} is required for {qty} whole share{'s' if qty != 1 else ''}."), "cash": round(float(account.cash or 0), 2), "required_cash": round(required, 2)}
         before = float(account.cash or 0)
-        bought = _buy(db, account, symbol, price, required, candidate_rank_score(payload).get("score", 0), f"MANUAL PAPER ADD • {payload.get('lane_label') or lane}")
+        bought = _buy(db, account, symbol, price, required, candidate_rank_score(payload).get("score", 0), f"MANUAL PAPER ADD • {payload.get('lane_label') or lane}", analysis=payload)
         db.commit()
         return {"status": "ok", "symbol": symbol, "side": "BUY", "shares": bought, "price": round(price, 4), "price_source": price_source, "cash_before": round(before, 2), "cash_after": round(float(account.cash or 0), 2)}
 
@@ -505,7 +523,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                     continue
             if a and price:
                 try:
-                    action, action_reason = position_action(a, price, {"shares": p.shares, "avg_cost": p.avg_cost, "account": "Paper"})
+                    action, action_reason = position_action(a, price, {"shares": p.shares, "avg_cost": p.avg_cost, "account": "Paper", "opened_at": p.opened_at, "entry_target": p.entry_target, "entry_stretch_target": p.entry_stretch_target, "entry_stop": p.entry_stop, "entry_horizon_days": p.entry_horizon_days, "entry_plan_version": p.entry_plan_version})
                     action = str(action or "").upper()
                     # Keep the paper-cycle optimizer consistent with the actual
                     # owned-position state without rewriting the global candidate.
@@ -519,7 +537,8 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
             elif action == "REDUCE":
                 _sell(db, account, p, price, max(1, math.floor(p.shares * 0.5)), "Dashboard thesis-invalidated REDUCE", rank_score)
             elif action == "TAKE PARTIAL PROFIT" and p.shares >= 2:
-                _sell(db, account, p, price, max(1, math.floor(p.shares * 0.25)), "Dashboard TAKE PARTIAL PROFIT", rank_score)
+                trim_pct = float(a.get("profit_take_pct") or 25) / 100.0
+                _sell(db, account, p, price, max(1, math.floor(p.shares * trim_pct)), str(a.get("profit_take_reason") or "Dashboard TAKE PARTIAL PROFIT"), rank_score)
         db.flush()
 
         # If immediate risk management changes the holdings, rerun the Top-20
@@ -549,7 +568,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                     continue
                 try:
                     owned_action, owned_reason = position_action(
-                        a, price, {"shares": p.shares, "avg_cost": p.avg_cost, "account": "Paper"}
+                        a, price, {"shares": p.shares, "avg_cost": p.avg_cost, "account": "Paper", "opened_at": p.opened_at, "entry_target": p.entry_target, "entry_stretch_target": p.entry_stretch_target, "entry_stop": p.entry_stop, "entry_horizon_days": p.entry_horizon_days, "entry_plan_version": p.entry_plan_version}
                     )
                     a["action"] = str(owned_action or "").upper()
                     a["action_reason"] = owned_reason
@@ -680,6 +699,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                             f"{lane_label} • Top-20 #{r['market_rank']} {decision} • "
                             f"priority target {target_pct:.0f}%{scale_note}"
                         ),
+                        analysis=r.get("analysis") or {},
                     )
                     if bought > 0:
                         executed_orders.append({

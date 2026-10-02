@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import re
 import time
+from datetime import datetime, timezone
 from statistics import mean
 from typing import Any
 
@@ -49,7 +50,7 @@ CORE_MIN_AVG_DOLLAR_VOLUME = 10_000_000.0
 EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME = 20_000_000.0
 MIN_FUNDAMENTAL_SCORE = 14.0  # 70/100 normalized fundamental quality
 EXPLOSIVE_MAX_TRADING_SESSIONS = 20
-SCORING_VERSION = "2026-10-02-hypergrowth-v2"
+SCORING_VERSION = "2026-10-02-target-horizon-v3"
 
 PROMOTION_SEVERE_TERMS = {
     "reverse split", "going concern", "minimum bid", "nasdaq compliance",
@@ -346,7 +347,6 @@ def buy_levels(t: dict, price: float) -> dict:
     e50 = t.get("ema50") or e20
     low20 = t.get("low20") or e50
     h20 = t.get("high20") or price
-    h52 = t.get("high52") or h20
     primary = e20 if price >= e20 * 0.94 else e50
     better = min(e50, low20 + a * 0.25)
     buy_low = max(0.01, primary - 0.45 * a)
@@ -355,15 +355,169 @@ def buy_levels(t: dict, price: float) -> dict:
     better_high = better + 0.25 * a
     breakout = h20 + 0.10 * a
     stop = max(0.01, min(low20, e50) - 0.75 * a)
-    target = max(h52, price + 3 * a)
+    # Target is filled by forward_target_plan(). Keeping target construction out
+    # of entry-level geometry prevents a distant historical 52-week high from
+    # automatically becoming the reward assumption.
     do_not_chase = max(breakout + 1.0 * a, price + 2.5 * a)
     return {
         k: round(v, 2)
         for k, v in {
             "buy_low": buy_low, "buy_high": buy_high, "better_low": better_low,
             "better_high": better_high, "breakout": breakout, "stop": stop,
-            "target": target, "do_not_chase": do_not_chase,
+            "do_not_chase": do_not_chase,
         }.items()
+    }
+
+
+def forward_target_plan(t: dict, f: dict, price: float, catalyst_score: float = 5.0, material_events: int = 0) -> dict:
+    """Build an auditable forward target instead of recycling the 52-week high.
+
+    The base target is primarily a volatility/trend projection. Nearby resistance
+    and analyst consensus may confirm it, but a distant historical high is only a
+    stretch reference and never becomes the base reward assumption by itself.
+    """
+    if price <= 0:
+        return {
+            "base_target": 0.0, "stretch_target": 0.0, "technical_projection": 0.0,
+            "target_source": "unavailable", "target_confidence": "low",
+            "analyst_target_used": None, "nearest_resistance": None,
+        }
+    a = max(float(t.get("atr") or price * 0.03), price * 0.005)
+    e20 = float(t.get("ema20") or price)
+    e50 = float(t.get("ema50") or e20)
+    rsi_v = float(t.get("rsi") if t.get("rsi") is not None else 50)
+    ch20 = float(t.get("change20_pct") or 0)
+    rel = float(t.get("relative_volume") or 0)
+
+    strong = price >= e20 >= e50 and ch20 >= 3 and 45 <= rsi_v <= 72 and rel >= 0.8
+    weak = price < e20 or rsi_v < 42 or ch20 < 0
+    atr_mult = 2.5 if strong else 1.5 if weak else 2.0
+    if catalyst_score >= 10 and material_events > 0 and not weak:
+        atr_mult += 0.25
+    technical_projection = price + atr_mult * a
+
+    resistance_candidates = []
+    for raw in (t.get("high20"), t.get("high52")):
+        try:
+            level = float(raw)
+        except Exception:
+            continue
+        # Only treat resistance within a plausible 3-ATR forward window as a
+        # base-target input. Distant historical highs remain stretch references.
+        if price + 0.35 * a <= level <= price + 3.0 * a:
+            resistance_candidates.append(level)
+    nearest_resistance = min(resistance_candidates) if resistance_candidates else None
+
+    analyst_target = None
+    analyst_raw = None
+    try:
+        raw = f.get("targetMeanPrice")
+        if raw not in (None, "") and float(raw) > price:
+            analyst_raw = float(raw)
+            # Consensus is useful confirmation but is capped to avoid one stale or
+            # extreme target dominating the deterministic horizon.
+            analyst_target = min(analyst_raw, price + 4.0 * a, price * 1.40)
+    except Exception:
+        analyst_target = None
+        analyst_raw = None
+
+    candidates = [technical_projection]
+    source_parts = ["ATR/trend"]
+    if nearest_resistance is not None:
+        candidates.append(nearest_resistance)
+        source_parts.append("near resistance")
+    if analyst_target is not None:
+        candidates.append(analyst_target)
+        source_parts.append("analyst consensus")
+
+    # A distant prior high can contribute to the base case only when it is
+    # independently corroborated by analyst consensus AND the stock has a
+    # material catalyst with elevated volume. Historical price alone never
+    # upgrades the reward assumption.
+    try:
+        h52 = float(t.get("high52") or 0)
+    except Exception:
+        h52 = 0.0
+    catalyst_breakout = catalyst_score >= 8 and material_events > 0 and rel >= 1.5
+    corroborated_far_target = (
+        catalyst_breakout
+        and h52 > price
+        and h52 <= price * 1.60
+        and analyst_raw is not None
+        and analyst_raw > price
+        and abs(h52 - analyst_raw) / price <= 0.20
+    )
+    if corroborated_far_target:
+        candidates.append(h52)
+        candidates.append(min(analyst_raw, price * 1.60))
+        source_parts.append("corroborated 52w/analyst stretch")
+    ordered = sorted(candidates)
+    base_target = ordered[len(ordered) // 2] if len(ordered) % 2 else sum(ordered[len(ordered)//2-1:len(ordered)//2+1]) / 2
+    if corroborated_far_target:
+        # For a catalyst/volume setup, a prior high becomes a legitimate base
+        # objective only when analyst consensus independently confirms roughly
+        # the same region. Use the lower corroborated anchor, never the higher.
+        base_target = min(h52, analyst_raw, price * 1.60)
+
+    stretch_candidates = [base_target + a]
+    for raw in (t.get("high52"), f.get("targetHighPrice"), f.get("targetMeanPrice")):
+        try:
+            level = float(raw)
+        except Exception:
+            continue
+        if base_target < level <= min(price + 6.0 * a, price * 1.60):
+            stretch_candidates.append(level)
+    stretch_target = max(stretch_candidates)
+
+    confidence = "high" if len(candidates) >= 3 else "medium" if len(candidates) >= 2 else "medium"
+    return {
+        "base_target": round(base_target, 2),
+        "stretch_target": round(stretch_target, 2),
+        "technical_projection": round(technical_projection, 2),
+        "target_source": " + ".join(source_parts),
+        "target_confidence": confidence,
+        "analyst_target_used": round(analyst_target, 2) if analyst_target is not None else None,
+        "nearest_resistance": round(nearest_resistance, 2) if nearest_resistance is not None else None,
+        "historical_52w_high": round(float(t.get("high52") or 0), 2) if t.get("high52") is not None else None,
+    }
+
+
+def holding_horizon_plan(price: float, target: float, t: dict, lane: str | None, catalyst_verified: bool = False) -> dict:
+    """Translate target distance and setup quality into a realistic review horizon."""
+    if lane == EXPLOSIVE_LANE:
+        return {
+            "min_days": 3, "max_days": 20, "review_days": 7,
+            "rationale": "Explosive lane: catalyst/momentum trade with a maximum 20-trading-session holding window",
+        }
+    upside = ((target / price) - 1) * 100 if price and target else 0.0
+    if upside <= 8:
+        lo, hi = 15, 45
+    elif upside <= 15:
+        lo, hi = 25, 75
+    elif upside <= 25:
+        lo, hi = 40, 120
+    else:
+        lo, hi = 60, 180
+
+    e20 = float(t.get("ema20") or price or 0)
+    rsi_v = float(t.get("rsi") if t.get("rsi") is not None else 50)
+    ch20 = float(t.get("change20_pct") or 0)
+    weak = (price and e20 and price < e20) or rsi_v < 42 or ch20 < 0
+    if weak:
+        lo += 10
+        hi += 30
+    if catalyst_verified:
+        lo = max(10, int(round(lo * 0.8)))
+        hi = max(lo + 15, int(round(hi * 0.85)))
+    hi = min(240, hi)
+    review = min(45, max(15, int(round(lo * 0.75))))
+    return {
+        "min_days": int(lo), "max_days": int(hi), "review_days": int(review),
+        "rationale": (
+            f"Core target is {upside:.1f}% away; "
+            + ("weak/repairing momentum extends the expected path" if weak else "current trend supports a normal realization window")
+            + ("; verified catalyst may accelerate realization" if catalyst_verified else "")
+        ),
     }
 
 
@@ -459,7 +613,7 @@ def _verified_news_catalyst(news: dict, relvol: float) -> tuple[bool, list[str]]
 def classify_lane(
     bundle: dict, *, fs: float, fconf: str, news: dict, t: dict,
     catalyst_score: float, total_score: float, expected_upside_pct: float,
-    negative_override: str | None,
+    negative_override: str | None, explosive_upside_pct: float | None = None,
 ) -> dict:
     promotion = _promotion_risk(bundle, news, t)
     f = bundle.get("fundamentals") or {}
@@ -522,7 +676,8 @@ def classify_lane(
         explosive_blockers.append("catalyst score < 8/15")
     if total_score < 75:
         explosive_blockers.append("system conviction < 75")
-    if expected_upside_pct < 30.0:
+    explosive_potential = expected_upside_pct if explosive_upside_pct is None else explosive_upside_pct
+    if explosive_potential < 30.0:
         explosive_blockers.append("modeled remaining upside < 30%")
     if not volume_explained:
         explosive_blockers.append("unexplained extreme volume")
@@ -539,7 +694,7 @@ def classify_lane(
             f"20d dollar liquidity ${avg_dollar/1_000_000:.1f}M",
             f"relative volume {relvol:.2f}x",
             f"20d move {change20:+.1f}%",
-            f"modeled remaining upside {expected_upside_pct:.1f}%",
+            f"modeled stretch upside {explosive_potential:.1f}%",
             "material catalyst verified from credible/primary evidence",
         ]
         reasons.extend(catalyst_evidence[:2])
@@ -581,7 +736,6 @@ def score_bundle(bundle: dict) -> dict:
     news = news_analysis(bundle.get("news") or [])
     fs, freasons, fconf = fundamental_score(f)
     t = technicals(rows, price)
-    levels = buy_levels(t, price)
 
     mom = 0.0
     mreasons: list[str] = []
@@ -598,6 +752,10 @@ def score_bundle(bundle: dict) -> dict:
             mreasons.append(f"{label} +{points}")
 
     catalyst = clamp(5 + len(news["catalysts"]) * 2 + min(news["material_events"], 3), 0, 15)
+    target_plan = forward_target_plan(t, f, price, catalyst, int(news.get("material_events") or 0))
+    levels = buy_levels(t, price)
+    levels["target"] = target_plan["base_target"]
+    levels["stretch_target"] = target_plan["stretch_target"]
     sector, sector_reasons = sector_score(bundle)
     pe = f.get("forwardPE") or f.get("trailingPE")
     rg = pct(f.get("revenueGrowth"))
@@ -667,10 +825,14 @@ def score_bundle(bundle: dict) -> dict:
     lane_info = classify_lane(
         bundle, fs=fs, fconf=fconf, news=news, t=t,
         catalyst_score=catalyst, total_score=total, expected_upside_pct=deterministic_expected,
-        negative_override=override,
+        negative_override=override, explosive_upside_pct=deterministic_expected,
     )
     category = "Explosive Runner" if lane_info["lane"] == EXPLOSIVE_LANE else "Core" if lane_info["lane"] == CORE_LANE else "Watch"
-    deterministic_horizon = (1, 20) if lane_info["lane"] == EXPLOSIVE_LANE else (30, 365) if lane_info["lane"] == CORE_LANE else (30, 365)
+    horizon_plan = holding_horizon_plan(
+        price, levels["target"], t, lane_info["lane"],
+        catalyst_verified=bool(lane_info.get("catalyst_verified")),
+    )
+    deterministic_horizon = (horizon_plan["min_days"], horizon_plan["max_days"])
     breakdown = {
         "Fundamentals": round(fs, 1), "Catalyst": round(catalyst, 1), "News": round(news["score"], 1),
         "Momentum": round(mom, 1), "Sector": round(sector, 1), "Valuation": round(valuation, 1),
@@ -685,6 +847,8 @@ def score_bundle(bundle: dict) -> dict:
         "analyst_expected_yield_pct": round(analyst_yield, 1) if analyst_yield is not None else None,
         "deterministic_holding_period_min_days": deterministic_horizon[0],
         "deterministic_holding_period_max_days": deterministic_horizon[1],
+        "holding_horizon": horizon_plan,
+        "target_plan": target_plan,
         "analyst_holding_period_min_days": 180 if analyst_yield is not None else None,
         "analyst_holding_period_max_days": 365 if analyst_yield is not None else None,
         "category": category,
@@ -824,6 +988,33 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
         pnl = (price / avg - 1) * 100 if avg else 0
         shares = float(position.get("shares") or 0)
         whole_share_account = "avanza" in str(position.get("account") or "").lower()
+        entry_target = float(position.get("entry_target") or lv.get("target") or 0)
+        entry_stretch = float(position.get("entry_stretch_target") or (result.get("target_plan") or {}).get("stretch_target") or entry_target)
+        entry_stop = float(position.get("entry_stop") or lv.get("stop") or 0)
+        horizon_days = int(position.get("entry_horizon_days") or (result.get("holding_horizon") or {}).get("max_days") or 0)
+        holding_days = None
+        opened_at = position.get("opened_at")
+        try:
+            opened_dt = opened_at if isinstance(opened_at, datetime) else datetime.fromisoformat(str(opened_at))
+            if opened_dt.tzinfo is None:
+                opened_dt = opened_dt.replace(tzinfo=timezone.utc)
+            holding_days = max(0, (datetime.now(timezone.utc) - opened_dt).days)
+        except Exception:
+            holding_days = None
+        entry_rr = None
+        if avg and entry_stop < avg < entry_target:
+            entry_rr = (entry_target - avg) / (avg - entry_stop)
+        result["position_plan"] = {
+            "avg_cost": round(avg, 2) if avg else None,
+            "entry_target": round(entry_target, 2) if entry_target else None,
+            "entry_stretch_target": round(entry_stretch, 2) if entry_stretch else None,
+            "entry_stop": round(entry_stop, 2) if entry_stop else None,
+            "entry_rr": round(entry_rr, 2) if entry_rr is not None else None,
+            "forward_rr": result.get("risk_reward"),
+            "holding_days": holding_days,
+            "review_horizon_days": horizon_days or None,
+            "plan_version": position.get("entry_plan_version"),
+        }
 
         # Hard rule: no panic sell. REDUCE/EXIT require explicit thesis/fundamental invalidation.
         if thesis["severe"]:
@@ -832,6 +1023,23 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
         if thesis["invalidated"]:
             why = "; ".join(thesis["reasons"]) or "Investment thesis/fundamentals materially invalidated"
             return "REDUCE", f"{why}; unrealized P&L {pnl:.1f}%"
+
+        if entry_stretch and price >= entry_stretch and pnl > 0:
+            result["profit_take_pct"] = 50
+            result["profit_take_reason"] = f"Stretch target {entry_stretch:.2f} reached"
+            return "TAKE PARTIAL PROFIT", f"Stretch target {entry_stretch:.2f} reached with unrealized P&L {pnl:.1f}%; lock part of the gain and keep a runner while the thesis remains intact"
+        if entry_target and price >= entry_target and pnl > 0:
+            trim = 50 if (momentum_weak or bearish) else 25
+            result["profit_take_pct"] = trim
+            result["profit_take_reason"] = f"Base target {entry_target:.2f} reached"
+            return "TAKE PARTIAL PROFIT", f"Base target {entry_target:.2f} reached with unrealized P&L {pnl:.1f}%; take {trim}% profit rather than letting the target move indefinitely"
+
+        if horizon_days and holding_days is not None and holding_days >= horizon_days:
+            if pnl >= 8 and momentum_weak:
+                result["profit_take_pct"] = 25
+                result["profit_take_reason"] = f"Modeled {horizon_days}-day horizon elapsed with weakening momentum"
+                return "TAKE PARTIAL PROFIT", f"Modeled {horizon_days}-day horizon has elapsed; position is still up {pnl:.1f}% but momentum weakened, so harvest 25% and reassess"
+            result["position_plan"]["horizon_review_due"] = True
 
         if confidence == "low" and not severe_bearish:
             return "HOLD — DATA REVIEW", "Evidence coverage is incomplete; missing data is not treated as a sell signal"
@@ -851,6 +1059,8 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
             return "HOLD — DON'T ADD", f"Score is only {s:.0f}, but a low score by itself is not a sell signal; wait for explicit thesis deterioration"
         if zone in {"PRIMARY_BUY", "BETTER_BUY", "VALUE_CORRIDOR"} and s >= 75 and not bearish and confidence != "low":
             return "ADD", f"Position is in an active entry zone ({zone.replace('_', ' ').title()}) with score {s:.0f}, adequate evidence coverage, and thesis intact"
+        if result.get("position_plan", {}).get("horizon_review_due"):
+            return "HOLD — REBALANCE REVIEW", f"Modeled holding horizon has elapsed after {holding_days} days; thesis remains intact, so compare this position with stronger qualified opportunities rather than panic-selling"
         return "HOLD", f"Thesis intact; unrealized P&L {pnl:.1f}%"
 
     # New-position logic remains entry/risk oriented.
@@ -912,8 +1122,8 @@ def position_action_plan(action: str, result: dict, price: float, position: dict
         rationale = "Full exit because the modeled thesis/stop is invalidated"
     elif action == "TAKE PARTIAL PROFIT":
         severe = (result.get("news") or {}).get("high_negative_events", 0) >= 1
-        pct_to_reduce = 50 if severe else 25
-        rationale = "Take part of the position off while retaining exposure if the thesis recovers"
+        pct_to_reduce = float(result.get("profit_take_pct") or (50 if severe else 25))
+        rationale = result.get("profit_take_reason") or "Take part of the position off while retaining exposure if the thesis remains intact"
     elif action == "REDUCE":
         pct_to_reduce = 50 if result.get("deterministic_score", 100) < 60 else 25
         rationale = "Reduce risk while keeping a smaller position for reassessment"
@@ -963,7 +1173,10 @@ def heuristic_ai(result: dict) -> dict:
         adjustments.append({"points": 0, "reason": result["negative_news_override"]})
     score = round(clamp(score), 1)
     exp = round(result["expected_yield_pct"] * (0.85 if n["label"] == "Bearish" else 1.05), 1)
-    horizon = (1, 20) if result.get("lane") == EXPLOSIVE_LANE or result["category"] == "Explosive Runner" else (30, 365)
+    horizon = (
+        int(result.get("deterministic_holding_period_min_days") or 3),
+        int(result.get("deterministic_holding_period_max_days") or 28),
+    )
     lv = result.get("levels") or {}
     sensitivity = [
         {"condition": f"Price breaks modeled stop/support near {lv.get('stop', 0):.2f}", "new_score": round(clamp(score - 18), 1)},
