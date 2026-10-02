@@ -45,11 +45,12 @@
     "fundamentals": {
       "version": "wf3-valuein-v1",
       "source": "Valuein Sample point-in-time fundamentals",
-      "candidate_symbols": 530,
-      "symbols_with_rows": 498,
-      "usable_fundamental_symbols": 469,
-      "usable_pct": 88.49,
-      "row_count": 124009,
+      "candidate_symbols": 539,
+      "universe_source": "all cached historical S&P price symbols",
+      "symbols_with_rows": 507,
+      "usable_fundamental_symbols": 478,
+      "usable_pct": 88.68,
+      "row_count": 125709,
       "concepts": [
         "TotalRevenue",
         "NetIncome",
