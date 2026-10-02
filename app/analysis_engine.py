@@ -409,14 +409,17 @@ def forward_target_plan(t: dict, f: dict, price: float, catalyst_score: float = 
     nearest_resistance = min(resistance_candidates) if resistance_candidates else None
 
     analyst_target = None
+    analyst_raw = None
     try:
         raw = f.get("targetMeanPrice")
         if raw not in (None, "") and float(raw) > price:
+            analyst_raw = float(raw)
             # Consensus is useful confirmation but is capped to avoid one stale or
             # extreme target dominating the deterministic horizon.
-            analyst_target = min(float(raw), price + 4.0 * a, price * 1.40)
+            analyst_target = min(analyst_raw, price + 4.0 * a, price * 1.40)
     except Exception:
         analyst_target = None
+        analyst_raw = None
 
     candidates = [technical_projection]
     source_parts = ["ATR/trend"]
@@ -426,6 +429,28 @@ def forward_target_plan(t: dict, f: dict, price: float, catalyst_score: float = 
     if analyst_target is not None:
         candidates.append(analyst_target)
         source_parts.append("analyst consensus")
+
+    # A distant prior high can contribute to the base case only when it is
+    # independently corroborated by analyst consensus AND the stock has a
+    # material catalyst with elevated volume. Historical price alone never
+    # upgrades the reward assumption.
+    try:
+        h52 = float(t.get("high52") or 0)
+    except Exception:
+        h52 = 0.0
+    catalyst_breakout = catalyst_score >= 8 and material_events > 0 and rel >= 1.5
+    corroborated_far_target = (
+        catalyst_breakout
+        and h52 > price
+        and h52 <= price * 1.60
+        and analyst_raw is not None
+        and analyst_raw > price
+        and abs(h52 - analyst_raw) / price <= 0.20
+    )
+    if corroborated_far_target:
+        candidates.append(h52)
+        candidates.append(min(analyst_raw, price * 1.60))
+        source_parts.append("corroborated 52w/analyst stretch")
     ordered = sorted(candidates)
     base_target = ordered[len(ordered) // 2] if len(ordered) % 2 else sum(ordered[len(ordered)//2-1:len(ordered)//2+1]) / 2
 
@@ -456,8 +481,8 @@ def holding_horizon_plan(price: float, target: float, t: dict, lane: str | None,
     """Translate target distance and setup quality into a realistic review horizon."""
     if lane == EXPLOSIVE_LANE:
         return {
-            "min_days": 3, "max_days": 28, "review_days": 10,
-            "rationale": "Explosive lane: catalyst/momentum trade with a maximum ~1 month holding window",
+            "min_days": 3, "max_days": 20, "review_days": 7,
+            "rationale": "Explosive lane: catalyst/momentum trade with a maximum 20-trading-session holding window",
         }
     upside = ((target / price) - 1) * 100 if price and target else 0.0
     if upside <= 8:
@@ -792,25 +817,10 @@ def score_bundle(bundle: dict) -> dict:
 
     total = round(clamp(total), 1)
     deterministic_expected = round(max(-50, min(150, rr_up * 100)), 1)
-    stretch_upside = ((target_plan["stretch_target"] / price) - 1) * 100 if price else 0.0
-    explosive_reference_upside = stretch_upside
-    for raw in (t.get("high52"), f.get("targetMeanPrice"), f.get("targetHighPrice")):
-        try:
-            level = float(raw)
-        except Exception:
-            continue
-        if price and level > price:
-            # Explosive qualification may use a credible stretch reference, but
-            # cap it so an extreme stale target cannot overwhelm the catalyst,
-            # liquidity, volume and conviction gates. This never feeds R/R.
-            explosive_reference_upside = max(
-                explosive_reference_upside,
-                min(60.0, (level / price - 1) * 100),
-            )
     lane_info = classify_lane(
         bundle, fs=fs, fconf=fconf, news=news, t=t,
         catalyst_score=catalyst, total_score=total, expected_upside_pct=deterministic_expected,
-        negative_override=override, explosive_upside_pct=explosive_reference_upside,
+        negative_override=override, explosive_upside_pct=deterministic_expected,
     )
     category = "Explosive Runner" if lane_info["lane"] == EXPLOSIVE_LANE else "Core" if lane_info["lane"] == CORE_LANE else "Watch"
     horizon_plan = holding_horizon_plan(
