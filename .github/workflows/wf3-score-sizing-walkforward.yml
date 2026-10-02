@@ -1,0 +1,52 @@
+name: WF3 Score Sizing Walk-Forward
+
+on:
+  push:
+    paths:
+      - scripts/wf3_score_sizing_walkforward.py
+      - .github/workflows/wf3-score-sizing-walkforward.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wf3-score-sizing-walkforward
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pandas lxml requests
+      - name: Run walk-forward grid
+        run: python scripts/wf3_score_sizing_walkforward.py
+      - name: Determinism rerun
+        run: |
+          cp backtests/results/wf3_score_sizing_walkforward.json /tmp/a.json
+          python scripts/wf3_score_sizing_walkforward.py
+          python - <<'PY'
+          import json
+          a=json.load(open('/tmp/a.json')); b=json.load(open('backtests/results/wf3_score_sizing_walkforward.json'))
+          print('HASH_A',a['deterministic_hash'])
+          print('HASH_B',b['deterministic_hash'])
+          if a['deterministic_hash'] != b['deterministic_hash']:
+              raise SystemExit('determinism check failed')
+          print('DETERMINISM_PASS')
+          PY
+      - name: Commit result
+        run: |
+          git config user.name "isk-backtest-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add backtests/results/wf3_score_sizing_walkforward.json backtests/results/wf3_score_sizing_walkforward.md
+          git diff --cached --quiet && exit 0
+          git commit -m "Add score sizing walk-forward result [skip ci]"
+          git pull --rebase origin main
+          git push
