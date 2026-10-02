@@ -317,10 +317,8 @@ def corp(st,market,d):
     if st.last is None:st.last=d;return
     for sym,p in list(st.pos.items()):
         data=market.get(sym) or {}
-        for x in data.get("splits") or []:
-            sd=date.fromisoformat(x["date"])
-            if max(st.last,p.opened-timedelta(days=1))<sd<=d:
-                q=x["numerator"]/x["denominator"];p.shares*=q;p.avg/=q
+        # Cached Yahoo OHLC is already split-adjusted historically.
+        # Applying split events again would double-count corporate actions.
         for x in data.get("dividends") or []:
             dd=date.fromisoformat(x["date"])
             if max(st.last,p.opened-timedelta(days=1))<dd<=d:st.cash+=p.shares*x["amount"]
