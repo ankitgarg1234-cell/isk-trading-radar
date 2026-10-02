@@ -523,7 +523,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                     continue
             if a and price:
                 try:
-                    action, action_reason = position_action(a, price, {"shares": p.shares, "avg_cost": p.avg_cost, "account": "Paper"})
+                    action, action_reason = position_action(a, price, {"shares": p.shares, "avg_cost": p.avg_cost, "account": "Paper", "opened_at": p.opened_at, "entry_target": p.entry_target, "entry_stretch_target": p.entry_stretch_target, "entry_stop": p.entry_stop, "entry_horizon_days": p.entry_horizon_days, "entry_plan_version": p.entry_plan_version})
                     action = str(action or "").upper()
                     # Keep the paper-cycle optimizer consistent with the actual
                     # owned-position state without rewriting the global candidate.
@@ -537,7 +537,8 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
             elif action == "REDUCE":
                 _sell(db, account, p, price, max(1, math.floor(p.shares * 0.5)), "Dashboard thesis-invalidated REDUCE", rank_score)
             elif action == "TAKE PARTIAL PROFIT" and p.shares >= 2:
-                _sell(db, account, p, price, max(1, math.floor(p.shares * 0.25)), "Dashboard TAKE PARTIAL PROFIT", rank_score)
+                trim_pct = float(a.get("profit_take_pct") or 25) / 100.0
+                _sell(db, account, p, price, max(1, math.floor(p.shares * trim_pct)), str(a.get("profit_take_reason") or "Dashboard TAKE PARTIAL PROFIT"), rank_score)
         db.flush()
 
         # If immediate risk management changes the holdings, rerun the Top-20
@@ -567,7 +568,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                     continue
                 try:
                     owned_action, owned_reason = position_action(
-                        a, price, {"shares": p.shares, "avg_cost": p.avg_cost, "account": "Paper"}
+                        a, price, {"shares": p.shares, "avg_cost": p.avg_cost, "account": "Paper", "opened_at": p.opened_at, "entry_target": p.entry_target, "entry_stretch_target": p.entry_stretch_target, "entry_stop": p.entry_stop, "entry_horizon_days": p.entry_horizon_days, "entry_plan_version": p.entry_plan_version}
                     )
                     a["action"] = str(owned_action or "").upper()
                     a["action_reason"] = owned_reason
