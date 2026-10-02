@@ -21,6 +21,8 @@ VARIANTS=[
     {"name":"5% minimum initial","min_alloc":5.0,"harvest":False},
     {"name":"8% minimum initial","min_alloc":8.0,"harvest":False},
     {"name":"10% minimum initial","min_alloc":10.0,"harvest":False},
+    {"name":"12% minimum initial","min_alloc":12.0,"harvest":False},
+    {"name":"15% minimum initial","min_alloc":15.0,"harvest":False},
     {"name":"5% minimum + harvest","min_alloc":5.0,"harvest":True},
     {"name":"8% minimum + harvest","min_alloc":8.0,"harvest":True},
     {"name":"10% minimum + harvest","min_alloc":10.0,"harvest":True},
