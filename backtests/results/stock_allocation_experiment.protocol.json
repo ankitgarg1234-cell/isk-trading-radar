@@ -1,0 +1,74 @@
+{
+  "version": "stock-allocation-experiment-v1",
+  "variants": [
+    {
+      "name": "Capped / profit taking",
+      "allocation": "capped",
+      "profit_taking": true,
+      "cost_bps": 10.0
+    },
+    {
+      "name": "Uncapped / risk budget / profit taking",
+      "allocation": "risk",
+      "profit_taking": true,
+      "cost_bps": 10.0
+    },
+    {
+      "name": "Full deployment / profit taking",
+      "allocation": "full",
+      "profit_taking": true,
+      "cost_bps": 10.0
+    },
+    {
+      "name": "Capped / no profit taking",
+      "allocation": "capped",
+      "profit_taking": false,
+      "cost_bps": 10.0
+    },
+    {
+      "name": "Uncapped / risk budget / no profit taking",
+      "allocation": "risk",
+      "profit_taking": false,
+      "cost_bps": 10.0
+    },
+    {
+      "name": "Full deployment / no profit taking",
+      "allocation": "full",
+      "profit_taking": false,
+      "cost_bps": 10.0
+    },
+    {
+      "name": "Full deployment / profit taking / 50 bps",
+      "allocation": "full",
+      "profit_taking": true,
+      "cost_bps": 50.0
+    }
+  ],
+  "period": {
+    "start": "2024-01-02",
+    "end": "2026-10-01"
+  },
+  "starting_cash_usd": 10000.0,
+  "decision_time": "NYSE session close:16:00 ET regular,13:00 ET published half days",
+  "execution": "next available session open, quantities frozen at signal close and clipped at fill",
+  "universe": "all cached historical S&P 500 members each day; Top20 after lane/RR eligibility",
+  "entry_gates": "unchanged current fundamental/lane/action gates, priority>=68, RR>=2 at signal and fill",
+  "risk_budget": "capped and risk variants: 0.75% modeled stop risk per holding; full variant removes this ceiling",
+  "profit_rule": "frozen base target: cumulative25% original shares; stretch: cumulative50%; each stage once; keep runner",
+  "withdrawals": "none: realized sale proceeds stay in account and await next eligible allocation",
+  "split_rule": "reconstruct native date prices; adjust share entitlements and frozen anchors once",
+  "selection": "predeclared comparison; no parameter fitting to achieve30%",
+  "source": {
+    "base_commit": "62937bf14fa8f43bdc9f8c48de24d971a10cb61d",
+    "scoring_version": "2026-10-02-target-horizon-v3",
+    "source_sha256": {
+      "app/analysis_engine.py": "20572902908ee131857475662ae64030fbcfe43e8d856d6d07235d4a510dfb74",
+      "app/portfolio_engine.py": "1df9d7465b2085e6353e6bd4e79daff984ca3a5b5d22e45b42d877292faed498",
+      "scripts/walkforward_backtest.py": "f2176d62588496e64c0fb9d2d26e688fb078d6eac68c3a6ebcdeb152a85f5d24",
+      "scripts/wf3_offline_valuein.py": "fdd3ff324f30ad5a5ef7e1319099949f02272285a5be1a5d6dfe97d7fb588e5f",
+      "scripts/stock_allocation_experiment.py": "7fdad9778e391c77cad111c33ce9d82a124a7368f419c278bec5779da8a8e533"
+    },
+    "price_sha256": "6ab928b5ab5a1226dfecbccd9b50e444766aba9c00f6ce4f372801cbaaab2793",
+    "fundamentals_sha256": "a066363bd896bb583478adcb6590f5094042ef47158b357b2cde3d2c1aff6893"
+  }
+}

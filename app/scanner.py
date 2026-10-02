@@ -145,6 +145,18 @@ def _snapshot_key(payload: dict) -> str:
     return hashlib.sha1(raw).hexdigest()
 
 
+def _profit_position_fields(position) -> dict:
+    try:
+        stages = json.loads(position.profit_taken_stages or "[]")
+    except (TypeError, ValueError):
+        stages = []
+    return {
+        "original_shares": position.original_shares or position.shares,
+        "profit_taken_shares": position.profit_taken_shares or 0,
+        "profit_taken_stages": stages if isinstance(stages, list) else [],
+    }
+
+
 class RadarService:
     def __init__(self, provider=None, ai=None):
         self.provider = provider or YahooMarketProvider()
@@ -165,6 +177,11 @@ class RadarService:
         self.last_universe_explosive_candidates = 0
         self.last_deep_analyzed = 0
         self.last_universe_start = 0
+        self._universe_cursor = 0
+        self._pending_universe_symbols: tuple[str, ...] = ()
+        self._deep_selection_order: dict[str, int] = {}
+        self._deep_selection_generation = 0
+        self._candidate_batch_limit: int | None = None
         # Process-local material state used only to decide whether the paper
         # optimizer needs an immediate event-driven run.  It is intentionally
         # not stored in Neon; a service restart may cause one harmless recheck.
@@ -212,6 +229,7 @@ class RadarService:
                     "entry_target": p.entry_target, "entry_stretch_target": p.entry_stretch_target,
                     "entry_stop": p.entry_stop, "entry_horizon_days": p.entry_horizon_days,
                     "entry_plan_version": p.entry_plan_version,
+                    **_profit_position_fields(p),
                 }
                 if p else
                 {
@@ -220,6 +238,7 @@ class RadarService:
                     "entry_target": pp.entry_target, "entry_stretch_target": pp.entry_stretch_target,
                     "entry_stop": pp.entry_stop, "entry_horizon_days": pp.entry_horizon_days,
                     "entry_plan_version": pp.entry_plan_version,
+                    "whole_shares": True, **_profit_position_fields(pp),
                 }
                 if pp else None
             )
@@ -599,17 +618,16 @@ class RadarService:
             self.last_universe_start = 0
             return []
         batch_size = max(1, min(settings.universe_prefilter_batch_size, len(universe)))
-        now = datetime.now(timezone.utc).astimezone(NY)
-        if self.market_open(now):
-            seconds_from_open = max(0, (now.hour * 60 + now.minute - 570) * 60 + now.second)
-            slot = seconds_from_open // max(30, settings.scan_interval_seconds)
-        else:
-            slot = self.scan_count
-        start = int((slot * batch_size) % len(universe))
+        # Advance on completed cheap-scan work, never on elapsed wall time. An
+        # overrun or skipped scheduler tick must not skip an unexamined slice.
+        start = self._universe_cursor % len(universe)
         self.last_universe_start = start
         if start + batch_size <= len(universe):
-            return universe[start:start + batch_size]
-        return universe[start:] + universe[:(start + batch_size) % len(universe)]
+            entries = universe[start:start + batch_size]
+        else:
+            entries = universe[start:] + universe[:(start + batch_size) % len(universe)]
+        self._pending_universe_symbols = tuple(entry["symbol"] for entry in entries)
+        return entries
 
     def _prefilter_universe(self, entries: list[dict]) -> list[dict]:
         """Build balanced cheap-discovery queues for both investment lanes.
@@ -638,6 +656,9 @@ class RadarService:
                 except Exception:
                     continue
         self.last_universe_prefiltered = len(results)
+        if results and tuple(entry["symbol"] for entry in entries) == self._pending_universe_symbols:
+            self._universe_cursor = (self.last_universe_start + len(entries)) % max(1, self.universe_size)
+            self._pending_universe_symbols = ()
 
         limit = max(2, settings.universe_deep_candidates)
         explosive_quota = max(1, limit // 2)
@@ -654,7 +675,10 @@ class RadarService:
                 or float(r.get("near_20d_high") or 0) >= 0.985
             )
         ]
-        explosive_pool.sort(key=lambda r: float(r.get("scan_score") or 0), reverse=True)
+        explosive_pool.sort(key=lambda r: (
+            self._deep_selection_order.get(r["symbol"], -1),
+            -float(r.get("scan_score") or 0), r["symbol"],
+        ))
 
         # Core lane exploration is intentionally not a second momentum list.
         # Prefer liquid names from each rotating slice, then let the full
@@ -666,11 +690,13 @@ class RadarService:
         ]
         core_pool.sort(
             key=lambda r: (
-                float(r.get("avg_dollar_volume_20") or r.get("dollar_volume") or 0),
-                float(r.get("near_20d_high") or 0),
+                self._deep_selection_order.get(r["symbol"], -1),
+                -float(r.get("avg_dollar_volume_20") or r.get("dollar_volume") or 0),
+                -float(r.get("near_20d_high") or 0), r["symbol"],
             ),
-            reverse=True,
         )
+        # Liquidity breaks ties between equally unexplored names. It cannot make
+        # the same quiet top 16 consume every pass through this rotating slice.
 
         chosen: list[dict] = []
         seen: set[str] = set()
@@ -693,10 +719,11 @@ class RadarService:
                     and float(r.get("avg_dollar_volume_20") or r.get("dollar_volume") or 0) >= 10_000_000
                 ],
                 key=lambda r: (
-                    float(r.get("scan_score") or 0),
-                    float(r.get("avg_dollar_volume_20") or r.get("dollar_volume") or 0),
+                    self._deep_selection_order.get(r["symbol"], -1),
+                    -float(r.get("scan_score") or 0),
+                    -float(r.get("avg_dollar_volume_20") or r.get("dollar_volume") or 0),
+                    r["symbol"],
                 ),
-                reverse=True,
             )
             for r in fallback:
                 if r["symbol"] in seen:
@@ -709,6 +736,9 @@ class RadarService:
         self.last_universe_explosive_candidates = sum(1 for r in chosen if r["symbol"] in explosive_symbols)
         self.last_universe_core_candidates = max(0, len(chosen) - self.last_universe_explosive_candidates)
         self.last_universe_candidates = len(chosen)
+        self._deep_selection_generation += 1
+        for row in chosen[:limit]:
+            self._deep_selection_order[row["symbol"]] = self._deep_selection_generation
         return chosen[:limit]
 
     def stale_scoring_symbols(self, limit: int = 20) -> list[str]:
@@ -743,8 +773,39 @@ class RadarService:
         discovery_symbols = [d["symbol"] for d in discovered[: settings.discovery_deep_candidates]]
         broad = self._prefilter_universe(self._universe_slice())
         broad_symbols = [q["symbol"] for q in broad]
-        ordered = holdings + stale + priority + discovery_symbols + broad_symbols
-        return list(dict.fromkeys(s.upper() for s in ordered if s))
+        # Reserve discovery/broad slots before adding the stale-model repair
+        # backlog. Stale rows are important, but cannot starve new opportunity
+        # supply during a model deployment.
+        seen = set(str(symbol).upper() for symbol in holdings)
+        groups = []
+        for source in (priority, discovery_symbols, broad_symbols, stale):
+            unique = [symbol for symbol in dict.fromkeys(str(s).upper() for s in source if s) if symbol not in seen]
+            seen.update(unique)
+            groups.append(unique)
+        priority, discovery_symbols, broad_symbols, stale = groups
+        total = len(holdings) + sum(len(group) for group in groups)
+        budget = min(48, max(settings.scan_batch_size, total))
+        self._candidate_batch_limit = budget
+        # All holdings remain first. Non-holding queues have a bounded budget;
+        # if holdings consume it, leftover queues are retained for diagnostics.
+        available = max(0, budget - len(holdings))
+        exploration_total = len(broad_symbols) + len(discovery_symbols)
+        if available < exploration_total and exploration_total > 0:
+            broad_budget = round(available * len(broad_symbols) / exploration_total)
+            if available >= 2 and broad_symbols and discovery_symbols:
+                broad_budget = max(1, min(available - 1, broad_budget))
+        else:
+            broad_budget = len(broad_symbols)
+        broad_reserved = broad_symbols[:min(len(broad_symbols), broad_budget, available)]
+        available -= len(broad_reserved)
+        discovery_reserved = discovery_symbols[:min(len(discovery_symbols), available)]
+        available -= len(discovery_reserved)
+        priority_reserved = priority[:min(len(priority), available)]
+        available -= len(priority_reserved)
+        stale_reserved = stale[:available]
+        first = holdings + stale_reserved + priority_reserved + discovery_reserved + broad_reserved
+        remaining = stale[len(stale_reserved):] + priority[len(priority_reserved):] + discovery_symbols[len(discovery_reserved):] + broad_symbols[len(broad_reserved):]
+        return list(dict.fromkeys(str(s).upper() for s in first + remaining if s))
 
     def _paper_optimizer_policy_fingerprint(self) -> str:
         """Fingerprint every rule that can change paper-entry eligibility.
@@ -884,13 +945,8 @@ class RadarService:
         # The configured broad-market deep candidates must actually reach full
         # analysis. A fixed 32-name cap previously let holdings/watch/discovery
         # consume most slots, leaving only a handful of the 16 broad candidates.
-        required_batch = (
-            len(self.holding_symbols())
-            + settings.priority_deep_limit
-            + settings.discovery_deep_candidates
-            + settings.universe_deep_candidates
-        )
-        effective_batch_size = min(48, max(settings.scan_batch_size, required_batch))
+        required_batch = len(self.holding_symbols()) + settings.priority_deep_limit + settings.discovery_deep_candidates + settings.universe_deep_candidates
+        effective_batch_size = self._candidate_batch_limit or min(48, max(settings.scan_batch_size, required_batch))
         batch = syms[:effective_batch_size]
         ok = 0
         errors: list[str] = []

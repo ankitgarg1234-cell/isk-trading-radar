@@ -296,7 +296,7 @@ def test_dashboard_has_actionable_filters_risk_profile_and_visible_levels(monkey
     p["fundamentals"]={"companyName":"Filter Example Inc","sector":"Technology"}
     monkeypatch.setattr(mainmod.radar.provider,"fx_rate",lambda a,b:1.0)
     with SessionLocal() as db:
-        db.add(RadarCandidate(symbol="FILTERX",category="Core",action="BUY NOW",score=88,ai_score=92,price=100))
+        db.add(RadarCandidate(symbol="FILTERX",category="Core",action="BUY NOW",score=88,ai_score=92,price=100,lane="CORE_QUALITY",lane_qualified=True))
         db.add(AnalysisSnapshot(symbol="FILTERX",price=100,deterministic_score=88,analyst_score=80,ai_score=92,expected_yield_pct=25,ai_expected_yield_pct=30,category="Core",action="BUY NOW",payload_json=json.dumps(p)))
         db.commit()
     r=client.get('/')
@@ -320,7 +320,7 @@ def test_live_api_exposes_decision_surface_fields(monkeypatch):
     p["currency"]="USD";p["entry_zone_status"]="PRIMARY_BUY";p["fundamentals"]={"companyName":"Live UI Inc","sector":"Industrials"}
     monkeypatch.setattr(mainmod.radar.provider,"fx_rate",lambda a,b:1.0)
     with SessionLocal() as db:
-        db.add(RadarCandidate(symbol="LIVEUI",category="Core",action="BUY NOW",score=88,ai_score=92,price=100))
+        db.add(RadarCandidate(symbol="LIVEUI",category="Core",action="BUY NOW",score=88,ai_score=92,price=100,lane="CORE_QUALITY",lane_qualified=True))
         db.add(AnalysisSnapshot(symbol="LIVEUI",price=100,deterministic_score=88,analyst_score=80,ai_score=92,expected_yield_pct=25,ai_expected_yield_pct=30,category="Core",action="BUY NOW",payload_json=json.dumps(p)))
         db.commit()
     d=client.get('/api/live').json(); row=next(x for x in d["candidates"] if x["symbol"]=="LIVEUI")
@@ -336,7 +336,7 @@ def test_dashboard_has_filters_for_every_radar_decision_column(monkeypatch):
     p["currency"]="USD";p["entry_zone_status"]="PRIMARY_BUY";p["fundamentals"]={"companyName":"Column Filter Inc","sector":"Technology"}
     monkeypatch.setattr(mainmod.radar.provider,"fx_rate",lambda a,b:1.0)
     with SessionLocal() as db:
-        db.add(RadarCandidate(symbol="COLFLT",category="Core",action="BUY NOW",score=88,ai_score=92,price=100))
+        db.add(RadarCandidate(symbol="COLFLT",category="Core",action="BUY NOW",score=88,ai_score=92,price=100,lane="CORE_QUALITY",lane_qualified=True))
         db.add(AnalysisSnapshot(symbol="COLFLT",price=100,deterministic_score=88,analyst_score=80,ai_score=92,expected_yield_pct=25,ai_expected_yield_pct=30,category="Core",action="BUY NOW",payload_json=json.dumps(p)))
         db.commit()
     r=client.get('/')
@@ -604,10 +604,11 @@ def test_dashboard_js_collection_selectors_do_not_crash_initialization():
     from pathlib import Path
     js = Path("app/static/app.js").read_text()
     # Multi-row controls must use $$() (querySelectorAll wrapper), never $().
-    assert "$('.lane-group-row').forEach" not in js
-    assert "$('.radar-row').filter" not in js
+    import re
+    assert not re.search(r"(?<!\$)\$\('\.lane-group-row'\)\.forEach", js)
+    assert not re.search(r"(?<!\$)\$\('\.radar-row'\)\.filter", js)
     assert "const buttons=$('.scan-now-trigger')" not in js
-    assert "$('.scan-now-trigger').forEach" not in js
+    assert not re.search(r"(?<!\$)\$\('\.scan-now-trigger'\)\.forEach", js)
     assert "$$('.lane-group-row').forEach" in js
     assert "$$('.scan-now-trigger').forEach" in js
 

@@ -2,8 +2,9 @@
 from __future__ import annotations
 import argparse,copy,gzip,hashlib,json,math,sys
 from collections import defaultdict
-from datetime import date,datetime,timedelta,timezone
+from datetime import date,datetime,time,timedelta,timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"scripts"));sys.path.insert(0,str(ROOT))
@@ -31,6 +32,7 @@ class PITFundamentals:
     def __init__(self,raw):
         self.by=defaultdict(lambda:defaultdict(list))
         self.filing_dates=defaultdict(set)
+        self.filings=defaultdict(dict)
         for sym,rows in raw["facts"].items():
             for r in rows:
                 rr=dict(r)
@@ -39,14 +41,32 @@ class PITFundamentals:
                 rr["_period_end"]=d(rr.get("period_end"))
                 rr["_span"]=rr.get("period_span_days")
                 if rr["_filing_date"]:
+                    accepted=None
+                    try:
+                        accepted=datetime.fromisoformat(str(rr.get("accepted_at") or "").replace("Z","+00:00"))
+                        if accepted.tzinfo is None:
+                            # A timezone-free timestamp cannot establish
+                            # publication time. Use the conservative fallback.
+                            accepted=None
+                    except (TypeError,ValueError):
+                        pass
+                    fallback=datetime.combine(rr["_filing_date"],time.max,tzinfo=ZoneInfo("America/New_York"))
+                    rr["_available_at"]=(accepted or fallback).astimezone(timezone.utc)
                     self.by[sym][rr["standard_concept"]].append(rr)
                     self.filing_dates[sym].add(rr["_filing_date"])
+                    key=rr.get("accession_id") or (rr["_filing_date"],str(rr.get("accepted_at") or ""))
+                    self.filings[sym][key]=(rr["_filing_date"],rr["_available_at"])
         for sym in self.by:
             for c in self.by[sym]:
-                self.by[sym][c].sort(key=lambda r:(r["_filing_date"],r["_period_end"] or date.min,str(r.get("accepted_at") or "")))
+                self.by[sym][c].sort(key=lambda r:(r["_filing_date"],r["_period_end"] or date.min,r["_available_at"]))
 
     def eligible(self,sym,concept,asof):
-        return [r for r in self.by.get(sym,{}).get(concept,[]) if r["_filing_date"]<=asof]
+        day=asof.date() if isinstance(asof,datetime) else asof
+        cutoff=asof if isinstance(asof,datetime) else wf.market_close_at(day)
+        if cutoff.tzinfo is None:
+            raise ValueError("PIT decision timestamp must include a timezone")
+        return [r for r in self.by.get(sym,{}).get(concept,[])
+                if r["_filing_date"]<=day and r["_available_at"]<=cutoff]
 
     @staticmethod
     def _latest_per_period(cands):
@@ -54,7 +74,7 @@ class PITFundamentals:
         for r,val,quality in cands:
             pe=r["_period_end"]
             if not pe:continue
-            rank=(r["_filing_date"],str(r.get("accepted_at") or ""),quality)
+            rank=(r["_filing_date"],r["_available_at"],quality)
             if pe not in best or rank>best[pe][0]:best[pe]=(rank,val,r)
         return [(k,v[1],v[2]) for k,v in sorted(best.items())]
 
@@ -84,12 +104,15 @@ class PITFundamentals:
             if val is not None:c.append((r,val,quality))
         return self._latest_per_period(c)
 
-    def instant(self,sym,concept,asof):
+    def instant_row(self,sym,concept,asof):
         rows=self.eligible(sym,concept,asof)
         usable=[r for r in rows if fv(r.get("numeric_value")) is not None and r["_period_end"]]
         if not usable:return None
-        r=max(usable,key=lambda z:(z["_period_end"],z["_filing_date"],str(z.get("accepted_at") or "")))
-        return fv(r.get("numeric_value"))
+        return max(usable,key=lambda z:(z["_period_end"],z["_filing_date"],z["_available_at"]))
+
+    def instant(self,sym,concept,asof):
+        row=self.instant_row(sym,concept,asof)
+        return fv(row.get("numeric_value")) if row else None
 
     @staticmethod
     def growth(series):
@@ -114,14 +137,27 @@ class PITFundamentals:
             if pe==period:return val
         return None
 
-    def asof(self,sym,asof,price):
+    def asof(self,sym,asof,price,*,splits=()):
         ar=self.annual(sym,"TotalRevenue",asof);ani=self.annual(sym,"NetIncome",asof)
         qr=self.quarter(sym,"TotalRevenue",asof);qni=self.quarter(sym,"NetIncome",asof)
         qgp=self.quarter(sym,"GrossProfit",asof);qoi=self.quarter(sym,"OperatingIncome",asof)
         agp=self.annual(sym,"GrossProfit",asof);aoi=self.annual(sym,"OperatingIncome",asof)
         equity=self.instant(sym,"StockholdersEquity",asof)
         debt=self.instant(sym,"TotalDebt",asof)
-        shares=self.instant(sym,"CommonSharesOutstanding",asof)
+        share_row=self.instant_row(sym,"CommonSharesOutstanding",asof)
+        shares=fv(share_row.get("numeric_value")) if share_row else None
+        share_adjustments=0
+        if shares is not None and share_row:
+            day=asof.date() if isinstance(asof,datetime) else asof
+            # CommonSharesOutstanding is an instant fact in its recorded
+            # period_end share units. Roll it forward by already-known splits
+            # only; do not combine a pre-split count with a post-split quote.
+            for event in splits:
+                split_day=d(event.get("date"))
+                numerator,denominator=fv(event.get("numerator")),fv(event.get("denominator"))
+                if split_day and share_row["_period_end"]<split_day<=day and numerator and denominator:
+                    shares*=numerator/denominator
+                    share_adjustments+=1
         revenue_growth=self.growth(ar);earnings_growth=self.growth(ani);qrg=self.yoy(qr)
         gm=om=None
         if qr:
@@ -147,14 +183,20 @@ class PITFundamentals:
                 "quarterlyRevenueGrowth":qrg,"grossMargins":gm,"operatingMargins":om,
                 "returnOnEquity":roe,"debtToEquity":de,"sharesOutstanding":shares,
                 "marketCap":mcap,"totalRevenue":ar[-1][1] if ar else None,
+                "_shares_unit_basis":"recorded period_end rolled forward through known splits",
+                "_shares_source_period_end":share_row["_period_end"].isoformat() if share_row else None,
+                "_shares_split_adjustments":share_adjustments,
                 "_status":"available","_source":"Valuein PIT fundamentals"}
 
     def filing_news(self,sym,asof):
-        recent=[x for x in self.filing_dates.get(sym,set()) if timedelta(0)<=asof-x<=timedelta(days=7)]
+        day=asof.date() if isinstance(asof,datetime) else asof
+        cutoff=asof if isinstance(asof,datetime) else wf.market_close_at(day)
+        recent=[(fd,accepted) for fd,accepted in self.filings.get(sym,{}).values()
+                if timedelta(0)<=day-fd<=timedelta(days=7) and accepted<=cutoff]
         if not recent:return []
-        fd=max(recent)
+        fd,accepted=max(recent,key=lambda x:x[1])
         return [{"title":"SEC earnings filing","publisher":"SEC EDGAR",
-                 "providerPublishTime":datetime.combine(fd,datetime.min.time(),tzinfo=timezone.utc).timestamp()}]
+                 "providerPublishTime":accepted.timestamp()}]
 
 def sector_bundle(sector,etfs,asof):
     ticker=wf.ETF.get(sector)
@@ -165,10 +207,10 @@ def sector_bundle(sector,etfs,asof):
 
 def analyse(sym,asof,market,store,sectors,etfs):
     data=market.get(sym);raw=wf.row_before(data or {},asof)
-    if not raw or not raw.get("close") or float(raw["close"])<5:return None
+    if not raw or raw["date"]!=asof.isoformat() or not raw.get("close") or float(raw["close"])<5:return None
     h=wf.hist_asof(data,asof,270)
     if len(h)<100:return None
-    price=float(raw["close"]);fund=store.asof(sym,asof,price)
+    price=float(raw["close"]);fund=store.asof(sym,asof,price,splits=data.get("splits") or [])
     rev=[]
     for x in data.get("splits") or []:
         sd=d(x.get("date"))
@@ -188,39 +230,54 @@ def validate(st,analyses):
         if abs(p.shares-round(p.shares))>1e-8:raise AssertionError(f"fractional shares {s}")
 
 def daily_curve(st,market,benchmark,start,end):
+    """Rebuild account cash/quantities from dated fills and corporate events.
+
+    This ledger is independent of signal evaluation. It ties to replay state
+    at every decision close and cannot bring a next-open fill back one day.
+    """
     trades=defaultdict(list)
     for t in st.trades:trades[t["date"]].append(t)
-    held={};cash=wf.STARTING;curve=[];last=None
+    events=defaultdict(list)
+    for event in st.cash_events:events[event["date"]].append(event)
+    held={};cash=st.initial_cash;curve=[]
+    decisions={row["date"]:row for row in st.curve}
     for r in benchmark["rows"]:
         ds=r["date"];dd=d(ds)
         if not dd or not(start<=dd<=end):continue
-        if last is not None:
-            for sym in list(held):
-                data=market.get(sym) or {}
-                # Cached Yahoo OHLC is already split-adjusted; do not
-                # multiply replay shares again for split events.
-                for dv in data.get("dividends") or []:
-                    x=d(dv.get("date"))
-                    if x and last<x<=dd:cash+=held[sym]*float(dv["amount"])
+        for event in events.get(ds,[]):
+            symbol=event["symbol"]
+            if event["kind"]=="SPLIT":
+                if abs(held.get(symbol,0)-event["shares_before"])>1e-8:
+                    raise AssertionError(f"Split quantity mismatch for {symbol} on {ds}")
+                held[symbol]=float(event["shares_after"])
+                if held[symbol]<=1e-9:held.pop(symbol,None)
+            cash+=float(event["cash"])
         for t in trades.get(ds,[]):
-            gross=float(t["shares"])*float(t["price"]);fee=wf.fee(gross)
+            gross=float(t["shares"])*float(t["price"])
+            fee=float(t.get("fee",wf.fee(gross,st.cost_bps)))
             if t["side"]=="BUY":
                 cash-=gross+fee;held[t["symbol"]]=held.get(t["symbol"],0)+float(t["shares"])
             else:
+                if float(t["shares"])>held.get(t["symbol"],0)+1e-8:
+                    raise AssertionError(f"Oversold ledger position {t['symbol']} on {ds}")
                 cash+=gross-fee;held[t["symbol"]]=max(0,held.get(t["symbol"],0)-float(t["shares"]))
                 if held[t["symbol"]]<=1e-9:held.pop(t["symbol"],None)
         eq=cash
         for sym,qty in held.items():
-            rr=wf.row_before(market.get(sym) or {},dd)
-            if rr and rr.get("close"):eq+=qty*float(rr["close"])
+            price=wf.price_asof(market.get(sym) or {},dd)
+            if price is not None:eq+=qty*price
+        if cash<-1e-6:raise AssertionError(f"Negative ledger cash on {ds}: {cash}")
+        if ds in decisions:
+            decision=decisions[ds]
+            if abs(float(decision["equity"])-eq)>0.02 or abs(float(decision["cash"])-cash)>0.02:
+                raise AssertionError(f"Replay/ledger mismatch on {ds}: state {decision}, ledger equity {eq}, cash {cash}")
         curve.append({"date":ds,"equity":eq,"cash":cash})
-        last=dd
     return curve
 
 def stat(name,st,curve):
-    first=wf.STARTING;endv=float(curve[-1]["equity"]);days=(d(curve[-1]["date"])-d(curve[0]["date"])).days;yrs=max(days/365.25,1/365.25)
+    first=st.initial_cash;endv=float(curve[-1]["equity"]);days=(d(curve[-1]["date"])-d(curve[0]["date"])).days;yrs=max(days/365.25,1/365.25)
     ret=endv/first-1;cagr=(endv/first)**(1/yrs)-1 if endv>0 else -1
-    peak=0;dd=0;by=defaultdict(list)
+    peak=first;dd=0;by=defaultdict(list)
     for r in curve:
         e=float(r["equity"]);peak=max(peak,e);dd=min(dd,e/peak-1 if peak else 0);by[d(r["date"]).year].append(e)
     prev=first;annual={}
@@ -243,6 +300,7 @@ def run(prices,funds,smoke=False):
             wf.State("Core-only (R/R >=2x)",2.0,True)]
     for i,day in enumerate(weeks,1):
         shortlist=pref[day][:20] if smoke else pref[day]
+        for st in states:wf.advance_state(st,market,day)
         held=set().union(*(set(x.pos) for x in states));base={}
         for sym in set(shortlist)|held:
             a=analyse(sym,day,market,store,sectors,etfs)
@@ -271,7 +329,8 @@ def main():
     rep={"version":"wf3-valuein-offline-v1","period":{"start":weeks[0].isoformat(),"end":weeks[-1].isoformat()},
          "methodology":{"decision_frequency":"weekly close","execution":"next session open","starting_capital":wf.STARTING,
                         "transaction_cost_bps":wf.COST_BPS,"whole_shares":True,"max_position_pct":15,
-                        "fundamentals":"Valuein PIT sample filtered by filing_date","price_data":"cached Yahoo daily history",
+                        "fundamentals":"Valuein PIT sample gated by accepted_at at actual NYSE close; unknown timestamp deferred past filing day",
+                        "price_data":"cached Yahoo history reconstructed into native historical share units",
                         "min_entry_rr":2.0},
          "coverage":{"price":prices["coverage"],"fundamentals":{k:v for k,v in funds["meta"].items() if k!="coverage"}},
          "results":results,"benchmark":br,"trades":{s.name:s.trades for s in states},"daily_curves":curves}
@@ -293,7 +352,8 @@ def main():
     lines+=["","## Data / integrity notes",
             f"- Historical price coverage: {prices['coverage']['price_pct']:.2f}% of the reconstructed 2024–2026 S&P universe.",
             f"- PIT fundamental coverage: {funds['meta']['usable_pct']:.2f}% of scanner candidate symbols.",
-            "- Fundamental facts are admitted only when filing_date <= decision date; no current analyst consensus or current fundamentals are backfilled into historical dates.",
+            "- Fundamental facts and filing-catalyst proxies are admitted only after accepted_at at the actual NYSE close (13:00 ET on scheduled half-days); missing timestamps are deferred beyond filing day.",
+            "- Cached split-normalized OHLC/dividends are reconstructed into native date units. Share quantities and frozen entry anchors adjust once at each split; fractional corporate entitlements use split-session opening cash-in-lieu.",
             "- Historical general-news and strategic-capital archives are omitted; 10-K/10-Q filing dates serve only as a conservative earnings-catalyst proxy.",
             "- The full historical S&P universe is cheap-screened weekly; up to 80 scanner-style candidates plus current holdings receive deep analysis.",
             "- Signals are generated at weekly close and orders execute at the next available session open.",
