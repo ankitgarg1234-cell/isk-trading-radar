@@ -958,7 +958,13 @@ def thesis_assessment(result: dict) -> dict:
         "current_fundamental_score": fscore,
     }
 
-def position_action(result: dict, price: float, position: dict | None) -> tuple[str, str]:
+def position_action(
+    result: dict, price: float, position: dict | None, *, decision_at: datetime | None = None,
+) -> tuple[str, str]:
+    # A decision may be recomputed from a saved analysis. Action annotations
+    # belong to this decision, not to the earlier scan.
+    for key in ("profit_take_pct", "profit_take_reason", "profit_take_stage", "profit_take_complete_stages"):
+        result.pop(key, None)
     s = result["deterministic_score"]
     n = result["news"]
     t = result["technicals"]
@@ -987,7 +993,8 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
         avg = float(position.get("avg_cost") or 0)
         pnl = (price / avg - 1) * 100 if avg else 0
         shares = float(position.get("shares") or 0)
-        whole_share_account = "avanza" in str(position.get("account") or "").lower()
+        whole_share_account = bool(position.get("whole_shares")) or "avanza" in str(position.get("account") or "").lower()
+        taken = set(position.get("profit_taken_stages") or [])
         entry_target = float(position.get("entry_target") or lv.get("target") or 0)
         entry_stretch = float(position.get("entry_stretch_target") or (result.get("target_plan") or {}).get("stretch_target") or entry_target)
         entry_stop = float(position.get("entry_stop") or lv.get("stop") or 0)
@@ -998,7 +1005,10 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
             opened_dt = opened_at if isinstance(opened_at, datetime) else datetime.fromisoformat(str(opened_at))
             if opened_dt.tzinfo is None:
                 opened_dt = opened_dt.replace(tzinfo=timezone.utc)
-            holding_days = max(0, (datetime.now(timezone.utc) - opened_dt).days)
+            clock = decision_at or datetime.now(timezone.utc)
+            if clock.tzinfo is None:
+                clock = clock.replace(tzinfo=timezone.utc)
+            holding_days = max(0, (clock - opened_dt).days)
         except Exception:
             holding_days = None
         entry_rr = None
@@ -1024,32 +1034,42 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
             why = "; ".join(thesis["reasons"]) or "Investment thesis/fundamentals materially invalidated"
             return "REDUCE", f"{why}; unrealized P&L {pnl:.1f}%"
 
-        if entry_stretch and price >= entry_stretch and pnl > 0:
+        if entry_stretch and price >= entry_stretch and pnl > 0 and "STRETCH" not in taken:
             result["profit_take_pct"] = 50
+            result["profit_take_stage"] = "STRETCH"
+            result["profit_take_complete_stages"] = ["BASE", "STRETCH"]
             result["profit_take_reason"] = f"Stretch target {entry_stretch:.2f} reached"
             return "TAKE PARTIAL PROFIT", f"Stretch target {entry_stretch:.2f} reached with unrealized P&L {pnl:.1f}%; lock part of the gain and keep a runner while the thesis remains intact"
-        if entry_target and price >= entry_target and pnl > 0:
-            trim = 50 if (momentum_weak or bearish) else 25
+        if entry_target and price >= entry_target and pnl > 0 and "BASE" not in taken:
+            trim = 25
             result["profit_take_pct"] = trim
+            result["profit_take_stage"] = "BASE"
+            result["profit_take_complete_stages"] = ["BASE"]
             result["profit_take_reason"] = f"Base target {entry_target:.2f} reached"
             return "TAKE PARTIAL PROFIT", f"Base target {entry_target:.2f} reached with unrealized P&L {pnl:.1f}%; take {trim}% profit rather than letting the target move indefinitely"
 
         if horizon_days and holding_days is not None and holding_days >= horizon_days:
-            if pnl >= 8 and momentum_weak:
+            if pnl >= 8 and momentum_weak and "HORIZON" not in taken:
                 result["profit_take_pct"] = 25
+                result["profit_take_stage"] = "HORIZON"
+                result["profit_take_complete_stages"] = ["HORIZON"]
                 result["profit_take_reason"] = f"Modeled {horizon_days}-day horizon elapsed with weakening momentum"
                 return "TAKE PARTIAL PROFIT", f"Modeled {horizon_days}-day horizon has elapsed; position is still up {pnl:.1f}% but momentum weakened, so harvest 25% and reassess"
             result["position_plan"]["horizon_review_due"] = True
 
         if confidence == "low" and not severe_bearish:
             return "HOLD — DATA REVIEW", "Evidence coverage is incomplete; missing data is not treated as a sell signal"
-        if severe_bearish and pnl >= 5:
+        if severe_bearish and pnl >= 5 and "NEWS" not in taken:
             if whole_share_account and shares <= 1:
                 return "HOLD — THESIS REVIEW", "Material negative news detected, but the thesis has not been invalidated and a one-share position cannot be partially trimmed"
+            result["profit_take_stage"] = "NEWS"
+            result["profit_take_complete_stages"] = ["NEWS"]
             return "TAKE PARTIAL PROFIT", f"Profitable position ({pnl:.1f}%) faces material negative news; trim gains only, not because the thesis is broken"
-        if bearish and momentum_weak and pnl >= 5:
+        if bearish and not severe_bearish and momentum_weak and pnl >= 5 and "MOMENTUM" not in taken:
             if whole_share_account and shares <= 1:
                 return "HOLD — DON'T ADD", "Bearish evidence and weak momentum are present, but the thesis remains intact and partial trimming is impractical"
+            result["profit_take_stage"] = "MOMENTUM"
+            result["profit_take_complete_stages"] = ["MOMENTUM"]
             return "TAKE PARTIAL PROFIT", f"Profitable position ({pnl:.1f}%) has bearish near-term evidence; thesis remains intact, so only optional profit protection is warranted"
         if zone == "INVALIDATED":
             return "HOLD — THESIS REVIEW", "Price crossed the modeled technical invalidation level, but technical weakness alone is not a sell signal; re-check the investment thesis/fundamentals"
@@ -1057,6 +1077,8 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
             return "HOLD — DON'T ADD", "Near-term evidence has weakened, but the thesis/fundamentals are not invalidated; do not panic sell"
         if s < 65:
             return "HOLD — DON'T ADD", f"Score is only {s:.0f}, but a low score by itself is not a sell signal; wait for explicit thesis deterioration"
+        if taken.intersection({"BASE", "STRETCH"}) and entry_target and price >= entry_target:
+            return "HOLD — RETAIN RUNNER", "The frozen profit target has already been harvested; retain the runner instead of buying back the harvested tranche above that target"
         if zone in {"PRIMARY_BUY", "BETTER_BUY", "VALUE_CORRIDOR"} and s >= 75 and not bearish and confidence != "low":
             return "ADD", f"Position is in an active entry zone ({zone.replace('_', ' ').title()}) with score {s:.0f}, adequate evidence coverage, and thesis intact"
         if result.get("position_plan", {}).get("horizon_review_due"):
@@ -1116,7 +1138,7 @@ def position_action_plan(action: str, result: dict, price: float, position: dict
     if shares <= 0:
         return None
     account = str(position.get("account") or "")
-    whole_share_account = "avanza" in account.lower()
+    whole_share_account = bool(position.get("whole_shares")) or "avanza" in account.lower()
     if action == "EXIT":
         pct_to_reduce = 100
         rationale = "Full exit because the modeled thesis/stop is invalidated"
@@ -1129,13 +1151,21 @@ def position_action_plan(action: str, result: dict, price: float, position: dict
         rationale = "Reduce risk while keeping a smaller position for reassessment"
     else:
         return None
-    raw_qty = shares * pct_to_reduce / 100
+    stage = result.get("profit_take_stage") if action == "TAKE PARTIAL PROFIT" else None
+    if stage in {"BASE", "STRETCH"}:
+        original = float(position.get("original_shares") or shares)
+        already_taken = float(position.get("profit_taken_shares") or 0)
+        raw_qty = max(0.0, original * pct_to_reduce / 100 - already_taken)
+    else:
+        raw_qty = shares * pct_to_reduce / 100
     if whole_share_account:
         if pct_to_reduce < 100 and shares <= 1:
             qty = 0
             rationale = "Partial reduction is not practical for a one-share whole-share position; review HOLD versus EXIT"
         else:
-            qty = min(shares, float(math.ceil(raw_qty)))
+            qty = min(shares, float(math.ceil(raw_qty - 1e-12)))
+            if action == "TAKE PARTIAL PROFIT":
+                qty = min(qty, max(0, shares - 1))
     else:
         qty = min(shares, round(raw_qty, 4))
     actual_pct = round((qty / shares * 100), 1) if shares and qty else 0.0
@@ -1145,6 +1175,8 @@ def position_action_plan(action: str, result: dict, price: float, position: dict
         "actual_percent": actual_pct,
         "remaining_shares": round(max(0.0, shares - qty), 4),
         "rationale": rationale,
+        "profit_take_stage": stage,
+        "profit_take_complete_stages": result.get("profit_take_complete_stages") or [],
     }
 
 

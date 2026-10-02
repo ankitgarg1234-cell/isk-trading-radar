@@ -78,6 +78,7 @@ def test_persist_generates_buy_alert_without_duplicate_on_same_action():
     payload={
         "symbol":"BUYME","price":100,"deterministic_score":90,"analyst_score":80,"ai_score":93,
         "expected_yield_pct":25,"ai_expected_yield_pct":30,"category":"Core","action":"BUY NOW",
+        "risk_reward":3.0,
         "action_reason":"Buy level reached","levels":{"buy_low":98,"buy_high":101},
         "lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,
         "core_quality_qualified":True,"explosive_qualified":False,"promotion_risk":{"hard_reject":False},
@@ -104,6 +105,7 @@ def test_persist_refreshes_same_active_alert_instead_of_duplicating():
     payload={
         "symbol":"DEDUP","price":100,"deterministic_score":90,"analyst_score":80,"ai_score":93,
         "expected_yield_pct":25,"ai_expected_yield_pct":30,"category":"Core","action":"BUY NOW",
+        "risk_reward":3.0,
         "action_reason":"first reason","levels":{"buy_low":98,"buy_high":101},
         "lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,
         "core_quality_qualified":True,"explosive_qualified":False,"promotion_risk":{"hard_reject":False},
@@ -160,7 +162,7 @@ def test_material_action_change_writes_new_compact_snapshot():
 
 def test_attention_buy_ladder_only_surfaces_agreed_entry_scores():
     from app.scanner import _attention_buy_signal
-    base={"price":100,"decision_confidence":"high","negative_news_override":False,"thesis_assessment":{"invalidated":False},
+    base={"price":100,"risk_reward":3.0,"decision_confidence":"high","negative_news_override":False,"thesis_assessment":{"invalidated":False},
           "lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,
           "core_quality_qualified":True,"explosive_qualified":False,"promotion_risk":{"hard_reject":False}}
     cases=[
@@ -207,6 +209,7 @@ def test_agreed_buy_attention_actions_are_persisted():
         r.persist({
             "symbol":symbol,"price":100,"deterministic_score":score,"analyst_score":80,"ai_score":82,
             "expected_yield_pct":20,"ai_expected_yield_pct":22,"category":"Core","action":"WAIT MORE",
+            "risk_reward":3.0,
             "action_reason":"underlying radar state","entry_zone_status":zone,"decision_confidence":"high",
             "negative_news_override":False,"thesis_assessment":{"invalidated":False},"levels":{},
             "lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,

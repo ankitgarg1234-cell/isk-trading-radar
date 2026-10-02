@@ -13,17 +13,138 @@ from .db import (
     PaperAccount, PaperPosition, PaperTrade, PaperSnapshot,
 )
 from .portfolio_engine import INVESTABLE_ENTRY_ACTIONS, MIN_ENTRY_RISK_REWARD, build_optimizer_plan, candidate_rank_score, normalise_profile, suggested_position_size
-from .analysis_engine import position_action
+from .analysis_engine import SCORING_VERSION, entry_zone_state, position_action, position_action_plan
 
 PAPER_ACCOUNT = "Optimizer Paper"
 BENCHMARK_SYMBOL = "^SP500TR"
 NY = ZoneInfo("America/New_York")
+ANALYSIS_MAX_AGE = timedelta(days=4)
+EXECUTION_QUOTE_MAX_AGE = timedelta(minutes=20)
 
 
 def _utc(dt: datetime | None) -> datetime | None:
     if dt is None:
         return None
     return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def _timestamp(value: Any) -> datetime | None:
+    try:
+        if isinstance(value, datetime):
+            return _utc(value)
+        if isinstance(value, (int, float)):
+            return datetime.fromtimestamp(value, tz=timezone.utc)
+        return _utc(datetime.fromisoformat(str(value).replace("Z", "+00:00"))) if value else None
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def _analysis_blocker(a: dict, now: datetime) -> str | None:
+    if a.get("scoring_version") != SCORING_VERSION:
+        return "Refresh required: saved analysis uses an older scoring model"
+    timestamps = [_timestamp(a.get(key)) for key in ("asof", "_stored_at")]
+    known = [stamp for stamp in timestamps if stamp is not None]
+    if not known or now - min(known) > ANALYSIS_MAX_AGE:
+        return "Refresh required: saved analysis is stale"
+    if any(stamp > now + timedelta(minutes=5) for stamp in known):
+        return "Refresh required: analysis timestamp is in the future"
+    return None
+
+
+def _quote_timestamp(a: dict) -> datetime | None:
+    # A source timestamp takes precedence over a later database/enrichment write.
+    if "price_asof" in a:
+        return _timestamp(a["price_asof"])
+    source = ((a.get("data_sources") or {}).get("price") or {})
+    if "asof" in source:
+        return _timestamp(source["asof"])
+    return _timestamp(a.get("asof") or a.get("_stored_at"))
+
+
+def _fresh_quote(a: dict, now: datetime) -> bool:
+    stamp = _quote_timestamp(a)
+    return bool(stamp and -timedelta(minutes=5) <= now - stamp <= EXECUTION_QUOTE_MAX_AGE)
+
+
+def _entry_analysis(provider, a: dict, now: datetime) -> tuple[dict | None, str | None]:
+    """Validate executable price and forward R/R without enlarging a saved plan."""
+    blocker = _analysis_blocker(a, now)
+    if blocker:
+        return None, blocker
+    updated = dict(a)
+    if not _fresh_quote(updated, now):
+        try:
+            quote = provider.quick_scan(str(a.get("symbol") or ""))
+        except Exception:
+            quote = {}
+        if not _fresh_quote(quote or {}, now):
+            return None, "Refresh required: no recent executable quote is available"
+        updated["price"] = (quote or {}).get("price")
+        updated["price_asof"] = (quote or {}).get("price_asof") or (quote or {}).get("asof")
+    levels = updated.get("levels") or {}
+    try:
+        price = float(updated.get("price") or 0)
+        stop = float(levels.get("stop") or 0)
+        target = float((updated.get("target_plan") or {}).get("base_target") or levels.get("target") or 0)
+    except (TypeError, ValueError):
+        return None, "Entry blocked: price, stop or target is invalid"
+    if not all(math.isfinite(value) for value in (price, stop, target)) or not 0 < stop < price < target:
+        return None, "Entry blocked: price, stop and target no longer form a valid entry plan"
+    if not {"do_not_chase", "breakout", "buy_low", "buy_high", "better_low", "better_high"} <= set(levels):
+        return None, "Refresh required: entry levels are incomplete"
+    updated["risk_reward"] = (target - price) / (price - stop)
+    updated["entry_zone_status"] = entry_zone_state(levels, price)
+    if updated["risk_reward"] < MIN_ENTRY_RISK_REWARD:
+        return None, f"Entry blocked: executable-price R/R is {updated['risk_reward']:.2f}x, below {MIN_ENTRY_RISK_REWARD:.1f}x"
+    return updated, None
+
+
+def _profit_stages(pos: PaperPosition) -> list[str]:
+    try:
+        stages = json.loads(pos.profit_taken_stages or "[]")
+    except (TypeError, ValueError):
+        stages = []
+    return [str(stage).upper() for stage in stages] if isinstance(stages, list) else []
+
+
+def _position_payload(pos: PaperPosition) -> dict:
+    return {
+        "shares": pos.shares, "avg_cost": pos.avg_cost, "account": "Paper", "whole_shares": True,
+        "opened_at": pos.opened_at, "entry_target": pos.entry_target,
+        "entry_stretch_target": pos.entry_stretch_target, "entry_stop": pos.entry_stop,
+        "entry_horizon_days": pos.entry_horizon_days, "entry_plan_version": pos.entry_plan_version,
+        "original_shares": pos.original_shares or pos.shares,
+        "profit_taken_shares": pos.profit_taken_shares or 0,
+        "profit_taken_stages": _profit_stages(pos),
+    }
+
+
+def _initialise_profit_state(db, pos: PaperPosition) -> None:
+    """Recover fixed-tranche state once for positions predating the stage ledger."""
+    if pos.original_shares is not None:
+        return
+    trades = db.query(PaperTrade).filter(
+        PaperTrade.account == PAPER_ACCOUNT, PaperTrade.symbol == pos.symbol,
+        PaperTrade.created_at >= pos.opened_at,
+    ).order_by(PaperTrade.created_at.asc(), PaperTrade.id.asc()).all()
+    bought = sum(float(trade.shares or 0) for trade in trades if trade.side == "BUY")
+    stages = set(_profit_stages(pos))
+    target_taken = 0.0
+    for trade in trades:
+        if trade.side != "SELL":
+            continue
+        reason = str(trade.reason or "").lower()
+        if "stretch target" in reason:
+            stages.update(("BASE", "STRETCH"))
+            target_taken += float(trade.shares or 0)
+        elif "base target" in reason:
+            stages.add("BASE")
+            target_taken += float(trade.shares or 0)
+        elif "horizon elapsed" in reason:
+            stages.add("HORIZON")
+    pos.original_shares = max(float(pos.shares or 0), bought or float(pos.shares or 0) + target_taken)
+    pos.profit_taken_shares = target_taken
+    pos.profit_taken_stages = json.dumps(sorted(stages))
 
 
 def _observed(d: date) -> date:
@@ -143,23 +264,10 @@ def _candidate_payloads(
     optimizer.  This keeps Neon egress bounded while preserving immediate entry
     decisions.
     """
-    rows = []
-    if ranked_limit > 0:
-        rows = db.query(RadarCandidate).filter(
-            or_(
-                RadarCandidate.lane_qualified == True,
-                RadarCandidate.current_json.like('%"lane_qualified":true%'),
-            )
-        ).order_by(
-            RadarCandidate.portfolio_rank_score.desc(),
-            RadarCandidate.updated_at.desc(),
-        ).limit(max(1, ranked_limit)).all()
-    have = {r.symbol for r in rows}
-    missing = [s for s in (extra_symbols or []) if s not in have]
-    if missing:
-        rows += db.query(RadarCandidate).filter(RadarCandidate.symbol.in_(missing)).all()
+    now = datetime.now(timezone.utc)
     out: dict[str, dict] = {}
-    for row in rows:
+
+    def decode(row) -> dict:
         try:
             payload = json.loads(row.current_json or "{}")
         except Exception:
@@ -172,7 +280,45 @@ def _candidate_payloads(
         payload.setdefault("ai_score", row.ai_score)
         payload.setdefault("category", row.category)
         payload.setdefault("action", row.action)
-        out[row.symbol] = payload
+        payload["_stored_at"] = _utc(row.updated_at).isoformat() if row.updated_at else None
+        return payload
+
+    if ranked_limit > 0:
+        # Eligibility precedes Top-20 truncation. Page compact rows rather than
+        # letting high-ranked stale/sub-2x candidates crowd out executable names.
+        query = db.query(RadarCandidate).filter(
+            or_(
+                RadarCandidate.lane_qualified == True,
+                RadarCandidate.current_json.like('%"lane_qualified":true%'),
+                RadarCandidate.current_json.like('%"lane_qualified": true%'),
+            ),
+            RadarCandidate.updated_at >= now - ANALYSIS_MAX_AGE,
+        ).order_by(
+            RadarCandidate.portfolio_rank_score.desc(),
+            RadarCandidate.updated_at.desc(), RadarCandidate.symbol.asc(),
+        )
+        page_size = max(40, ranked_limit * 2)
+        offset = 0
+        while len(out) < ranked_limit:
+            page = query.offset(offset).limit(page_size).all()
+            if not page:
+                break
+            for row in page:
+                payload = decode(row)
+                if _analysis_blocker(payload, now):
+                    continue
+                if not build_optimizer_plan({row.symbol: payload}, visible_limit=1)["visible"]:
+                    continue
+                out[row.symbol] = payload
+                if len(out) >= ranked_limit:
+                    break
+            if len(page) < page_size:
+                break
+            offset += page_size
+    missing = [s for s in (extra_symbols or []) if s not in out]
+    if missing:
+        for row in db.query(RadarCandidate).filter(RadarCandidate.symbol.in_(missing)).all():
+            out[row.symbol] = decode(row)
     return out
 
 
@@ -196,13 +342,15 @@ def _sell(db, account: PaperAccount, pos: PaperPosition, price: float, shares: f
         pos.updated_at = datetime.now(timezone.utc)
 
 
-def _buy(db, account: PaperAccount, symbol: str, price: float, target_value: float, rank_score: float, reason: str, analysis: dict | None = None) -> float:
+def _buy(db, account: PaperAccount, symbol: str, price: float, target_value: float, rank_score: float, reason: str, analysis: dict | None = None, *, max_shares: float | None = None) -> float:
     """Paper-buy up to target_value using whole shares only."""
     if price <= 0 or target_value <= 0 or account.cash <= 0:
         return 0.0
     fee_rate = max(0.0, settings.paper_trade_cost_bps) / 10000.0
     spendable = min(float(target_value), float(account.cash))
     shares = math.floor(spendable / (price * (1.0 + fee_rate)) + 1e-12)
+    if max_shares is not None:
+        shares = min(shares, math.floor(max(0.0, float(max_shares)) + 1e-12))
     if shares <= 0:
         return 0.0
     gross = shares * price
@@ -210,15 +358,17 @@ def _buy(db, account: PaperAccount, symbol: str, price: float, target_value: flo
     account.cash -= gross + fee
     pos = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT, PaperPosition.symbol == symbol).first()
     if pos:
+        _initialise_profit_state(db, pos)
         total_shares = pos.shares + shares
         pos.avg_cost = ((pos.avg_cost * pos.shares) + gross) / total_shares
         pos.shares = total_shares
+        pos.original_shares = float(pos.original_shares or 0) + shares
         pos.rank_score_at_entry = rank_score
         pos.reason = reason[:255]
         if analysis and getattr(pos, "entry_target", None) in (None, 0):
             tp = analysis.get("target_plan") or {}
             hp = analysis.get("holding_horizon") or {}
-            pos.entry_target = tp.get("base_target")
+            pos.entry_target = tp.get("base_target") or (analysis.get("levels") or {}).get("target")
             pos.entry_stretch_target = tp.get("stretch_target")
             pos.entry_stop = (analysis.get("levels") or {}).get("stop")
             pos.entry_horizon_days = hp.get("max_days")
@@ -230,11 +380,12 @@ def _buy(db, account: PaperAccount, symbol: str, price: float, target_value: flo
         db.add(PaperPosition(
             account=PAPER_ACCOUNT, symbol=symbol, shares=shares, avg_cost=price,
             rank_score_at_entry=rank_score, reason=reason[:255],
-            entry_target=tp.get("base_target"),
+            entry_target=tp.get("base_target") or ((analysis or {}).get("levels") or {}).get("target"),
             entry_stretch_target=tp.get("stretch_target"),
             entry_stop=((analysis or {}).get("levels") or {}).get("stop"),
             entry_horizon_days=hp.get("max_days"),
             entry_plan_version=(analysis or {}).get("scoring_version"),
+            original_shares=shares, profit_taken_shares=0.0, profit_taken_stages="[]",
         ))
     db.add(PaperTrade(account=PAPER_ACCOUNT, symbol=symbol, side="BUY", shares=shares, price=price, fees=fee, rank_score=rank_score, reason=reason[:255]))
     return shares
@@ -283,13 +434,18 @@ def manual_paper_add(provider, symbol: str, shares: float) -> dict:
     with SessionLocal() as db:
         account = _ensure_account(db)
         payload = _candidate_payloads(db, [symbol], ranked_limit=0).get(symbol) or {}
+        payload, blocker = _entry_analysis(provider, payload, datetime.now(timezone.utc))
+        if blocker:
+            return {"status": "blocked", "message": blocker}
+        payload = payload or {}
         lane = payload.get("lane") if payload.get("lane_qualified") is True else None
         if lane not in {"CORE_QUALITY", "EXPLOSIVE"}:
             return {"status": "blocked", "message": f"{symbol} is not currently qualified for Core Quality or Explosive; manual paper buys remain lane-gated."}
         risk_reward = float(payload.get("risk_reward") or 0)
         if risk_reward < MIN_ENTRY_RISK_REWARD:
             return {"status": "blocked", "message": f"{symbol} has modeled R/R {risk_reward:.2f}x. New/additional investment requires at least {MIN_ENTRY_RISK_REWARD:.1f}x.", "risk_reward": round(risk_reward, 2), "minimum_risk_reward": MIN_ENTRY_RISK_REWARD}
-        price, price_source = _live_paper_price(provider, symbol, float(payload.get("price") or 0))
+        price = float(payload.get("price") or 0)
+        price_source = "validated recent quote"
         if price <= 0:
             return {"status": "error", "message": f"No usable price is available for {symbol}"}
         fee_rate = max(0.0, settings.paper_trade_cost_bps) / 10000.0
@@ -297,7 +453,7 @@ def manual_paper_add(provider, symbol: str, shares: float) -> dict:
         if required > float(account.cash or 0) + 1e-9:
             return {"status": "blocked", "message": (f"Action can't be completed — no money left to take this action. Available paper cash ${float(account.cash or 0):.2f}; ${required:.2f} is required for {qty} whole share{'s' if qty != 1 else ''}."), "cash": round(float(account.cash or 0), 2), "required_cash": round(required, 2)}
         before = float(account.cash or 0)
-        bought = _buy(db, account, symbol, price, required, candidate_rank_score(payload).get("score", 0), f"MANUAL PAPER ADD • {payload.get('lane_label') or lane}", analysis=payload)
+        bought = _buy(db, account, symbol, price, required, candidate_rank_score(payload).get("score", 0), f"MANUAL PAPER ADD • {payload.get('lane_label') or lane}", analysis=payload, max_shares=qty)
         db.commit()
         return {"status": "ok", "symbol": symbol, "side": "BUY", "shares": bought, "price": round(price, 4), "price_source": price_source, "cash_before": round(before, 2), "cash_after": round(float(account.cash or 0), 2)}
 
@@ -466,15 +622,22 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
         whole_share_corrections = _normalise_whole_share_positions(db, account, analyses)
         if whole_share_corrections:
             paper_positions = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).all()
+        harvested_symbols: set[str] = set()
+        cash_before_risk = float(account.cash or 0)
 
         # Immediate risk management uses the existing thesis-gated position action.
         # Explosive positions have a separate 20-U.S.-trading-session thesis clock.
         for p in list(paper_positions):
             a = analyses.get(p.symbol) or {}
+            _initialise_profit_state(db, p)
             price = float(a.get("price") or 0)
             action = str(a.get("action") or "").upper()
             reason_upper = str(p.reason or "").upper()
             current_lane = a.get("lane") if a.get("lane_qualified") is True else None
+            # A database write or strategic evidence update is not a fresh quote.
+            # Keep stale marks for reporting, but do not execute an old decision.
+            if _analysis_blocker(a, now) or not _fresh_quote(a, now):
+                continue
             # Incident cleanup: TTAN was an intentional legacy/outside-lane exit
             # that was briefly resurrected by the first overly-broad repair pass.
             # Keep it only if it has genuinely re-qualified into an active lane.
@@ -497,6 +660,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
             if (
                 "lane_qualified" in a
                 and current_lane not in {"CORE_QUALITY", "EXPLOSIVE"}
+                and "CORE QUALITY" not in reason_upper and "GRADUATED TO CORE" not in reason_upper
                 and _lane_evidence_reliable(a)
                 and price > 0
             ):
@@ -523,7 +687,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                     continue
             if a and price:
                 try:
-                    action, action_reason = position_action(a, price, {"shares": p.shares, "avg_cost": p.avg_cost, "account": "Paper", "opened_at": p.opened_at, "entry_target": p.entry_target, "entry_stretch_target": p.entry_stretch_target, "entry_stop": p.entry_stop, "entry_horizon_days": p.entry_horizon_days, "entry_plan_version": p.entry_plan_version})
+                    action, action_reason = position_action(a, price, _position_payload(p), decision_at=now)
                     action = str(action or "").upper()
                     # Keep the paper-cycle optimizer consistent with the actual
                     # owned-position state without rewriting the global candidate.
@@ -535,16 +699,25 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
             if action == "EXIT":
                 _sell(db, account, p, price, p.shares, "Dashboard thesis-invalidated EXIT", rank_score)
             elif action == "REDUCE":
-                _sell(db, account, p, price, max(1, math.floor(p.shares * 0.5)), "Dashboard thesis-invalidated REDUCE", rank_score)
+                reduction = position_action_plan(action, a, price, _position_payload(p)) or {}
+                _sell(db, account, p, price, float(reduction.get("suggested_shares") or 0), "Dashboard thesis-invalidated REDUCE", rank_score)
             elif action == "TAKE PARTIAL PROFIT" and p.shares >= 2:
-                trim_pct = float(a.get("profit_take_pct") or 25) / 100.0
-                _sell(db, account, p, price, max(1, math.floor(p.shares * trim_pct)), str(a.get("profit_take_reason") or "Dashboard TAKE PARTIAL PROFIT"), rank_score)
+                trim_plan = position_action_plan(action, a, price, _position_payload(p)) or {}
+                qty = math.floor(float(trim_plan.get("suggested_shares") or 0) + 1e-9)
+                if qty > 0:
+                    _sell(db, account, p, price, qty, str(a.get("profit_take_reason") or "Dashboard TAKE PARTIAL PROFIT"), rank_score)
+                    stages = set(_profit_stages(p))
+                    stages.update(trim_plan.get("profit_take_complete_stages") or [])
+                    p.profit_taken_stages = json.dumps(sorted(stages))
+                    if trim_plan.get("profit_take_stage") in {"BASE", "STRETCH"}:
+                        p.profit_taken_shares = float(p.profit_taken_shares or 0) + qty
+                    harvested_symbols.add(p.symbol)
         db.flush()
 
         # If immediate risk management changes the holdings, rerun the Top-20
         # allocation immediately so every currently qualified entry is reconsidered.
         current_after_risk = db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).all()
-        risk_changed_portfolio = len(current_after_risk) < len(paper_positions)
+        risk_changed_portfolio = len(current_after_risk) < len(paper_positions) or float(account.cash or 0) > cash_before_risk + 1e-9
 
         last_rebalance = _utc(account.last_rebalance_at)
         daily_due = last_rebalance is None or (now - last_rebalance).total_seconds() >= settings.paper_rebalance_seconds
@@ -568,7 +741,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                     continue
                 try:
                     owned_action, owned_reason = position_action(
-                        a, price, {"shares": p.shares, "avg_cost": p.avg_cost, "account": "Paper", "opened_at": p.opened_at, "entry_target": p.entry_target, "entry_stretch_target": p.entry_stretch_target, "entry_stop": p.entry_stop, "entry_horizon_days": p.entry_horizon_days, "entry_plan_version": p.entry_plan_version}
+                        a, price, _position_payload(p), decision_at=now,
                     )
                     a["action"] = str(owned_action or "").upper()
                     a["action_reason"] = owned_reason
@@ -602,12 +775,14 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                 and r["symbol"] in current_by_symbol
                 and r.get("optimizer_action") != "ADD"
                 and r.get("entry_signal") in INVESTABLE_ENTRY_ACTIONS
+                and not _profit_stages(current_by_symbol[r["symbol"]])
             ]
             allocation_rows = (
                 [(r, False, "NEW") for r in new_rows]
                 + [(r, True, "ADD") for r in add_rows]
                 + [(r, True, "TARGET REPAIR") for r in repair_rows]
             )
+            allocation_rows = [item for item in allocation_rows if item[0]["symbol"] not in harvested_symbols]
 
             if allocation_rows:
                 # One sizing engine for dashboard and paper execution:
@@ -618,7 +793,19 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                 fee_rate = max(0.0, settings.paper_trade_cost_bps) / 10000.0
                 desired = []
                 for r, is_add, allocation_kind in allocation_rows:
-                    a = r["analysis"] or {}
+                    a, blocker = _entry_analysis(provider, r["analysis"] or {}, now)
+                    if blocker:
+                        if allocation_kind != "TARGET REPAIR":
+                            blocked_orders.append({"symbol": r["symbol"], "decision": "ADD" if is_add else str(r.get("entry_signal") or "BUY"), "reason": blocker})
+                        continue
+                    a = a or {}
+                    if not build_optimizer_plan({r["symbol"]: a}, visible_limit=1)["selected_new"]:
+                        if allocation_kind != "TARGET REPAIR":
+                            blocked_orders.append({"symbol": r["symbol"], "decision": "ADD" if is_add else str(r.get("entry_signal") or "BUY"), "reason": "Entry blocked: refreshed quote no longer has an investable entry signal"})
+                        continue
+                    r["analysis"] = a
+                    analyses[r["symbol"]] = a
+                    equity_now, _, _ = _equity(db, account, analyses)
                     price = float(a.get("price") or 0)
                     if price <= 0:
                         continue
@@ -628,7 +815,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                         a,
                         cash=float(account.cash or 0),
                         reserve_cash=0.0,
-                        portfolio_value=max(float(equity_now or 0), float(account.starting_cash or 0)),
+                        portfolio_value=max(0.0, float(equity_now or 0)),
                         profile=profile,
                         fx_rate_to_base=1.0,
                         existing_value=existing_value,
@@ -650,10 +837,9 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                                 "cash": round(float(account.cash or 0), 2),
                             })
                         continue
-                    target_capital = min(
-                        max(float(sizing.get("target_capital") or 0), rounded_spend),
-                        float(account.cash or 0),
-                    )
+                    # The final quantity is the execution ceiling. The display
+                    # target_capital can exceed a stop-risk-limited executable lot.
+                    target_capital = min(rounded_spend, float(account.cash or 0))
                     desired.append((r, price, sizing, target_capital, is_add, allocation_kind, rounded_shares))
 
                 total_desired = sum(x[3] for x in desired)
@@ -700,6 +886,7 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                             f"priority target {target_pct:.0f}%{scale_note}"
                         ),
                         analysis=r.get("analysis") or {},
+                        max_shares=rounded_shares,
                     )
                     if bought > 0:
                         executed_orders.append({

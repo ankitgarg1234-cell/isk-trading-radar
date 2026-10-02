@@ -33,6 +33,15 @@ def _safe_float(value: Any) -> float | None:
         return None
 
 
+def _price_asof(chart: dict) -> str | None:
+    """Quote observation time; fetching a cached chart does not refresh its price."""
+    try:
+        timestamp = (chart.get("meta") or {}).get("regularMarketTime")
+        return datetime.fromtimestamp(float(timestamp), tz=timezone.utc).isoformat() if timestamp else None
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
 def _iso_days(start: str | None, end: str | None) -> int | None:
     if not start or not end:
         return None
@@ -646,7 +655,7 @@ class YahooMarketProvider:
                 sector_benchmark = None
 
         data_sources = {
-            "price": {"source": "Yahoo Finance chart", "status": "available" if rows and current else "unavailable", "asof": datetime.now(timezone.utc).isoformat()},
+            "price": {"source": "Yahoo Finance chart", "status": "available" if rows and current else "unavailable", "asof": _price_asof(daily)},
             "fundamentals": {
                 "source": fundamentals.get("_fundamental_source") or fundamentals.get("_source") or "unavailable",
                 "status": fundamentals.get("_status") or "unavailable",
@@ -670,7 +679,7 @@ class YahooMarketProvider:
             },
         }
         return {
-            "symbol": symbol, "price": current, "previous_close": previous,
+            "symbol": symbol, "price": current, "previous_close": previous, "price_asof": _price_asof(daily),
             "currency": currency, "exchange": exchange, "history": rows,
             "fundamentals": fundamentals, "news": news,
             "recent_reverse_splits": recent_reverse_splits,
@@ -880,7 +889,7 @@ class YahooMarketProvider:
             and (change_5 >= 3.0 or change_20 >= 7.0 or rel_vol >= 1.5 or near_high >= 0.985)
         )
         return {
-            "symbol": symbol, "price": current, "previous_close": previous,
+            "symbol": symbol, "price": current, "previous_close": previous, "price_asof": _price_asof(chart),
             "currency": currency, "exchange": exchange,
             "change_5_pct": change_5, "change_20_pct": change_20,
             "relative_volume": rel_vol, "dollar_volume": dollar_volume,

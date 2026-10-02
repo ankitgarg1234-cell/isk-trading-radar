@@ -4,9 +4,10 @@ import argparse, bisect, copy, json, math, os, statistics, sys, threading, time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time as dt_time, timedelta, timezone
 from io import StringIO
 from pathlib import Path
+from zoneinfo import ZoneInfo
 import pandas as pd
 import requests
 
@@ -22,6 +23,19 @@ ae.CREDIBLE_PRIMARY.add("SEC EDGAR")
 STARTING=10000.0
 COST_BPS=10.0
 MIN_RR=2.0
+# NYSE's published 2024-2026 early-close calendar (equities close at 13:00 ET).
+# https://ir.theice.com/press/news-details/2023/NYSE-Group-Announces-2024-2025-and-2026-Holiday-and-Early-Closings-Calendar/default.aspx
+EARLY_CLOSE_DATES = frozenset(date.fromisoformat(day) for day in (
+    "2024-07-03", "2024-11-29", "2024-12-24", "2025-07-03", "2025-11-28", "2025-12-24",
+    "2026-11-27", "2026-12-24",
+))
+
+
+def market_close_at(day):
+    """Actual NYSE close for the staged 2024-2026 period, including DST."""
+    return datetime.combine(day,dt_time(13 if day in EARLY_CLOSE_DATES else 16),tzinfo=ZoneInfo("America/New_York"))
+
+
 WIKI="https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
 WIKI_HISTORY="https://en.wikipedia.org/wiki/Historical_components_of_the_S%26P_500"
 YAHOO="https://query1.finance.yahoo.com/v8/finance/chart/"
@@ -189,7 +203,9 @@ def avail(o,d,units=("USD",)):
     out=[]
     for r in ents(o,units):
         try:
-            if date.fromisoformat(str(r.get("filed"))[:10])>d:continue
+            # SEC companyfacts lacks accepted-at times. Defer the entire
+            # filing day rather than admit possibly after-close disclosures.
+            if date.fromisoformat(str(r.get("filed"))[:10])>=d:continue
         except:continue
         if r.get("val") is not None and r.get("end"):out.append(r)
     return out
@@ -257,37 +273,93 @@ def filing_dates(f,start,end):
                 if start<=d<=end:out.add(d)
     return sorted(out)
 
-def row_before(data,d):
-    rs=data.get("rows") or [];ds=[r["date"] for r in rs];i=bisect.bisect_right(ds,d.isoformat())-1
-    return rs[i] if i>=0 else None
+_ROW_DATE_CACHE = {}
 
-def next_row(data,d):
-    rs=data.get("rows") or [];ds=[r["date"] for r in rs];i=bisect.bisect_right(ds,d.isoformat())
-    return rs[i] if i<len(rs) else None
 
-def hist_asof(data,d,n=270):
-    rs=[r for r in data.get("rows") or [] if r["date"]<=d.isoformat()][-n:];spl=[x for x in data.get("splits") or [] if x["date"]<=d.isoformat()]
-    out=[]
-    for r in rs:
-        rd=date.fromisoformat(r["date"]);fac=1.0
-        for x in spl:
-            sd=date.fromisoformat(x["date"])
-            if rd<sd<=d:fac*=x["denominator"]/x["numerator"]
-        out.append({"date":r["date"],"open":sf(r["open"])*fac if sf(r["open"]) is not None else None,"high":sf(r["high"])*fac if sf(r["high"]) is not None else None,
-            "low":sf(r["low"])*fac if sf(r["low"]) is not None else None,"close":sf(r["close"])*fac,"volume":(sf(r["volume"]) or 0)/fac if fac else 0})
+def _rows_dates(data):
+    rows = data.get("rows") or []
+    cached = _ROW_DATE_CACHE.get(id(data))
+    if cached is None or cached[0] is not data or cached[1] is not rows:
+        cached = (data, rows, [r["date"] for r in rows])
+        _ROW_DATE_CACHE[id(data)] = cached
+    return rows, cached[2]
+
+
+def split_factor_after(data, d):
+    """Undo Yahoo's retrospective split normalization after a given date.
+
+    The staged quote and dividend series use the final share unit. This factor
+    reconstructs historical native units; future split metadata changes units
+    only and is never passed to the signal as future event evidence.
+    """
+    factor = 1.0
+    for event in data.get("splits") or []:
+        if event["date"] > d.isoformat():
+            numerator, denominator = sf(event.get("numerator")), sf(event.get("denominator"))
+            if numerator and denominator:
+                factor *= numerator / denominator
+    return factor
+
+
+def _scaled_row(row, factor):
+    out = dict(row)
+    for key in ("open", "high", "low", "close"):
+        value = sf(row.get(key))
+        out[key] = value * factor if value is not None else None
+    out["volume"] = (sf(row.get("volume")) or 0.0) / factor
     return out
+
+
+def row_before(data, d):
+    """Latest quote in the share units actually traded on that row's date."""
+    rows, dates = _rows_dates(data)
+    index = bisect.bisect_right(dates, d.isoformat()) - 1
+    if index < 0:
+        return None
+    row = rows[index]
+    return _scaled_row(row, split_factor_after(data, date.fromisoformat(row["date"])))
+
+
+def next_row(data, d):
+    rows, dates = _rows_dates(data)
+    index = bisect.bisect_right(dates, d.isoformat())
+    if index >= len(rows):
+        return None
+    row = rows[index]
+    return _scaled_row(row, split_factor_after(data, date.fromisoformat(row["date"])))
+
+
+def price_asof(data, d):
+    rows, dates = _rows_dates(data)
+    index = bisect.bisect_right(dates, d.isoformat()) - 1
+    if index < 0:
+        return None
+    value = sf(rows[index].get("close"))
+    return value * split_factor_after(data, d) if value is not None else None
+
+
+def hist_asof(data, d, n=270):
+    """Past-only history expressed in the decision date's native share unit.
+
+    Earlier splits are already present in cached OHLC. Apply only the inverse
+    of normalization for splits *after* the decision, never adjust them twice.
+    """
+    rows, dates = _rows_dates(data)
+    end = bisect.bisect_right(dates, d.isoformat())
+    factor = split_factor_after(data, d)
+    return [_scaled_row(r, factor) for r in rows[max(0, end - n):end]]
 
 ETF={"Information Technology":"XLK","Communication Services":"XLC","Consumer Discretionary":"XLY","Consumer Staples":"XLP","Financials":"XLF","Health Care":"XLV","Industrials":"XLI","Energy":"XLE","Materials":"XLB","Real Estate":"XLRE","Utilities":"XLU"}
 
 def analyse(sym,d,market,fmap,fdates,sectors,etfs):
     data=market.get(sym);raw=row_before(data,d) if data else None
-    if not raw or not raw.get("close") or float(raw["close"])<5:return None
+    if not raw or raw["date"] != d.isoformat() or not raw.get("close") or float(raw["close"])<5:return None
     h=hist_asof(data,d)
     if len(h)<100:return None
     f=fmap.get(sym)
     if not f:return None
     fundamentals=fundamental(f,d,float(raw["close"]),sectors.get(sym))
-    fd=fdates.get(sym,[]);recent=[x for x in fd if timedelta(0)<=d-x<=timedelta(days=7)]
+    fd=fdates.get(sym,[]);recent=[x for x in fd if timedelta(0)<d-x<=timedelta(days=7)]
     news=[]
     if recent:news=[{"title":"SEC earnings filing","publisher":"SEC EDGAR","providerPublishTime":datetime.combine(recent[-1],datetime.min.time(),tzinfo=timezone.utc).timestamp()}]
     sb=None;etf=ETF.get(sectors.get(sym))
@@ -307,104 +379,358 @@ def analyse(sym,d,market,fmap,fdates,sectors,etfs):
 @dataclass
 class Pos:
     shares:float;avg:float;opened:date;lane:str;rank:float
+    entry_target:float|None=None
+    entry_stretch_target:float|None=None
+    entry_stop:float|None=None
+    entry_horizon_days:int|None=None
+    entry_plan_version:str|None=None
+    original_shares:float=0.0
+    profit_taken_shares:float=0.0
+    profit_taken_stages:set=field(default_factory=set)
+    entry_fees_remaining:float=0.0
+
+    def __post_init__(self):
+        if not self.original_shares:
+            self.original_shares = self.shares
+
+    def as_position(self):
+        return {"shares":self.shares,"avg_cost":self.avg,"account":"Backtest",
+                "whole_shares":True,"opened_at":datetime.combine(self.opened,dt_time(9,30),tzinfo=ZoneInfo("America/New_York")),
+                "entry_target":self.entry_target,"entry_stretch_target":self.entry_stretch_target,
+                "entry_stop":self.entry_stop,"entry_horizon_days":self.entry_horizon_days,
+                "entry_plan_version":self.entry_plan_version,"original_shares":self.original_shares,
+                "profit_taken_shares":self.profit_taken_shares,"profit_taken_stages":list(self.profit_taken_stages)}
+
+
 @dataclass
 class State:
     name:str;rr:float;core_only:bool;cash:float=STARTING;pos:dict=field(default_factory=dict);trades:list=field(default_factory=list);curve:list=field(default_factory=list);snap:dict=field(default_factory=dict);last:date|None=None
+    pending:list=field(default_factory=list)
+    rejections:list=field(default_factory=list)
+    cash_events:list=field(default_factory=list)
+    initial_cash:float|None=None
+    harvest_dates:dict=field(default_factory=dict)
+    cost_bps:float=field(default_factory=lambda:COST_BPS)
 
-def fee(v):return abs(v)*COST_BPS/10000
+    def __post_init__(self):
+        if self.initial_cash is None:
+            self.initial_cash = self.cash
 
-def corp(st,market,d):
-    if st.last is None:st.last=d;return
-    for sym,p in list(st.pos.items()):
-        data=market.get(sym) or {}
-        # Cached Yahoo OHLC is already split-adjusted historically.
-        # Applying split events again would double-count corporate actions.
-        for x in data.get("dividends") or []:
-            dd=date.fromisoformat(x["date"])
-            if max(st.last,p.opened-timedelta(days=1))<dd<=d:st.cash+=p.shares*x["amount"]
-    st.last=d
+def fee(v,cost_bps=None):return abs(v)*(COST_BPS if cost_bps is None else cost_bps)/10000
+
+def corp(st, market, d):
+    """Book native-unit corporate actions once, before that session's fills."""
+    if st.last is None:
+        st.last = d
+        return
+    events = []
+    for sym, position in list(st.pos.items()):
+        data = market.get(sym) or {}
+        for event in data.get("splits") or []:
+            day = date.fromisoformat(event["date"])
+            if max(st.last, position.opened) < day <= d:
+                events.append((day, 0, sym, event))
+        for event in data.get("dividends") or []:
+            day = date.fromisoformat(event["date"])
+            if max(st.last, position.opened) < day <= d:
+                events.append((day, 1, sym, event))
+    for day, kind, sym, event in sorted(events, key=lambda x:(x[0],x[1],x[2])):
+        position = st.pos.get(sym)
+        if position is None:
+            continue
+        if kind == 0:
+            ratio = float(event["numerator"]) / float(event["denominator"])
+            before = position.shares
+            entitlement = before * ratio
+            whole = math.floor(entitlement + 1e-9)
+            remainder = max(0.0, entitlement - whole)
+            position.shares = whole
+            position.avg /= ratio
+            position.original_shares *= ratio
+            position.profit_taken_shares *= ratio
+            for key in ("entry_target", "entry_stretch_target", "entry_stop"):
+                value = getattr(position, key)
+                if value is not None:
+                    setattr(position, key, value / ratio)
+            cash_in_lieu = 0.0
+            cash_in_lieu_price = None
+            if remainder > 1e-9:
+                row = row_before(market[sym], day)
+                if not row or row["date"] != day.isoformat() or not row.get("open"):
+                    raise ValueError(f"Cannot value fractional split entitlement for {sym} on {day}")
+                # Actual issuer cash-in-lieu schedules are unavailable. Value
+                # fractional entitlements at this session's opening price.
+                cash_in_lieu_price = float(row["open"])
+                cash_in_lieu = remainder * cash_in_lieu_price
+                st.cash += cash_in_lieu
+                position.entry_fees_remaining *= whole / entitlement
+            st.cash_events.append({"date":day.isoformat(),"symbol":sym,"kind":"SPLIT",
+                                   "ratio":ratio,"shares_before":before,"shares_after":whole,
+                                   "cash_in_lieu_shares":remainder,"cash_in_lieu_price":cash_in_lieu_price,
+                                   "cash":cash_in_lieu})
+            if whole == 0:
+                st.pos.pop(sym)
+        else:
+            amount = float(event["amount"]) * split_factor_after(market[sym], day)
+            payout = position.shares * amount
+            st.cash += payout
+            st.cash_events.append({"date":day.isoformat(),"symbol":sym,"kind":"DIVIDEND",
+                                   "amount":amount,"shares":position.shares,"cash":payout})
+    st.last = d
 
 def equity(st,market,d):
     v=st.cash
     for s,p in st.pos.items():
-        r=row_before(market.get(s) or {},d)
-        if r and r.get("close"):v+=p.shares*float(r["close"])
+        price=price_asof(market.get(s) or {},d)
+        if price is not None:v+=p.shares*price
     return v
 
-def do_sell(st,s,q,price,d,reason):
+def do_sell(st,s,q,price,d,reason,*,signal_date=None,complete_stages=(),profit_stage=None):
     p=st.pos.get(s)
-    if not p:return
+    if not p:return 0
     q=min(p.shares,math.floor(float(q)+1e-9))
-    if q<=0:return
-    gross=q*price;f=fee(gross);pnl=q*(price-p.avg)-f;st.cash+=gross-f
-    st.trades.append({"date":d.isoformat(),"symbol":s,"side":"SELL","shares":q,"price":price,"pnl":pnl,"reason":reason,"lane":p.lane,"days":(d-p.opened).days})
+    if q<=0:return 0
+    gross=q*price;f=fee(gross,st.cost_bps);entry_fees=p.entry_fees_remaining*q/p.shares
+    pnl=q*(price-p.avg)-f-entry_fees;st.cash+=gross-f
+    st.trades.append({"date":d.isoformat(),"signal_date":signal_date.isoformat() if signal_date else d.isoformat(),
+                      "symbol":s,"side":"SELL","shares":q,"price":price,"pnl":pnl,"gross":gross,"fee":f,
+                      "allocated_entry_fees":entry_fees,"reason":reason,"lane":p.lane,"days":(d-p.opened).days,
+                      "profit_stage":profit_stage})
+    p.entry_fees_remaining-=entry_fees
+    if profit_stage in {"BASE","STRETCH"}:
+        p.profit_taken_shares+=q
+    if profit_stage:
+        p.profit_taken_stages.update(complete_stages or [profit_stage])
+        st.harvest_dates[s]=d
     p.shares-=q
     if p.shares<=1e-9:st.pos.pop(s,None)
+    return q
 
-def do_buy(st,s,q,price,d,reason,lane,rank):
+def do_buy(st,s,q,price,d,reason,lane,rank,*,analysis=None,signal_date=None):
     q=int(q)
-    if q<=0:return
-    maxq=math.floor(st.cash/(price*(1+COST_BPS/10000)))
+    if q<=0:return 0
+    maxq=math.floor(st.cash/(price*(1+st.cost_bps/10000)))
     q=min(q,maxq)
-    if q<=0:return
-    gross=q*price;f=fee(gross);st.cash-=gross+f
+    if q<=0:return 0
+    gross=q*price;f=fee(gross,st.cost_bps);st.cash-=gross+f
     if s in st.pos:
         p=st.pos[s];tot=p.shares+q;p.avg=(p.avg*p.shares+price*q)/tot;p.shares=tot
-    else:st.pos[s]=Pos(q,price,d,lane,rank)
-    st.trades.append({"date":d.isoformat(),"symbol":s,"side":"BUY","shares":q,"price":price,"reason":reason,"lane":lane,"rank":rank})
+        p.original_shares+=q;p.entry_fees_remaining+=f
+    else:
+        analysis=analysis or {};levels=analysis.get("levels") or {};target_plan=analysis.get("target_plan") or {}
+        st.pos[s]=Pos(q,price,d,lane,rank,entry_target=sf(levels.get("target")),
+                      entry_stretch_target=sf(target_plan.get("stretch_target") or levels.get("target")),
+                      entry_stop=sf(levels.get("stop")),
+                      entry_horizon_days=int((analysis.get("holding_horizon") or {}).get("max_days") or 0) or None,
+                      entry_plan_version=analysis.get("scoring_version") or ae.SCORING_VERSION,
+                      original_shares=q,entry_fees_remaining=f)
+    analysis=analysis or {};levels=analysis.get("levels") or {}
+    stop,target=sf(levels.get("stop")),sf(levels.get("target"))
+    fill_rr=(target-price)/(price-stop) if stop is not None and target is not None and price>stop else None
+    st.trades.append({"date":d.isoformat(),"signal_date":signal_date.isoformat() if signal_date else d.isoformat(),
+                      "symbol":s,"side":"BUY","shares":q,"price":price,"gross":gross,"fee":f,
+                      "reason":reason,"lane":lane,"rank":rank,
+                      "entry_stop":stop,"entry_target":target,"fill_risk_reward":fill_rr,
+                      "risk_amount":q*(price-stop) if stop is not None else None,
+                      "frozen_position_stop":st.pos[s].entry_stop,"frozen_position_target":st.pos[s].entry_target})
+    return q
 
 def reliable(a):
     return str(a.get("fundamental_confidence") or "low") in ("medium","high") and float((a.get("fundamentals") or {}).get("marketCap") or 0)>0 and float((a.get("technicals") or {}).get("avg_dollar_volume_20") or 0)>0
 
-def run_state(st,d,base,members,market):
-    corp(st,market,d);analyses={}
-    for s in set(members)|set(st.pos):
+def _reject(st, order, day, reason):
+    st.rejections.append({"date":day.isoformat(),"signal_date":order["signal_date"].isoformat(),
+                          "symbol":order["symbol"],"side":order["side"],"shares":order["shares"],"reason":reason})
+
+
+def _split_order(order, market, fill_day):
+    """Translate a pending signal's quantity/anchors to the fill share unit."""
+    out = copy.deepcopy(order)
+    ratio = 1.0
+    for event in (market.get(order["symbol"]) or {}).get("splits") or []:
+        if order["signal_date"].isoformat() < event["date"] <= fill_day.isoformat():
+            ratio *= float(event["numerator"]) / float(event["denominator"])
+    if ratio != 1:
+        out["shares"] = math.floor(float(out["shares"]) * ratio + 1e-9)
+        analysis = out.get("analysis") or {}
+        if analysis.get("price"):
+            analysis["price"] /= ratio
+        for key, value in list((analysis.get("levels") or {}).items()):
+            if isinstance(value, (int, float)):
+                analysis["levels"][key] = value / ratio
+        for key in ("base_target", "stretch_target"):
+            value = (analysis.get("target_plan") or {}).get(key)
+            if value is not None:
+                analysis["target_plan"][key] = value / ratio
+    return out
+
+
+def advance_state(st, market, d):
+    """Execute past pending orders at their own session, never at signal time."""
+    if st.last is not None and d < st.last:
+        raise ValueError("Replay clock cannot move backwards")
+    due = sorted((order for order in st.pending if order["execution_date"] <= d),
+                 key=lambda order:(order["execution_date"],0 if order["side"]=="SELL" else 1,order["sequence"]))
+    st.pending = [order for order in st.pending if order["execution_date"] > d]
+    for execution_day in sorted({order["execution_date"] for order in due}):
+        corp(st, market, execution_day)
+        for original in (order for order in due if order["execution_date"] == execution_day):
+            order = _split_order(original, market, execution_day)
+            symbol = order["symbol"]
+            row = row_before(market.get(symbol) or {}, execution_day)
+            if not row or row["date"] != execution_day.isoformat() or not sf(row.get("open")) or float(row["open"]) <= 0:
+                _reject(st, order, execution_day, "Missing executable session open")
+                continue
+            price = float(row["open"])
+            quantity = math.floor(float(order["shares"]) + 1e-9)
+            if order["side"] == "SELL":
+                position = st.pos.get(symbol)
+                if position is None:
+                    _reject(st, order, execution_day, "Position already closed")
+                    continue
+                stage = order.get("profit_stage")
+                if stage:
+                    quantity = min(quantity, max(0, math.floor(position.shares - 1)))
+                    if price * (1 - st.cost_bps / 10000) <= position.avg + position.entry_fees_remaining / position.shares:
+                        _reject(st, order, execution_day, "Profit-taking gap would realize a net loss")
+                        continue
+                filled = do_sell(st, symbol, quantity, price, execution_day, order["reason"],
+                                 signal_date=order["signal_date"],complete_stages=order.get("complete_stages") or (),
+                                 profit_stage=stage)
+            else:
+                if st.harvest_dates.get(symbol) == execution_day:
+                    _reject(st, order, execution_day, "Cannot re-add on the same session as a profit harvest")
+                    continue
+                analysis = order.get("analysis") or {}
+                levels = analysis.get("levels") or {}
+                stop, target = sf(levels.get("stop")), sf(levels.get("target"))
+                if order.get("revalidate_rr", True):
+                    if stop is None or target is None or not 0 < stop < price < target:
+                        _reject(st, order, execution_day, "Opening gap invalidates signal stop/target")
+                        continue
+                    if (target - price) / (price - stop) + 1e-9 < st.rr:
+                        _reject(st, order, execution_day, "Opening R/R below entry floor")
+                        continue
+                position = st.pos.get(symbol)
+                held = position.shares if position else 0
+                if order.get("risk_budget") is not None:
+                    if stop is None or price <= stop:
+                        _reject(st, order, execution_day, "Invalid stop for risk ceiling")
+                        continue
+                    remaining = max(0.0, float(order["risk_budget"]) - held * (price - stop))
+                    quantity = min(quantity, math.floor(remaining / (price - stop) + 1e-9))
+                if order.get("position_cap") is not None:
+                    remaining = max(0.0, float(order["position_cap"]) - held * price)
+                    quantity = min(quantity, math.floor(remaining / price + 1e-9))
+                quantity = min(quantity, math.floor((st.cash + 1e-9) / (price * (1 + st.cost_bps / 10000))))
+                filled = do_buy(st, symbol, quantity, price, execution_day, order["reason"],
+                                order.get("lane") or analysis.get("lane") or "CORE_QUALITY",float(order.get("rank") or 0),
+                                analysis=analysis,signal_date=order["signal_date"])
+                if filled:
+                    st.trades[-1]["portfolio_equity_at_signal"]=order.get("portfolio_equity_at_signal")
+                    st.trades[-1]["risk_budget_at_signal"]=order.get("risk_budget")
+                    st.trades[-1]["position_cap_at_signal"]=order.get("position_cap")
+            if not filled:
+                _reject(st, order, execution_day, "No whole shares fit the execution ceilings")
+    corp(st, market, d)
+
+
+def _queue(st, market, day, order):
+    next_session = next_row(market.get(order["symbol"]) or {}, day)
+    order = dict(order, signal_date=day, sequence=len(st.pending))
+    if not next_session:
+        _reject(st, order, day, "No later session in price cache; signal unfilled")
+        return False
+    order["execution_date"] = date.fromisoformat(next_session["date"])
+    st.pending.append(order)
+    return True
+
+
+def run_state(st,d,base,members,market,*,allocation_policy=None,profit_taking=True):
+    """Evaluate close signals and queue fixed quantities for the next open.
+
+    allocation_policy(st, day, ranked_orders, analyses, market) may replace the
+    baseline sizer. It returns dictionaries with symbol/shares/analysis/reason
+    and optional absolute risk_budget and position_cap dollar ceilings. These
+    are research-only policy inputs; this function cannot alter live settings.
+    """
+    advance_state(st,market,d)
+    analyses={}
+    decision_at=market_close_at(d)
+    for s in sorted(set(members)|set(st.pos)):
         if s not in base:continue
         a=copy.deepcopy(base[s])
         if s in st.snap:a["previous_snapshot"]=st.snap[s]
-        p=st.pos.get(s);pd=None if not p else {"shares":p.shares,"avg_cost":p.avg,"account":"Backtest"}
-        act,why=position_action(a,float(a["price"]),pd);a["action"]=act;a["action_reason"]=why
+        position=st.pos.get(s)
+        act,why=position_action(a,float(a["price"]),position.as_position() if position else None,decision_at=decision_at)
+        a["action"]=act;a["action_reason"]=why
         st.snap[s]={"breakdown":copy.deepcopy(a.get("breakdown") or {}),"deterministic_score":a.get("deterministic_score"),"action":act}
         analyses[s]=a
-    exits=[]
-    for s,p in list(st.pos.items()):
-        a=analyses.get(s)
-        if not a:continue
-        # A holding leaving the current entry lane is NOT itself an exit.
-        # Existing positions follow the thesis-gated management rule: technical
-        # weakness / loss of lane qualification alone must not trigger a sale.
-        if a["action"]=="EXIT":exits.append((s,p.shares,"THESIS EXIT"))
-        elif a["action"] in ("REDUCE","TAKE PARTIAL PROFIT"):
-            plan=position_action_plan(a["action"],a,float(a["price"]),{"shares":p.shares,"avg_cost":p.avg,"account":"Backtest"})
-            if plan and plan.get("quantity"):exits.append((s,plan["quantity"],a["action"]))
-        if p.lane=="EXPLOSIVE" and a.get("lane")!="CORE_QUALITY" and (d-p.opened).days>=28:exits.append((s,p.shares,"EXPLOSIVE TIME STOP"))
-    for s,q,why in exits:
-        nr=next_row(market.get(s) or {},d)
-        if nr and nr.get("open"):do_sell(st,s,q,float(nr["open"]),date.fromisoformat(nr["date"]),why)
+    selling=set()
+    for symbol,position in sorted(st.pos.items()):
+        analysis=analyses.get(symbol)
+        if not analysis:continue
+        action=analysis["action"]
+        order=None
+        sessions=sum(position.opened.isoformat()<row["date"]<=d.isoformat() for row in market.get(symbol,{}).get("rows") or [])
+        if position.lane=="EXPLOSIVE" and analysis.get("lane")!="CORE_QUALITY" and sessions>=20:
+            order={"shares":position.shares,"reason":"EXPLOSIVE TIME STOP"}
+        elif action=="EXIT":
+            order={"shares":position.shares,"reason":"THESIS EXIT"}
+        elif action=="REDUCE" or (action=="TAKE PARTIAL PROFIT" and profit_taking):
+            plan=position_action_plan(action,analysis,float(analysis["price"]),position.as_position())
+            if plan and float(plan.get("suggested_shares") or 0)>0:
+                stage=analysis.get("profit_take_stage") if action=="TAKE PARTIAL PROFIT" else None
+                order={"shares":plan["suggested_shares"],"reason":action,"profit_stage":stage,
+                       "complete_stages":analysis.get("profit_take_complete_stages") or ([stage] if stage else [])}
+        if order:
+            order.update(symbol=symbol,side="SELL",analysis=analysis)
+            if _queue(st,market,d,order):selling.add(symbol)
     old=pe.MIN_ENTRY_RISK_REWARD;pe.MIN_ENTRY_RISK_REWARD=st.rr
     try:
-        x={s:a for s,a in analyses.items() if s in members or s in st.pos}
-        if st.core_only:x={s:a for s,a in x.items() if s in st.pos or a.get("lane")=="CORE_QUALITY"}
-        plan=build_optimizer_plan(x,set(st.pos),profile="MEDIUM",visible_limit=20,shortlist_limit=20)
+        candidates={s:a for s,a in analyses.items() if s in members or s in st.pos}
+        if st.core_only:candidates={s:a for s,a in candidates.items() if s in st.pos or a.get("lane")=="CORE_QUALITY"}
+        plan=build_optimizer_plan(candidates,set(st.pos),profile="MEDIUM",visible_limit=20,shortlist_limit=20)
     finally:pe.MIN_ENTRY_RISK_REWARD=old
-    orders=[(r,"NEW") for r in plan.get("selected_new") or []]
-    orders += [(r,"ADD") for r in plan.get("visible") or [] if r.get("owned") and r.get("optimizer_action")=="ADD" and float((r.get("analysis") or {}).get("risk_reward") or 0)>=st.rr]
-    orders.sort(key=lambda z:float(z[0].get("rank_score") or 0),reverse=True)
-    for r,kind in orders:
-        s=r["symbol"];nr=next_row(market.get(s) or {},d)
-        if not nr or not nr.get("open"):continue
-        px=float(nr["open"]);ed=date.fromisoformat(nr["date"]);existing=st.pos.get(s);ev=existing.shares*px if existing else 0
-        a=copy.deepcopy(r["analysis"]);a["price"]=px
-        size=suggested_position_size(a,cash=st.cash,reserve_cash=0,portfolio_value=max(equity(st,market,d),STARTING),profile="MEDIUM",fx_rate_to_base=1,existing_value=ev,whole_shares=True)
-        if int(size.get("shares") or 0)>0:do_buy(st,s,int(size["shares"]),px,ed,kind+" "+str(r.get("entry_signal") or r.get("optimizer_action")),a.get("lane") or "CORE_QUALITY",float(r.get("rank_score") or 0))
-    st.curve.append({"date":d.isoformat(),"equity":round(equity(st,market,d),2),"cash":round(st.cash,2),"positions":len(st.pos)})
+    orders=[(row,"NEW") for row in plan.get("selected_new") or []]
+    orders.extend((row,"ADD") for row in plan.get("visible") or [] if row.get("owned") and row.get("optimizer_action")=="ADD" and float((row.get("analysis") or {}).get("risk_reward") or 0)>=st.rr)
+    blocked=selling|{symbol for symbol,day in st.harvest_dates.items() if day==d}|{order["symbol"] for order in st.pending if order["side"]=="BUY"}
+    orders=[(row,kind) for row,kind in orders if row["symbol"] not in blocked]
+    orders.sort(key=lambda item:(-float(item[0].get("rank_score") or 0),item[0]["symbol"]))
+    if allocation_policy:
+        sized=allocation_policy(st,d,orders,analyses,market)
+    else:
+        sized=[];available=st.cash;total=equity(st,market,d)
+        for row,kind in orders:
+            symbol=row["symbol"];analysis=copy.deepcopy(row["analysis"]);price=float(analysis["price"])
+            position=st.pos.get(symbol);existing=position.shares*price if position else 0
+            sizing=suggested_position_size(analysis,cash=available,reserve_cash=0,portfolio_value=total,
+                                          profile="MEDIUM",fx_rate_to_base=1,existing_value=existing,whole_shares=True)
+            shares=min(int(sizing.get("shares") or 0),math.floor((available+1e-9)/(price*(1+st.cost_bps/10000))))
+            if shares>0:
+                sized.append({"symbol":symbol,"shares":shares,"analysis":analysis,
+                              "reason":kind+" "+str(row.get("entry_signal") or row.get("optimizer_action")),
+                              "lane":analysis.get("lane"),"rank":float(row.get("rank_score") or 0),
+                              "risk_budget":total*pe.RISK_PROFILES["MEDIUM"]["risk_per_trade_pct"]/100,
+                              "position_cap":total*float(sizing.get("hard_position_cap_pct") or 15)/100})
+                available-=shares*price*(1+st.cost_bps/10000)
+    for order in sized:
+        if order["symbol"] in blocked or float(order.get("shares") or 0)<=0:continue
+        _queue(st,market,d,dict(order,side="BUY",analysis=copy.deepcopy(order["analysis"]),portfolio_equity_at_signal=equity(st,market,d)))
+    total=equity(st,market,d)
+    values=[position.shares*(price_asof(market.get(symbol) or {},d) or 0) for symbol,position in st.pos.items()]
+    stop_risk=sum(position.shares*max(0.0,(price_asof(market.get(symbol) or {},d) or 0)-float(position.entry_stop or 0))
+                  for symbol,position in st.pos.items() if position.entry_stop is not None)
+    st.curve.append({"date":d.isoformat(),"equity":round(total,2),"cash":round(st.cash,2),"positions":len(st.pos),
+                     "largest_position_pct":max(values,default=0.0)/total*100 if total else 0.0,
+                     "modeled_stop_risk_pct":stop_risk/total*100 if total else 0.0})
 
 def stat(st):
     c=st.curve;endv=float(c[-1]["equity"]);yrs=(date.fromisoformat(c[-1]["date"])-date.fromisoformat(c[0]["date"])).days/365.25
-    ret=endv/STARTING-1;cagr=(endv/STARTING)**(1/yrs)-1;peak=0;dd=0;by=defaultdict(list)
+    ret=endv/st.initial_cash-1;cagr=(endv/st.initial_cash)**(1/max(yrs,1/365.25))-1;peak=st.initial_cash;dd=0;by=defaultdict(list)
     for r in c:
         e=float(r["equity"]);peak=max(peak,e);dd=min(dd,e/peak-1);by[date.fromisoformat(r["date"]).year].append(r)
-    prev=STARTING;annual={}
+    prev=st.initial_cash;annual={}
     for y in sorted(by):v=float(by[y][-1]["equity"]);annual[str(y)]=v/prev-1;prev=v
     sells=[t for t in st.trades if t["side"]=="SELL"];wins=[t for t in sells if t.get("pnl",0)>0]
     return {"name":st.name,"end_value":round(endv,2),"total_return_pct":round(ret*100,2),"cagr_pct":round(cagr*100,2),"max_drawdown_pct":round(dd*100,2),
@@ -425,7 +751,7 @@ def md(rep):
     a=["# 2022-2026 Point-in-Time Walk-Forward Backtest","","| Variant | End value | Total return | CAGR | Max DD | Trades | Win rate |","|---|---:|---:|---:|---:|---:|---:|"]
     for r in rep["results"]+[rep["benchmark"]]:
         a.append("| "+r["name"]+" | USD "+format(r["end_value"],",.0f")+" | "+format(r["total_return_pct"],"+.1f")+"% | "+format(r["cagr_pct"],"+.1f")+"% | "+format(r["max_drawdown_pct"],".1f")+"% | "+str(r.get("trade_count","—"))+" | "+("—" if r.get("win_rate_pct") is None else str(r["win_rate_pct"])+"%")+" |")
-    a += ["","## Limitations","- Point-in-time S&P 500 membership reconstructed from the public constituent/change tables.","- SEC fundamentals become usable only after filing dates.","- General historical news, analyst consensus and strategic-capital evidence are unavailable; SEC earnings filings are the only catalyst proxy.","- Weekly close signals execute at the next session open. Whole-share sizing, 15% hard cap and 10 bps transaction costs are applied.","- Current Model requires R/R >= 2.0x for buys/adds. Falling below 2x later is not itself a sell trigger.","- Historical simulation is not a guarantee of future results."]
+    a += ["","## Limitations","- Point-in-time S&P 500 membership reconstructed from the public constituent/change tables.","- SEC companyfacts has no accepted-at timestamp: facts and filing-catalyst proxies are deferred beyond filing day.","- General historical news, analyst consensus and strategic-capital evidence are unavailable; SEC earnings filings are the only catalyst proxy.","- Weekly close signals execute at their actual next session open. Signal-close whole-share sizing, 15% hard cap and 10 bps transaction costs are applied; opening R/R and execution ceilings are revalidated.","- Historical native share prices/dividends are reconstructed from split-normalized cache and share quantities adjust once on split dates; fractional entitlements assume cash-in-lieu at split-session open.","- Current Model requires R/R >= 2.0x for buys/adds. Falling below 2x later is not itself a sell trigger.","- Historical simulation is not a guarantee of future results."]
     return "\n".join(a)+"\n"
 
 def main():
@@ -480,6 +806,7 @@ def main():
             for x in bydate.pop(cd):
                 if x["removed"]:members.discard(x["removed"])
                 if x["added"]:members.add(x["added"])
+        for st in states:advance_state(st,mkt,d)
         mem={x for x in members if x in usable};held=set().union(*(set(x.pos) for x in states));base={}
         for sym in mem|held:
             a=analyse(sym,d,mkt,fmap,fdates,sectors,etfs)

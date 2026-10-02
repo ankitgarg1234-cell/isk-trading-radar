@@ -28,6 +28,9 @@ class Position(Base):
     entry_stop: Mapped[float] = mapped_column(Float, nullable=True)
     entry_horizon_days: Mapped[int] = mapped_column(Integer, nullable=True)
     entry_plan_version: Mapped[str] = mapped_column(String(64), nullable=True)
+    original_shares: Mapped[float] = mapped_column(Float, nullable=True)
+    profit_taken_shares: Mapped[float] = mapped_column(Float, nullable=True)
+    profit_taken_stages: Mapped[str] = mapped_column(Text, default="[]", nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class AnalysisRequest(Base):
@@ -153,6 +156,9 @@ class PaperPosition(Base):
     entry_stop: Mapped[float] = mapped_column(Float, nullable=True)
     entry_horizon_days: Mapped[int] = mapped_column(Integer, nullable=True)
     entry_plan_version: Mapped[str] = mapped_column(String(64), nullable=True)
+    original_shares: Mapped[float] = mapped_column(Float, nullable=True)
+    profit_taken_shares: Mapped[float] = mapped_column(Float, nullable=True)
+    profit_taken_stages: Mapped[str] = mapped_column(Text, default="[]", nullable=True)
     opened_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
@@ -231,6 +237,9 @@ def _ensure_runtime_columns():
                 "entry_stop": "FLOAT NULL",
                 "entry_horizon_days": "INTEGER NULL",
                 "entry_plan_version": "VARCHAR(64) NULL",
+                "original_shares": "FLOAT NULL",
+                "profit_taken_shares": "FLOAT NULL",
+                "profit_taken_stages": "TEXT DEFAULT '[]'",
             }
             for name, ddl in additions.items():
                 if name not in cols:

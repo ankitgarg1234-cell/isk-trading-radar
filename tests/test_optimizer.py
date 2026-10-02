@@ -16,13 +16,14 @@ client=TestClient(app)
 def payload(symbol, score=85, sector="Technology", expected=25, ai=88, price=100):
     return {
         "scoring_version":SCORING_VERSION,
+        "asof":datetime.now(timezone.utc).isoformat(),"price_asof":datetime.now(timezone.utc).isoformat(),
         "symbol":symbol,"price":price,"deterministic_score":score,"ai_score":ai,"analyst_score":78,
         "expected_yield_pct":expected,"risk_reward":3.0,"decision_confidence":"high","category":"Core",
         "lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,
         "core_quality_qualified":True,"explosive_qualified":False,
         "entry_zone_status":"PRIMARY_BUY","action":"BUY NOW","negative_news_override":None,
         "thesis_assessment":{"invalidated":False},
-        "levels":{"buy_low":price*.97,"buy_high":price*1.02,"better_low":price*.9,"better_high":price*.93,"stop":price*.88,"target":price*1.3},
+        "levels":{"buy_low":price*.97,"buy_high":price*1.02,"better_low":price*.9,"better_high":price*.93,"stop":price*.88,"target":price*1.3,"breakout":price*1.08,"do_not_chase":price*1.15},
         "technicals":{"atr":2,"relative_volume":1.2,"change20_pct":5},"news":{"material_events":0},
         "fundamentals":{"sector":sector},
     }

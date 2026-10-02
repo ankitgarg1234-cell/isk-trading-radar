@@ -1,0 +1,13 @@
+{
+  "result_hash_verified": true,
+  "idle_ledger_verified": true,
+  "session_count": 690,
+  "complete_month_count": 33,
+  "variants": 7,
+  "executed_trades": 0,
+  "signal_and_fill_checks_exercised_in_historical_run": false,
+  "application_tests_passed": 216,
+  "resume_equivalence": true,
+  "benchmark_return_recomputed_pct": 67.42705490586253,
+  "result_hash": "ff2d221ed4d6383f6b9edc4bb8c1ab5dd1c25e2d95efafe616904969982e5867"
+}

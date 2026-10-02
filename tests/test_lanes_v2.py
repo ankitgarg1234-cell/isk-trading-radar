@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timedelta, timezone
 
-from app.analysis_engine import score_bundle
+from app.analysis_engine import SCORING_VERSION, score_bundle
 from app.db import SessionLocal, PaperAccount, PaperPosition, PaperTrade, RadarCandidate
 from app.paper_engine import run_paper_cycle, paper_status
 from app.portfolio_engine import score_target_allocation_pct, suggested_position_size, candidate_rank_score
@@ -18,6 +18,9 @@ def _core_payload(symbol="CORE", score=90, price=10):
     factor = score / 100.0
     return {
         "symbol": symbol,
+        "scoring_version": SCORING_VERSION,
+        "asof": datetime.now(timezone.utc).isoformat(),
+        "price_asof": datetime.now(timezone.utc).isoformat(),
         "price": price,
         "previous_close": price,
         "category": "Core",
