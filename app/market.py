@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any
 import time
 import re
@@ -190,11 +190,12 @@ class SECFundamentalsProvider:
         rows = cls._entries(fact, units)
         keep: dict[str, dict] = {}
         for r in rows:
-            if r.get("form") not in {"10-Q", "10-Q/A"}:
+            if r.get("form") not in {"10-Q", "10-Q/A", "10-K", "10-K/A", "20-F", "20-F/A"}:
                 continue
             days = _iso_days(r.get("start"), r.get("end"))
-            # Duration facts in 10-Q can also be six/nine-month YTD. Keep quarter-like periods only.
-            if days is not None and not 65 <= days <= 120:
+            # Filing labels describe the filing, not the comparative fact. Require
+            # actual quarter dates, including quarter-duration facts in annual reports.
+            if days is None or not 65 <= days <= 120:
                 continue
             end = r.get("end")
             if not end or r.get("val") is None:
@@ -202,6 +203,47 @@ class SECFundamentalsProvider:
             prior = keep.get(end)
             if not prior or str(r.get("filed") or "") >= str(prior.get("filed") or ""):
                 keep[end] = r
+
+        # Q4 is often absent as a standalone fact. Derive it only from an annual
+        # total and nine-month YTD with the identical fiscal-year start. Summing
+        # arbitrary quarter rows risks overlap, missing quarters and restatements.
+        for annual in cls._annual_values(fact, units):
+            end = annual["end"]
+            annual_revised = any(
+                r.get("start") == annual.get("start") and r.get("end") == end
+                and r.get("val") != annual.get("val")
+                for r in rows if r.get("form") in {"10-K", "10-K/A", "20-F", "20-F/A"}
+            )
+            if end in keep:
+                if not annual_revised or str(keep[end].get("filed") or "") >= str(annual.get("filed") or ""):
+                    continue
+                # An old standalone Q4 does not establish the revised quarter.
+                del keep[end]
+            ytd_rows = [r for r in rows
+                        if r.get("form") in {"10-Q", "10-Q/A", "10-K", "10-K/A", "20-F", "20-F/A"}
+                        and r.get("start") == annual.get("start")
+                        and 240 <= (_iso_days(r.get("start"), r.get("end")) or 0) <= 310
+                        and 65 <= (_iso_days(r.get("end"), end) or 0) <= 120
+                        and _safe_float(r.get("val")) is not None]
+            if not ytd_rows:
+                continue
+            ytd = max(ytd_rows, key=lambda r: (str(r.get("filed") or ""), str(r["end"])))
+            # A changed annual comparative filed after the interim may have a
+            # different accounting scope. Do not subtract an unrevised interim.
+            changed_after_ytd = annual_revised and str(annual.get("filed") or "") > str(ytd.get("filed") or "")
+            same_filing = bool(annual.get("accn") and annual.get("accn") == ytd.get("accn"))
+            if changed_after_ytd and not same_filing:
+                continue
+            total = _safe_float(annual.get("val"))
+            value = total - float(ytd["val"]) if total is not None else None
+            if value is None or value < 0:
+                continue
+            keep[end] = {
+                **annual,
+                "start": (datetime.fromisoformat(ytd["end"]) + timedelta(days=1)).date().isoformat(),
+                "val": value, "_derived": "annual minus nine-month YTD",
+                "_ytd_accn": ytd.get("accn"), "_ytd_end": ytd["end"],
+            }
         return sorted(keep.values(), key=lambda x: x.get("end") or "")
 
     @classmethod
@@ -225,48 +267,25 @@ class SECFundamentalsProvider:
 
     @staticmethod
     def _quarter_yoy_growth(rows: list[dict]) -> float | None:
-        """Return latest quarter revenue growth versus the same fiscal quarter a year ago.
-
-        SEC 10-Q duration facts contain quarter-like observations but normally omit Q4,
-        which is reported in the 10-K. Comparing the latest two 10-Q observations can
-        therefore be sequential growth or even Q1-versus-Q3. Match the fiscal-period
-        label first and fall back to a roughly one-year date separation.
-        """
+        """Match actual period dates, never the SEC filing's fy/fp labels."""
         if len(rows) < 2:
             return None
+        rows = sorted(rows, key=lambda r: str(r.get("end") or ""))
         latest = rows[-1]
         current = _safe_float(latest.get("val"))
         if current is None:
             return None
 
-        latest_fp = str(latest.get("fp") or "").upper()
-        latest_fy = latest.get("fy")
         candidates: list[tuple[float, dict]] = []
-
-        # Prefer the same SEC fiscal-period label from a prior fiscal year.
-        if latest_fp:
-            for prior in rows[:-1]:
-                prior_fp = str(prior.get("fp") or "").upper()
-                prior_fy = prior.get("fy")
-                if prior_fp == latest_fp and (latest_fy is None or prior_fy != latest_fy):
-                    candidates.append((0.0, prior))
-
-        # Some issuers omit/normalize fp differently. Fall back to the closest
-        # observation about one year earlier (52/53-week fiscal years supported).
-        if not candidates:
-            try:
-                latest_end = datetime.fromisoformat(str(latest.get("end"))).date()
-            except Exception:
-                latest_end = None
-            if latest_end is not None:
-                for prior in rows[:-1]:
-                    try:
-                        prior_end = datetime.fromisoformat(str(prior.get("end"))).date()
-                    except Exception:
-                        continue
-                    days = (latest_end - prior_end).days
-                    if 320 <= days <= 410:
-                        candidates.append((abs(days - 365), prior))
+        for prior in rows[:-1]:
+            days = _iso_days(prior.get("end"), latest.get("end"))
+            # Calendar and 52/53-week years, without accepting an adjacent quarter.
+            if days is None or not 350 <= days <= 380:
+                continue
+            start_days = _iso_days(prior.get("start"), latest.get("start"))
+            if start_days is not None and not 350 <= start_days <= 380:
+                continue
+            candidates.append((abs(days - 365), prior))
 
         if not candidates:
             return None
@@ -284,8 +303,14 @@ class SECFundamentalsProvider:
         submissions = self._json(f"https://data.sec.gov/submissions/CIK{cik10}.json")
         facts = self._json(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik10}.json")
 
-        revenue_fact = self._fact(facts, (
+        # Issuers can switch revenue tags. Do not let a populated but obsolete
+        # preferred tag hide a newer series; never splice different tags together.
+        revenue_facts = [self._fact(facts, (tag,)) for tag in (
             "RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues", "SalesRevenueNet",
+        )]
+        revenue_fact = max((f for f in revenue_facts if f), default=None, key=lambda f: max(
+            (str(r.get("end") or "") for r in self._annual_values(f) + self._quarter_values(f)),
+            default="",
         ))
         net_income_fact = self._fact(facts, ("NetIncomeLoss", "ProfitLoss"))
         gross_profit_fact = self._fact(facts, ("GrossProfit",))
@@ -303,6 +328,10 @@ class SECFundamentalsProvider:
         op_income = self._annual_values(op_income_fact)
         ocf = self._annual_values(ocf_fact)
         quarterly_revenue = self._quarter_values(revenue_fact)
+        latest_quarter = quarterly_revenue[-1] if quarterly_revenue else {}
+        latest_period = max(str(latest_quarter.get("end") or ""), str(revenue[-1].get("end") or "") if revenue else "")
+        quarter_current = latest_quarter.get("end") == latest_period
+        quarterly_growth = self._quarter_yoy_growth(quarterly_revenue) if quarter_current else None
 
         latest_rev = _safe_float(revenue[-1].get("val")) if revenue else None
         latest_ni = _safe_float(net_income[-1].get("val")) if net_income else None
@@ -335,7 +364,7 @@ class SECFundamentalsProvider:
         out = {
             "revenueGrowth": self._growth(revenue),
             "earningsGrowth": self._growth(net_income),
-            "quarterlyRevenueGrowth": self._quarter_yoy_growth(quarterly_revenue),
+            "quarterlyRevenueGrowth": quarterly_growth,
             "totalRevenue": latest_rev,
             "grossMargins": (latest_gp / latest_rev) if latest_gp is not None and latest_rev else None,
             "operatingMargins": (latest_oi / latest_rev) if latest_oi is not None and latest_rev else None,
@@ -352,7 +381,10 @@ class SECFundamentalsProvider:
             "_status": "available",
             "_source": "SEC EDGAR/XBRL",
             "_fundamental_period": revenue[-1].get("end") if revenue else None,
-            "_quarterly_period": quarterly_revenue[-1].get("end") if quarterly_revenue else None,
+            "_quarterly_period": latest_period or None,
+            "_quarterly_source": "SEC EDGAR/XBRL",
+            "_quarterly_method": latest_quarter.get("_derived", "reported quarter") if quarter_current else None,
+            "_quarterly_status": "available" if quarterly_growth is not None else "no comparable latest quarter",
         }
         observed = sum(out.get(k) is not None for k in ("revenueGrowth", "earningsGrowth", "grossMargins", "operatingMargins", "returnOnEquity", "debtToEquity"))
         out["_coverage"] = observed
@@ -459,7 +491,7 @@ class YahooMarketProvider:
         yahoo_core = sum(yahoo.get(k) is not None for k in ("revenueGrowth", "earningsGrowth", "grossMargins", "operatingMargins", "returnOnEquity", "debtToEquity"))
         # Market cap is a hard lane gate. If Yahoo omits it, pull SEC shares
         # outstanding even when the rest of Yahoo fundamentals are usable.
-        if yahoo_core < 3 or yahoo.get("marketCap") in (None, ""):
+        if yahoo_core < 3 or yahoo.get("marketCap") in (None, "") or yahoo.get("quarterlyRevenueGrowth") is None:
             try:
                 sec = self.sec.fundamentals(symbol)
             except Exception as exc:
@@ -488,6 +520,9 @@ class YahooMarketProvider:
             else sec.get("_source") or yahoo.get("_source") or "unavailable"
         )
         merged["_fundamental_period"] = sec.get("_fundamental_period") or merged.get("_fundamental_period")
+        if yahoo.get("quarterlyRevenueGrowth") is None:
+            for key in ("_quarterly_period", "_quarterly_source", "_quarterly_method", "_quarterly_status"):
+                merged[key] = sec.get(key)
         merged["_sec_status"] = sec.get("_status") if sec else "not needed / not attempted"
         merged["_yahoo_status"] = yahoo.get("_status")
 

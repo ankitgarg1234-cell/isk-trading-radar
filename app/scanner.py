@@ -264,6 +264,15 @@ class RadarService:
         full = {**bundle, **result, **ai, "action": action, "action_reason": reason, "action_plan": plan, "position": pd}
         if persist:
             self.persist(full)
+            if prior_payload.get("scoring_version") != SCORING_VERSION:
+                f = full.get("fundamentals") or {}
+                print("FUNDAMENTALS_REFRESH " + json.dumps({
+                    "symbol": symbol, "scoring_version": SCORING_VERSION,
+                    "quarterlyRevenueGrowth": f.get("quarterlyRevenueGrowth"),
+                    "quarterly_period": f.get("_quarterly_period"),
+                    "quarterly_status": f.get("_quarterly_status"),
+                    "quarterly_method": f.get("_quarterly_method"),
+                }, sort_keys=True), flush=True)
         return full
 
     def persist(self, full: dict):
@@ -721,7 +730,7 @@ class RadarService:
         with SessionLocal() as db:
             rows = db.query(RadarCandidate).order_by(
                 RadarCandidate.portfolio_rank_score.desc(), RadarCandidate.updated_at.desc()
-            ).limit(max(limit * 3, 40)).all()
+            ).yield_per(200)
             for row in rows:
                 try:
                     payload = json.loads(row.current_json or "{}")
@@ -857,6 +866,15 @@ class RadarService:
             # Without this, a fresh process starts at universe_size=0 and the
             # dashboard misleadingly says "loading" until the next open scan.
             errors: list[str] = []
+            # A data/scoring repair must also reach saved tickers outside trading
+            # hours. Refresh analyses only; this path never runs the paper cycle.
+            refreshed_symbols: list[str] = []
+            for symbol in self.stale_scoring_symbols(limit=20):
+                try:
+                    self.analyze_symbol(symbol)
+                    refreshed_symbols.append(symbol)
+                except Exception as e:
+                    errors.append(f"{symbol}: {type(e).__name__}")
             if self.universe_size <= 0:
                 try:
                     self._refresh_universe_size()
@@ -873,10 +891,10 @@ class RadarService:
                 errors.append(f"strategic capital: {type(e).__name__}")
             self.last_scan = datetime.now(timezone.utc)
             self.scan_count += 1
-            self.last_deep_analyzed = 0
+            self.last_deep_analyzed = len(refreshed_symbols)
             self.last_error = "; ".join(errors[:5]) if errors else None
             return {
-                "status": "market_closed", "analyzed": 0, "universe_size": self.universe_size,
+                "status": "market_closed", "analyzed": len(refreshed_symbols), "refreshed_symbols": refreshed_symbols, "universe_size": self.universe_size,
                 "strategic_enriched": strategic_symbols, "strategic_changed": strategic_changed,
                 "errors": errors,
             }

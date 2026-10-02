@@ -33,6 +33,7 @@ def test_health_endpoint():
     r=client.get('/health')
     assert r.status_code == 200
     assert r.json()["status"] == "ok"
+    assert r.json()["scoring_version"] == SCORING_VERSION
     assert "scan_in_progress" in r.json()
     assert "last_scan_result" in r.json()
 

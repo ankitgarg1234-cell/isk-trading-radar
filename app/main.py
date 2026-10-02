@@ -55,7 +55,7 @@ def logout(request:Request):request.session.clear();return RedirectResponse("/lo
 def health():
     try:
         with engine.connect() as conn:conn.execute(text("SELECT 1"))
-        return {"status":"ok","database":"connected","storage":storage_status(),"scanner_running":radar.running,"scan_in_progress":radar.scan_in_progress,"scan_started_at":radar.scan_started_at,"last_scan":radar.last_scan,"last_scan_duration_seconds":radar.last_scan_duration_seconds,"last_scan_result":radar.last_result,"last_error":radar.last_error,"market_open":radar.market_open(),"universe_size":radar.universe_size,"live_poll_seconds":settings.live_poll_seconds,"dashboard_cache_seconds":settings.dashboard_cache_seconds}
+        return {"status":"ok","database":"connected","scoring_version":SCORING_VERSION,"storage":storage_status(),"scanner_running":radar.running,"scan_in_progress":radar.scan_in_progress,"scan_started_at":radar.scan_started_at,"last_scan":radar.last_scan,"last_scan_duration_seconds":radar.last_scan_duration_seconds,"last_scan_result":radar.last_result,"last_error":radar.last_error,"market_open":radar.market_open(),"universe_size":radar.universe_size,"live_poll_seconds":settings.live_poll_seconds,"dashboard_cache_seconds":settings.dashboard_cache_seconds}
     except Exception as exc:return JSONResponse({"status":"degraded","database":str(exc)},status_code=503)
 
 def _candidate_payload(c: RadarCandidate) -> dict:

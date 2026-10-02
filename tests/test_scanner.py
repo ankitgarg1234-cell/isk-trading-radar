@@ -72,6 +72,39 @@ def test_stale_scoring_candidates_are_prioritized_for_refresh():
     assert syms.index("STALE") < syms.index("DISC")
 
 
+def test_stale_candidates_beyond_current_top_ranks_are_not_starved():
+    import json
+    from app.db import RadarCandidate
+    from app.analysis_engine import SCORING_VERSION
+    with SessionLocal() as db:
+        for i in range(65):
+            symbol = f"FRESH{i}"
+            db.add(RadarCandidate(symbol=symbol, portfolio_rank_score=100-i,
+                current_json=json.dumps(dict(symbol=symbol, scoring_version=SCORING_VERSION))))
+        db.add(RadarCandidate(symbol="OLD", portfolio_rank_score=0,
+            current_json=json.dumps(dict(symbol="OLD", scoring_version="legacy"))))
+        db.commit()
+    r = RadarService(provider=FakeProvider(), ai=FakeAI())
+    assert r.stale_scoring_symbols(limit=20) == ["OLD"]
+
+
+def test_closed_market_refreshes_stale_analyses_without_paper_trades(monkeypatch):
+    import app.scanner as scanner_module
+    r = RadarService(provider=FakeProvider(), ai=FakeAI())
+    monkeypatch.setattr(r, "market_open", lambda now=None: False)
+    monkeypatch.setattr(r, "stale_scoring_symbols", lambda limit=20: ["OLD"])
+    monkeypatch.setattr(r, "_enrich_strategic_top_candidates", lambda: (False, []))
+    refreshed = []
+    monkeypatch.setattr(r, "analyze_symbol", lambda symbol: refreshed.append(symbol))
+    def no_paper(*args, **kwargs):
+        pytest.fail("data refresh must not run paper trades while closed")
+    import pytest
+    monkeypatch.setattr(scanner_module, "run_paper_cycle", no_paper)
+    result = r.scan_once()
+    assert result["refreshed_symbols"] == refreshed == ["OLD"]
+    assert result["analyzed"] == r.last_deep_analyzed == 1
+
+
 def test_persist_generates_buy_alert_without_duplicate_on_same_action():
     from app.db import Alert, RadarCandidate
     r=RadarService(provider=FakeProvider(),ai=FakeAI())
