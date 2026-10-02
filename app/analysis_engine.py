@@ -453,6 +453,11 @@ def forward_target_plan(t: dict, f: dict, price: float, catalyst_score: float = 
         source_parts.append("corroborated 52w/analyst stretch")
     ordered = sorted(candidates)
     base_target = ordered[len(ordered) // 2] if len(ordered) % 2 else sum(ordered[len(ordered)//2-1:len(ordered)//2+1]) / 2
+    if corroborated_far_target:
+        # For a catalyst/volume setup, a prior high becomes a legitimate base
+        # objective only when analyst consensus independently confirms roughly
+        # the same region. Use the lower corroborated anchor, never the higher.
+        base_target = min(h52, analyst_raw, price * 1.60)
 
     stretch_candidates = [base_target + a]
     for raw in (t.get("high52"), f.get("targetHighPrice"), f.get("targetMeanPrice")):
