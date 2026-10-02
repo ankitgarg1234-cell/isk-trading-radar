@@ -223,6 +223,59 @@ class SECFundamentalsProvider:
             return None
         return current / previous - 1
 
+    @staticmethod
+    def _quarter_yoy_growth(rows: list[dict]) -> float | None:
+        """Return latest quarter revenue growth versus the same fiscal quarter a year ago.
+
+        SEC 10-Q duration facts contain quarter-like observations but normally omit Q4,
+        which is reported in the 10-K. Comparing the latest two 10-Q observations can
+        therefore be sequential growth or even Q1-versus-Q3. Match the fiscal-period
+        label first and fall back to a roughly one-year date separation.
+        """
+        if len(rows) < 2:
+            return None
+        latest = rows[-1]
+        current = _safe_float(latest.get("val"))
+        if current is None:
+            return None
+
+        latest_fp = str(latest.get("fp") or "").upper()
+        latest_fy = latest.get("fy")
+        candidates: list[tuple[float, dict]] = []
+
+        # Prefer the same SEC fiscal-period label from a prior fiscal year.
+        if latest_fp:
+            for prior in rows[:-1]:
+                prior_fp = str(prior.get("fp") or "").upper()
+                prior_fy = prior.get("fy")
+                if prior_fp == latest_fp and (latest_fy is None or prior_fy != latest_fy):
+                    candidates.append((0.0, prior))
+
+        # Some issuers omit/normalize fp differently. Fall back to the closest
+        # observation about one year earlier (52/53-week fiscal years supported).
+        if not candidates:
+            try:
+                latest_end = datetime.fromisoformat(str(latest.get("end"))).date()
+            except Exception:
+                latest_end = None
+            if latest_end is not None:
+                for prior in rows[:-1]:
+                    try:
+                        prior_end = datetime.fromisoformat(str(prior.get("end"))).date()
+                    except Exception:
+                        continue
+                    days = (latest_end - prior_end).days
+                    if 320 <= days <= 410:
+                        candidates.append((abs(days - 365), prior))
+
+        if not candidates:
+            return None
+        _, prior = min(candidates, key=lambda x: (x[0], str(x[1].get("end") or "")))
+        previous = _safe_float(prior.get("val"))
+        if previous in (None, 0):
+            return None
+        return current / previous - 1
+
     def fundamentals(self, symbol: str) -> dict:
         ref = self.resolve(symbol)
         if not ref:
@@ -282,7 +335,7 @@ class SECFundamentalsProvider:
         out = {
             "revenueGrowth": self._growth(revenue),
             "earningsGrowth": self._growth(net_income),
-            "quarterlyRevenueGrowth": self._growth(quarterly_revenue),
+            "quarterlyRevenueGrowth": self._quarter_yoy_growth(quarterly_revenue),
             "totalRevenue": latest_rev,
             "grossMargins": (latest_gp / latest_rev) if latest_gp is not None and latest_rev else None,
             "operatingMargins": (latest_oi / latest_rev) if latest_oi is not None and latest_rev else None,
