@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>ISK Trading Radar</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=paper-balances-v1">
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <script defer src="/static/app.js?v=manual-remove-v1"></script>
+  <script defer src="/static/app.js?v=paper-balances-v1"></script>
 </head>
 <body data-live-poll="{{ live_poll_seconds }}">
 <header class="topbar">
@@ -175,8 +175,12 @@
 
   <section class="panel paper-panel compact-paper-panel" id="paperOpenPositions">
     <div class="section-title-row compact-title-row"><div><span class="kicker">$10,000 PAPER PORTFOLIO</span><h2>Open positions vs S&amp;P 500</h2></div><span class="pill {{ 'green' if paper.started else 'amber' }}">{{ 'RUNNING' if paper.started else 'STARTS ON FIRST SCAN' }}</span></div>
+    <div class="paper-metrics compact-paper-metrics paper-balances">
+      <div><span>Cash remaining</span><b id="paperCash">${{ '%.2f'|format(paper.cash if paper.started else paper.starting_cash) }}</b><small>Available for new paper trades</small></div>
+      <div><span>Stock value</span><b id="paperInvested">${{ '%.2f'|format(paper.invested if paper.started else 0) }}</b><small>Current value of open shares</small></div>
+      <div><span>Total equity</span><b id="paperEquity">${{ '%.2f'|format(paper.equity if paper.started else paper.starting_cash) }}</b><small>Cash remaining + stock value</small></div>
+    </div>
     <div class="paper-metrics compact-paper-metrics return-metrics">
-      <div><span>Equity</span><b id="paperEquity">${{ '%.0f'|format(paper.equity if paper.started else paper.starting_cash) }}</b><small>Current paper account value</small></div>
       <div><span>Absolute return</span><b id="paperAbsoluteReturn" class="{{ 'pos' if paper.started and paper.absolute_return >= 0 else 'neg' if paper.started else '' }}">{{ ('$%+.2f'|format(paper.absolute_return)) if paper.started else '—' }}</b><small>Since start • <span id="paperReturn" class="{{ 'pos' if paper.started and paper.return_pct >= 0 else 'neg' if paper.started else '' }}">{{ ('%+.2f%%'|format(paper.return_pct)) if paper.started else '—' }}</span></small></div>
       <div><span>S&amp;P 500 return</span><b id="paperBenchmark">{{ ('%+.2f%%'|format(paper.benchmark_return_pct)) if paper.started else '—' }}</b><small>{{ paper.benchmark_label|default('S&P 500 Total Return') }}</small></div>
       <div><span>Alpha vs S&amp;P 500</span><b id="paperExcess" class="{{ 'pos' if paper.started and paper.excess_return_pct > 0 else 'neg' if paper.started and paper.excess_return_pct < 0 else '' }}">{{ ('%+.2f%%'|format(paper.excess_return_pct)) if paper.started else '—' }}</b><small>Paper return minus S&amp;P 500 return</small></div>

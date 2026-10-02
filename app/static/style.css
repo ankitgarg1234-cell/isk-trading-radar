@@ -132,7 +132,7 @@
 
 
 /* explicit-return-cards-and-reallocation */
-.return-metrics{grid-template-columns:repeat(7,minmax(0,1fr))}
+.return-metrics{grid-template-columns:repeat(6,minmax(0,1fr))}
 .return-metrics>div{min-width:0}
 .return-metrics>div b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .reallocation-state{display:inline-flex;width:max-content;align-items:center;padding:2px 7px;border-radius:999px;border:1px solid #365071;background:#132039;font-size:10px;font-weight:900;letter-spacing:.04em}
@@ -141,7 +141,7 @@
 .realloc-no-change{border-color:#3b4c66;background:#111c2f;color:#aebbd0}
 #manualPositionsBody td:last-child{min-width:220px;max-width:320px}
 @media(max-width:1500px){
-  .return-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .return-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 @media(max-width:900px){
   .return-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -155,3 +155,8 @@
 .paper-row-actions{display:flex;gap:6px;white-space:nowrap}
 .paper-row-actions .btn{padding:5px 8px;font-size:10px}
 @media(max-width:900px){.paper-manual-controls{grid-template-columns:1fr 1fr}.paper-manual-controls b,.paper-manual-controls small{grid-column:1/-1}}
+
+.paper-balances{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:7px}
+.paper-balances>div{min-width:0}
+.paper-balances small{white-space:normal}
+@media(max-width:560px){.paper-balances{grid-template-columns:1fr}}
