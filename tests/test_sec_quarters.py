@@ -115,6 +115,30 @@ def test_revenue_tag_switch_uses_current_series(monkeypatch):
     assert f["_quarterly_period"] == "2026-03-31"
 
 
+def test_including_assessed_tax_revenue_is_not_hidden_by_2018_series(monkeypatch):
+    facts = {"facts": {"us-gaap": {
+        "Revenues": fact([row(50, "2018-01-01", "2018-03-31")]),
+        "RevenueFromContractWithCustomerIncludingAssessedTax": fact([
+            row(100, "2025-01-01", "2025-03-31"), row(150, "2026-01-01", "2026-03-31")]),
+    }}}
+    f = provider_for(monkeypatch, facts).fundamentals("TEST")
+    assert f["quarterlyRevenueGrowth"] == pytest.approx(.5)
+    assert f["_quarterly_period"] == "2026-03-31"
+
+
+def test_missing_current_revenue_tag_does_not_present_2018_as_current(monkeypatch):
+    facts = {"facts": {"us-gaap": {"Revenues": fact([
+        row(100, "2017-01-01", "2017-03-31"), row(150, "2018-01-01", "2018-03-31")])}}}
+    provider = provider_for(monkeypatch, facts)
+    submissions = {"filings": {"recent": {"form": ["10-Q", "8-K"],
+                                           "reportDate": ["2026-03-31", "2026-04-15"]}}}
+    monkeypatch.setattr(provider, "_json", lambda u: submissions if "/submissions/" in u else facts)
+    f = provider.fundamentals("TEST")
+    assert f["quarterlyRevenueGrowth"] is None
+    assert f["_quarterly_period"] == "2026-03-31"
+    assert f["_quarterly_status"] == "no comparable latest quarter"
+
+
 def test_healthy_yahoo_still_receives_sec_quarter_and_provenance(monkeypatch):
     class SEC:
         def fundamentals(self, symbol):

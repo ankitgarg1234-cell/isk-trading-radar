@@ -306,7 +306,8 @@ class SECFundamentalsProvider:
         # Issuers can switch revenue tags. Do not let a populated but obsolete
         # preferred tag hide a newer series; never splice different tags together.
         revenue_facts = [self._fact(facts, (tag,)) for tag in (
-            "RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues", "SalesRevenueNet",
+            "RevenueFromContractWithCustomerExcludingAssessedTax",
+            "RevenueFromContractWithCustomerIncludingAssessedTax", "Revenues", "SalesRevenueNet",
         )]
         revenue_fact = max((f for f in revenue_facts if f), default=None, key=lambda f: max(
             (str(r.get("end") or "") for r in self._annual_values(f) + self._quarter_values(f)),
@@ -329,7 +330,12 @@ class SECFundamentalsProvider:
         ocf = self._annual_values(ocf_fact)
         quarterly_revenue = self._quarter_values(revenue_fact)
         latest_quarter = quarterly_revenue[-1] if quarterly_revenue else {}
-        latest_period = max(str(latest_quarter.get("end") or ""), str(revenue[-1].get("end") or "") if revenue else "")
+        recent = (submissions.get("filings") or {}).get("recent") or {}
+        report_dates = recent.get("reportDate") or []
+        latest_report = max((report_dates[i] for i, form in enumerate(recent.get("form") or [])
+                             if form in {"10-Q", "10-Q/A", "10-K", "10-K/A", "20-F", "20-F/A"}
+                             and i < len(report_dates) and _iso_days(report_dates[i], report_dates[i]) == 0), default="")
+        latest_period = max(str(latest_quarter.get("end") or ""), str(revenue[-1].get("end") or "") if revenue else "", latest_report)
         quarter_current = latest_quarter.get("end") == latest_period
         quarterly_growth = self._quarter_yoy_growth(quarterly_revenue) if quarter_current else None
 
