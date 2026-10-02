@@ -57,6 +57,37 @@
       }
     },
     {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 53.52,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14737.28,
+        "total_return_pct": 47.37,
+        "cagr_pct": 21.45,
+        "max_drawdown_pct": -14.42,
+        "alpha_pct": -0.84
+      },
+      "holdout": {
+        "start_value": 14839.98,
+        "end_value": 16708.52,
+        "total_return_pct": 12.59,
+        "cagr_pct": 17.26,
+        "max_drawdown_pct": -14.36,
+        "alpha_pct": -0.14
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16708.52,
+        "total_return_pct": 67.09,
+        "cagr_pct": 20.55,
+        "max_drawdown_pct": -14.42,
+        "alpha_pct": -0.34
+      }
+    },
+    {
       "active_allocation_pct": 8,
       "trigger_drawdown_pct": 10,
       "reentry_drawdown_pct": 4,
@@ -336,6 +367,37 @@
       }
     },
     {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 52.5,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14399.5,
+        "total_return_pct": 43.99,
+        "cagr_pct": 20.04,
+        "max_drawdown_pct": -14.56,
+        "alpha_pct": -4.22
+      },
+      "holdout": {
+        "start_value": 14501.48,
+        "end_value": 16343.37,
+        "total_return_pct": 12.7,
+        "cagr_pct": 17.42,
+        "max_drawdown_pct": -14.54,
+        "alpha_pct": -0.03
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16343.37,
+        "total_return_pct": 63.43,
+        "cagr_pct": 19.59,
+        "max_drawdown_pct": -14.56,
+        "alpha_pct": -4.0
+      }
+    },
+    {
       "active_allocation_pct": 8,
       "trigger_drawdown_pct": 6,
       "reentry_drawdown_pct": 2,
@@ -426,6 +488,37 @@
         "cagr_pct": 19.78,
         "max_drawdown_pct": -14.24,
         "alpha_pct": -3.27
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 51.98,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14311.32,
+        "total_return_pct": 43.11,
+        "cagr_pct": 19.67,
+        "max_drawdown_pct": -14.57,
+        "alpha_pct": -5.1
+      },
+      "holdout": {
+        "start_value": 14413.11,
+        "end_value": 16197.98,
+        "total_return_pct": 12.38,
+        "cagr_pct": 16.97,
+        "max_drawdown_pct": -14.58,
+        "alpha_pct": -0.35
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16197.98,
+        "total_return_pct": 61.98,
+        "cagr_pct": 19.2,
+        "max_drawdown_pct": -14.58,
+        "alpha_pct": -5.45
       }
     },
     {
@@ -550,99 +643,6 @@
         "cagr_pct": 17.69,
         "max_drawdown_pct": -14.01,
         "alpha_pct": -11.03
-      }
-    },
-    {
-      "active_allocation_pct": 10,
-      "trigger_drawdown_pct": 6,
-      "reentry_drawdown_pct": 2,
-      "risk_off_exposure_pct": 0,
-      "switch_cost": 55.71,
-      "train": {
-        "start_value": 10000.0,
-        "end_value": 14129.56,
-        "total_return_pct": 41.3,
-        "cagr_pct": 18.91,
-        "max_drawdown_pct": -12.97,
-        "alpha_pct": -6.91
-      },
-      "holdout": {
-        "start_value": 14228.03,
-        "end_value": 15822.66,
-        "total_return_pct": 11.21,
-        "cagr_pct": 15.33,
-        "max_drawdown_pct": -13.1,
-        "alpha_pct": -1.52
-      },
-      "full": {
-        "start_value": 10000.0,
-        "end_value": 15822.66,
-        "total_return_pct": 58.23,
-        "cagr_pct": 18.19,
-        "max_drawdown_pct": -13.1,
-        "alpha_pct": -9.2
-      }
-    },
-    {
-      "active_allocation_pct": 8,
-      "trigger_drawdown_pct": 6,
-      "reentry_drawdown_pct": 3,
-      "risk_off_exposure_pct": 0,
-      "switch_cost": 58.18,
-      "train": {
-        "start_value": 10000.0,
-        "end_value": 14070.25,
-        "total_return_pct": 40.7,
-        "cagr_pct": 18.66,
-        "max_drawdown_pct": -11.81,
-        "alpha_pct": -7.51
-      },
-      "holdout": {
-        "start_value": 14156.11,
-        "end_value": 15650.98,
-        "total_return_pct": 10.56,
-        "cagr_pct": 14.43,
-        "max_drawdown_pct": -12.25,
-        "alpha_pct": -2.17
-      },
-      "full": {
-        "start_value": 10000.0,
-        "end_value": 15650.98,
-        "total_return_pct": 56.51,
-        "cagr_pct": 17.72,
-        "max_drawdown_pct": -12.25,
-        "alpha_pct": -10.92
-      }
-    },
-    {
-      "active_allocation_pct": 10,
-      "trigger_drawdown_pct": 8,
-      "reentry_drawdown_pct": 3,
-      "risk_off_exposure_pct": 0,
-      "switch_cost": 55.13,
-      "train": {
-        "start_value": 10000.0,
-        "end_value": 14008.21,
-        "total_return_pct": 40.08,
-        "cagr_pct": 18.4,
-        "max_drawdown_pct": -14.46,
-        "alpha_pct": -8.13
-      },
-      "holdout": {
-        "start_value": 14106.43,
-        "end_value": 15556.1,
-        "total_return_pct": 10.28,
-        "cagr_pct": 14.04,
-        "max_drawdown_pct": -14.32,
-        "alpha_pct": -2.45
-      },
-      "full": {
-        "start_value": 10000.0,
-        "end_value": 15556.1,
-        "total_return_pct": 55.56,
-        "cagr_pct": 17.46,
-        "max_drawdown_pct": -14.46,
-        "alpha_pct": -11.87
       }
     }
   ],
@@ -3435,6 +3435,2796 @@
         "cagr_pct": 22.91,
         "max_drawdown_pct": -18.26,
         "alpha_pct": 8.79
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 135.06,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13006.06,
+        "total_return_pct": 30.06,
+        "cagr_pct": 14.07,
+        "max_drawdown_pct": -14.96,
+        "alpha_pct": -18.15
+      },
+      "holdout": {
+        "start_value": 13105.07,
+        "end_value": 14576.25,
+        "total_return_pct": 11.23,
+        "cagr_pct": 15.36,
+        "max_drawdown_pct": -14.28,
+        "alpha_pct": -1.5
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 14576.25,
+        "total_return_pct": 45.76,
+        "cagr_pct": 14.71,
+        "max_drawdown_pct": -14.96,
+        "alpha_pct": -21.67
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 106.37,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13659.36,
+        "total_return_pct": 36.59,
+        "cagr_pct": 16.91,
+        "max_drawdown_pct": -16.17,
+        "alpha_pct": -11.62
+      },
+      "holdout": {
+        "start_value": 13759.76,
+        "end_value": 15405.62,
+        "total_return_pct": 11.96,
+        "cagr_pct": 16.38,
+        "max_drawdown_pct": -14.37,
+        "alpha_pct": -0.77
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15405.62,
+        "total_return_pct": 54.06,
+        "cagr_pct": 17.04,
+        "max_drawdown_pct": -16.17,
+        "alpha_pct": -13.37
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 74.44,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14342.17,
+        "total_return_pct": 43.42,
+        "cagr_pct": 19.8,
+        "max_drawdown_pct": -17.84,
+        "alpha_pct": -4.79
+      },
+      "holdout": {
+        "start_value": 14444.02,
+        "end_value": 16299.2,
+        "total_return_pct": 12.84,
+        "cagr_pct": 17.62,
+        "max_drawdown_pct": -14.54,
+        "alpha_pct": 0.11
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16299.2,
+        "total_return_pct": 62.99,
+        "cagr_pct": 19.47,
+        "max_drawdown_pct": -17.84,
+        "alpha_pct": -4.44
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 141.03,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13660.25,
+        "total_return_pct": 36.6,
+        "cagr_pct": 16.91,
+        "max_drawdown_pct": -14.11,
+        "alpha_pct": -11.61
+      },
+      "holdout": {
+        "start_value": 13760.65,
+        "end_value": 15402.17,
+        "total_return_pct": 11.93,
+        "cagr_pct": 16.34,
+        "max_drawdown_pct": -13.81,
+        "alpha_pct": -0.8
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15402.17,
+        "total_return_pct": 54.02,
+        "cagr_pct": 17.03,
+        "max_drawdown_pct": -14.11,
+        "alpha_pct": -13.41
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 109.78,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14181.23,
+        "total_return_pct": 41.81,
+        "cagr_pct": 19.13,
+        "max_drawdown_pct": -15.56,
+        "alpha_pct": -6.4
+      },
+      "holdout": {
+        "start_value": 14282.74,
+        "end_value": 16080.21,
+        "total_return_pct": 12.58,
+        "cagr_pct": 17.25,
+        "max_drawdown_pct": -14.06,
+        "alpha_pct": -0.15
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16080.21,
+        "total_return_pct": 60.8,
+        "cagr_pct": 18.88,
+        "max_drawdown_pct": -15.56,
+        "alpha_pct": -6.63
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 75.91,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14711.4,
+        "total_return_pct": 47.11,
+        "cagr_pct": 21.34,
+        "max_drawdown_pct": -17.73,
+        "alpha_pct": -1.1
+      },
+      "holdout": {
+        "start_value": 14814.04,
+        "end_value": 16787.61,
+        "total_return_pct": 13.32,
+        "cagr_pct": 18.29,
+        "max_drawdown_pct": -14.35,
+        "alpha_pct": 0.59
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16787.61,
+        "total_return_pct": 67.88,
+        "cagr_pct": 20.76,
+        "max_drawdown_pct": -17.73,
+        "alpha_pct": 0.45
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 194.34,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13359.83,
+        "total_return_pct": 33.6,
+        "cagr_pct": 15.62,
+        "max_drawdown_pct": -13.78,
+        "alpha_pct": -14.61
+      },
+      "holdout": {
+        "start_value": 13459.6,
+        "end_value": 15268.41,
+        "total_return_pct": 13.44,
+        "cagr_pct": 18.45,
+        "max_drawdown_pct": -14.02,
+        "alpha_pct": 0.71
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15268.41,
+        "total_return_pct": 52.68,
+        "cagr_pct": 16.66,
+        "max_drawdown_pct": -14.02,
+        "alpha_pct": -14.75
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 151.31,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13942.14,
+        "total_return_pct": 39.42,
+        "cagr_pct": 18.12,
+        "max_drawdown_pct": -15.65,
+        "alpha_pct": -8.79
+      },
+      "holdout": {
+        "start_value": 14043.14,
+        "end_value": 15975.92,
+        "total_return_pct": 13.76,
+        "cagr_pct": 18.91,
+        "max_drawdown_pct": -14.2,
+        "alpha_pct": 1.03
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15975.92,
+        "total_return_pct": 59.76,
+        "cagr_pct": 18.6,
+        "max_drawdown_pct": -15.65,
+        "alpha_pct": -7.67
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 104.67,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14542.57,
+        "total_return_pct": 45.43,
+        "cagr_pct": 20.64,
+        "max_drawdown_pct": -17.79,
+        "alpha_pct": -2.78
+      },
+      "holdout": {
+        "start_value": 14644.85,
+        "end_value": 16715.3,
+        "total_return_pct": 14.14,
+        "cagr_pct": 19.43,
+        "max_drawdown_pct": -14.44,
+        "alpha_pct": 1.41
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16715.3,
+        "total_return_pct": 67.15,
+        "cagr_pct": 20.57,
+        "max_drawdown_pct": -17.79,
+        "alpha_pct": -0.28
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 51.25,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14046.94,
+        "total_return_pct": 40.47,
+        "cagr_pct": 18.56,
+        "max_drawdown_pct": -14.65,
+        "alpha_pct": -7.74
+      },
+      "holdout": {
+        "start_value": 14148.17,
+        "end_value": 15754.3,
+        "total_return_pct": 11.35,
+        "cagr_pct": 15.53,
+        "max_drawdown_pct": -14.73,
+        "alpha_pct": -1.38
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15754.3,
+        "total_return_pct": 57.54,
+        "cagr_pct": 18.0,
+        "max_drawdown_pct": -14.73,
+        "alpha_pct": -9.89
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 39.79,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14480.68,
+        "total_return_pct": 44.81,
+        "cagr_pct": 20.38,
+        "max_drawdown_pct": -16.34,
+        "alpha_pct": -3.4
+      },
+      "holdout": {
+        "start_value": 14582.83,
+        "end_value": 16356.84,
+        "total_return_pct": 12.17,
+        "cagr_pct": 16.67,
+        "max_drawdown_pct": -14.78,
+        "alpha_pct": -0.56
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16356.84,
+        "total_return_pct": 63.57,
+        "cagr_pct": 19.62,
+        "max_drawdown_pct": -16.34,
+        "alpha_pct": -3.86
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 27.44,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14917.08,
+        "total_return_pct": 49.17,
+        "cagr_pct": 22.19,
+        "max_drawdown_pct": -18.28,
+        "alpha_pct": 0.96
+      },
+      "holdout": {
+        "start_value": 15020.16,
+        "end_value": 16980.24,
+        "total_return_pct": 13.05,
+        "cagr_pct": 17.9,
+        "max_drawdown_pct": -14.86,
+        "alpha_pct": 0.32
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16980.24,
+        "total_return_pct": 69.8,
+        "cagr_pct": 21.27,
+        "max_drawdown_pct": -18.28,
+        "alpha_pct": 2.37
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 51.98,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14311.32,
+        "total_return_pct": 43.11,
+        "cagr_pct": 19.67,
+        "max_drawdown_pct": -14.57,
+        "alpha_pct": -5.1
+      },
+      "holdout": {
+        "start_value": 14413.11,
+        "end_value": 16197.98,
+        "total_return_pct": 12.38,
+        "cagr_pct": 16.97,
+        "max_drawdown_pct": -14.58,
+        "alpha_pct": -0.35
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16197.98,
+        "total_return_pct": 61.98,
+        "cagr_pct": 19.2,
+        "max_drawdown_pct": -14.58,
+        "alpha_pct": -5.45
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 40.14,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14686.66,
+        "total_return_pct": 46.87,
+        "cagr_pct": 21.24,
+        "max_drawdown_pct": -16.29,
+        "alpha_pct": -1.34
+      },
+      "holdout": {
+        "start_value": 14789.24,
+        "end_value": 16709.69,
+        "total_return_pct": 12.99,
+        "cagr_pct": 17.81,
+        "max_drawdown_pct": -14.68,
+        "alpha_pct": 0.26
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16709.69,
+        "total_return_pct": 67.1,
+        "cagr_pct": 20.56,
+        "max_drawdown_pct": -16.29,
+        "alpha_pct": -0.33
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 27.53,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15059.47,
+        "total_return_pct": 50.59,
+        "cagr_pct": 22.77,
+        "max_drawdown_pct": -18.25,
+        "alpha_pct": 2.38
+      },
+      "holdout": {
+        "start_value": 15162.85,
+        "end_value": 17229.12,
+        "total_return_pct": 13.63,
+        "cagr_pct": 18.71,
+        "max_drawdown_pct": -14.79,
+        "alpha_pct": 0.9
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17229.12,
+        "total_return_pct": 72.29,
+        "cagr_pct": 21.91,
+        "max_drawdown_pct": -18.25,
+        "alpha_pct": 4.86
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 52.5,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14399.5,
+        "total_return_pct": 43.99,
+        "cagr_pct": 20.04,
+        "max_drawdown_pct": -14.56,
+        "alpha_pct": -4.22
+      },
+      "holdout": {
+        "start_value": 14501.48,
+        "end_value": 16343.37,
+        "total_return_pct": 12.7,
+        "cagr_pct": 17.42,
+        "max_drawdown_pct": -14.54,
+        "alpha_pct": -0.03
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16343.37,
+        "total_return_pct": 63.43,
+        "cagr_pct": 19.59,
+        "max_drawdown_pct": -14.56,
+        "alpha_pct": -4.0
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 40.47,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14754.73,
+        "total_return_pct": 47.55,
+        "cagr_pct": 21.52,
+        "max_drawdown_pct": -16.27,
+        "alpha_pct": -0.66
+      },
+      "holdout": {
+        "start_value": 14857.46,
+        "end_value": 16823.99,
+        "total_return_pct": 13.24,
+        "cagr_pct": 18.17,
+        "max_drawdown_pct": -14.64,
+        "alpha_pct": 0.51
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16823.99,
+        "total_return_pct": 68.24,
+        "cagr_pct": 20.86,
+        "max_drawdown_pct": -16.27,
+        "alpha_pct": 0.81
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 27.71,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15106.08,
+        "total_return_pct": 51.06,
+        "cagr_pct": 22.96,
+        "max_drawdown_pct": -18.24,
+        "alpha_pct": 2.85
+      },
+      "holdout": {
+        "start_value": 15209.56,
+        "end_value": 17308.8,
+        "total_return_pct": 13.8,
+        "cagr_pct": 18.96,
+        "max_drawdown_pct": -14.77,
+        "alpha_pct": 1.07
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17308.8,
+        "total_return_pct": 73.09,
+        "cagr_pct": 22.11,
+        "max_drawdown_pct": -18.24,
+        "alpha_pct": 5.66
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 53.52,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14737.28,
+        "total_return_pct": 47.37,
+        "cagr_pct": 21.45,
+        "max_drawdown_pct": -14.42,
+        "alpha_pct": -0.84
+      },
+      "holdout": {
+        "start_value": 14839.98,
+        "end_value": 16708.52,
+        "total_return_pct": 12.59,
+        "cagr_pct": 17.26,
+        "max_drawdown_pct": -14.36,
+        "alpha_pct": -0.14
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16708.52,
+        "total_return_pct": 67.09,
+        "cagr_pct": 20.55,
+        "max_drawdown_pct": -14.42,
+        "alpha_pct": -0.34
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 41.0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15015.06,
+        "total_return_pct": 50.15,
+        "cagr_pct": 22.59,
+        "max_drawdown_pct": -16.19,
+        "alpha_pct": 1.94
+      },
+      "holdout": {
+        "start_value": 15118.35,
+        "end_value": 17108.59,
+        "total_return_pct": 13.16,
+        "cagr_pct": 18.07,
+        "max_drawdown_pct": -14.52,
+        "alpha_pct": 0.43
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17108.59,
+        "total_return_pct": 71.09,
+        "cagr_pct": 21.6,
+        "max_drawdown_pct": -16.19,
+        "alpha_pct": 3.66
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 27.9,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15284.15,
+        "total_return_pct": 52.84,
+        "cagr_pct": 23.68,
+        "max_drawdown_pct": -18.2,
+        "alpha_pct": 4.63
+      },
+      "holdout": {
+        "start_value": 15388.01,
+        "end_value": 17505.64,
+        "total_return_pct": 13.76,
+        "cagr_pct": 18.9,
+        "max_drawdown_pct": -14.69,
+        "alpha_pct": 1.03
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17505.64,
+        "total_return_pct": 75.06,
+        "cagr_pct": 22.62,
+        "max_drawdown_pct": -18.2,
+        "alpha_pct": 7.63
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 50.28,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13857.36,
+        "total_return_pct": 38.57,
+        "cagr_pct": 17.76,
+        "max_drawdown_pct": -16.0,
+        "alpha_pct": -9.64
+      },
+      "holdout": {
+        "start_value": 13958.19,
+        "end_value": 15399.54,
+        "total_return_pct": 10.33,
+        "cagr_pct": 14.11,
+        "max_drawdown_pct": -15.8,
+        "alpha_pct": -2.4
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15399.54,
+        "total_return_pct": 54.0,
+        "cagr_pct": 17.03,
+        "max_drawdown_pct": -16.0,
+        "alpha_pct": -13.43
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 39.15,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14330.44,
+        "total_return_pct": 43.3,
+        "cagr_pct": 19.75,
+        "max_drawdown_pct": -17.34,
+        "alpha_pct": -4.91
+      },
+      "holdout": {
+        "start_value": 14432.27,
+        "end_value": 16068.42,
+        "total_return_pct": 11.34,
+        "cagr_pct": 15.51,
+        "max_drawdown_pct": -15.6,
+        "alpha_pct": -1.39
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16068.42,
+        "total_return_pct": 60.68,
+        "cagr_pct": 18.85,
+        "max_drawdown_pct": -17.34,
+        "alpha_pct": -6.75
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 27.08,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14811.45,
+        "total_return_pct": 48.11,
+        "cagr_pct": 21.75,
+        "max_drawdown_pct": -18.93,
+        "alpha_pct": -0.1
+      },
+      "holdout": {
+        "start_value": 14914.3,
+        "end_value": 16772.32,
+        "total_return_pct": 12.46,
+        "cagr_pct": 17.08,
+        "max_drawdown_pct": -15.42,
+        "alpha_pct": -0.27
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16772.32,
+        "total_return_pct": 67.72,
+        "cagr_pct": 20.72,
+        "max_drawdown_pct": -18.93,
+        "alpha_pct": 0.29
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 50.98,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14116.0,
+        "total_return_pct": 41.16,
+        "cagr_pct": 18.85,
+        "max_drawdown_pct": -15.93,
+        "alpha_pct": -7.05
+      },
+      "holdout": {
+        "start_value": 14217.37,
+        "end_value": 15823.75,
+        "total_return_pct": 11.3,
+        "cagr_pct": 15.46,
+        "max_drawdown_pct": -15.67,
+        "alpha_pct": -1.43
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15823.75,
+        "total_return_pct": 58.24,
+        "cagr_pct": 18.19,
+        "max_drawdown_pct": -15.93,
+        "alpha_pct": -9.19
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 39.48,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14533.04,
+        "total_return_pct": 45.33,
+        "cagr_pct": 20.6,
+        "max_drawdown_pct": -17.29,
+        "alpha_pct": -2.88
+      },
+      "holdout": {
+        "start_value": 14635.3,
+        "end_value": 16409.56,
+        "total_return_pct": 12.12,
+        "cagr_pct": 16.61,
+        "max_drawdown_pct": -15.51,
+        "alpha_pct": -0.61
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16409.56,
+        "total_return_pct": 64.1,
+        "cagr_pct": 19.76,
+        "max_drawdown_pct": -17.29,
+        "alpha_pct": -3.33
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 27.17,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14952.27,
+        "total_return_pct": 49.52,
+        "cagr_pct": 22.33,
+        "max_drawdown_pct": -18.9,
+        "alpha_pct": 1.31
+      },
+      "holdout": {
+        "start_value": 15055.42,
+        "end_value": 17015.65,
+        "total_return_pct": 13.02,
+        "cagr_pct": 17.86,
+        "max_drawdown_pct": -15.36,
+        "alpha_pct": 0.29
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17015.65,
+        "total_return_pct": 70.16,
+        "cagr_pct": 21.36,
+        "max_drawdown_pct": -18.9,
+        "alpha_pct": 2.73
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 51.49,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14202.03,
+        "total_return_pct": 42.02,
+        "cagr_pct": 19.22,
+        "max_drawdown_pct": -15.91,
+        "alpha_pct": -6.19
+      },
+      "holdout": {
+        "start_value": 14303.59,
+        "end_value": 15962.53,
+        "total_return_pct": 11.6,
+        "cagr_pct": 15.88,
+        "max_drawdown_pct": -15.63,
+        "alpha_pct": -1.13
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15962.53,
+        "total_return_pct": 59.63,
+        "cagr_pct": 18.57,
+        "max_drawdown_pct": -15.91,
+        "alpha_pct": -7.8
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 39.81,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14599.87,
+        "total_return_pct": 46.0,
+        "cagr_pct": 20.88,
+        "max_drawdown_pct": -17.28,
+        "alpha_pct": -2.21
+      },
+      "holdout": {
+        "start_value": 14702.27,
+        "end_value": 16519.94,
+        "total_return_pct": 12.36,
+        "cagr_pct": 16.94,
+        "max_drawdown_pct": -15.48,
+        "alpha_pct": -0.37
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16519.94,
+        "total_return_pct": 65.2,
+        "cagr_pct": 20.06,
+        "max_drawdown_pct": -17.28,
+        "alpha_pct": -2.23
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 27.35,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14998.31,
+        "total_return_pct": 49.98,
+        "cagr_pct": 22.52,
+        "max_drawdown_pct": -18.9,
+        "alpha_pct": 1.77
+      },
+      "holdout": {
+        "start_value": 15101.56,
+        "end_value": 17093.49,
+        "total_return_pct": 13.19,
+        "cagr_pct": 18.1,
+        "max_drawdown_pct": -15.34,
+        "alpha_pct": 0.46
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17093.49,
+        "total_return_pct": 70.93,
+        "cagr_pct": 21.56,
+        "max_drawdown_pct": -18.9,
+        "alpha_pct": 3.5
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 52.48,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14532.63,
+        "total_return_pct": 45.33,
+        "cagr_pct": 20.6,
+        "max_drawdown_pct": -15.79,
+        "alpha_pct": -2.88
+      },
+      "holdout": {
+        "start_value": 14634.89,
+        "end_value": 16312.4,
+        "total_return_pct": 11.46,
+        "cagr_pct": 15.69,
+        "max_drawdown_pct": -15.48,
+        "alpha_pct": -1.27
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16312.4,
+        "total_return_pct": 63.12,
+        "cagr_pct": 19.51,
+        "max_drawdown_pct": -15.79,
+        "alpha_pct": -4.31
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 40.33,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14856.02,
+        "total_return_pct": 48.56,
+        "cagr_pct": 21.93,
+        "max_drawdown_pct": -17.2,
+        "alpha_pct": 0.35
+      },
+      "holdout": {
+        "start_value": 14958.97,
+        "end_value": 16795.52,
+        "total_return_pct": 12.28,
+        "cagr_pct": 16.82,
+        "max_drawdown_pct": -15.37,
+        "alpha_pct": -0.45
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16795.52,
+        "total_return_pct": 67.96,
+        "cagr_pct": 20.78,
+        "max_drawdown_pct": -17.2,
+        "alpha_pct": 0.53
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 27.54,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15174.46,
+        "total_return_pct": 51.74,
+        "cagr_pct": 23.24,
+        "max_drawdown_pct": -18.85,
+        "alpha_pct": 3.53
+      },
+      "holdout": {
+        "start_value": 15278.08,
+        "end_value": 17286.13,
+        "total_return_pct": 13.14,
+        "cagr_pct": 18.04,
+        "max_drawdown_pct": -15.27,
+        "alpha_pct": 0.41
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17286.13,
+        "total_return_pct": 72.86,
+        "cagr_pct": 22.06,
+        "max_drawdown_pct": -18.85,
+        "alpha_pct": 5.43
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 16.74,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14754.1,
+        "total_return_pct": 47.54,
+        "cagr_pct": 21.52,
+        "max_drawdown_pct": -16.47,
+        "alpha_pct": -0.67
+      },
+      "holdout": {
+        "start_value": 14856.83,
+        "end_value": 17111.96,
+        "total_return_pct": 15.18,
+        "cagr_pct": 20.9,
+        "max_drawdown_pct": -15.52,
+        "alpha_pct": 2.45
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17111.96,
+        "total_return_pct": 71.12,
+        "cagr_pct": 21.61,
+        "max_drawdown_pct": -16.47,
+        "alpha_pct": 3.69
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 12.73,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15025.42,
+        "total_return_pct": 50.25,
+        "cagr_pct": 22.63,
+        "max_drawdown_pct": -17.72,
+        "alpha_pct": 2.04
+      },
+      "holdout": {
+        "start_value": 15128.73,
+        "end_value": 17418.46,
+        "total_return_pct": 15.13,
+        "cagr_pct": 20.83,
+        "max_drawdown_pct": -15.4,
+        "alpha_pct": 2.4
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17418.46,
+        "total_return_pct": 74.18,
+        "cagr_pct": 22.4,
+        "max_drawdown_pct": -17.72,
+        "alpha_pct": 6.75
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 8.6,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15289.49,
+        "total_return_pct": 52.89,
+        "cagr_pct": 23.7,
+        "max_drawdown_pct": -19.22,
+        "alpha_pct": 4.68
+      },
+      "holdout": {
+        "start_value": 15393.36,
+        "end_value": 17716.77,
+        "total_return_pct": 15.09,
+        "cagr_pct": 20.78,
+        "max_drawdown_pct": -15.29,
+        "alpha_pct": 2.36
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17716.77,
+        "total_return_pct": 77.17,
+        "cagr_pct": 23.15,
+        "max_drawdown_pct": -19.22,
+        "alpha_pct": 9.74
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 16.73,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14902.0,
+        "total_return_pct": 49.02,
+        "cagr_pct": 22.12,
+        "max_drawdown_pct": -16.47,
+        "alpha_pct": 0.81
+      },
+      "holdout": {
+        "start_value": 15005.05,
+        "end_value": 17279.04,
+        "total_return_pct": 15.15,
+        "cagr_pct": 20.86,
+        "max_drawdown_pct": -15.45,
+        "alpha_pct": 2.42
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17279.04,
+        "total_return_pct": 72.79,
+        "cagr_pct": 22.04,
+        "max_drawdown_pct": -16.47,
+        "alpha_pct": 5.36
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 12.7,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15138.86,
+        "total_return_pct": 51.39,
+        "cagr_pct": 23.09,
+        "max_drawdown_pct": -17.72,
+        "alpha_pct": 3.18
+      },
+      "holdout": {
+        "start_value": 15242.41,
+        "end_value": 17546.61,
+        "total_return_pct": 15.12,
+        "cagr_pct": 20.81,
+        "max_drawdown_pct": -15.35,
+        "alpha_pct": 2.39
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17546.61,
+        "total_return_pct": 75.47,
+        "cagr_pct": 22.72,
+        "max_drawdown_pct": -17.72,
+        "alpha_pct": 8.04
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 8.57,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15366.71,
+        "total_return_pct": 53.67,
+        "cagr_pct": 24.02,
+        "max_drawdown_pct": -19.22,
+        "alpha_pct": 5.46
+      },
+      "holdout": {
+        "start_value": 15470.75,
+        "end_value": 17804.01,
+        "total_return_pct": 15.08,
+        "cagr_pct": 20.76,
+        "max_drawdown_pct": -15.26,
+        "alpha_pct": 2.35
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17804.01,
+        "total_return_pct": 78.04,
+        "cagr_pct": 23.38,
+        "max_drawdown_pct": -19.22,
+        "alpha_pct": 10.61
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 17.04,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14966.66,
+        "total_return_pct": 49.67,
+        "cagr_pct": 22.39,
+        "max_drawdown_pct": -16.47,
+        "alpha_pct": 1.46
+      },
+      "holdout": {
+        "start_value": 15069.85,
+        "end_value": 17352.08,
+        "total_return_pct": 15.14,
+        "cagr_pct": 20.85,
+        "max_drawdown_pct": -15.43,
+        "alpha_pct": 2.41
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17352.08,
+        "total_return_pct": 73.52,
+        "cagr_pct": 22.23,
+        "max_drawdown_pct": -16.47,
+        "alpha_pct": 6.09
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 12.92,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15187.78,
+        "total_return_pct": 51.88,
+        "cagr_pct": 23.29,
+        "max_drawdown_pct": -17.72,
+        "alpha_pct": 3.67
+      },
+      "holdout": {
+        "start_value": 15291.44,
+        "end_value": 17601.88,
+        "total_return_pct": 15.11,
+        "cagr_pct": 20.8,
+        "max_drawdown_pct": -15.33,
+        "alpha_pct": 2.38
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17601.88,
+        "total_return_pct": 76.02,
+        "cagr_pct": 22.86,
+        "max_drawdown_pct": -17.72,
+        "alpha_pct": 8.59
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 8.71,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15399.55,
+        "total_return_pct": 54.0,
+        "cagr_pct": 24.15,
+        "max_drawdown_pct": -19.22,
+        "alpha_pct": 5.79
+      },
+      "holdout": {
+        "start_value": 15503.65,
+        "end_value": 17841.11,
+        "total_return_pct": 15.08,
+        "cagr_pct": 20.75,
+        "max_drawdown_pct": -15.25,
+        "alpha_pct": 2.35
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17841.11,
+        "total_return_pct": 78.41,
+        "cagr_pct": 23.47,
+        "max_drawdown_pct": -19.22,
+        "alpha_pct": 10.98
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 17.04,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15091.11,
+        "total_return_pct": 50.91,
+        "cagr_pct": 22.9,
+        "max_drawdown_pct": -16.47,
+        "alpha_pct": 2.7
+      },
+      "holdout": {
+        "start_value": 15194.56,
+        "end_value": 17492.67,
+        "total_return_pct": 15.12,
+        "cagr_pct": 20.82,
+        "max_drawdown_pct": -15.37,
+        "alpha_pct": 2.39
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17492.67,
+        "total_return_pct": 74.93,
+        "cagr_pct": 22.59,
+        "max_drawdown_pct": -16.47,
+        "alpha_pct": 7.5
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 12.9,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15283.0,
+        "total_return_pct": 52.83,
+        "cagr_pct": 23.68,
+        "max_drawdown_pct": -17.72,
+        "alpha_pct": 4.62
+      },
+      "holdout": {
+        "start_value": 15386.85,
+        "end_value": 17709.44,
+        "total_return_pct": 15.09,
+        "cagr_pct": 20.78,
+        "max_drawdown_pct": -15.29,
+        "alpha_pct": 2.36
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17709.44,
+        "total_return_pct": 77.09,
+        "cagr_pct": 23.14,
+        "max_drawdown_pct": -17.72,
+        "alpha_pct": 9.66
+      }
+    },
+    {
+      "active_allocation_pct": 12,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 8.68,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15464.21,
+        "total_return_pct": 54.64,
+        "cagr_pct": 24.41,
+        "max_drawdown_pct": -19.22,
+        "alpha_pct": 6.43
+      },
+      "holdout": {
+        "start_value": 15568.45,
+        "end_value": 17914.15,
+        "total_return_pct": 15.07,
+        "cagr_pct": 20.74,
+        "max_drawdown_pct": -15.22,
+        "alpha_pct": 2.34
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17914.15,
+        "total_return_pct": 79.14,
+        "cagr_pct": 23.65,
+        "max_drawdown_pct": -19.22,
+        "alpha_pct": 11.71
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 128.2,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13311.83,
+        "total_return_pct": 33.12,
+        "cagr_pct": 15.41,
+        "max_drawdown_pct": -16.31,
+        "alpha_pct": -15.09
+      },
+      "holdout": {
+        "start_value": 13429.75,
+        "end_value": 15122.2,
+        "total_return_pct": 12.6,
+        "cagr_pct": 17.28,
+        "max_drawdown_pct": -15.67,
+        "alpha_pct": -0.13
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15122.2,
+        "total_return_pct": 51.22,
+        "cagr_pct": 16.25,
+        "max_drawdown_pct": -16.31,
+        "alpha_pct": -16.21
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 101.11,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13947.46,
+        "total_return_pct": 39.47,
+        "cagr_pct": 18.14,
+        "max_drawdown_pct": -17.34,
+        "alpha_pct": -8.74
+      },
+      "holdout": {
+        "start_value": 14066.73,
+        "end_value": 15908.85,
+        "total_return_pct": 13.1,
+        "cagr_pct": 17.97,
+        "max_drawdown_pct": -15.64,
+        "alpha_pct": 0.37
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15908.85,
+        "total_return_pct": 59.09,
+        "cagr_pct": 18.42,
+        "max_drawdown_pct": -17.34,
+        "alpha_pct": -8.34
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 70.86,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14613.11,
+        "total_return_pct": 46.13,
+        "cagr_pct": 20.93,
+        "max_drawdown_pct": -18.91,
+        "alpha_pct": -2.08
+      },
+      "holdout": {
+        "start_value": 14733.8,
+        "end_value": 16759.16,
+        "total_return_pct": 13.75,
+        "cagr_pct": 18.88,
+        "max_drawdown_pct": -15.69,
+        "alpha_pct": 1.02
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16759.16,
+        "total_return_pct": 67.59,
+        "cagr_pct": 20.69,
+        "max_drawdown_pct": -18.91,
+        "alpha_pct": 0.16
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 134.03,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13947.25,
+        "total_return_pct": 39.47,
+        "cagr_pct": 18.14,
+        "max_drawdown_pct": -15.43,
+        "alpha_pct": -8.74
+      },
+      "holdout": {
+        "start_value": 14066.53,
+        "end_value": 15908.27,
+        "total_return_pct": 13.09,
+        "cagr_pct": 17.97,
+        "max_drawdown_pct": -15.17,
+        "alpha_pct": 0.36
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15908.27,
+        "total_return_pct": 59.08,
+        "cagr_pct": 18.42,
+        "max_drawdown_pct": -15.43,
+        "alpha_pct": -8.35
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 104.44,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14454.93,
+        "total_return_pct": 44.55,
+        "cagr_pct": 20.27,
+        "max_drawdown_pct": -16.87,
+        "alpha_pct": -3.66
+      },
+      "holdout": {
+        "start_value": 14575.28,
+        "end_value": 16552.36,
+        "total_return_pct": 13.56,
+        "cagr_pct": 18.63,
+        "max_drawdown_pct": -15.29,
+        "alpha_pct": 0.83
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16552.36,
+        "total_return_pct": 65.52,
+        "cagr_pct": 20.14,
+        "max_drawdown_pct": -16.87,
+        "alpha_pct": -1.91
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 72.29,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14972.53,
+        "total_return_pct": 49.73,
+        "cagr_pct": 22.41,
+        "max_drawdown_pct": -18.78,
+        "alpha_pct": 1.52
+      },
+      "holdout": {
+        "start_value": 15093.99,
+        "end_value": 17226.08,
+        "total_return_pct": 14.13,
+        "cagr_pct": 19.41,
+        "max_drawdown_pct": -15.48,
+        "alpha_pct": 1.4
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17226.08,
+        "total_return_pct": 72.26,
+        "cagr_pct": 21.9,
+        "max_drawdown_pct": -18.78,
+        "alpha_pct": 4.83
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 186.26,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13649.33,
+        "total_return_pct": 36.49,
+        "cagr_pct": 16.87,
+        "max_drawdown_pct": -15.35,
+        "alpha_pct": -11.72
+      },
+      "holdout": {
+        "start_value": 13767.97,
+        "end_value": 15743.49,
+        "total_return_pct": 14.35,
+        "cagr_pct": 19.73,
+        "max_drawdown_pct": -15.4,
+        "alpha_pct": 1.62
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15743.49,
+        "total_return_pct": 57.43,
+        "cagr_pct": 17.97,
+        "max_drawdown_pct": -15.4,
+        "alpha_pct": -10.0
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 145.15,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14217.77,
+        "total_return_pct": 42.18,
+        "cagr_pct": 19.28,
+        "max_drawdown_pct": -17.01,
+        "alpha_pct": -6.03
+      },
+      "holdout": {
+        "start_value": 14337.62,
+        "end_value": 16424.33,
+        "total_return_pct": 14.55,
+        "cagr_pct": 20.02,
+        "max_drawdown_pct": -15.45,
+        "alpha_pct": 1.82
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16424.33,
+        "total_return_pct": 64.24,
+        "cagr_pct": 19.8,
+        "max_drawdown_pct": -17.01,
+        "alpha_pct": -3.19
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 4,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 100.51,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14805.04,
+        "total_return_pct": 48.05,
+        "cagr_pct": 21.73,
+        "max_drawdown_pct": -18.85,
+        "alpha_pct": -0.16
+      },
+      "holdout": {
+        "start_value": 14926.13,
+        "end_value": 17137.62,
+        "total_return_pct": 14.82,
+        "cagr_pct": 20.39,
+        "max_drawdown_pct": -15.57,
+        "alpha_pct": 2.09
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17137.62,
+        "total_return_pct": 71.38,
+        "cagr_pct": 21.67,
+        "max_drawdown_pct": -18.85,
+        "alpha_pct": 3.95
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 48.36,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14327.7,
+        "total_return_pct": 43.28,
+        "cagr_pct": 19.74,
+        "max_drawdown_pct": -16.06,
+        "alpha_pct": -4.93
+      },
+      "holdout": {
+        "start_value": 14447.78,
+        "end_value": 16247.53,
+        "total_return_pct": 12.46,
+        "cagr_pct": 17.08,
+        "max_drawdown_pct": -15.88,
+        "alpha_pct": -0.27
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16247.53,
+        "total_return_pct": 62.48,
+        "cagr_pct": 19.33,
+        "max_drawdown_pct": -16.06,
+        "alpha_pct": -4.95
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 37.58,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14749.65,
+        "total_return_pct": 47.5,
+        "cagr_pct": 21.5,
+        "max_drawdown_pct": -17.58,
+        "alpha_pct": -0.71
+      },
+      "holdout": {
+        "start_value": 14870.63,
+        "end_value": 16819.39,
+        "total_return_pct": 13.1,
+        "cagr_pct": 17.98,
+        "max_drawdown_pct": -15.87,
+        "alpha_pct": 0.37
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16819.39,
+        "total_return_pct": 68.19,
+        "cagr_pct": 20.85,
+        "max_drawdown_pct": -17.58,
+        "alpha_pct": 0.76
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 25.94,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15175.04,
+        "total_return_pct": 51.75,
+        "cagr_pct": 23.24,
+        "max_drawdown_pct": -19.27,
+        "alpha_pct": 3.54
+      },
+      "holdout": {
+        "start_value": 15296.92,
+        "end_value": 17412.34,
+        "total_return_pct": 13.83,
+        "cagr_pct": 19.0,
+        "max_drawdown_pct": -15.89,
+        "alpha_pct": 1.1
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17412.34,
+        "total_return_pct": 74.12,
+        "cagr_pct": 22.38,
+        "max_drawdown_pct": -19.27,
+        "alpha_pct": 6.69
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 49.06,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14582.2,
+        "total_return_pct": 45.82,
+        "cagr_pct": 20.8,
+        "max_drawdown_pct": -15.96,
+        "alpha_pct": -2.39
+      },
+      "holdout": {
+        "start_value": 14702.82,
+        "end_value": 16659.69,
+        "total_return_pct": 13.31,
+        "cagr_pct": 18.27,
+        "max_drawdown_pct": -15.72,
+        "alpha_pct": 0.58
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16659.69,
+        "total_return_pct": 66.6,
+        "cagr_pct": 20.43,
+        "max_drawdown_pct": -15.96,
+        "alpha_pct": -0.83
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 37.92,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14948.12,
+        "total_return_pct": 49.48,
+        "cagr_pct": 22.31,
+        "max_drawdown_pct": -17.52,
+        "alpha_pct": 1.27
+      },
+      "holdout": {
+        "start_value": 15069.53,
+        "end_value": 17147.98,
+        "total_return_pct": 13.79,
+        "cagr_pct": 18.95,
+        "max_drawdown_pct": -15.76,
+        "alpha_pct": 1.06
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17147.98,
+        "total_return_pct": 71.48,
+        "cagr_pct": 21.7,
+        "max_drawdown_pct": -17.52,
+        "alpha_pct": 4.05
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 26.04,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15312.37,
+        "total_return_pct": 53.12,
+        "cagr_pct": 23.8,
+        "max_drawdown_pct": -19.23,
+        "alpha_pct": 4.91
+      },
+      "holdout": {
+        "start_value": 15434.54,
+        "end_value": 17644.64,
+        "total_return_pct": 14.32,
+        "cagr_pct": 19.69,
+        "max_drawdown_pct": -15.82,
+        "alpha_pct": 1.59
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17644.64,
+        "total_return_pct": 76.45,
+        "cagr_pct": 22.97,
+        "max_drawdown_pct": -19.23,
+        "alpha_pct": 9.02
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 49.58,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14665.4,
+        "total_return_pct": 46.65,
+        "cagr_pct": 21.15,
+        "max_drawdown_pct": -15.94,
+        "alpha_pct": -1.56
+      },
+      "holdout": {
+        "start_value": 14786.2,
+        "end_value": 16793.31,
+        "total_return_pct": 13.57,
+        "cagr_pct": 18.64,
+        "max_drawdown_pct": -15.68,
+        "alpha_pct": 0.84
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16793.31,
+        "total_return_pct": 67.93,
+        "cagr_pct": 20.78,
+        "max_drawdown_pct": -15.94,
+        "alpha_pct": 0.5
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 38.25,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15012.47,
+        "total_return_pct": 50.12,
+        "cagr_pct": 22.58,
+        "max_drawdown_pct": -17.51,
+        "alpha_pct": 1.91
+      },
+      "holdout": {
+        "start_value": 15134.01,
+        "end_value": 17253.31,
+        "total_return_pct": 14.0,
+        "cagr_pct": 19.24,
+        "max_drawdown_pct": -15.72,
+        "alpha_pct": 1.27
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17253.31,
+        "total_return_pct": 72.53,
+        "cagr_pct": 21.97,
+        "max_drawdown_pct": -17.51,
+        "alpha_pct": 5.1
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 26.22,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15356.5,
+        "total_return_pct": 53.57,
+        "cagr_pct": 23.98,
+        "max_drawdown_pct": -19.23,
+        "alpha_pct": 5.36
+      },
+      "holdout": {
+        "start_value": 15478.77,
+        "end_value": 17718.26,
+        "total_return_pct": 14.47,
+        "cagr_pct": 19.9,
+        "max_drawdown_pct": -15.79,
+        "alpha_pct": 1.74
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17718.26,
+        "total_return_pct": 77.18,
+        "cagr_pct": 23.16,
+        "max_drawdown_pct": -19.23,
+        "alpha_pct": 9.75
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 50.58,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14995.16,
+        "total_return_pct": 49.95,
+        "cagr_pct": 22.51,
+        "max_drawdown_pct": -15.79,
+        "alpha_pct": 1.74
+      },
+      "holdout": {
+        "start_value": 15116.66,
+        "end_value": 17149.79,
+        "total_return_pct": 13.45,
+        "cagr_pct": 18.47,
+        "max_drawdown_pct": -15.48,
+        "alpha_pct": 0.72
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17149.79,
+        "total_return_pct": 71.5,
+        "cagr_pct": 21.7,
+        "max_drawdown_pct": -15.79,
+        "alpha_pct": 4.07
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 38.78,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15266.73,
+        "total_return_pct": 52.67,
+        "cagr_pct": 23.61,
+        "max_drawdown_pct": -17.41,
+        "alpha_pct": 4.46
+      },
+      "holdout": {
+        "start_value": 15388.81,
+        "end_value": 17531.27,
+        "total_return_pct": 13.92,
+        "cagr_pct": 19.13,
+        "max_drawdown_pct": -15.59,
+        "alpha_pct": 1.19
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17531.27,
+        "total_return_pct": 75.31,
+        "cagr_pct": 22.68,
+        "max_drawdown_pct": -17.41,
+        "alpha_pct": 7.88
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 6,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 26.41,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15530.49,
+        "total_return_pct": 55.3,
+        "cagr_pct": 24.68,
+        "max_drawdown_pct": -19.17,
+        "alpha_pct": 7.09
+      },
+      "holdout": {
+        "start_value": 15653.13,
+        "end_value": 17910.57,
+        "total_return_pct": 14.42,
+        "cagr_pct": 19.83,
+        "max_drawdown_pct": -15.71,
+        "alpha_pct": 1.69
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17910.57,
+        "total_return_pct": 79.11,
+        "cagr_pct": 23.64,
+        "max_drawdown_pct": -19.17,
+        "alpha_pct": 11.68
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 47.47,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14151.31,
+        "total_return_pct": 41.51,
+        "cagr_pct": 19.0,
+        "max_drawdown_pct": -17.31,
+        "alpha_pct": -6.7
+      },
+      "holdout": {
+        "start_value": 14271.02,
+        "end_value": 15927.23,
+        "total_return_pct": 11.61,
+        "cagr_pct": 15.89,
+        "max_drawdown_pct": -16.8,
+        "alpha_pct": -1.12
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15927.23,
+        "total_return_pct": 59.27,
+        "cagr_pct": 18.47,
+        "max_drawdown_pct": -17.31,
+        "alpha_pct": -8.16
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 36.99,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14609.57,
+        "total_return_pct": 46.1,
+        "cagr_pct": 20.92,
+        "max_drawdown_pct": -18.51,
+        "alpha_pct": -2.11
+      },
+      "holdout": {
+        "start_value": 14730.25,
+        "end_value": 16557.92,
+        "total_return_pct": 12.41,
+        "cagr_pct": 17.01,
+        "max_drawdown_pct": -16.58,
+        "alpha_pct": -0.32
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16557.92,
+        "total_return_pct": 65.58,
+        "cagr_pct": 20.16,
+        "max_drawdown_pct": -18.51,
+        "alpha_pct": -1.85
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 25.61,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15076.35,
+        "total_return_pct": 50.76,
+        "cagr_pct": 22.84,
+        "max_drawdown_pct": -19.87,
+        "alpha_pct": 2.55
+      },
+      "holdout": {
+        "start_value": 15198.02,
+        "end_value": 17223.13,
+        "total_return_pct": 13.32,
+        "cagr_pct": 18.29,
+        "max_drawdown_pct": -16.38,
+        "alpha_pct": 0.59
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17223.13,
+        "total_return_pct": 72.23,
+        "cagr_pct": 21.89,
+        "max_drawdown_pct": -19.87,
+        "alpha_pct": 4.8
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 48.15,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14400.28,
+        "total_return_pct": 44.0,
+        "cagr_pct": 20.05,
+        "max_drawdown_pct": -17.22,
+        "alpha_pct": -4.21
+      },
+      "holdout": {
+        "start_value": 14520.52,
+        "end_value": 16321.09,
+        "total_return_pct": 12.4,
+        "cagr_pct": 17.0,
+        "max_drawdown_pct": -16.67,
+        "alpha_pct": -0.33
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16321.09,
+        "total_return_pct": 63.21,
+        "cagr_pct": 19.53,
+        "max_drawdown_pct": -17.22,
+        "alpha_pct": -4.22
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 37.32,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14804.79,
+        "total_return_pct": 48.05,
+        "cagr_pct": 21.72,
+        "max_drawdown_pct": -18.45,
+        "alpha_pct": -0.16
+      },
+      "holdout": {
+        "start_value": 14925.88,
+        "end_value": 16875.49,
+        "total_return_pct": 13.06,
+        "cagr_pct": 17.92,
+        "max_drawdown_pct": -16.48,
+        "alpha_pct": 0.33
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16875.49,
+        "total_return_pct": 68.75,
+        "cagr_pct": 20.99,
+        "max_drawdown_pct": -18.45,
+        "alpha_pct": 1.32
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 25.71,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15212.16,
+        "total_return_pct": 52.12,
+        "cagr_pct": 23.39,
+        "max_drawdown_pct": -19.84,
+        "alpha_pct": 3.91
+      },
+      "holdout": {
+        "start_value": 15334.13,
+        "end_value": 17450.2,
+        "total_return_pct": 13.8,
+        "cagr_pct": 18.96,
+        "max_drawdown_pct": -16.31,
+        "alpha_pct": 1.07
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17450.2,
+        "total_return_pct": 74.5,
+        "cagr_pct": 22.48,
+        "max_drawdown_pct": -19.84,
+        "alpha_pct": 7.07
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 48.66,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14481.44,
+        "total_return_pct": 44.81,
+        "cagr_pct": 20.38,
+        "max_drawdown_pct": -17.2,
+        "alpha_pct": -3.4
+      },
+      "holdout": {
+        "start_value": 14601.85,
+        "end_value": 16448.55,
+        "total_return_pct": 12.65,
+        "cagr_pct": 17.34,
+        "max_drawdown_pct": -16.62,
+        "alpha_pct": -0.08
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16448.55,
+        "total_return_pct": 64.49,
+        "cagr_pct": 19.87,
+        "max_drawdown_pct": -17.2,
+        "alpha_pct": -2.94
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 37.65,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14867.95,
+        "total_return_pct": 48.68,
+        "cagr_pct": 21.98,
+        "max_drawdown_pct": -18.44,
+        "alpha_pct": 0.47
+      },
+      "holdout": {
+        "start_value": 14989.18,
+        "end_value": 16977.16,
+        "total_return_pct": 13.26,
+        "cagr_pct": 18.2,
+        "max_drawdown_pct": -16.45,
+        "alpha_pct": 0.53
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16977.16,
+        "total_return_pct": 69.77,
+        "cagr_pct": 21.26,
+        "max_drawdown_pct": -18.44,
+        "alpha_pct": 2.34
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 25.88,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15255.75,
+        "total_return_pct": 52.56,
+        "cagr_pct": 23.57,
+        "max_drawdown_pct": -19.84,
+        "alpha_pct": 4.35
+      },
+      "holdout": {
+        "start_value": 15377.81,
+        "end_value": 17522.1,
+        "total_return_pct": 13.94,
+        "cagr_pct": 19.16,
+        "max_drawdown_pct": -16.29,
+        "alpha_pct": 1.21
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17522.1,
+        "total_return_pct": 75.22,
+        "cagr_pct": 22.66,
+        "max_drawdown_pct": -19.84,
+        "alpha_pct": 7.79
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 49.62,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14804.19,
+        "total_return_pct": 48.04,
+        "cagr_pct": 21.72,
+        "max_drawdown_pct": -17.06,
+        "alpha_pct": -0.17
+      },
+      "holdout": {
+        "start_value": 14925.29,
+        "end_value": 16790.11,
+        "total_return_pct": 12.49,
+        "cagr_pct": 17.13,
+        "max_drawdown_pct": -16.46,
+        "alpha_pct": -0.24
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16790.11,
+        "total_return_pct": 67.9,
+        "cagr_pct": 20.77,
+        "max_drawdown_pct": -17.06,
+        "alpha_pct": 0.47
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 38.16,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15118.12,
+        "total_return_pct": 51.18,
+        "cagr_pct": 23.01,
+        "max_drawdown_pct": -18.35,
+        "alpha_pct": 2.97
+      },
+      "holdout": {
+        "start_value": 15239.88,
+        "end_value": 17246.31,
+        "total_return_pct": 13.17,
+        "cagr_pct": 18.07,
+        "max_drawdown_pct": -16.33,
+        "alpha_pct": 0.44
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17246.31,
+        "total_return_pct": 72.46,
+        "cagr_pct": 21.95,
+        "max_drawdown_pct": -18.35,
+        "alpha_pct": 5.03
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 8,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 26.07,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15427.86,
+        "total_return_pct": 54.28,
+        "cagr_pct": 24.26,
+        "max_drawdown_pct": -19.78,
+        "alpha_pct": 6.07
+      },
+      "holdout": {
+        "start_value": 15550.28,
+        "end_value": 17710.31,
+        "total_return_pct": 13.89,
+        "cagr_pct": 19.08,
+        "max_drawdown_pct": -16.21,
+        "alpha_pct": 1.16
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17710.31,
+        "total_return_pct": 77.1,
+        "cagr_pct": 23.14,
+        "max_drawdown_pct": -19.78,
+        "alpha_pct": 9.67
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 15.68,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15058.04,
+        "total_return_pct": 50.58,
+        "cagr_pct": 22.76,
+        "max_drawdown_pct": -17.61,
+        "alpha_pct": 2.37
+      },
+      "holdout": {
+        "start_value": 15179.67,
+        "end_value": 17558.2,
+        "total_return_pct": 15.67,
+        "cagr_pct": 21.59,
+        "max_drawdown_pct": -16.45,
+        "alpha_pct": 2.94
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17558.2,
+        "total_return_pct": 75.58,
+        "cagr_pct": 22.75,
+        "max_drawdown_pct": -17.61,
+        "alpha_pct": 8.15
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 11.93,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15312.25,
+        "total_return_pct": 53.12,
+        "cagr_pct": 23.8,
+        "max_drawdown_pct": -18.77,
+        "alpha_pct": 4.91
+      },
+      "holdout": {
+        "start_value": 15434.43,
+        "end_value": 17845.38,
+        "total_return_pct": 15.62,
+        "cagr_pct": 21.52,
+        "max_drawdown_pct": -16.33,
+        "alpha_pct": 2.89
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17845.38,
+        "total_return_pct": 78.45,
+        "cagr_pct": 23.48,
+        "max_drawdown_pct": -18.77,
+        "alpha_pct": 11.02
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 1,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 8.06,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15559.66,
+        "total_return_pct": 55.6,
+        "cagr_pct": 24.8,
+        "max_drawdown_pct": -20.09,
+        "alpha_pct": 7.39
+      },
+      "holdout": {
+        "start_value": 15682.36,
+        "end_value": 18124.87,
+        "total_return_pct": 15.57,
+        "cagr_pct": 21.45,
+        "max_drawdown_pct": -16.21,
+        "alpha_pct": 2.84
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18124.87,
+        "total_return_pct": 81.25,
+        "cagr_pct": 24.18,
+        "max_drawdown_pct": -20.09,
+        "alpha_pct": 13.82
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 15.68,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15196.43,
+        "total_return_pct": 51.96,
+        "cagr_pct": 23.33,
+        "max_drawdown_pct": -17.61,
+        "alpha_pct": 3.75
+      },
+      "holdout": {
+        "start_value": 15318.36,
+        "end_value": 17714.54,
+        "total_return_pct": 15.64,
+        "cagr_pct": 21.55,
+        "max_drawdown_pct": -16.38,
+        "alpha_pct": 2.91
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17714.54,
+        "total_return_pct": 77.15,
+        "cagr_pct": 23.15,
+        "max_drawdown_pct": -17.61,
+        "alpha_pct": 9.72
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 11.9,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15418.4,
+        "total_return_pct": 54.18,
+        "cagr_pct": 24.23,
+        "max_drawdown_pct": -18.77,
+        "alpha_pct": 5.97
+      },
+      "holdout": {
+        "start_value": 15540.81,
+        "end_value": 17965.3,
+        "total_return_pct": 15.6,
+        "cagr_pct": 21.49,
+        "max_drawdown_pct": -16.28,
+        "alpha_pct": 2.87
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17965.3,
+        "total_return_pct": 79.65,
+        "cagr_pct": 23.78,
+        "max_drawdown_pct": -18.77,
+        "alpha_pct": 12.22
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 2,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 8.03,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15631.92,
+        "total_return_pct": 56.32,
+        "cagr_pct": 25.09,
+        "max_drawdown_pct": -20.09,
+        "alpha_pct": 8.11
+      },
+      "holdout": {
+        "start_value": 15754.78,
+        "end_value": 18206.51,
+        "total_return_pct": 15.56,
+        "cagr_pct": 21.44,
+        "max_drawdown_pct": -16.18,
+        "alpha_pct": 2.83
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18206.51,
+        "total_return_pct": 82.07,
+        "cagr_pct": 24.38,
+        "max_drawdown_pct": -20.09,
+        "alpha_pct": 14.64
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 15.99,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15256.3,
+        "total_return_pct": 52.56,
+        "cagr_pct": 23.57,
+        "max_drawdown_pct": -17.61,
+        "alpha_pct": 4.35
+      },
+      "holdout": {
+        "start_value": 15378.36,
+        "end_value": 17782.17,
+        "total_return_pct": 15.63,
+        "cagr_pct": 21.53,
+        "max_drawdown_pct": -16.35,
+        "alpha_pct": 2.9
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17782.17,
+        "total_return_pct": 77.82,
+        "cagr_pct": 23.32,
+        "max_drawdown_pct": -17.61,
+        "alpha_pct": 10.39
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 12.12,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15463.7,
+        "total_return_pct": 54.64,
+        "cagr_pct": 24.41,
+        "max_drawdown_pct": -18.77,
+        "alpha_pct": 6.43
+      },
+      "holdout": {
+        "start_value": 15586.2,
+        "end_value": 18016.47,
+        "total_return_pct": 15.59,
+        "cagr_pct": 21.48,
+        "max_drawdown_pct": -16.26,
+        "alpha_pct": 2.86
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18016.47,
+        "total_return_pct": 80.16,
+        "cagr_pct": 23.91,
+        "max_drawdown_pct": -18.77,
+        "alpha_pct": 12.73
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 3,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 8.17,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15662.33,
+        "total_return_pct": 56.62,
+        "cagr_pct": 25.21,
+        "max_drawdown_pct": -20.09,
+        "alpha_pct": 8.41
+      },
+      "holdout": {
+        "start_value": 15785.25,
+        "end_value": 18240.86,
+        "total_return_pct": 15.56,
+        "cagr_pct": 21.43,
+        "max_drawdown_pct": -16.17,
+        "alpha_pct": 2.83
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18240.86,
+        "total_return_pct": 82.41,
+        "cagr_pct": 24.47,
+        "max_drawdown_pct": -20.09,
+        "alpha_pct": 14.98
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 0,
+      "switch_cost": 15.98,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15373.03,
+        "total_return_pct": 53.73,
+        "cagr_pct": 24.04,
+        "max_drawdown_pct": -17.61,
+        "alpha_pct": 5.52
+      },
+      "holdout": {
+        "start_value": 15495.33,
+        "end_value": 17914.04,
+        "total_return_pct": 15.61,
+        "cagr_pct": 21.5,
+        "max_drawdown_pct": -16.3,
+        "alpha_pct": 2.88
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17914.04,
+        "total_return_pct": 79.14,
+        "cagr_pct": 23.65,
+        "max_drawdown_pct": -17.61,
+        "alpha_pct": 11.71
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 25,
+      "switch_cost": 12.1,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15553.01,
+        "total_return_pct": 55.53,
+        "cagr_pct": 24.77,
+        "max_drawdown_pct": -18.77,
+        "alpha_pct": 7.32
+      },
+      "holdout": {
+        "start_value": 15675.7,
+        "end_value": 18117.36,
+        "total_return_pct": 15.58,
+        "cagr_pct": 21.46,
+        "max_drawdown_pct": -16.22,
+        "alpha_pct": 2.85
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18117.36,
+        "total_return_pct": 81.17,
+        "cagr_pct": 24.16,
+        "max_drawdown_pct": -18.77,
+        "alpha_pct": 13.74
+      }
+    },
+    {
+      "active_allocation_pct": 15,
+      "trigger_drawdown_pct": 10,
+      "reentry_drawdown_pct": 4,
+      "risk_off_exposure_pct": 50,
+      "switch_cost": 8.14,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15722.98,
+        "total_return_pct": 57.23,
+        "cagr_pct": 25.45,
+        "max_drawdown_pct": -20.09,
+        "alpha_pct": 9.02
+      },
+      "holdout": {
+        "start_value": 15846.03,
+        "end_value": 18309.37,
+        "total_return_pct": 15.55,
+        "cagr_pct": 21.41,
+        "max_drawdown_pct": -16.14,
+        "alpha_pct": 2.82
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18309.37,
+        "total_return_pct": 83.09,
+        "cagr_pct": 24.64,
+        "max_drawdown_pct": -20.09,
+        "alpha_pct": 15.66
       }
     }
   ]
