@@ -1,0 +1,54 @@
+name: Build WF3 Historical Price Dataset
+
+on:
+  push:
+    paths:
+      - scripts/wf3_data.py
+      - .github/workflows/wf3-prices.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wf3-price-dataset
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: .wf3_cache_v1
+          key: wf3-price-cache-v1
+      - name: Install
+        run: pip install -r requirements.txt pandas lxml requests
+      - name: Build price-only dataset
+        run: |
+          mkdir -p backtests/staged
+          python scripts/wf3_data.py --prices-only --output backtests/staged/wf3_prices.json.gz
+          ls -lh backtests/staged/wf3_prices.json.gz
+      - name: Split only if GitHub blob limit would be risky
+        run: |
+          size=$(stat -c%s backtests/staged/wf3_prices.json.gz)
+          if [ "$size" -gt 90000000 ]; then
+            split -b 45000000 -d -a 2 backtests/staged/wf3_prices.json.gz backtests/staged/wf3_prices.part.
+            rm backtests/staged/wf3_prices.json.gz
+          fi
+      - name: Commit dataset
+        run: |
+          git config user.name "isk-backtest-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add backtests/staged/wf3_prices*
+          git diff --cached --quiet && exit 0
+          git commit -m "Cache 2024-2026 historical price dataset [skip ci]"
+          git pull --rebase origin main
+          git push
