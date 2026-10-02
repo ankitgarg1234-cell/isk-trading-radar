@@ -159,6 +159,39 @@ def test_live_api_returns_candidates_and_alerts():
     assert d["alerts"][0]["action"] == "BUY"
 
 
+def test_dashboard_uses_current_scoring_snapshot_instead_of_stale_cached_rr():
+    from app.db import RadarCandidate
+    stale=full_payload("VERSIONRR")
+    stale["scoring_version"]="legacy-target-model"
+    stale["price"]=120.34
+    stale["risk_reward"]=4.81
+    stale["levels"].update({"target":178.90,"stop":108.17})
+
+    fresh=full_payload("VERSIONRR")
+    fresh["price"]=120.34
+    fresh["risk_reward"]=2.40
+    fresh["levels"].update({"target":149.55,"stop":108.17})
+
+    with SessionLocal() as db:
+        db.add(RadarCandidate(
+            symbol="VERSIONRR",category="Core",action="BUY NOW",score=88,ai_score=92,
+            price=120.34,portfolio_rank_score=90,lane="CORE_QUALITY",lane_qualified=True,
+            current_json=json.dumps(stale),
+        ))
+        db.add(AnalysisSnapshot(
+            symbol="VERSIONRR",price=120.34,deterministic_score=88,analyst_score=80,
+            ai_score=92,expected_yield_pct=4.0,ai_expected_yield_pct=5.0,
+            category="Core",action="BUY NOW",payload_json=json.dumps(fresh),
+        ))
+        db.commit()
+
+    d=client.get('/api/live').json()
+    row=next(x for x in d["candidates"] if x["symbol"]=="VERSIONRR")
+    assert row["risk_reward"] == 2.40
+    assert row["target"] == 149.55
+    assert row["target"] != 178.90
+
+
 def test_analysis_json_uses_saved_snapshot():
     p=full_payload("JSONX")
     with SessionLocal() as db:

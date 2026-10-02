@@ -238,32 +238,49 @@ def _dashboard_state(db):
     candidate_map={c.symbol:c for c in candidates}
 
     cash_rows=db.query(PortfolioCash).all()
-    payloads={};missing_current=[]
+    payloads={};missing_current=[];stale_scoring_symbols=[]
     for c in candidates:
         has_compact=False
         if getattr(c,"current_json",None):
             try:
                 parsed=json.loads(c.current_json)
-                if isinstance(parsed,dict) and parsed.get("symbol"):
+                if (
+                    isinstance(parsed,dict)
+                    and parsed.get("symbol")
+                    and parsed.get("scoring_version")==SCORING_VERSION
+                ):
                     payloads[c.symbol]=parsed;has_compact=True
+                elif isinstance(parsed,dict) and parsed.get("symbol"):
+                    stale_scoring_symbols.append(c.symbol)
             except Exception:pass
         if not has_compact:
-            payloads[c.symbol]={"symbol":c.symbol,"price":c.price,"deterministic_score":c.score,"ai_score":c.ai_score,"category":c.category,"action":c.action,"levels":{},"technicals":{},"news":{}}
+            # Never expose target/R-R from an older scoring engine. Keep a neutral
+            # placeholder while the scanner prioritizes this symbol for refresh.
+            payloads[c.symbol]={"symbol":c.symbol,"price":c.price,"deterministic_score":c.score,"ai_score":c.ai_score,"category":c.category,"action":"REFRESHING MODEL","levels":{},"technicals":{},"news":{},"scoring_refresh_pending":True}
             missing_current.append(c.symbol)
     if missing_current:
         latest={}
         q=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol.in_(missing_current)).order_by(AnalysisSnapshot.created_at.desc())
-        for snap in q.limit(max(10,len(missing_current)*2)).all():
+        for snap in q.limit(max(10,len(missing_current)*3)).all():
             if snap.symbol in latest:continue
-            try:latest[snap.symbol]=json.loads(snap.payload_json)
-            except Exception:continue
+            try:
+                parsed=json.loads(snap.payload_json)
+                if parsed.get("scoring_version")==SCORING_VERSION:
+                    latest[snap.symbol]=parsed
+            except Exception:
+                continue
         payloads.update(latest)
     missing_holdings=[sym for sym in tracked_symbols if sym not in payloads]
     for sym in missing_holdings:
-        snap=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol==sym).order_by(AnalysisSnapshot.created_at.desc()).first()
-        if snap:
-            try:payloads[sym]=json.loads(snap.payload_json)
-            except Exception:pass
+        snaps=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol==sym).order_by(AnalysisSnapshot.created_at.desc()).limit(5).all()
+        for snap in snaps:
+            try:
+                parsed=json.loads(snap.payload_json)
+                if parsed.get("scoring_version")==SCORING_VERSION:
+                    payloads[sym]=parsed
+                    break
+            except Exception:
+                continue
     previous={c.symbol:{"action":c.previous_action} for c in candidates if getattr(c,"previous_action","")}
     risk_profile=_portfolio_profile(db)
 

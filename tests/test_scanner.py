@@ -48,6 +48,30 @@ def test_existing_positions_and_watchlist_are_prioritized():
     assert "DISC" in syms
 
 
+def test_stale_scoring_candidates_are_prioritized_for_refresh():
+    import json
+    from app.db import RadarCandidate
+    from app.analysis_engine import SCORING_VERSION
+    with SessionLocal() as db:
+        db.add(RadarCandidate(
+            symbol="STALE",category="Core",action="BUY NOW",score=90,ai_score=90,
+            price=100,portfolio_rank_score=99,current_json=json.dumps({
+                "symbol":"STALE","scoring_version":"legacy-v1","lane_qualified":True
+            }),
+        ))
+        db.add(RadarCandidate(
+            symbol="CURRENT",category="Core",action="BUY NOW",score=90,ai_score=90,
+            price=100,portfolio_rank_score=98,current_json=json.dumps({
+                "symbol":"CURRENT","scoring_version":SCORING_VERSION,"lane_qualified":True
+            }),
+        ))
+        db.commit()
+    r=RadarService(provider=FakeProvider(),ai=FakeAI())
+    assert r.stale_scoring_symbols(limit=5)[0] == "STALE"
+    syms=r.candidate_symbols()
+    assert syms.index("STALE") < syms.index("DISC")
+
+
 def test_persist_generates_buy_alert_without_duplicate_on_same_action():
     from app.db import Alert, RadarCandidate
     r=RadarService(provider=FakeProvider(),ai=FakeAI())

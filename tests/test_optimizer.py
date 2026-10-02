@@ -8,12 +8,14 @@ from app.main import app
 from app.paper_engine import run_paper_cycle, paper_status, _candidate_payloads
 from app.portfolio_engine import build_optimizer_plan, candidate_rank_score
 from app.scanner import RadarService
+from app.analysis_engine import SCORING_VERSION
 
 client=TestClient(app)
 
 
 def payload(symbol, score=85, sector="Technology", expected=25, ai=88, price=100):
     return {
+        "scoring_version":SCORING_VERSION,
         "symbol":symbol,"price":price,"deterministic_score":score,"ai_score":ai,"analyst_score":78,
         "expected_yield_pct":expected,"risk_reward":3.0,"decision_confidence":"high","category":"Core",
         "lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,

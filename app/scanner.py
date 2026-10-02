@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 from .config import settings
 from .db import SessionLocal, Position, AnalysisRequest, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, PortfolioPreference, PaperPosition
 from .market import YahooMarketProvider
-from .analysis_engine import score_bundle, position_action, position_action_plan
+from .analysis_engine import score_bundle, position_action, position_action_plan, SCORING_VERSION
 from .portfolio_engine import candidate_rank_score, build_optimizer_plan, normalise_profile, INVESTABLE_ENTRY_ACTIONS, MIN_ENTRY_RISK_REWARD
 from .paper_engine import run_paper_cycle
 from .ai_engine import AIEngine
@@ -711,16 +711,39 @@ class RadarService:
         self.last_universe_candidates = len(chosen)
         return chosen[:limit]
 
+    def stale_scoring_symbols(self, limit: int = 20) -> list[str]:
+        """Prioritize persisted candidates produced by an older scoring engine.
+
+        A deploy that changes target/R-R logic must not leave the dashboard showing
+        an old cached target until that symbol happens to rotate through discovery.
+        """
+        stale: list[str] = []
+        with SessionLocal() as db:
+            rows = db.query(RadarCandidate).order_by(
+                RadarCandidate.portfolio_rank_score.desc(), RadarCandidate.updated_at.desc()
+            ).limit(max(limit * 3, 40)).all()
+            for row in rows:
+                try:
+                    payload = json.loads(row.current_json or "{}")
+                except Exception:
+                    payload = {}
+                if payload.get("scoring_version") != SCORING_VERSION:
+                    stale.append(row.symbol)
+                    if len(stale) >= limit:
+                        break
+        return stale
+
     def candidate_symbols(self):
-        """Return the deep-analysis queue with every open holding guaranteed first."""
+        """Return the deep-analysis queue with holdings and stale scores first."""
         holdings = self.holding_symbols()
+        stale = self.stale_scoring_symbols(limit=20)
         priority = self.priority_symbols()[: settings.priority_deep_limit]
         discovered = self.provider.discover(100)
         discovered.sort(key=lambda x: float(x.get("change_pct") or 0), reverse=True)
         discovery_symbols = [d["symbol"] for d in discovered[: settings.discovery_deep_candidates]]
         broad = self._prefilter_universe(self._universe_slice())
         broad_symbols = [q["symbol"] for q in broad]
-        ordered = holdings + priority + discovery_symbols + broad_symbols
+        ordered = holdings + stale + priority + discovery_symbols + broad_symbols
         return list(dict.fromkeys(s.upper() for s in ordered if s))
 
     def _paper_optimizer_policy_fingerprint(self) -> str:
