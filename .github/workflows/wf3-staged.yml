@@ -1,12 +1,6 @@
 name: 2024-2026 Staged Walk-Forward
 
 on:
-  push:
-    paths:
-      - scripts/wf3_data.py
-      - scripts/wf3_snapshots.py
-      - scripts/wf3_simulate.py
-      - .github/workflows/wf3-staged.yml
   workflow_dispatch:
 
 permissions:
