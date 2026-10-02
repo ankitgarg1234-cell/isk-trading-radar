@@ -23,7 +23,9 @@ def clean(v):
 
 def main():
     with gzip.open(PRICE_PATH,"rt",encoding="utf-8") as f:prices=json.load(f)
-    symbols=sorted(set(prices["candidate_union"]))
+    # Coverage-ablation runs must not inherit the old 80-name prefilter bias.
+    # Pull PIT fundamentals for every historical S&P symbol with cached price data.
+    symbols=sorted(set((prices.get("market") or {}).keys()))
     rows=[]
     with ValueinClient(tables=["references","filing","fact"]) as c:
         print("VALUEIN_PLAN",c.me(),flush=True)
@@ -87,6 +89,7 @@ def main():
         "version":"wf3-valuein-v1",
         "source":"Valuein Sample point-in-time fundamentals",
         "candidate_symbols":len(symbols),
+        "universe_source":"all cached historical S&P price symbols",
         "symbols_with_rows":sum(1 for x in coverage if x["rows"]>0),
         "usable_fundamental_symbols":len(usable),
         "usable_pct":round(len(usable)/max(1,len(symbols))*100,2),
