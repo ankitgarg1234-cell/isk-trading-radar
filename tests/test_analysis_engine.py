@@ -1,4 +1,4 @@
-from app.analysis_engine import score_bundle, fundamental_score, position_action, position_action_plan, analyst_score, parse_positions_from_text, portfolio_proposals
+from app.analysis_engine import score_bundle, fundamental_score, forward_target_plan, holding_horizon_plan, position_action, position_action_plan, analyst_score, parse_positions_from_text, portfolio_proposals
 from .helpers import bundle, strong_fundamentals, positive_news, negative_news
 
 
@@ -35,6 +35,68 @@ def test_hypergrowth_revenue_gets_growth_adjusted_valuation_bonus():
     f["forwardPE"] = 40
     result = score_bundle(bundle(fundamentals=f))
     assert result["breakdown"]["Valuation"] == 7
+
+
+def test_forward_target_does_not_promote_distant_52w_high_to_base_target():
+    t={
+        "atr":5.0,"ema20":105.0,"ema50":110.0,"rsi":40.0,"change20_pct":-3.0,
+        "relative_volume":0.7,"high20":102.0,"high52":180.0,
+    }
+    plan=forward_target_plan(t,{},100.0,catalyst_score=5,material_events=0)
+    assert plan["base_target"] < 115
+    assert plan["base_target"] != 180
+    assert plan["stretch_target"] < 180
+    assert plan["historical_52w_high"] == 180.0
+
+
+def test_dynamic_core_horizon_is_not_blanket_30_to_365():
+    strong={"ema20":99.0,"ema50":95.0,"rsi":55.0,"change20_pct":6.0}
+    weak={"ema20":105.0,"ema50":100.0,"rsi":39.0,"change20_pct":-4.0}
+    normal=holding_horizon_plan(100,112,strong,"CORE_QUALITY",False)
+    repairing=holding_horizon_plan(100,112,weak,"CORE_QUALITY",False)
+    assert normal["max_days"] < 365
+    assert repairing["max_days"] > normal["max_days"]
+    assert normal["review_days"] < normal["max_days"]
+
+
+def test_position_base_target_reached_takes_partial_profit():
+    result={
+        "deterministic_score":82,
+        "news":{"label":"Neutral","material_events":0,"high_negative_events":0,"items":[]},
+        "technicals":{"ema20":118,"rsi":56,"relative_volume":1.0,"change20_pct":4},
+        "levels":{"buy_low":105,"buy_high":110,"better_low":100,"better_high":103,"stop":90,"target":125,"do_not_chase":140,"breakout":130},
+        "risk_reward":2.5,
+        "target_plan":{"stretch_target":135},
+        "holding_horizon":{"max_days":90},
+        "fundamental_confidence":"high",
+        "breakdown":{"Fundamentals":18},
+    }
+    position={"shares":8,"avg_cost":100,"account":"Paper","entry_target":120,"entry_stretch_target":135,"entry_stop":90,"entry_horizon_days":90}
+    action,reason=position_action(result,121,position)
+    assert action == "TAKE PARTIAL PROFIT"
+    assert result["profit_take_pct"] == 25
+    assert "Base target" in reason
+    plan=position_action_plan(action,result,121,position)
+    assert plan["requested_percent"] == 25
+
+
+def test_position_stretch_target_reached_takes_larger_partial_profit():
+    result={
+        "deterministic_score":84,
+        "news":{"label":"Neutral","material_events":0,"high_negative_events":0,"items":[]},
+        "technicals":{"ema20":128,"rsi":60,"relative_volume":1.1,"change20_pct":6},
+        "levels":{"buy_low":105,"buy_high":110,"better_low":100,"better_high":103,"stop":90,"target":125,"do_not_chase":145,"breakout":132},
+        "risk_reward":2.0,
+        "target_plan":{"stretch_target":135},
+        "holding_horizon":{"max_days":90},
+        "fundamental_confidence":"high",
+        "breakdown":{"Fundamentals":18},
+    }
+    position={"shares":8,"avg_cost":100,"account":"Paper","entry_target":120,"entry_stretch_target":135,"entry_stop":90,"entry_horizon_days":90}
+    action,reason=position_action(result,136,position)
+    assert action == "TAKE PARTIAL PROFIT"
+    assert result["profit_take_pct"] == 50
+    assert "Stretch target" in reason
 
 
 def test_explosive_runner_requires_strong_fundamentals():
