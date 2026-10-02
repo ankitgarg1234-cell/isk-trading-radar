@@ -1,0 +1,3931 @@
+{
+  "version": "wf3-walkforward-opt-comparison-v1",
+  "selection_rule": "2024-2025 train alpha descending, train max drawdown <=15%; 2026 holdout never used to select",
+  "benchmark": {
+    "train": {
+      "name": "S&P 500 Total Return",
+      "end_value": 14820.75,
+      "total_return_pct": 48.21,
+      "cagr_pct": 21.79,
+      "max_drawdown_pct": -18.75,
+      "annual_returns_pct": {
+        "2024": 25.73,
+        "2025": 17.88
+      }
+    },
+    "holdout": {
+      "name": "S&P 500 Total Return",
+      "end_value": 11272.83,
+      "total_return_pct": 12.73,
+      "cagr_pct": 17.45,
+      "max_drawdown_pct": -8.89,
+      "annual_returns_pct": {
+        "2026": 12.73
+      }
+    },
+    "full": {
+      "name": "S&P 500 Total Return",
+      "end_value": 16742.71,
+      "total_return_pct": 67.43,
+      "cagr_pct": 20.64,
+      "max_drawdown_pct": -18.75,
+      "annual_returns_pct": {
+        "2024": 25.73,
+        "2025": 17.88,
+        "2026": 12.97
+      }
+    }
+  },
+  "top_train_selected": [
+    {
+      "score_floor": 68.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13163.23,
+        "total_return_pct": 31.63,
+        "cagr_pct": 14.76,
+        "max_drawdown_pct": -14.49,
+        "average_cash_pct": 86.92,
+        "alpha_pct": -16.58
+      },
+      "holdout": {
+        "start_value": 13238.2,
+        "end_value": 14550.99,
+        "total_return_pct": 9.92,
+        "cagr_pct": 13.54,
+        "max_drawdown_pct": -11.32,
+        "average_cash_pct": 60.9,
+        "alpha_pct": -2.81
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 14550.99,
+        "total_return_pct": 45.51,
+        "cagr_pct": 14.64,
+        "max_drawdown_pct": -14.49,
+        "average_cash_pct": 79.83,
+        "alpha_pct": -21.92
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13163.23,
+        "total_return_pct": 31.63,
+        "cagr_pct": 14.76,
+        "max_drawdown_pct": -14.49,
+        "average_cash_pct": 86.92,
+        "alpha_pct": -16.58
+      },
+      "holdout": {
+        "start_value": 13238.2,
+        "end_value": 14550.99,
+        "total_return_pct": 9.92,
+        "cagr_pct": 13.54,
+        "max_drawdown_pct": -11.32,
+        "average_cash_pct": 60.9,
+        "alpha_pct": -2.81
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 14550.99,
+        "total_return_pct": 45.51,
+        "cagr_pct": 14.64,
+        "max_drawdown_pct": -14.49,
+        "average_cash_pct": 79.83,
+        "alpha_pct": -21.92
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13163.23,
+        "total_return_pct": 31.63,
+        "cagr_pct": 14.76,
+        "max_drawdown_pct": -14.49,
+        "average_cash_pct": 86.92,
+        "alpha_pct": -16.58
+      },
+      "holdout": {
+        "start_value": 13238.2,
+        "end_value": 14550.99,
+        "total_return_pct": 9.92,
+        "cagr_pct": 13.54,
+        "max_drawdown_pct": -11.32,
+        "average_cash_pct": 60.9,
+        "alpha_pct": -2.81
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 14550.99,
+        "total_return_pct": 45.51,
+        "cagr_pct": 14.64,
+        "max_drawdown_pct": -14.49,
+        "average_cash_pct": 79.83,
+        "alpha_pct": -21.92
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13163.23,
+        "total_return_pct": 31.63,
+        "cagr_pct": 14.76,
+        "max_drawdown_pct": -14.49,
+        "average_cash_pct": 86.92,
+        "alpha_pct": -16.58
+      },
+      "holdout": {
+        "start_value": 13238.2,
+        "end_value": 14550.99,
+        "total_return_pct": 9.92,
+        "cagr_pct": 13.54,
+        "max_drawdown_pct": -11.32,
+        "average_cash_pct": 60.9,
+        "alpha_pct": -2.81
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 14550.99,
+        "total_return_pct": 45.51,
+        "cagr_pct": 14.64,
+        "max_drawdown_pct": -14.49,
+        "average_cash_pct": 79.83,
+        "alpha_pct": -21.92
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11914.82,
+        "total_return_pct": 19.15,
+        "cagr_pct": 9.17,
+        "max_drawdown_pct": -14.51,
+        "average_cash_pct": 75.46,
+        "alpha_pct": -29.06
+      },
+      "holdout": {
+        "start_value": 12021.59,
+        "end_value": 13567.01,
+        "total_return_pct": 12.86,
+        "cagr_pct": 17.63,
+        "max_drawdown_pct": -15.7,
+        "average_cash_pct": 26.84,
+        "alpha_pct": 0.13
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 13567.01,
+        "total_return_pct": 35.67,
+        "cagr_pct": 11.75,
+        "max_drawdown_pct": -15.7,
+        "average_cash_pct": 62.21,
+        "alpha_pct": -31.76
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11914.82,
+        "total_return_pct": 19.15,
+        "cagr_pct": 9.17,
+        "max_drawdown_pct": -14.51,
+        "average_cash_pct": 75.46,
+        "alpha_pct": -29.06
+      },
+      "holdout": {
+        "start_value": 12021.59,
+        "end_value": 13567.01,
+        "total_return_pct": 12.86,
+        "cagr_pct": 17.63,
+        "max_drawdown_pct": -15.7,
+        "average_cash_pct": 26.84,
+        "alpha_pct": 0.13
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 13567.01,
+        "total_return_pct": 35.67,
+        "cagr_pct": 11.75,
+        "max_drawdown_pct": -15.7,
+        "average_cash_pct": 62.21,
+        "alpha_pct": -31.76
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11914.82,
+        "total_return_pct": 19.15,
+        "cagr_pct": 9.17,
+        "max_drawdown_pct": -14.51,
+        "average_cash_pct": 75.46,
+        "alpha_pct": -29.06
+      },
+      "holdout": {
+        "start_value": 12021.59,
+        "end_value": 13567.01,
+        "total_return_pct": 12.86,
+        "cagr_pct": 17.63,
+        "max_drawdown_pct": -15.7,
+        "average_cash_pct": 26.84,
+        "alpha_pct": 0.13
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 13567.01,
+        "total_return_pct": 35.67,
+        "cagr_pct": 11.75,
+        "max_drawdown_pct": -15.7,
+        "average_cash_pct": 62.21,
+        "alpha_pct": -31.76
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11914.82,
+        "total_return_pct": 19.15,
+        "cagr_pct": 9.17,
+        "max_drawdown_pct": -14.51,
+        "average_cash_pct": 75.46,
+        "alpha_pct": -29.06
+      },
+      "holdout": {
+        "start_value": 12021.59,
+        "end_value": 13567.01,
+        "total_return_pct": 12.86,
+        "cagr_pct": 17.63,
+        "max_drawdown_pct": -15.7,
+        "average_cash_pct": 26.84,
+        "alpha_pct": 0.13
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 13567.01,
+        "total_return_pct": 35.67,
+        "cagr_pct": 11.75,
+        "max_drawdown_pct": -15.7,
+        "average_cash_pct": 62.21,
+        "alpha_pct": -31.76
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11590.52,
+        "total_return_pct": 15.91,
+        "cagr_pct": 7.68,
+        "max_drawdown_pct": -12.5,
+        "average_cash_pct": 78.35,
+        "alpha_pct": -32.3
+      },
+      "holdout": {
+        "start_value": 11676.43,
+        "end_value": 12960.09,
+        "total_return_pct": 10.99,
+        "cagr_pct": 15.03,
+        "max_drawdown_pct": -13.85,
+        "average_cash_pct": 36.6,
+        "alpha_pct": -1.74
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 12960.09,
+        "total_return_pct": 29.6,
+        "cagr_pct": 9.9,
+        "max_drawdown_pct": -13.85,
+        "average_cash_pct": 66.98,
+        "alpha_pct": -37.83
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11590.52,
+        "total_return_pct": 15.91,
+        "cagr_pct": 7.68,
+        "max_drawdown_pct": -12.5,
+        "average_cash_pct": 78.35,
+        "alpha_pct": -32.3
+      },
+      "holdout": {
+        "start_value": 11676.43,
+        "end_value": 12960.09,
+        "total_return_pct": 10.99,
+        "cagr_pct": 15.03,
+        "max_drawdown_pct": -13.85,
+        "average_cash_pct": 36.6,
+        "alpha_pct": -1.74
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 12960.09,
+        "total_return_pct": 29.6,
+        "cagr_pct": 9.9,
+        "max_drawdown_pct": -13.85,
+        "average_cash_pct": 66.98,
+        "alpha_pct": -37.83
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11590.52,
+        "total_return_pct": 15.91,
+        "cagr_pct": 7.68,
+        "max_drawdown_pct": -12.5,
+        "average_cash_pct": 78.35,
+        "alpha_pct": -32.3
+      },
+      "holdout": {
+        "start_value": 11676.43,
+        "end_value": 12960.09,
+        "total_return_pct": 10.99,
+        "cagr_pct": 15.03,
+        "max_drawdown_pct": -13.85,
+        "average_cash_pct": 36.6,
+        "alpha_pct": -1.74
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 12960.09,
+        "total_return_pct": 29.6,
+        "cagr_pct": 9.9,
+        "max_drawdown_pct": -13.85,
+        "average_cash_pct": 66.98,
+        "alpha_pct": -37.83
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11590.52,
+        "total_return_pct": 15.91,
+        "cagr_pct": 7.68,
+        "max_drawdown_pct": -12.5,
+        "average_cash_pct": 78.35,
+        "alpha_pct": -32.3
+      },
+      "holdout": {
+        "start_value": 11676.43,
+        "end_value": 12960.09,
+        "total_return_pct": 10.99,
+        "cagr_pct": 15.03,
+        "max_drawdown_pct": -13.85,
+        "average_cash_pct": 36.6,
+        "alpha_pct": -1.74
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 12960.09,
+        "total_return_pct": 29.6,
+        "cagr_pct": 9.9,
+        "max_drawdown_pct": -13.85,
+        "average_cash_pct": 66.98,
+        "alpha_pct": -37.83
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    }
+  ],
+  "all_results": [
+    {
+      "score_floor": 68.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11131.73,
+        "total_return_pct": 11.32,
+        "cagr_pct": 5.52,
+        "max_drawdown_pct": -8.45,
+        "average_cash_pct": 84.95,
+        "alpha_pct": -36.89
+      },
+      "holdout": {
+        "start_value": 11197.74,
+        "end_value": 11994.44,
+        "total_return_pct": 7.11,
+        "cagr_pct": 9.67,
+        "max_drawdown_pct": -10.07,
+        "average_cash_pct": 53.0,
+        "alpha_pct": -5.62
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 11994.44,
+        "total_return_pct": 19.94,
+        "cagr_pct": 6.85,
+        "max_drawdown_pct": -10.07,
+        "average_cash_pct": 76.24,
+        "alpha_pct": -47.49
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13163.23,
+        "total_return_pct": 31.63,
+        "cagr_pct": 14.76,
+        "max_drawdown_pct": -14.49,
+        "average_cash_pct": 86.92,
+        "alpha_pct": -16.58
+      },
+      "holdout": {
+        "start_value": 13238.2,
+        "end_value": 14550.99,
+        "total_return_pct": 9.92,
+        "cagr_pct": 13.54,
+        "max_drawdown_pct": -11.32,
+        "average_cash_pct": 60.9,
+        "alpha_pct": -2.81
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 14550.99,
+        "total_return_pct": 45.51,
+        "cagr_pct": 14.64,
+        "max_drawdown_pct": -14.49,
+        "average_cash_pct": 79.83,
+        "alpha_pct": -21.92
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15520.54,
+        "total_return_pct": 55.21,
+        "cagr_pct": 24.64,
+        "max_drawdown_pct": -20.95,
+        "average_cash_pct": 88.57,
+        "alpha_pct": 7.0
+      },
+      "holdout": {
+        "start_value": 15609.49,
+        "end_value": 17743.74,
+        "total_return_pct": 13.67,
+        "cagr_pct": 18.78,
+        "max_drawdown_pct": -13.26,
+        "average_cash_pct": 67.48,
+        "alpha_pct": 0.94
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17743.74,
+        "total_return_pct": 77.44,
+        "cagr_pct": 23.22,
+        "max_drawdown_pct": -20.95,
+        "average_cash_pct": 82.83,
+        "alpha_pct": 10.01
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11326.77,
+        "total_return_pct": 13.27,
+        "cagr_pct": 6.44,
+        "max_drawdown_pct": -10.09,
+        "average_cash_pct": 82.86,
+        "alpha_pct": -34.94
+      },
+      "holdout": {
+        "start_value": 11406.93,
+        "end_value": 12417.72,
+        "total_return_pct": 8.86,
+        "cagr_pct": 12.08,
+        "max_drawdown_pct": -11.44,
+        "average_cash_pct": 46.68,
+        "alpha_pct": -3.87
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 12417.72,
+        "total_return_pct": 24.18,
+        "cagr_pct": 8.2,
+        "max_drawdown_pct": -11.44,
+        "average_cash_pct": 73.0,
+        "alpha_pct": -43.25
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13327.94,
+        "total_return_pct": 33.28,
+        "cagr_pct": 15.48,
+        "max_drawdown_pct": -15.5,
+        "average_cash_pct": 85.09,
+        "alpha_pct": -14.93
+      },
+      "holdout": {
+        "start_value": 13416.41,
+        "end_value": 14904.4,
+        "total_return_pct": 11.09,
+        "cagr_pct": 15.17,
+        "max_drawdown_pct": -12.29,
+        "average_cash_pct": 55.27,
+        "alpha_pct": -1.64
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 14904.4,
+        "total_return_pct": 49.04,
+        "cagr_pct": 15.64,
+        "max_drawdown_pct": -15.5,
+        "average_cash_pct": 76.96,
+        "alpha_pct": -18.39
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15656.51,
+        "total_return_pct": 56.57,
+        "cagr_pct": 25.18,
+        "max_drawdown_pct": -21.56,
+        "average_cash_pct": 86.95,
+        "alpha_pct": 8.36
+      },
+      "holdout": {
+        "start_value": 15758.24,
+        "end_value": 18024.83,
+        "total_return_pct": 14.38,
+        "cagr_pct": 19.78,
+        "max_drawdown_pct": -13.9,
+        "average_cash_pct": 62.57,
+        "alpha_pct": 1.65
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18024.83,
+        "total_return_pct": 80.25,
+        "cagr_pct": 23.93,
+        "max_drawdown_pct": -21.56,
+        "average_cash_pct": 80.31,
+        "alpha_pct": 12.82
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11590.52,
+        "total_return_pct": 15.91,
+        "cagr_pct": 7.68,
+        "max_drawdown_pct": -12.5,
+        "average_cash_pct": 78.35,
+        "alpha_pct": -32.3
+      },
+      "holdout": {
+        "start_value": 11676.43,
+        "end_value": 12960.09,
+        "total_return_pct": 10.99,
+        "cagr_pct": 15.03,
+        "max_drawdown_pct": -13.85,
+        "average_cash_pct": 36.6,
+        "alpha_pct": -1.74
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 12960.09,
+        "total_return_pct": 29.6,
+        "cagr_pct": 9.9,
+        "max_drawdown_pct": -13.85,
+        "average_cash_pct": 66.98,
+        "alpha_pct": -37.83
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13526.2,
+        "total_return_pct": 35.26,
+        "cagr_pct": 16.34,
+        "max_drawdown_pct": -16.9,
+        "average_cash_pct": 81.09,
+        "alpha_pct": -12.95
+      },
+      "holdout": {
+        "start_value": 13619.21,
+        "end_value": 15308.42,
+        "total_return_pct": 12.4,
+        "cagr_pct": 17.0,
+        "max_drawdown_pct": -14.05,
+        "average_cash_pct": 46.19,
+        "alpha_pct": -0.33
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15308.42,
+        "total_return_pct": 53.08,
+        "cagr_pct": 16.77,
+        "max_drawdown_pct": -16.9,
+        "average_cash_pct": 71.58,
+        "alpha_pct": -14.35
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15792.44,
+        "total_return_pct": 57.92,
+        "cagr_pct": 25.73,
+        "max_drawdown_pct": -22.23,
+        "average_cash_pct": 83.41,
+        "alpha_pct": 9.71
+      },
+      "holdout": {
+        "start_value": 15897.37,
+        "end_value": 18284.94,
+        "total_return_pct": 15.02,
+        "cagr_pct": 20.67,
+        "max_drawdown_pct": -15.09,
+        "average_cash_pct": 54.57,
+        "alpha_pct": 2.29
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18284.94,
+        "total_return_pct": 82.85,
+        "cagr_pct": 24.58,
+        "max_drawdown_pct": -22.23,
+        "average_cash_pct": 75.55,
+        "alpha_pct": 15.42
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11914.82,
+        "total_return_pct": 19.15,
+        "cagr_pct": 9.17,
+        "max_drawdown_pct": -14.51,
+        "average_cash_pct": 75.46,
+        "alpha_pct": -29.06
+      },
+      "holdout": {
+        "start_value": 12021.59,
+        "end_value": 13567.01,
+        "total_return_pct": 12.86,
+        "cagr_pct": 17.63,
+        "max_drawdown_pct": -15.7,
+        "average_cash_pct": 26.84,
+        "alpha_pct": 0.13
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 13567.01,
+        "total_return_pct": 35.67,
+        "cagr_pct": 11.75,
+        "max_drawdown_pct": -15.7,
+        "average_cash_pct": 62.21,
+        "alpha_pct": -31.76
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13806.35,
+        "total_return_pct": 38.06,
+        "cagr_pct": 17.54,
+        "max_drawdown_pct": -18.12,
+        "average_cash_pct": 78.52,
+        "alpha_pct": -10.15
+      },
+      "holdout": {
+        "start_value": 13919.22,
+        "end_value": 15799.72,
+        "total_return_pct": 13.51,
+        "cagr_pct": 18.55,
+        "max_drawdown_pct": -15.4,
+        "average_cash_pct": 37.21,
+        "alpha_pct": 0.78
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15799.72,
+        "total_return_pct": 58.0,
+        "cagr_pct": 18.12,
+        "max_drawdown_pct": -18.12,
+        "average_cash_pct": 67.26,
+        "alpha_pct": -9.43
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 16030.85,
+        "total_return_pct": 60.31,
+        "cagr_pct": 26.67,
+        "max_drawdown_pct": -22.91,
+        "average_cash_pct": 81.13,
+        "alpha_pct": 12.1
+      },
+      "holdout": {
+        "start_value": 16154.55,
+        "end_value": 18657.16,
+        "total_return_pct": 15.49,
+        "cagr_pct": 21.34,
+        "max_drawdown_pct": -16.01,
+        "average_cash_pct": 46.53,
+        "alpha_pct": 2.76
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18657.16,
+        "total_return_pct": 86.57,
+        "cagr_pct": 25.5,
+        "max_drawdown_pct": -22.91,
+        "average_cash_pct": 71.7,
+        "alpha_pct": 19.14
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11883.81,
+        "total_return_pct": 18.84,
+        "cagr_pct": 9.03,
+        "max_drawdown_pct": -18.27,
+        "average_cash_pct": 49.35,
+        "alpha_pct": -29.37
+      },
+      "holdout": {
+        "start_value": 11942.54,
+        "end_value": 14825.24,
+        "total_return_pct": 24.14,
+        "cagr_pct": 33.69,
+        "max_drawdown_pct": -17.16,
+        "average_cash_pct": 0.25,
+        "alpha_pct": 11.41
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 14825.24,
+        "total_return_pct": 48.25,
+        "cagr_pct": 15.42,
+        "max_drawdown_pct": -18.27,
+        "average_cash_pct": 35.98,
+        "alpha_pct": -19.18
+      },
+      "trade_count": 18,
+      "buy_count": 18,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13208.64,
+        "total_return_pct": 32.09,
+        "cagr_pct": 14.96,
+        "max_drawdown_pct": -20.18,
+        "average_cash_pct": 53.77,
+        "alpha_pct": -16.12
+      },
+      "holdout": {
+        "start_value": 13268.8,
+        "end_value": 16237.59,
+        "total_return_pct": 22.37,
+        "cagr_pct": 31.15,
+        "max_drawdown_pct": -15.92,
+        "average_cash_pct": 9.93,
+        "alpha_pct": 9.64
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16237.59,
+        "total_return_pct": 62.38,
+        "cagr_pct": 19.31,
+        "max_drawdown_pct": -20.18,
+        "average_cash_pct": 41.83,
+        "alpha_pct": -5.05
+      },
+      "trade_count": 18,
+      "buy_count": 18,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14804.13,
+        "total_return_pct": 48.04,
+        "cagr_pct": 21.72,
+        "max_drawdown_pct": -23.24,
+        "average_cash_pct": 57.85,
+        "alpha_pct": -0.17
+      },
+      "holdout": {
+        "start_value": 14869.13,
+        "end_value": 18128.23,
+        "total_return_pct": 21.92,
+        "cagr_pct": 30.49,
+        "max_drawdown_pct": -15.55,
+        "average_cash_pct": 19.78,
+        "alpha_pct": 9.19
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18128.23,
+        "total_return_pct": 81.28,
+        "cagr_pct": 24.19,
+        "max_drawdown_pct": -23.24,
+        "average_cash_pct": 47.47,
+        "alpha_pct": 13.85
+      },
+      "trade_count": 18,
+      "buy_count": 18,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 12046.94,
+        "total_return_pct": 20.47,
+        "cagr_pct": 9.78,
+        "max_drawdown_pct": -21.59,
+        "average_cash_pct": 43.93,
+        "alpha_pct": -27.74
+      },
+      "holdout": {
+        "start_value": 12123.71,
+        "end_value": 15609.95,
+        "total_return_pct": 28.76,
+        "cagr_pct": 40.41,
+        "max_drawdown_pct": -17.48,
+        "average_cash_pct": 0.28,
+        "alpha_pct": 16.03
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15609.95,
+        "total_return_pct": 56.1,
+        "cagr_pct": 17.61,
+        "max_drawdown_pct": -21.59,
+        "average_cash_pct": 32.04,
+        "alpha_pct": -11.33
+      },
+      "trade_count": 15,
+      "buy_count": 15,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13266.88,
+        "total_return_pct": 32.67,
+        "cagr_pct": 15.22,
+        "max_drawdown_pct": -22.47,
+        "average_cash_pct": 48.64,
+        "alpha_pct": -15.54
+      },
+      "holdout": {
+        "start_value": 13344.97,
+        "end_value": 16910.9,
+        "total_return_pct": 26.72,
+        "cagr_pct": 37.44,
+        "max_drawdown_pct": -16.33,
+        "average_cash_pct": 8.91,
+        "alpha_pct": 13.99
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16910.9,
+        "total_return_pct": 69.11,
+        "cagr_pct": 21.08,
+        "max_drawdown_pct": -22.47,
+        "average_cash_pct": 37.82,
+        "alpha_pct": 1.68
+      },
+      "trade_count": 15,
+      "buy_count": 15,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14755.66,
+        "total_return_pct": 47.56,
+        "cagr_pct": 21.52,
+        "max_drawdown_pct": -24.44,
+        "average_cash_pct": 53.02,
+        "alpha_pct": -0.65
+      },
+      "holdout": {
+        "start_value": 14838.24,
+        "end_value": 18674.41,
+        "total_return_pct": 25.85,
+        "cagr_pct": 36.18,
+        "max_drawdown_pct": -15.95,
+        "average_cash_pct": 18.01,
+        "alpha_pct": 13.12
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18674.41,
+        "total_return_pct": 86.74,
+        "cagr_pct": 25.54,
+        "max_drawdown_pct": -24.44,
+        "average_cash_pct": 43.48,
+        "alpha_pct": 19.31
+      },
+      "trade_count": 15,
+      "buy_count": 15,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 12299.53,
+        "total_return_pct": 23.0,
+        "cagr_pct": 10.93,
+        "max_drawdown_pct": -24.27,
+        "average_cash_pct": 39.1,
+        "alpha_pct": -25.21
+      },
+      "holdout": {
+        "start_value": 12423.25,
+        "end_value": 16422.92,
+        "total_return_pct": 32.2,
+        "cagr_pct": 45.47,
+        "max_drawdown_pct": -17.6,
+        "average_cash_pct": 0.17,
+        "alpha_pct": 19.47
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16422.92,
+        "total_return_pct": 64.23,
+        "cagr_pct": 19.8,
+        "max_drawdown_pct": -24.27,
+        "average_cash_pct": 28.49,
+        "alpha_pct": -3.2
+      },
+      "trade_count": 14,
+      "buy_count": 14,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13428.88,
+        "total_return_pct": 34.29,
+        "cagr_pct": 15.92,
+        "max_drawdown_pct": -24.23,
+        "average_cash_pct": 44.01,
+        "alpha_pct": -13.92
+      },
+      "holdout": {
+        "start_value": 13553.81,
+        "end_value": 17626.55,
+        "total_return_pct": 30.05,
+        "cagr_pct": 42.31,
+        "max_drawdown_pct": -16.56,
+        "average_cash_pct": 7.91,
+        "alpha_pct": 17.32
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17626.55,
+        "total_return_pct": 76.27,
+        "cagr_pct": 22.93,
+        "max_drawdown_pct": -24.23,
+        "average_cash_pct": 34.17,
+        "alpha_pct": 8.84
+      },
+      "trade_count": 14,
+      "buy_count": 14,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14824.29,
+        "total_return_pct": 48.24,
+        "cagr_pct": 21.8,
+        "max_drawdown_pct": -25.33,
+        "average_cash_pct": 48.62,
+        "alpha_pct": 0.03
+      },
+      "holdout": {
+        "start_value": 14953.4,
+        "end_value": 19277.79,
+        "total_return_pct": 28.92,
+        "cagr_pct": 40.65,
+        "max_drawdown_pct": -16.18,
+        "average_cash_pct": 16.33,
+        "alpha_pct": 16.19
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 19277.79,
+        "total_return_pct": 92.78,
+        "cagr_pct": 27.0,
+        "max_drawdown_pct": -25.33,
+        "average_cash_pct": 39.82,
+        "alpha_pct": 25.35
+      },
+      "trade_count": 14,
+      "buy_count": 14,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 12501.0,
+        "total_return_pct": 25.01,
+        "cagr_pct": 11.83,
+        "max_drawdown_pct": -26.2,
+        "average_cash_pct": 36.48,
+        "alpha_pct": -23.2
+      },
+      "holdout": {
+        "start_value": 12623.28,
+        "end_value": 16855.01,
+        "total_return_pct": 33.52,
+        "cagr_pct": 47.44,
+        "max_drawdown_pct": -17.31,
+        "average_cash_pct": 0.18,
+        "alpha_pct": 20.79
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16855.01,
+        "total_return_pct": 68.55,
+        "cagr_pct": 20.94,
+        "max_drawdown_pct": -26.2,
+        "average_cash_pct": 26.59,
+        "alpha_pct": 1.12
+      },
+      "trade_count": 13,
+      "buy_count": 13,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13584.82,
+        "total_return_pct": 35.85,
+        "cagr_pct": 16.59,
+        "max_drawdown_pct": -25.61,
+        "average_cash_pct": 41.45,
+        "alpha_pct": -12.36
+      },
+      "holdout": {
+        "start_value": 13708.26,
+        "end_value": 18010.25,
+        "total_return_pct": 31.38,
+        "cagr_pct": 44.27,
+        "max_drawdown_pct": -16.34,
+        "average_cash_pct": 7.46,
+        "alpha_pct": 18.65
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18010.25,
+        "total_return_pct": 80.1,
+        "cagr_pct": 23.89,
+        "max_drawdown_pct": -25.61,
+        "average_cash_pct": 32.19,
+        "alpha_pct": 12.67
+      },
+      "trade_count": 13,
+      "buy_count": 13,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 68.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14931.86,
+        "total_return_pct": 49.32,
+        "cagr_pct": 22.25,
+        "max_drawdown_pct": -26.23,
+        "average_cash_pct": 46.16,
+        "alpha_pct": 1.11
+      },
+      "holdout": {
+        "start_value": 15059.33,
+        "end_value": 19603.98,
+        "total_return_pct": 30.18,
+        "cagr_pct": 42.5,
+        "max_drawdown_pct": -16.0,
+        "average_cash_pct": 15.5,
+        "alpha_pct": 17.45
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 19603.98,
+        "total_return_pct": 96.04,
+        "cagr_pct": 27.78,
+        "max_drawdown_pct": -26.23,
+        "average_cash_pct": 37.81,
+        "alpha_pct": 28.61
+      },
+      "trade_count": 13,
+      "buy_count": 13,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11131.73,
+        "total_return_pct": 11.32,
+        "cagr_pct": 5.52,
+        "max_drawdown_pct": -8.45,
+        "average_cash_pct": 84.95,
+        "alpha_pct": -36.89
+      },
+      "holdout": {
+        "start_value": 11197.74,
+        "end_value": 11994.44,
+        "total_return_pct": 7.11,
+        "cagr_pct": 9.67,
+        "max_drawdown_pct": -10.07,
+        "average_cash_pct": 53.0,
+        "alpha_pct": -5.62
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 11994.44,
+        "total_return_pct": 19.94,
+        "cagr_pct": 6.85,
+        "max_drawdown_pct": -10.07,
+        "average_cash_pct": 76.24,
+        "alpha_pct": -47.49
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13163.23,
+        "total_return_pct": 31.63,
+        "cagr_pct": 14.76,
+        "max_drawdown_pct": -14.49,
+        "average_cash_pct": 86.92,
+        "alpha_pct": -16.58
+      },
+      "holdout": {
+        "start_value": 13238.2,
+        "end_value": 14550.99,
+        "total_return_pct": 9.92,
+        "cagr_pct": 13.54,
+        "max_drawdown_pct": -11.32,
+        "average_cash_pct": 60.9,
+        "alpha_pct": -2.81
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 14550.99,
+        "total_return_pct": 45.51,
+        "cagr_pct": 14.64,
+        "max_drawdown_pct": -14.49,
+        "average_cash_pct": 79.83,
+        "alpha_pct": -21.92
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15520.54,
+        "total_return_pct": 55.21,
+        "cagr_pct": 24.64,
+        "max_drawdown_pct": -20.95,
+        "average_cash_pct": 88.57,
+        "alpha_pct": 7.0
+      },
+      "holdout": {
+        "start_value": 15609.49,
+        "end_value": 17743.74,
+        "total_return_pct": 13.67,
+        "cagr_pct": 18.78,
+        "max_drawdown_pct": -13.26,
+        "average_cash_pct": 67.48,
+        "alpha_pct": 0.94
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17743.74,
+        "total_return_pct": 77.44,
+        "cagr_pct": 23.22,
+        "max_drawdown_pct": -20.95,
+        "average_cash_pct": 82.83,
+        "alpha_pct": 10.01
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11326.77,
+        "total_return_pct": 13.27,
+        "cagr_pct": 6.44,
+        "max_drawdown_pct": -10.09,
+        "average_cash_pct": 82.86,
+        "alpha_pct": -34.94
+      },
+      "holdout": {
+        "start_value": 11406.93,
+        "end_value": 12417.72,
+        "total_return_pct": 8.86,
+        "cagr_pct": 12.08,
+        "max_drawdown_pct": -11.44,
+        "average_cash_pct": 46.68,
+        "alpha_pct": -3.87
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 12417.72,
+        "total_return_pct": 24.18,
+        "cagr_pct": 8.2,
+        "max_drawdown_pct": -11.44,
+        "average_cash_pct": 73.0,
+        "alpha_pct": -43.25
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13327.94,
+        "total_return_pct": 33.28,
+        "cagr_pct": 15.48,
+        "max_drawdown_pct": -15.5,
+        "average_cash_pct": 85.09,
+        "alpha_pct": -14.93
+      },
+      "holdout": {
+        "start_value": 13416.41,
+        "end_value": 14904.4,
+        "total_return_pct": 11.09,
+        "cagr_pct": 15.17,
+        "max_drawdown_pct": -12.29,
+        "average_cash_pct": 55.27,
+        "alpha_pct": -1.64
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 14904.4,
+        "total_return_pct": 49.04,
+        "cagr_pct": 15.64,
+        "max_drawdown_pct": -15.5,
+        "average_cash_pct": 76.96,
+        "alpha_pct": -18.39
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15656.51,
+        "total_return_pct": 56.57,
+        "cagr_pct": 25.18,
+        "max_drawdown_pct": -21.56,
+        "average_cash_pct": 86.95,
+        "alpha_pct": 8.36
+      },
+      "holdout": {
+        "start_value": 15758.24,
+        "end_value": 18024.83,
+        "total_return_pct": 14.38,
+        "cagr_pct": 19.78,
+        "max_drawdown_pct": -13.9,
+        "average_cash_pct": 62.57,
+        "alpha_pct": 1.65
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18024.83,
+        "total_return_pct": 80.25,
+        "cagr_pct": 23.93,
+        "max_drawdown_pct": -21.56,
+        "average_cash_pct": 80.31,
+        "alpha_pct": 12.82
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11590.52,
+        "total_return_pct": 15.91,
+        "cagr_pct": 7.68,
+        "max_drawdown_pct": -12.5,
+        "average_cash_pct": 78.35,
+        "alpha_pct": -32.3
+      },
+      "holdout": {
+        "start_value": 11676.43,
+        "end_value": 12960.09,
+        "total_return_pct": 10.99,
+        "cagr_pct": 15.03,
+        "max_drawdown_pct": -13.85,
+        "average_cash_pct": 36.6,
+        "alpha_pct": -1.74
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 12960.09,
+        "total_return_pct": 29.6,
+        "cagr_pct": 9.9,
+        "max_drawdown_pct": -13.85,
+        "average_cash_pct": 66.98,
+        "alpha_pct": -37.83
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13526.2,
+        "total_return_pct": 35.26,
+        "cagr_pct": 16.34,
+        "max_drawdown_pct": -16.9,
+        "average_cash_pct": 81.09,
+        "alpha_pct": -12.95
+      },
+      "holdout": {
+        "start_value": 13619.21,
+        "end_value": 15308.42,
+        "total_return_pct": 12.4,
+        "cagr_pct": 17.0,
+        "max_drawdown_pct": -14.05,
+        "average_cash_pct": 46.19,
+        "alpha_pct": -0.33
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15308.42,
+        "total_return_pct": 53.08,
+        "cagr_pct": 16.77,
+        "max_drawdown_pct": -16.9,
+        "average_cash_pct": 71.58,
+        "alpha_pct": -14.35
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15792.44,
+        "total_return_pct": 57.92,
+        "cagr_pct": 25.73,
+        "max_drawdown_pct": -22.23,
+        "average_cash_pct": 83.41,
+        "alpha_pct": 9.71
+      },
+      "holdout": {
+        "start_value": 15897.37,
+        "end_value": 18284.94,
+        "total_return_pct": 15.02,
+        "cagr_pct": 20.67,
+        "max_drawdown_pct": -15.09,
+        "average_cash_pct": 54.57,
+        "alpha_pct": 2.29
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18284.94,
+        "total_return_pct": 82.85,
+        "cagr_pct": 24.58,
+        "max_drawdown_pct": -22.23,
+        "average_cash_pct": 75.55,
+        "alpha_pct": 15.42
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11914.82,
+        "total_return_pct": 19.15,
+        "cagr_pct": 9.17,
+        "max_drawdown_pct": -14.51,
+        "average_cash_pct": 75.46,
+        "alpha_pct": -29.06
+      },
+      "holdout": {
+        "start_value": 12021.59,
+        "end_value": 13567.01,
+        "total_return_pct": 12.86,
+        "cagr_pct": 17.63,
+        "max_drawdown_pct": -15.7,
+        "average_cash_pct": 26.84,
+        "alpha_pct": 0.13
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 13567.01,
+        "total_return_pct": 35.67,
+        "cagr_pct": 11.75,
+        "max_drawdown_pct": -15.7,
+        "average_cash_pct": 62.21,
+        "alpha_pct": -31.76
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13806.35,
+        "total_return_pct": 38.06,
+        "cagr_pct": 17.54,
+        "max_drawdown_pct": -18.12,
+        "average_cash_pct": 78.52,
+        "alpha_pct": -10.15
+      },
+      "holdout": {
+        "start_value": 13919.22,
+        "end_value": 15799.72,
+        "total_return_pct": 13.51,
+        "cagr_pct": 18.55,
+        "max_drawdown_pct": -15.4,
+        "average_cash_pct": 37.21,
+        "alpha_pct": 0.78
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15799.72,
+        "total_return_pct": 58.0,
+        "cagr_pct": 18.12,
+        "max_drawdown_pct": -18.12,
+        "average_cash_pct": 67.26,
+        "alpha_pct": -9.43
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 16030.85,
+        "total_return_pct": 60.31,
+        "cagr_pct": 26.67,
+        "max_drawdown_pct": -22.91,
+        "average_cash_pct": 81.13,
+        "alpha_pct": 12.1
+      },
+      "holdout": {
+        "start_value": 16154.55,
+        "end_value": 18657.16,
+        "total_return_pct": 15.49,
+        "cagr_pct": 21.34,
+        "max_drawdown_pct": -16.01,
+        "average_cash_pct": 46.53,
+        "alpha_pct": 2.76
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18657.16,
+        "total_return_pct": 86.57,
+        "cagr_pct": 25.5,
+        "max_drawdown_pct": -22.91,
+        "average_cash_pct": 71.7,
+        "alpha_pct": 19.14
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11883.81,
+        "total_return_pct": 18.84,
+        "cagr_pct": 9.03,
+        "max_drawdown_pct": -18.27,
+        "average_cash_pct": 49.35,
+        "alpha_pct": -29.37
+      },
+      "holdout": {
+        "start_value": 11942.54,
+        "end_value": 14825.24,
+        "total_return_pct": 24.14,
+        "cagr_pct": 33.69,
+        "max_drawdown_pct": -17.16,
+        "average_cash_pct": 0.25,
+        "alpha_pct": 11.41
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 14825.24,
+        "total_return_pct": 48.25,
+        "cagr_pct": 15.42,
+        "max_drawdown_pct": -18.27,
+        "average_cash_pct": 35.98,
+        "alpha_pct": -19.18
+      },
+      "trade_count": 18,
+      "buy_count": 18,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13208.64,
+        "total_return_pct": 32.09,
+        "cagr_pct": 14.96,
+        "max_drawdown_pct": -20.18,
+        "average_cash_pct": 53.77,
+        "alpha_pct": -16.12
+      },
+      "holdout": {
+        "start_value": 13268.8,
+        "end_value": 16237.59,
+        "total_return_pct": 22.37,
+        "cagr_pct": 31.15,
+        "max_drawdown_pct": -15.92,
+        "average_cash_pct": 9.93,
+        "alpha_pct": 9.64
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16237.59,
+        "total_return_pct": 62.38,
+        "cagr_pct": 19.31,
+        "max_drawdown_pct": -20.18,
+        "average_cash_pct": 41.83,
+        "alpha_pct": -5.05
+      },
+      "trade_count": 18,
+      "buy_count": 18,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14804.13,
+        "total_return_pct": 48.04,
+        "cagr_pct": 21.72,
+        "max_drawdown_pct": -23.24,
+        "average_cash_pct": 57.85,
+        "alpha_pct": -0.17
+      },
+      "holdout": {
+        "start_value": 14869.13,
+        "end_value": 18128.23,
+        "total_return_pct": 21.92,
+        "cagr_pct": 30.49,
+        "max_drawdown_pct": -15.55,
+        "average_cash_pct": 19.78,
+        "alpha_pct": 9.19
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18128.23,
+        "total_return_pct": 81.28,
+        "cagr_pct": 24.19,
+        "max_drawdown_pct": -23.24,
+        "average_cash_pct": 47.47,
+        "alpha_pct": 13.85
+      },
+      "trade_count": 18,
+      "buy_count": 18,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 12046.94,
+        "total_return_pct": 20.47,
+        "cagr_pct": 9.78,
+        "max_drawdown_pct": -21.59,
+        "average_cash_pct": 43.93,
+        "alpha_pct": -27.74
+      },
+      "holdout": {
+        "start_value": 12123.71,
+        "end_value": 15609.95,
+        "total_return_pct": 28.76,
+        "cagr_pct": 40.41,
+        "max_drawdown_pct": -17.48,
+        "average_cash_pct": 0.28,
+        "alpha_pct": 16.03
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15609.95,
+        "total_return_pct": 56.1,
+        "cagr_pct": 17.61,
+        "max_drawdown_pct": -21.59,
+        "average_cash_pct": 32.04,
+        "alpha_pct": -11.33
+      },
+      "trade_count": 15,
+      "buy_count": 15,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13266.88,
+        "total_return_pct": 32.67,
+        "cagr_pct": 15.22,
+        "max_drawdown_pct": -22.47,
+        "average_cash_pct": 48.64,
+        "alpha_pct": -15.54
+      },
+      "holdout": {
+        "start_value": 13344.97,
+        "end_value": 16910.9,
+        "total_return_pct": 26.72,
+        "cagr_pct": 37.44,
+        "max_drawdown_pct": -16.33,
+        "average_cash_pct": 8.91,
+        "alpha_pct": 13.99
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16910.9,
+        "total_return_pct": 69.11,
+        "cagr_pct": 21.08,
+        "max_drawdown_pct": -22.47,
+        "average_cash_pct": 37.82,
+        "alpha_pct": 1.68
+      },
+      "trade_count": 15,
+      "buy_count": 15,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14755.66,
+        "total_return_pct": 47.56,
+        "cagr_pct": 21.52,
+        "max_drawdown_pct": -24.44,
+        "average_cash_pct": 53.02,
+        "alpha_pct": -0.65
+      },
+      "holdout": {
+        "start_value": 14838.24,
+        "end_value": 18674.41,
+        "total_return_pct": 25.85,
+        "cagr_pct": 36.18,
+        "max_drawdown_pct": -15.95,
+        "average_cash_pct": 18.01,
+        "alpha_pct": 13.12
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18674.41,
+        "total_return_pct": 86.74,
+        "cagr_pct": 25.54,
+        "max_drawdown_pct": -24.44,
+        "average_cash_pct": 43.48,
+        "alpha_pct": 19.31
+      },
+      "trade_count": 15,
+      "buy_count": 15,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 12299.53,
+        "total_return_pct": 23.0,
+        "cagr_pct": 10.93,
+        "max_drawdown_pct": -24.27,
+        "average_cash_pct": 39.1,
+        "alpha_pct": -25.21
+      },
+      "holdout": {
+        "start_value": 12423.25,
+        "end_value": 16422.92,
+        "total_return_pct": 32.2,
+        "cagr_pct": 45.47,
+        "max_drawdown_pct": -17.6,
+        "average_cash_pct": 0.17,
+        "alpha_pct": 19.47
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16422.92,
+        "total_return_pct": 64.23,
+        "cagr_pct": 19.8,
+        "max_drawdown_pct": -24.27,
+        "average_cash_pct": 28.49,
+        "alpha_pct": -3.2
+      },
+      "trade_count": 14,
+      "buy_count": 14,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13428.88,
+        "total_return_pct": 34.29,
+        "cagr_pct": 15.92,
+        "max_drawdown_pct": -24.23,
+        "average_cash_pct": 44.01,
+        "alpha_pct": -13.92
+      },
+      "holdout": {
+        "start_value": 13553.81,
+        "end_value": 17626.55,
+        "total_return_pct": 30.05,
+        "cagr_pct": 42.31,
+        "max_drawdown_pct": -16.56,
+        "average_cash_pct": 7.91,
+        "alpha_pct": 17.32
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17626.55,
+        "total_return_pct": 76.27,
+        "cagr_pct": 22.93,
+        "max_drawdown_pct": -24.23,
+        "average_cash_pct": 34.17,
+        "alpha_pct": 8.84
+      },
+      "trade_count": 14,
+      "buy_count": 14,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14824.29,
+        "total_return_pct": 48.24,
+        "cagr_pct": 21.8,
+        "max_drawdown_pct": -25.33,
+        "average_cash_pct": 48.62,
+        "alpha_pct": 0.03
+      },
+      "holdout": {
+        "start_value": 14953.4,
+        "end_value": 19277.79,
+        "total_return_pct": 28.92,
+        "cagr_pct": 40.65,
+        "max_drawdown_pct": -16.18,
+        "average_cash_pct": 16.33,
+        "alpha_pct": 16.19
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 19277.79,
+        "total_return_pct": 92.78,
+        "cagr_pct": 27.0,
+        "max_drawdown_pct": -25.33,
+        "average_cash_pct": 39.82,
+        "alpha_pct": 25.35
+      },
+      "trade_count": 14,
+      "buy_count": 14,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 12501.0,
+        "total_return_pct": 25.01,
+        "cagr_pct": 11.83,
+        "max_drawdown_pct": -26.2,
+        "average_cash_pct": 36.48,
+        "alpha_pct": -23.2
+      },
+      "holdout": {
+        "start_value": 12623.28,
+        "end_value": 16855.01,
+        "total_return_pct": 33.52,
+        "cagr_pct": 47.44,
+        "max_drawdown_pct": -17.31,
+        "average_cash_pct": 0.18,
+        "alpha_pct": 20.79
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16855.01,
+        "total_return_pct": 68.55,
+        "cagr_pct": 20.94,
+        "max_drawdown_pct": -26.2,
+        "average_cash_pct": 26.59,
+        "alpha_pct": 1.12
+      },
+      "trade_count": 13,
+      "buy_count": 13,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13584.82,
+        "total_return_pct": 35.85,
+        "cagr_pct": 16.59,
+        "max_drawdown_pct": -25.61,
+        "average_cash_pct": 41.45,
+        "alpha_pct": -12.36
+      },
+      "holdout": {
+        "start_value": 13708.26,
+        "end_value": 18010.25,
+        "total_return_pct": 31.38,
+        "cagr_pct": 44.27,
+        "max_drawdown_pct": -16.34,
+        "average_cash_pct": 7.46,
+        "alpha_pct": 18.65
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18010.25,
+        "total_return_pct": 80.1,
+        "cagr_pct": 23.89,
+        "max_drawdown_pct": -25.61,
+        "average_cash_pct": 32.19,
+        "alpha_pct": 12.67
+      },
+      "trade_count": 13,
+      "buy_count": 13,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 66.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14931.86,
+        "total_return_pct": 49.32,
+        "cagr_pct": 22.25,
+        "max_drawdown_pct": -26.23,
+        "average_cash_pct": 46.16,
+        "alpha_pct": 1.11
+      },
+      "holdout": {
+        "start_value": 15059.33,
+        "end_value": 19603.98,
+        "total_return_pct": 30.18,
+        "cagr_pct": 42.5,
+        "max_drawdown_pct": -16.0,
+        "average_cash_pct": 15.5,
+        "alpha_pct": 17.45
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 19603.98,
+        "total_return_pct": 96.04,
+        "cagr_pct": 27.78,
+        "max_drawdown_pct": -26.23,
+        "average_cash_pct": 37.81,
+        "alpha_pct": 28.61
+      },
+      "trade_count": 13,
+      "buy_count": 13,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11131.73,
+        "total_return_pct": 11.32,
+        "cagr_pct": 5.52,
+        "max_drawdown_pct": -8.45,
+        "average_cash_pct": 84.95,
+        "alpha_pct": -36.89
+      },
+      "holdout": {
+        "start_value": 11197.74,
+        "end_value": 11994.44,
+        "total_return_pct": 7.11,
+        "cagr_pct": 9.67,
+        "max_drawdown_pct": -10.07,
+        "average_cash_pct": 53.0,
+        "alpha_pct": -5.62
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 11994.44,
+        "total_return_pct": 19.94,
+        "cagr_pct": 6.85,
+        "max_drawdown_pct": -10.07,
+        "average_cash_pct": 76.24,
+        "alpha_pct": -47.49
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13163.23,
+        "total_return_pct": 31.63,
+        "cagr_pct": 14.76,
+        "max_drawdown_pct": -14.49,
+        "average_cash_pct": 86.92,
+        "alpha_pct": -16.58
+      },
+      "holdout": {
+        "start_value": 13238.2,
+        "end_value": 14550.99,
+        "total_return_pct": 9.92,
+        "cagr_pct": 13.54,
+        "max_drawdown_pct": -11.32,
+        "average_cash_pct": 60.9,
+        "alpha_pct": -2.81
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 14550.99,
+        "total_return_pct": 45.51,
+        "cagr_pct": 14.64,
+        "max_drawdown_pct": -14.49,
+        "average_cash_pct": 79.83,
+        "alpha_pct": -21.92
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15520.54,
+        "total_return_pct": 55.21,
+        "cagr_pct": 24.64,
+        "max_drawdown_pct": -20.95,
+        "average_cash_pct": 88.57,
+        "alpha_pct": 7.0
+      },
+      "holdout": {
+        "start_value": 15609.49,
+        "end_value": 17743.74,
+        "total_return_pct": 13.67,
+        "cagr_pct": 18.78,
+        "max_drawdown_pct": -13.26,
+        "average_cash_pct": 67.48,
+        "alpha_pct": 0.94
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17743.74,
+        "total_return_pct": 77.44,
+        "cagr_pct": 23.22,
+        "max_drawdown_pct": -20.95,
+        "average_cash_pct": 82.83,
+        "alpha_pct": 10.01
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11326.77,
+        "total_return_pct": 13.27,
+        "cagr_pct": 6.44,
+        "max_drawdown_pct": -10.09,
+        "average_cash_pct": 82.86,
+        "alpha_pct": -34.94
+      },
+      "holdout": {
+        "start_value": 11406.93,
+        "end_value": 12417.72,
+        "total_return_pct": 8.86,
+        "cagr_pct": 12.08,
+        "max_drawdown_pct": -11.44,
+        "average_cash_pct": 46.68,
+        "alpha_pct": -3.87
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 12417.72,
+        "total_return_pct": 24.18,
+        "cagr_pct": 8.2,
+        "max_drawdown_pct": -11.44,
+        "average_cash_pct": 73.0,
+        "alpha_pct": -43.25
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13327.94,
+        "total_return_pct": 33.28,
+        "cagr_pct": 15.48,
+        "max_drawdown_pct": -15.5,
+        "average_cash_pct": 85.09,
+        "alpha_pct": -14.93
+      },
+      "holdout": {
+        "start_value": 13416.41,
+        "end_value": 14904.4,
+        "total_return_pct": 11.09,
+        "cagr_pct": 15.17,
+        "max_drawdown_pct": -12.29,
+        "average_cash_pct": 55.27,
+        "alpha_pct": -1.64
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 14904.4,
+        "total_return_pct": 49.04,
+        "cagr_pct": 15.64,
+        "max_drawdown_pct": -15.5,
+        "average_cash_pct": 76.96,
+        "alpha_pct": -18.39
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15656.51,
+        "total_return_pct": 56.57,
+        "cagr_pct": 25.18,
+        "max_drawdown_pct": -21.56,
+        "average_cash_pct": 86.95,
+        "alpha_pct": 8.36
+      },
+      "holdout": {
+        "start_value": 15758.24,
+        "end_value": 18024.83,
+        "total_return_pct": 14.38,
+        "cagr_pct": 19.78,
+        "max_drawdown_pct": -13.9,
+        "average_cash_pct": 62.57,
+        "alpha_pct": 1.65
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18024.83,
+        "total_return_pct": 80.25,
+        "cagr_pct": 23.93,
+        "max_drawdown_pct": -21.56,
+        "average_cash_pct": 80.31,
+        "alpha_pct": 12.82
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11590.52,
+        "total_return_pct": 15.91,
+        "cagr_pct": 7.68,
+        "max_drawdown_pct": -12.5,
+        "average_cash_pct": 78.35,
+        "alpha_pct": -32.3
+      },
+      "holdout": {
+        "start_value": 11676.43,
+        "end_value": 12960.09,
+        "total_return_pct": 10.99,
+        "cagr_pct": 15.03,
+        "max_drawdown_pct": -13.85,
+        "average_cash_pct": 36.6,
+        "alpha_pct": -1.74
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 12960.09,
+        "total_return_pct": 29.6,
+        "cagr_pct": 9.9,
+        "max_drawdown_pct": -13.85,
+        "average_cash_pct": 66.98,
+        "alpha_pct": -37.83
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13526.2,
+        "total_return_pct": 35.26,
+        "cagr_pct": 16.34,
+        "max_drawdown_pct": -16.9,
+        "average_cash_pct": 81.09,
+        "alpha_pct": -12.95
+      },
+      "holdout": {
+        "start_value": 13619.21,
+        "end_value": 15308.42,
+        "total_return_pct": 12.4,
+        "cagr_pct": 17.0,
+        "max_drawdown_pct": -14.05,
+        "average_cash_pct": 46.19,
+        "alpha_pct": -0.33
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15308.42,
+        "total_return_pct": 53.08,
+        "cagr_pct": 16.77,
+        "max_drawdown_pct": -16.9,
+        "average_cash_pct": 71.58,
+        "alpha_pct": -14.35
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15792.44,
+        "total_return_pct": 57.92,
+        "cagr_pct": 25.73,
+        "max_drawdown_pct": -22.23,
+        "average_cash_pct": 83.41,
+        "alpha_pct": 9.71
+      },
+      "holdout": {
+        "start_value": 15897.37,
+        "end_value": 18284.94,
+        "total_return_pct": 15.02,
+        "cagr_pct": 20.67,
+        "max_drawdown_pct": -15.09,
+        "average_cash_pct": 54.57,
+        "alpha_pct": 2.29
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18284.94,
+        "total_return_pct": 82.85,
+        "cagr_pct": 24.58,
+        "max_drawdown_pct": -22.23,
+        "average_cash_pct": 75.55,
+        "alpha_pct": 15.42
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11914.82,
+        "total_return_pct": 19.15,
+        "cagr_pct": 9.17,
+        "max_drawdown_pct": -14.51,
+        "average_cash_pct": 75.46,
+        "alpha_pct": -29.06
+      },
+      "holdout": {
+        "start_value": 12021.59,
+        "end_value": 13567.01,
+        "total_return_pct": 12.86,
+        "cagr_pct": 17.63,
+        "max_drawdown_pct": -15.7,
+        "average_cash_pct": 26.84,
+        "alpha_pct": 0.13
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 13567.01,
+        "total_return_pct": 35.67,
+        "cagr_pct": 11.75,
+        "max_drawdown_pct": -15.7,
+        "average_cash_pct": 62.21,
+        "alpha_pct": -31.76
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13806.35,
+        "total_return_pct": 38.06,
+        "cagr_pct": 17.54,
+        "max_drawdown_pct": -18.12,
+        "average_cash_pct": 78.52,
+        "alpha_pct": -10.15
+      },
+      "holdout": {
+        "start_value": 13919.22,
+        "end_value": 15799.72,
+        "total_return_pct": 13.51,
+        "cagr_pct": 18.55,
+        "max_drawdown_pct": -15.4,
+        "average_cash_pct": 37.21,
+        "alpha_pct": 0.78
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15799.72,
+        "total_return_pct": 58.0,
+        "cagr_pct": 18.12,
+        "max_drawdown_pct": -18.12,
+        "average_cash_pct": 67.26,
+        "alpha_pct": -9.43
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 16030.85,
+        "total_return_pct": 60.31,
+        "cagr_pct": 26.67,
+        "max_drawdown_pct": -22.91,
+        "average_cash_pct": 81.13,
+        "alpha_pct": 12.1
+      },
+      "holdout": {
+        "start_value": 16154.55,
+        "end_value": 18657.16,
+        "total_return_pct": 15.49,
+        "cagr_pct": 21.34,
+        "max_drawdown_pct": -16.01,
+        "average_cash_pct": 46.53,
+        "alpha_pct": 2.76
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18657.16,
+        "total_return_pct": 86.57,
+        "cagr_pct": 25.5,
+        "max_drawdown_pct": -22.91,
+        "average_cash_pct": 71.7,
+        "alpha_pct": 19.14
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11883.81,
+        "total_return_pct": 18.84,
+        "cagr_pct": 9.03,
+        "max_drawdown_pct": -18.27,
+        "average_cash_pct": 49.35,
+        "alpha_pct": -29.37
+      },
+      "holdout": {
+        "start_value": 11942.54,
+        "end_value": 14825.24,
+        "total_return_pct": 24.14,
+        "cagr_pct": 33.69,
+        "max_drawdown_pct": -17.16,
+        "average_cash_pct": 0.25,
+        "alpha_pct": 11.41
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 14825.24,
+        "total_return_pct": 48.25,
+        "cagr_pct": 15.42,
+        "max_drawdown_pct": -18.27,
+        "average_cash_pct": 35.98,
+        "alpha_pct": -19.18
+      },
+      "trade_count": 18,
+      "buy_count": 18,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13208.64,
+        "total_return_pct": 32.09,
+        "cagr_pct": 14.96,
+        "max_drawdown_pct": -20.18,
+        "average_cash_pct": 53.77,
+        "alpha_pct": -16.12
+      },
+      "holdout": {
+        "start_value": 13268.8,
+        "end_value": 16237.59,
+        "total_return_pct": 22.37,
+        "cagr_pct": 31.15,
+        "max_drawdown_pct": -15.92,
+        "average_cash_pct": 9.93,
+        "alpha_pct": 9.64
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16237.59,
+        "total_return_pct": 62.38,
+        "cagr_pct": 19.31,
+        "max_drawdown_pct": -20.18,
+        "average_cash_pct": 41.83,
+        "alpha_pct": -5.05
+      },
+      "trade_count": 18,
+      "buy_count": 18,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14804.13,
+        "total_return_pct": 48.04,
+        "cagr_pct": 21.72,
+        "max_drawdown_pct": -23.24,
+        "average_cash_pct": 57.85,
+        "alpha_pct": -0.17
+      },
+      "holdout": {
+        "start_value": 14869.13,
+        "end_value": 18128.23,
+        "total_return_pct": 21.92,
+        "cagr_pct": 30.49,
+        "max_drawdown_pct": -15.55,
+        "average_cash_pct": 19.78,
+        "alpha_pct": 9.19
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18128.23,
+        "total_return_pct": 81.28,
+        "cagr_pct": 24.19,
+        "max_drawdown_pct": -23.24,
+        "average_cash_pct": 47.47,
+        "alpha_pct": 13.85
+      },
+      "trade_count": 18,
+      "buy_count": 18,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 12046.94,
+        "total_return_pct": 20.47,
+        "cagr_pct": 9.78,
+        "max_drawdown_pct": -21.59,
+        "average_cash_pct": 43.93,
+        "alpha_pct": -27.74
+      },
+      "holdout": {
+        "start_value": 12123.71,
+        "end_value": 15609.95,
+        "total_return_pct": 28.76,
+        "cagr_pct": 40.41,
+        "max_drawdown_pct": -17.48,
+        "average_cash_pct": 0.28,
+        "alpha_pct": 16.03
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15609.95,
+        "total_return_pct": 56.1,
+        "cagr_pct": 17.61,
+        "max_drawdown_pct": -21.59,
+        "average_cash_pct": 32.04,
+        "alpha_pct": -11.33
+      },
+      "trade_count": 15,
+      "buy_count": 15,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13266.88,
+        "total_return_pct": 32.67,
+        "cagr_pct": 15.22,
+        "max_drawdown_pct": -22.47,
+        "average_cash_pct": 48.64,
+        "alpha_pct": -15.54
+      },
+      "holdout": {
+        "start_value": 13344.97,
+        "end_value": 16910.9,
+        "total_return_pct": 26.72,
+        "cagr_pct": 37.44,
+        "max_drawdown_pct": -16.33,
+        "average_cash_pct": 8.91,
+        "alpha_pct": 13.99
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16910.9,
+        "total_return_pct": 69.11,
+        "cagr_pct": 21.08,
+        "max_drawdown_pct": -22.47,
+        "average_cash_pct": 37.82,
+        "alpha_pct": 1.68
+      },
+      "trade_count": 15,
+      "buy_count": 15,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14755.66,
+        "total_return_pct": 47.56,
+        "cagr_pct": 21.52,
+        "max_drawdown_pct": -24.44,
+        "average_cash_pct": 53.02,
+        "alpha_pct": -0.65
+      },
+      "holdout": {
+        "start_value": 14838.24,
+        "end_value": 18674.41,
+        "total_return_pct": 25.85,
+        "cagr_pct": 36.18,
+        "max_drawdown_pct": -15.95,
+        "average_cash_pct": 18.01,
+        "alpha_pct": 13.12
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18674.41,
+        "total_return_pct": 86.74,
+        "cagr_pct": 25.54,
+        "max_drawdown_pct": -24.44,
+        "average_cash_pct": 43.48,
+        "alpha_pct": 19.31
+      },
+      "trade_count": 15,
+      "buy_count": 15,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 12299.53,
+        "total_return_pct": 23.0,
+        "cagr_pct": 10.93,
+        "max_drawdown_pct": -24.27,
+        "average_cash_pct": 39.1,
+        "alpha_pct": -25.21
+      },
+      "holdout": {
+        "start_value": 12423.25,
+        "end_value": 16422.92,
+        "total_return_pct": 32.2,
+        "cagr_pct": 45.47,
+        "max_drawdown_pct": -17.6,
+        "average_cash_pct": 0.17,
+        "alpha_pct": 19.47
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16422.92,
+        "total_return_pct": 64.23,
+        "cagr_pct": 19.8,
+        "max_drawdown_pct": -24.27,
+        "average_cash_pct": 28.49,
+        "alpha_pct": -3.2
+      },
+      "trade_count": 14,
+      "buy_count": 14,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13428.88,
+        "total_return_pct": 34.29,
+        "cagr_pct": 15.92,
+        "max_drawdown_pct": -24.23,
+        "average_cash_pct": 44.01,
+        "alpha_pct": -13.92
+      },
+      "holdout": {
+        "start_value": 13553.81,
+        "end_value": 17626.55,
+        "total_return_pct": 30.05,
+        "cagr_pct": 42.31,
+        "max_drawdown_pct": -16.56,
+        "average_cash_pct": 7.91,
+        "alpha_pct": 17.32
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17626.55,
+        "total_return_pct": 76.27,
+        "cagr_pct": 22.93,
+        "max_drawdown_pct": -24.23,
+        "average_cash_pct": 34.17,
+        "alpha_pct": 8.84
+      },
+      "trade_count": 14,
+      "buy_count": 14,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14824.29,
+        "total_return_pct": 48.24,
+        "cagr_pct": 21.8,
+        "max_drawdown_pct": -25.33,
+        "average_cash_pct": 48.62,
+        "alpha_pct": 0.03
+      },
+      "holdout": {
+        "start_value": 14953.4,
+        "end_value": 19277.79,
+        "total_return_pct": 28.92,
+        "cagr_pct": 40.65,
+        "max_drawdown_pct": -16.18,
+        "average_cash_pct": 16.33,
+        "alpha_pct": 16.19
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 19277.79,
+        "total_return_pct": 92.78,
+        "cagr_pct": 27.0,
+        "max_drawdown_pct": -25.33,
+        "average_cash_pct": 39.82,
+        "alpha_pct": 25.35
+      },
+      "trade_count": 14,
+      "buy_count": 14,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 12501.0,
+        "total_return_pct": 25.01,
+        "cagr_pct": 11.83,
+        "max_drawdown_pct": -26.2,
+        "average_cash_pct": 36.48,
+        "alpha_pct": -23.2
+      },
+      "holdout": {
+        "start_value": 12623.28,
+        "end_value": 16855.01,
+        "total_return_pct": 33.52,
+        "cagr_pct": 47.44,
+        "max_drawdown_pct": -17.31,
+        "average_cash_pct": 0.18,
+        "alpha_pct": 20.79
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16855.01,
+        "total_return_pct": 68.55,
+        "cagr_pct": 20.94,
+        "max_drawdown_pct": -26.2,
+        "average_cash_pct": 26.59,
+        "alpha_pct": 1.12
+      },
+      "trade_count": 13,
+      "buy_count": 13,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13584.82,
+        "total_return_pct": 35.85,
+        "cagr_pct": 16.59,
+        "max_drawdown_pct": -25.61,
+        "average_cash_pct": 41.45,
+        "alpha_pct": -12.36
+      },
+      "holdout": {
+        "start_value": 13708.26,
+        "end_value": 18010.25,
+        "total_return_pct": 31.38,
+        "cagr_pct": 44.27,
+        "max_drawdown_pct": -16.34,
+        "average_cash_pct": 7.46,
+        "alpha_pct": 18.65
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18010.25,
+        "total_return_pct": 80.1,
+        "cagr_pct": 23.89,
+        "max_drawdown_pct": -25.61,
+        "average_cash_pct": 32.19,
+        "alpha_pct": 12.67
+      },
+      "trade_count": 13,
+      "buy_count": 13,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 64.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14931.86,
+        "total_return_pct": 49.32,
+        "cagr_pct": 22.25,
+        "max_drawdown_pct": -26.23,
+        "average_cash_pct": 46.16,
+        "alpha_pct": 1.11
+      },
+      "holdout": {
+        "start_value": 15059.33,
+        "end_value": 19603.98,
+        "total_return_pct": 30.18,
+        "cagr_pct": 42.5,
+        "max_drawdown_pct": -16.0,
+        "average_cash_pct": 15.5,
+        "alpha_pct": 17.45
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 19603.98,
+        "total_return_pct": 96.04,
+        "cagr_pct": 27.78,
+        "max_drawdown_pct": -26.23,
+        "average_cash_pct": 37.81,
+        "alpha_pct": 28.61
+      },
+      "trade_count": 13,
+      "buy_count": 13,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11131.73,
+        "total_return_pct": 11.32,
+        "cagr_pct": 5.52,
+        "max_drawdown_pct": -8.45,
+        "average_cash_pct": 84.95,
+        "alpha_pct": -36.89
+      },
+      "holdout": {
+        "start_value": 11197.74,
+        "end_value": 11994.44,
+        "total_return_pct": 7.11,
+        "cagr_pct": 9.67,
+        "max_drawdown_pct": -10.07,
+        "average_cash_pct": 53.0,
+        "alpha_pct": -5.62
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 11994.44,
+        "total_return_pct": 19.94,
+        "cagr_pct": 6.85,
+        "max_drawdown_pct": -10.07,
+        "average_cash_pct": 76.24,
+        "alpha_pct": -47.49
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13163.23,
+        "total_return_pct": 31.63,
+        "cagr_pct": 14.76,
+        "max_drawdown_pct": -14.49,
+        "average_cash_pct": 86.92,
+        "alpha_pct": -16.58
+      },
+      "holdout": {
+        "start_value": 13238.2,
+        "end_value": 14550.99,
+        "total_return_pct": 9.92,
+        "cagr_pct": 13.54,
+        "max_drawdown_pct": -11.32,
+        "average_cash_pct": 60.9,
+        "alpha_pct": -2.81
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 14550.99,
+        "total_return_pct": 45.51,
+        "cagr_pct": 14.64,
+        "max_drawdown_pct": -14.49,
+        "average_cash_pct": 79.83,
+        "alpha_pct": -21.92
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15520.54,
+        "total_return_pct": 55.21,
+        "cagr_pct": 24.64,
+        "max_drawdown_pct": -20.95,
+        "average_cash_pct": 88.57,
+        "alpha_pct": 7.0
+      },
+      "holdout": {
+        "start_value": 15609.49,
+        "end_value": 17743.74,
+        "total_return_pct": 13.67,
+        "cagr_pct": 18.78,
+        "max_drawdown_pct": -13.26,
+        "average_cash_pct": 67.48,
+        "alpha_pct": 0.94
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17743.74,
+        "total_return_pct": 77.44,
+        "cagr_pct": 23.22,
+        "max_drawdown_pct": -20.95,
+        "average_cash_pct": 82.83,
+        "alpha_pct": 10.01
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11326.77,
+        "total_return_pct": 13.27,
+        "cagr_pct": 6.44,
+        "max_drawdown_pct": -10.09,
+        "average_cash_pct": 82.86,
+        "alpha_pct": -34.94
+      },
+      "holdout": {
+        "start_value": 11406.93,
+        "end_value": 12417.72,
+        "total_return_pct": 8.86,
+        "cagr_pct": 12.08,
+        "max_drawdown_pct": -11.44,
+        "average_cash_pct": 46.68,
+        "alpha_pct": -3.87
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 12417.72,
+        "total_return_pct": 24.18,
+        "cagr_pct": 8.2,
+        "max_drawdown_pct": -11.44,
+        "average_cash_pct": 73.0,
+        "alpha_pct": -43.25
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13327.94,
+        "total_return_pct": 33.28,
+        "cagr_pct": 15.48,
+        "max_drawdown_pct": -15.5,
+        "average_cash_pct": 85.09,
+        "alpha_pct": -14.93
+      },
+      "holdout": {
+        "start_value": 13416.41,
+        "end_value": 14904.4,
+        "total_return_pct": 11.09,
+        "cagr_pct": 15.17,
+        "max_drawdown_pct": -12.29,
+        "average_cash_pct": 55.27,
+        "alpha_pct": -1.64
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 14904.4,
+        "total_return_pct": 49.04,
+        "cagr_pct": 15.64,
+        "max_drawdown_pct": -15.5,
+        "average_cash_pct": 76.96,
+        "alpha_pct": -18.39
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15656.51,
+        "total_return_pct": 56.57,
+        "cagr_pct": 25.18,
+        "max_drawdown_pct": -21.56,
+        "average_cash_pct": 86.95,
+        "alpha_pct": 8.36
+      },
+      "holdout": {
+        "start_value": 15758.24,
+        "end_value": 18024.83,
+        "total_return_pct": 14.38,
+        "cagr_pct": 19.78,
+        "max_drawdown_pct": -13.9,
+        "average_cash_pct": 62.57,
+        "alpha_pct": 1.65
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18024.83,
+        "total_return_pct": 80.25,
+        "cagr_pct": 23.93,
+        "max_drawdown_pct": -21.56,
+        "average_cash_pct": 80.31,
+        "alpha_pct": 12.82
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11590.52,
+        "total_return_pct": 15.91,
+        "cagr_pct": 7.68,
+        "max_drawdown_pct": -12.5,
+        "average_cash_pct": 78.35,
+        "alpha_pct": -32.3
+      },
+      "holdout": {
+        "start_value": 11676.43,
+        "end_value": 12960.09,
+        "total_return_pct": 10.99,
+        "cagr_pct": 15.03,
+        "max_drawdown_pct": -13.85,
+        "average_cash_pct": 36.6,
+        "alpha_pct": -1.74
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 12960.09,
+        "total_return_pct": 29.6,
+        "cagr_pct": 9.9,
+        "max_drawdown_pct": -13.85,
+        "average_cash_pct": 66.98,
+        "alpha_pct": -37.83
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13526.2,
+        "total_return_pct": 35.26,
+        "cagr_pct": 16.34,
+        "max_drawdown_pct": -16.9,
+        "average_cash_pct": 81.09,
+        "alpha_pct": -12.95
+      },
+      "holdout": {
+        "start_value": 13619.21,
+        "end_value": 15308.42,
+        "total_return_pct": 12.4,
+        "cagr_pct": 17.0,
+        "max_drawdown_pct": -14.05,
+        "average_cash_pct": 46.19,
+        "alpha_pct": -0.33
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15308.42,
+        "total_return_pct": 53.08,
+        "cagr_pct": 16.77,
+        "max_drawdown_pct": -16.9,
+        "average_cash_pct": 71.58,
+        "alpha_pct": -14.35
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 15792.44,
+        "total_return_pct": 57.92,
+        "cagr_pct": 25.73,
+        "max_drawdown_pct": -22.23,
+        "average_cash_pct": 83.41,
+        "alpha_pct": 9.71
+      },
+      "holdout": {
+        "start_value": 15897.37,
+        "end_value": 18284.94,
+        "total_return_pct": 15.02,
+        "cagr_pct": 20.67,
+        "max_drawdown_pct": -15.09,
+        "average_cash_pct": 54.57,
+        "alpha_pct": 2.29
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18284.94,
+        "total_return_pct": 82.85,
+        "cagr_pct": 24.58,
+        "max_drawdown_pct": -22.23,
+        "average_cash_pct": 75.55,
+        "alpha_pct": 15.42
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11914.82,
+        "total_return_pct": 19.15,
+        "cagr_pct": 9.17,
+        "max_drawdown_pct": -14.51,
+        "average_cash_pct": 75.46,
+        "alpha_pct": -29.06
+      },
+      "holdout": {
+        "start_value": 12021.59,
+        "end_value": 13567.01,
+        "total_return_pct": 12.86,
+        "cagr_pct": 17.63,
+        "max_drawdown_pct": -15.7,
+        "average_cash_pct": 26.84,
+        "alpha_pct": 0.13
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 13567.01,
+        "total_return_pct": 35.67,
+        "cagr_pct": 11.75,
+        "max_drawdown_pct": -15.7,
+        "average_cash_pct": 62.21,
+        "alpha_pct": -31.76
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13806.35,
+        "total_return_pct": 38.06,
+        "cagr_pct": 17.54,
+        "max_drawdown_pct": -18.12,
+        "average_cash_pct": 78.52,
+        "alpha_pct": -10.15
+      },
+      "holdout": {
+        "start_value": 13919.22,
+        "end_value": 15799.72,
+        "total_return_pct": 13.51,
+        "cagr_pct": 18.55,
+        "max_drawdown_pct": -15.4,
+        "average_cash_pct": 37.21,
+        "alpha_pct": 0.78
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15799.72,
+        "total_return_pct": 58.0,
+        "cagr_pct": 18.12,
+        "max_drawdown_pct": -18.12,
+        "average_cash_pct": 67.26,
+        "alpha_pct": -9.43
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "current",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 16030.85,
+        "total_return_pct": 60.31,
+        "cagr_pct": 26.67,
+        "max_drawdown_pct": -22.91,
+        "average_cash_pct": 81.13,
+        "alpha_pct": 12.1
+      },
+      "holdout": {
+        "start_value": 16154.55,
+        "end_value": 18657.16,
+        "total_return_pct": 15.49,
+        "cagr_pct": 21.34,
+        "max_drawdown_pct": -16.01,
+        "average_cash_pct": 46.53,
+        "alpha_pct": 2.76
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18657.16,
+        "total_return_pct": 86.57,
+        "cagr_pct": 25.5,
+        "max_drawdown_pct": -22.91,
+        "average_cash_pct": 71.7,
+        "alpha_pct": 19.14
+      },
+      "trade_count": 7,
+      "buy_count": 7,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 11883.81,
+        "total_return_pct": 18.84,
+        "cagr_pct": 9.03,
+        "max_drawdown_pct": -18.27,
+        "average_cash_pct": 49.35,
+        "alpha_pct": -29.37
+      },
+      "holdout": {
+        "start_value": 11942.54,
+        "end_value": 14825.24,
+        "total_return_pct": 24.14,
+        "cagr_pct": 33.69,
+        "max_drawdown_pct": -17.16,
+        "average_cash_pct": 0.25,
+        "alpha_pct": 11.41
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 14825.24,
+        "total_return_pct": 48.25,
+        "cagr_pct": 15.42,
+        "max_drawdown_pct": -18.27,
+        "average_cash_pct": 35.98,
+        "alpha_pct": -19.18
+      },
+      "trade_count": 18,
+      "buy_count": 18,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13208.64,
+        "total_return_pct": 32.09,
+        "cagr_pct": 14.96,
+        "max_drawdown_pct": -20.18,
+        "average_cash_pct": 53.77,
+        "alpha_pct": -16.12
+      },
+      "holdout": {
+        "start_value": 13268.8,
+        "end_value": 16237.59,
+        "total_return_pct": 22.37,
+        "cagr_pct": 31.15,
+        "max_drawdown_pct": -15.92,
+        "average_cash_pct": 9.93,
+        "alpha_pct": 9.64
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16237.59,
+        "total_return_pct": 62.38,
+        "cagr_pct": 19.31,
+        "max_drawdown_pct": -20.18,
+        "average_cash_pct": 41.83,
+        "alpha_pct": -5.05
+      },
+      "trade_count": 18,
+      "buy_count": 18,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 8.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14804.13,
+        "total_return_pct": 48.04,
+        "cagr_pct": 21.72,
+        "max_drawdown_pct": -23.24,
+        "average_cash_pct": 57.85,
+        "alpha_pct": -0.17
+      },
+      "holdout": {
+        "start_value": 14869.13,
+        "end_value": 18128.23,
+        "total_return_pct": 21.92,
+        "cagr_pct": 30.49,
+        "max_drawdown_pct": -15.55,
+        "average_cash_pct": 19.78,
+        "alpha_pct": 9.19
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18128.23,
+        "total_return_pct": 81.28,
+        "cagr_pct": 24.19,
+        "max_drawdown_pct": -23.24,
+        "average_cash_pct": 47.47,
+        "alpha_pct": 13.85
+      },
+      "trade_count": 18,
+      "buy_count": 18,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 12046.94,
+        "total_return_pct": 20.47,
+        "cagr_pct": 9.78,
+        "max_drawdown_pct": -21.59,
+        "average_cash_pct": 43.93,
+        "alpha_pct": -27.74
+      },
+      "holdout": {
+        "start_value": 12123.71,
+        "end_value": 15609.95,
+        "total_return_pct": 28.76,
+        "cagr_pct": 40.41,
+        "max_drawdown_pct": -17.48,
+        "average_cash_pct": 0.28,
+        "alpha_pct": 16.03
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 15609.95,
+        "total_return_pct": 56.1,
+        "cagr_pct": 17.61,
+        "max_drawdown_pct": -21.59,
+        "average_cash_pct": 32.04,
+        "alpha_pct": -11.33
+      },
+      "trade_count": 15,
+      "buy_count": 15,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13266.88,
+        "total_return_pct": 32.67,
+        "cagr_pct": 15.22,
+        "max_drawdown_pct": -22.47,
+        "average_cash_pct": 48.64,
+        "alpha_pct": -15.54
+      },
+      "holdout": {
+        "start_value": 13344.97,
+        "end_value": 16910.9,
+        "total_return_pct": 26.72,
+        "cagr_pct": 37.44,
+        "max_drawdown_pct": -16.33,
+        "average_cash_pct": 8.91,
+        "alpha_pct": 13.99
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16910.9,
+        "total_return_pct": 69.11,
+        "cagr_pct": 21.08,
+        "max_drawdown_pct": -22.47,
+        "average_cash_pct": 37.82,
+        "alpha_pct": 1.68
+      },
+      "trade_count": 15,
+      "buy_count": 15,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 10.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14755.66,
+        "total_return_pct": 47.56,
+        "cagr_pct": 21.52,
+        "max_drawdown_pct": -24.44,
+        "average_cash_pct": 53.02,
+        "alpha_pct": -0.65
+      },
+      "holdout": {
+        "start_value": 14838.24,
+        "end_value": 18674.41,
+        "total_return_pct": 25.85,
+        "cagr_pct": 36.18,
+        "max_drawdown_pct": -15.95,
+        "average_cash_pct": 18.01,
+        "alpha_pct": 13.12
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18674.41,
+        "total_return_pct": 86.74,
+        "cagr_pct": 25.54,
+        "max_drawdown_pct": -24.44,
+        "average_cash_pct": 43.48,
+        "alpha_pct": 19.31
+      },
+      "trade_count": 15,
+      "buy_count": 15,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 12299.53,
+        "total_return_pct": 23.0,
+        "cagr_pct": 10.93,
+        "max_drawdown_pct": -24.27,
+        "average_cash_pct": 39.1,
+        "alpha_pct": -25.21
+      },
+      "holdout": {
+        "start_value": 12423.25,
+        "end_value": 16422.92,
+        "total_return_pct": 32.2,
+        "cagr_pct": 45.47,
+        "max_drawdown_pct": -17.6,
+        "average_cash_pct": 0.17,
+        "alpha_pct": 19.47
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16422.92,
+        "total_return_pct": 64.23,
+        "cagr_pct": 19.8,
+        "max_drawdown_pct": -24.27,
+        "average_cash_pct": 28.49,
+        "alpha_pct": -3.2
+      },
+      "trade_count": 14,
+      "buy_count": 14,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13428.88,
+        "total_return_pct": 34.29,
+        "cagr_pct": 15.92,
+        "max_drawdown_pct": -24.23,
+        "average_cash_pct": 44.01,
+        "alpha_pct": -13.92
+      },
+      "holdout": {
+        "start_value": 13553.81,
+        "end_value": 17626.55,
+        "total_return_pct": 30.05,
+        "cagr_pct": 42.31,
+        "max_drawdown_pct": -16.56,
+        "average_cash_pct": 7.91,
+        "alpha_pct": 17.32
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 17626.55,
+        "total_return_pct": 76.27,
+        "cagr_pct": 22.93,
+        "max_drawdown_pct": -24.23,
+        "average_cash_pct": 34.17,
+        "alpha_pct": 8.84
+      },
+      "trade_count": 14,
+      "buy_count": 14,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 12.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14824.29,
+        "total_return_pct": 48.24,
+        "cagr_pct": 21.8,
+        "max_drawdown_pct": -25.33,
+        "average_cash_pct": 48.62,
+        "alpha_pct": 0.03
+      },
+      "holdout": {
+        "start_value": 14953.4,
+        "end_value": 19277.79,
+        "total_return_pct": 28.92,
+        "cagr_pct": 40.65,
+        "max_drawdown_pct": -16.18,
+        "average_cash_pct": 16.33,
+        "alpha_pct": 16.19
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 19277.79,
+        "total_return_pct": 92.78,
+        "cagr_pct": 27.0,
+        "max_drawdown_pct": -25.33,
+        "average_cash_pct": 39.82,
+        "alpha_pct": 25.35
+      },
+      "trade_count": 14,
+      "buy_count": 14,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 0,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 12501.0,
+        "total_return_pct": 25.01,
+        "cagr_pct": 11.83,
+        "max_drawdown_pct": -26.2,
+        "average_cash_pct": 36.48,
+        "alpha_pct": -23.2
+      },
+      "holdout": {
+        "start_value": 12623.28,
+        "end_value": 16855.01,
+        "total_return_pct": 33.52,
+        "cagr_pct": 47.44,
+        "max_drawdown_pct": -17.31,
+        "average_cash_pct": 0.18,
+        "alpha_pct": 20.79
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 16855.01,
+        "total_return_pct": 68.55,
+        "cagr_pct": 20.94,
+        "max_drawdown_pct": -26.2,
+        "average_cash_pct": 26.59,
+        "alpha_pct": 1.12
+      },
+      "trade_count": 13,
+      "buy_count": 13,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 50,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 13584.82,
+        "total_return_pct": 35.85,
+        "cagr_pct": 16.59,
+        "max_drawdown_pct": -25.61,
+        "average_cash_pct": 41.45,
+        "alpha_pct": -12.36
+      },
+      "holdout": {
+        "start_value": 13708.26,
+        "end_value": 18010.25,
+        "total_return_pct": 31.38,
+        "cagr_pct": 44.27,
+        "max_drawdown_pct": -16.34,
+        "average_cash_pct": 7.46,
+        "alpha_pct": 18.65
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 18010.25,
+        "total_return_pct": 80.1,
+        "cagr_pct": 23.89,
+        "max_drawdown_pct": -25.61,
+        "average_cash_pct": 32.19,
+        "alpha_pct": 12.67
+      },
+      "trade_count": 13,
+      "buy_count": 13,
+      "sell_count": 0
+    },
+    {
+      "score_floor": 62.0,
+      "entry_policy": "qualified_any_zone",
+      "min_allocation_pct": 15.0,
+      "idle_cash_sp500_pct": 100,
+      "train": {
+        "start_value": 10000.0,
+        "end_value": 14931.86,
+        "total_return_pct": 49.32,
+        "cagr_pct": 22.25,
+        "max_drawdown_pct": -26.23,
+        "average_cash_pct": 46.16,
+        "alpha_pct": 1.11
+      },
+      "holdout": {
+        "start_value": 15059.33,
+        "end_value": 19603.98,
+        "total_return_pct": 30.18,
+        "cagr_pct": 42.5,
+        "max_drawdown_pct": -16.0,
+        "average_cash_pct": 15.5,
+        "alpha_pct": 17.45
+      },
+      "full": {
+        "start_value": 10000.0,
+        "end_value": 19603.98,
+        "total_return_pct": 96.04,
+        "cagr_pct": 27.78,
+        "max_drawdown_pct": -26.23,
+        "average_cash_pct": 37.81,
+        "alpha_pct": 28.61
+      },
+      "trade_count": 13,
+      "buy_count": 13,
+      "sell_count": 0
+    }
+  ]
+}
