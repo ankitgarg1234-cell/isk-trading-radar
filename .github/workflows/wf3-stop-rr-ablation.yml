@@ -1,0 +1,39 @@
+name: WF3 Stop R-R Ablation
+
+on:
+  push:
+    branches:
+      - experiment/stop-rr-ablation
+    paths:
+      - scripts/wf3_stop_rr_ablation.py
+      - .github/workflows/wf3-stop-rr-ablation.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wf3-stop-rr-ablation
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pandas lxml requests
+      - name: Run stop / R-R ablation
+        run: python scripts/wf3_stop_rr_ablation.py
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: wf3-stop-rr-ablation
+          path: |
+            backtests/results/wf3_stop_rr_ablation.json
+            backtests/results/wf3_stop_rr_ablation.md
