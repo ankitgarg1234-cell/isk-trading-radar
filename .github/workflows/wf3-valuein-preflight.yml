@@ -1,0 +1,42 @@
+name: WF3 Valuein Preflight
+
+on:
+  push:
+    paths:
+      - .github/workflows/wf3-valuein-preflight.yml
+  workflow_dispatch:
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Valuein SDK
+        run: pip install valuein-sdk pandas
+      - name: Verify anonymous PIT sample
+        run: |
+          python - <<'PY'
+          from valuein_sdk import ValueinClient
+          with ValueinClient(tables=["references","index_membership","filing","fact"]) as c:
+              print('ME',c.me())
+              q="""
+              SELECT r.symbol, f.filing_date, fa.fiscal_year, fa.fiscal_period,
+                     fa.standard_concept, fa.numeric_value, fa.period_end
+              FROM "references" r
+              JOIN filing f ON f.entity_id=r.cik
+              JOIN fact fa ON fa.accession_id=f.accession_id
+              WHERE r.symbol='AAPL'
+                AND f.filing_date BETWEEN DATE '2023-01-01' AND DATE '2026-10-01'
+                AND f.form_type IN ('10-K','10-Q')
+                AND fa.standard_concept IN ('TotalRevenue','NetIncome','GrossProfit','OperatingIncome','StockholdersEquity','TotalDebt','CommonSharesOutstanding')
+              ORDER BY f.filing_date DESC
+              LIMIT 30
+              """
+              df=c.run_query(q)
+              print(df.to_string(index=False))
+              if len(df)<5: raise SystemExit('insufficient sample rows')
+          PY
