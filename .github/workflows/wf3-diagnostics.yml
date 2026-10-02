@@ -1,0 +1,36 @@
+name: WF3 Gate Diagnostics
+
+on:
+  push:
+    paths:
+      - scripts/wf3_diagnostics.py
+      - scripts/wf3_offline_valuein.py
+      - .github/workflows/wf3-diagnostics.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pandas lxml requests
+      - name: Diagnose historical gates
+        run: python scripts/wf3_diagnostics.py
+      - name: Commit diagnostics
+        run: |
+          git config user.name "isk-backtest-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add backtests/results/wf3_diagnostics.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Add WF3 gate diagnostics [skip ci]"
+          git pull --rebase origin main
+          git push
