@@ -138,8 +138,35 @@ def main():
         }
         prev=n
 
+    # Per-buy attribution: split-adjusted cached prices let us compare each
+    # entry to its later peak and end-of-test close without replaying splits.
+    attribution=[]
+    end_day=trading[-1]
+    for t in state.trades:
+        if t.get("side")!="BUY":
+            continue
+        sym=t["symbol"];entry_day=date.fromisoformat(t["date"]);entry=float(t["price"]);qty=float(t["shares"])
+        data=market.get(sym) or {};post=[]
+        for rr in data.get("rows") or []:
+            rd=date.fromisoformat(rr["date"])
+            if entry_day<=rd<=end_day and rr.get("close") is not None:
+                post.append((rd,float(rr["close"])))
+        if not post:
+            continue
+        end_close=post[-1][1]
+        peak_day,peak_close=max(post,key=lambda x:x[1])
+        attribution.append({
+            "symbol":sym,"entry_date":t["date"],"entry_price":round(entry,4),"shares":qty,
+            "entry_capital":round(entry*qty,2),
+            "end_close":round(end_close,4),
+            "end_return_pct":round((end_close/entry-1)*100,2) if entry else None,
+            "peak_close":round(peak_close,4),"peak_date":peak_day.isoformat(),
+            "max_runup_pct":round((peak_close/entry-1)*100,2) if entry else None,
+            "price_pnl_to_end":round((end_close-entry)*qty,2),
+        })
+
     summary={
-        "version":"wf3-coverage-ablation-v1",
+        "version":"wf3-coverage-ablation-v2-splitfix",
         "coverage_mode":args.coverage,
         "period":{"start":trading[0].isoformat(),"end":trading[-1].isoformat()},
         "fixed_rules":{
@@ -167,6 +194,7 @@ def main():
         "portfolio_result":result,
         "benchmark":br,
         "trades":state.trades,
+        "trade_attribution":attribution,
         "daily_counts":day_counts,
     }
     core={k:summary[k] for k in ["coverage_mode","period","funnel","portfolio_result","benchmark","trades"]}
