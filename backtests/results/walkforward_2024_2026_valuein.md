@@ -22,7 +22,7 @@ Deterministic run hash: 1c11dc6fc962ea806fc4b40f3d6b2a66ac92601ecd44aba66b9dd2c2
 
 ## Data / integrity notes
 - Historical price coverage: 97.12% of the reconstructed 2024–2026 S&P universe.
-- PIT fundamental coverage: 88.49% of scanner candidate symbols.
+- PIT fundamental coverage: 88.68% of scanner candidate symbols.
 - Fundamental facts are admitted only when filing_date <= decision date; no current analyst consensus or current fundamentals are backfilled into historical dates.
 - Historical general-news and strategic-capital archives are omitted; 10-K/10-Q filing dates serve only as a conservative earnings-catalyst proxy.
 - The full historical S&P universe is cheap-screened weekly; up to 80 scanner-style candidates plus current holdings receive deep analysis.
