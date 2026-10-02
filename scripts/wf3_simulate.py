@@ -4,7 +4,9 @@ import argparse, gzip, json
 from collections import defaultdict
 from datetime import date, datetime, timezone
 from pathlib import Path
-import scripts.walkforward_backtest as wf
+ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT/"scripts"))
+import walkforward_backtest as wf
 
 def load_gz(path):
     with gzip.open(path,"rt",encoding="utf-8") as f:return json.load(f)
