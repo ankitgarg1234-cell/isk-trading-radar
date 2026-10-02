@@ -1,0 +1,42 @@
+name: Build WF3 Valuein Fundamentals
+
+on:
+  push:
+    paths:
+      - scripts/wf3_valuein_fundamentals.py
+      - .github/workflows/wf3-valuein-fundamentals.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wf3-valuein-fundamentals
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install valuein-sdk pandas
+      - name: Build PIT fundamentals cache
+        run: |
+          python scripts/wf3_valuein_fundamentals.py
+          ls -lh backtests/staged/wf3_valuein_fundamentals.json.gz
+      - name: Commit fundamentals dataset
+        run: |
+          git config user.name "isk-backtest-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add backtests/staged/wf3_valuein_fundamentals.json.gz
+          git diff --cached --quiet && exit 0
+          git commit -m "Cache PIT fundamentals for 2024-2026 backtest [skip ci]"
+          git pull --rebase origin main
+          git push
