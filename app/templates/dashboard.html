@@ -15,6 +15,7 @@
     <span id="marketBadge" class="pill {{ 'green' if market_open else 'muted' }}">{{ 'US MARKET OPEN' if market_open else 'US MARKET CLOSED' }}</span>
     <span class="pill {{ 'green' if scanner.running else 'amber' }}">Scanner {{ 'active' if scanner.running else 'starting' }}</span>
     <button id="scanNow" class="btn secondary scan-now-trigger" type="button">Run scan now</button>
+    <a class="btn secondary" href="/experiments/score-bands">Paper experiment</a>
     {% if auth_enabled %}<form method="post" action="/logout"><button class="btn ghost">Log out</button></form>{% endif %}
   </div>
 </header>

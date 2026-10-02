@@ -123,6 +123,23 @@ class Alert(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
 
+class ScoreBandExperiment(Base):
+    __tablename__ = "score_band_experiments"
+    version: Mapped[str] = mapped_column(String(64), primary_key=True)
+    state_json: Mapped[str] = mapped_column(Text, default="{}")
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ScoreBandObservation(Base):
+    __tablename__ = "score_band_observations"
+    __table_args__ = (UniqueConstraint("version", "symbol", "observed_at", name="uq_score_band_observation"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    version: Mapped[str] = mapped_column(String(64), index=True)
+    symbol: Mapped[str] = mapped_column(String(16), index=True)
+    observed_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    payload_json: Mapped[str] = mapped_column(Text)
+
+
 class PaperAccount(Base):
     __tablename__ = "paper_accounts"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

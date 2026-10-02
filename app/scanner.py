@@ -16,6 +16,7 @@ from .market import YahooMarketProvider
 from .analysis_engine import score_bundle, position_action, position_action_plan, SCORING_VERSION
 from .portfolio_engine import candidate_rank_score, build_optimizer_plan, normalise_profile, INVESTABLE_ENTRY_ACTIONS, MIN_ENTRY_RISK_REWARD
 from .paper_engine import run_paper_cycle
+from .score_band_capture import run_experiment_cycle, experiment_holding_symbols
 from .ai_engine import AIEngine
 
 NY = ZoneInfo("America/New_York")
@@ -164,6 +165,7 @@ class RadarService:
         self.last_universe_core_candidates = 0
         self.last_universe_explosive_candidates = 0
         self.last_deep_analyzed = 0
+        self.last_experiment_result = {"status": "waiting_for_market_open", "version": "score-bands-paper-v1"}
         self.last_universe_start = 0
         # Process-local material state used only to decide whether the paper
         # optimizer needs an immediate event-driven run.  It is intentionally
@@ -579,7 +581,7 @@ class RadarService:
         with SessionLocal() as db:
             positions = [p.symbol for p in db.query(Position).all()]
             paper_positions = [p.symbol for p in db.query(PaperPosition).all()]
-        return list(dict.fromkeys(s.upper() for s in (positions + paper_positions) if s))
+        return list(dict.fromkeys(s.upper() for s in (positions + paper_positions + experiment_holding_symbols()) if s))
 
     def priority_symbols(self) -> list[str]:
         """Non-holding symbols that deserve full analysis before broad-market candidates."""
@@ -936,9 +938,11 @@ class RadarService:
         paper_event_symbols: list[str] = []
         holding_set = set(self.holding_symbols())
         holding_quotes: list[dict] = []
+        experiment_observations: list[dict] = []
         for sym in batch:
             try:
                 full = self.analyze_symbol(sym)
+                experiment_observations.append(full)
                 if sym in holding_set:
                     current_price = float(full.get("price") or 0)
                     previous_close = float(full.get("previous_close") or 0)
@@ -995,6 +999,13 @@ class RadarService:
             paper_result = run_paper_cycle(self.provider, entry_event=paper_top20_recheck)
         except Exception as e:
             errors.append(f"paper trading: {type(e).__name__}")
+        try:
+            # Separate tables and virtual balances; consumes fresh deep analyses,
+            # never the Top-20 selection and never the production cash ledger.
+            self.last_experiment_result = run_experiment_cycle(
+                experiment_observations, market_open=self.market_open())
+        except Exception as e:
+            errors.append(f"score-band experiment: {type(e).__name__}")
         try:
             blocked_symbols = {
                 str(x.get("symbol") or "").upper()

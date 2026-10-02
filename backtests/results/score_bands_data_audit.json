@@ -1,0 +1,55 @@
+{
+  "strategy": {
+    "version": "score-bands-paper-v1",
+    "starting_cash": 10000.0,
+    "profile": "MEDIUM",
+    "risk_per_trade_pct": 0.75,
+    "bands": [
+      [
+        90,
+        40
+      ],
+      [
+        85,
+        30
+      ],
+      [
+        80,
+        20
+      ],
+      [
+        75,
+        15
+      ],
+      [
+        70,
+        10
+      ]
+    ],
+    "min_deterministic": 70,
+    "min_analyst": 75,
+    "min_rr": 0.4,
+    "fee_bps": 10.0,
+    "slippage_bps": 5.0,
+    "fresh_seconds": 600,
+    "initial_exit": "complete strategy: entry-time modeled stop; next fresh observation fill",
+    "strong_momentum": "price >= EMA20 and RSI14 >= 50",
+    "post_harvest_stop": "max(previous stop, peak observed price - (2 if strong else 1) * ATR14)",
+    "profit_withdrawal": "once: ceil(unrealized price gain / net sale price), preserving >=1 share",
+    "entry_levels": "frozen at signal time; breakout uses preceding completed daily closes",
+    "fill_model": "next fresh scanner observation, adverse 5bps slippage, 10bps fee",
+    "coverage": "all fresh deep analyses supplied by rotating scanner; no Top-20 limit; not a complete market census",
+    "benchmark": "same-start observed S&P 500 total-return index; dividends on stock positions omitted"
+  },
+  "period": {
+    "start": "2024-01-01",
+    "end": "2026-10-01"
+  },
+  "price_symbols": 539,
+  "sec_symbols": 507,
+  "dated_analyst_archive_present": false,
+  "historical_complete_strategy_return": null,
+  "status": "blocked_missing_analyst_archive",
+  "next_step": "Capture actual analyst inputs, exchange quote times and decisions in isolated live paper accounts.",
+  "non_negotiable": "Missing analyst data fails qualification; no present-day backfill or relaxed gate."
+}

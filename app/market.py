@@ -686,8 +686,15 @@ class YahooMarketProvider:
             except Exception:
                 sector_benchmark = None
 
+        quote_asof = None
+        try:
+            quote_ts = (daily.get("meta") or {}).get("regularMarketTime")
+            if quote_ts:
+                quote_asof = datetime.fromtimestamp(float(quote_ts), tz=timezone.utc).isoformat()
+        except (TypeError, ValueError, OverflowError):
+            pass
         data_sources = {
-            "price": {"source": "Yahoo Finance chart", "status": "available" if rows and current else "unavailable", "asof": datetime.now(timezone.utc).isoformat()},
+            "price": {"source": "Yahoo Finance chart", "status": "available" if rows and current else "unavailable", "asof": datetime.now(timezone.utc).isoformat(), "quote_asof": quote_asof},
             "fundamentals": {
                 "source": fundamentals.get("_fundamental_source") or fundamentals.get("_source") or "unavailable",
                 "status": fundamentals.get("_status") or "unavailable",

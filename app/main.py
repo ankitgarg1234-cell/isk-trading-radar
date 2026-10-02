@@ -15,10 +15,14 @@ from .portfolio_engine import RISK_PROFILES, ACTION_RANK, normalise_profile, sto
 from .paper_engine import paper_status, reset_paper, run_paper_cycle, manual_paper_add, manual_paper_close
 from .scanner import radar
 from .ai_engine import AIEngine
+from .score_band_capture import experiment_status
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     task=None
+    experiment = await asyncio.to_thread(experiment_status)
+    radar.last_experiment_result = {"status": experiment["status"], "version": experiment["version"],
+        "started_at": experiment["started_at"], "profile": experiment["spec"]["profile"]}
     if not settings.disable_scanner:
         task=asyncio.create_task(radar.loop())
     yield
@@ -28,7 +32,6 @@ async def lifespan(app:FastAPI):
         except asyncio.CancelledError:pass
 
 app=FastAPI(title="ISK Trading Radar",version="1.0.0",lifespan=lifespan)
-app.add_middleware(SessionMiddleware,secret_key=settings.session_secret,same_site="lax",https_only=False)
 app.mount("/static",StaticFiles(directory="app/static"),name="static")
 templates=Jinja2Templates(directory="app/templates")
 ai_engine=AIEngine()
@@ -40,6 +43,8 @@ async def auth_guard(request:Request,call_next):
         if request.url.path.startswith("/api/"):return JSONResponse({"detail":"authentication required"},status_code=401)
         return RedirectResponse("/login",status_code=303)
     return await call_next(request)
+
+app.add_middleware(SessionMiddleware,secret_key=settings.session_secret,same_site="lax",https_only=False)
 
 @app.get("/login",response_class=HTMLResponse)
 def login_page(request:Request):return templates.TemplateResponse(request,"login.html",{"enabled":settings.auth_enabled,"error":None})
@@ -55,8 +60,18 @@ def logout(request:Request):request.session.clear();return RedirectResponse("/lo
 def health():
     try:
         with engine.connect() as conn:conn.execute(text("SELECT 1"))
-        return {"status":"ok","database":"connected","scoring_version":SCORING_VERSION,"storage":storage_status(),"scanner_running":radar.running,"scan_in_progress":radar.scan_in_progress,"scan_started_at":radar.scan_started_at,"last_scan":radar.last_scan,"last_scan_duration_seconds":radar.last_scan_duration_seconds,"last_scan_result":radar.last_result,"last_error":radar.last_error,"market_open":radar.market_open(),"universe_size":radar.universe_size,"live_poll_seconds":settings.live_poll_seconds,"dashboard_cache_seconds":settings.dashboard_cache_seconds}
+        return {"status":"ok","database":"connected","scoring_version":SCORING_VERSION,"storage":storage_status(),"scanner_running":radar.running,"scan_in_progress":radar.scan_in_progress,"scan_started_at":radar.scan_started_at,"last_scan":radar.last_scan,"last_scan_duration_seconds":radar.last_scan_duration_seconds,"last_scan_result":radar.last_result,"last_error":radar.last_error,"market_open":radar.market_open(),"universe_size":radar.universe_size,"live_poll_seconds":settings.live_poll_seconds,"dashboard_cache_seconds":settings.dashboard_cache_seconds,"score_band_experiment":radar.last_experiment_result}
     except Exception as exc:return JSONResponse({"status":"degraded","database":str(exc)},status_code=503)
+
+@app.get("/api/experiments/score-bands")
+def score_band_experiment_api():
+    return experiment_status(include_history=True)
+
+
+@app.get("/experiments/score-bands", response_class=HTMLResponse)
+def score_band_experiment_page(request: Request):
+    return templates.TemplateResponse(request, "score_band_experiment.html", {"experiment": experiment_status()})
+
 
 def _candidate_payload(c: RadarCandidate) -> dict:
     if getattr(c, "current_json", None):
