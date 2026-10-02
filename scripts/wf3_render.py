@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import copy, json, math, os, statistics, sys, time, traceback
+import copy, gzip, json, math, os, statistics, sys, time, traceback
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timedelta, timezone
@@ -310,44 +310,22 @@ def stats(name,st,curve):
             "win_rate_pct":round(len(wins)/len(sells)*100,2) if sells else None,"ending_cash":round(st.cash,2),"open_positions":len(st.pos)}
 
 def main():
-    sess=requests.Session();current,sectors,changes=wf.sp500_history(sess);members0=wf.members_at(current,changes,START)
-    rel=[x for x in changes if START<=date.fromisoformat(x["date"])<=END];union=set(members0)|current
-    for x in rel:
-        if x["added"]:union.add(x["added"])
-        if x["removed"]:union.add(x["removed"])
-    print("WF3_PHASE prices universe",len(union),flush=True)
-    ps=START-timedelta(days=400);pe_=END+timedelta(days=5);market={}
-    def fy(sym):
-        z=requests.Session();return sym,yahoo(z,sym,ps,pe_)
-    with ThreadPoolExecutor(max_workers=16) as ex:
-        fs=[ex.submit(fy,s) for s in sorted(union)]
-        for i,f in enumerate(as_completed(fs),1):
-            sym,v=f.result()
-            if v:market[sym]=v
-            if i%100==0:print("WF3_PRICE",i,len(market),flush=True)
-    if len(market)/len(union)<.9:raise RuntimeError("price coverage below 90%")
-    etfs={}
-    for e in sorted(set(wf.ETF.values())):
-        v=yahoo(sess,e,ps,pe_)
-        if v:etfs[e]=v
-    benchmark_symbol="^SP500TR";benchmark=yahoo(sess,benchmark_symbol,START-timedelta(days=5),END+timedelta(days=2))
-    if not benchmark:
-        benchmark_symbol="SPY";benchmark=yahoo(sess,benchmark_symbol,START-timedelta(days=5),END+timedelta(days=2))
-    if not benchmark:raise RuntimeError("benchmark unavailable")
-    trading=[date.fromisoformat(r["date"]) for r in benchmark["rows"] if START<=date.fromisoformat(r["date"])<=END];weeks=[];wk=None
-    for d in trading:
-        k=d.isocalendar()[:2]
-        if k!=wk:weeks.append(d);wk=k
-        else:weeks[-1]=d
-    bydate=defaultdict(list)
-    for x in rel:bydate[date.fromisoformat(x["date"])].append(x)
-    members=set(members0);shortlists={};candidate_union=set()
-    for d in weeks:
-        for cd in sorted([x for x in list(bydate) if x<=d]):
-            for x in bydate.pop(cd):
-                if x["removed"]:members.discard(x["removed"])
-                if x["added"]:members.add(x["added"])
-        pick=choose({x for x in members if x in market},market,d);shortlists[d]=pick;candidate_union.update(pick)
+    dataset_path=ROOT/"backtests"/"staged"/"wf3_prices.json.gz"
+    if not dataset_path.exists():
+        raise RuntimeError(f"cached historical price dataset missing: {dataset_path}")
+    with gzip.open(dataset_path,"rt",encoding="utf-8") as fh:
+        ds=json.load(fh)
+    START_DS=date.fromisoformat(ds["period"]["start"]);END_DS=date.fromisoformat(ds["period"]["end"])
+    if START_DS != START or END_DS != END:
+        raise RuntimeError(f"cached dataset period {START_DS}..{END_DS} does not match runner {START}..{END}")
+    market=ds["market"];etfs=ds["sector_etfs"];benchmark=ds["benchmark"];benchmark_symbol=ds["benchmark_symbol"]
+    sectors=ds["membership"]["sectors"];members0=set(ds["membership"]["start_members"]);rel=ds["membership"]["changes"]
+    shortlists={date.fromisoformat(k):v for k,v in ds["prefilters"].items()}
+    weeks=sorted(shortlists)
+    candidate_union=set(ds["candidate_union"])
+    union=set(market)
+    print("WF3_CACHED_PRICES",json.dumps(ds.get("coverage") or {},separators=(",",":")),flush=True)
+    sess=requests.Session()
     print("WF3_PHASE frames candidates",len(candidate_union),flush=True)
     cikmap=ticker_map(sess);candidate_ciks={cikmap[s] for s in candidate_union if s in cikmap}
     frames=fetch_frames(sess,candidate_ciks)
