@@ -32,3 +32,26 @@ jobs:
         run: node --check app/static/app.js
       - name: Run regression suite
         run: pytest -q app/tests tests
+
+
+  python314-startup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: sqlite:///./ci-radar-py314.db
+      APP_PASSWORD: ""
+      DISABLE_SCANNER: "true"
+      STRATEGIC_CAPITAL_ENABLED: "false"
+      STRATEGIC_DISCLOSURE_PDF_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install runtime dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Verify production Python startup imports
+        run: python -c "import app.db; import app.main; print('PYTHON314_STARTUP_PASS')"
