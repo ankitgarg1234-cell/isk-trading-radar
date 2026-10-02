@@ -13,7 +13,12 @@ MD=ROOT/"backtests/results/wf3_drawdown_guard_sleeve.md"
 TRAIN_START=date(2024,1,2);TRAIN_END=date(2025,12,31)
 HOLD_START=date(2026,1,1);HOLD_END=date(2026,10,1)
 COST_BPS=10.0
-ACTIVE_NAMES={8:"8% minimum initial",10:"10% minimum initial"}
+ACTIVE_NAMES={
+    8:"8% minimum initial",
+    10:"10% minimum initial",
+    12:"12% minimum initial",
+    15:"15% minimum initial",
+}
 TRIGGERS=(0.04,0.06,0.08,0.10)
 REENTRIES=(0.01,0.02,0.03,0.04)
 RISK_OFF=(0.0,0.25,0.5)
