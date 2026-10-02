@@ -583,7 +583,7 @@ def _verified_news_catalyst(news: dict, relvol: float) -> tuple[bool, list[str]]
 def classify_lane(
     bundle: dict, *, fs: float, fconf: str, news: dict, t: dict,
     catalyst_score: float, total_score: float, expected_upside_pct: float,
-    negative_override: str | None,
+    negative_override: str | None, explosive_upside_pct: float | None = None,
 ) -> dict:
     promotion = _promotion_risk(bundle, news, t)
     f = bundle.get("fundamentals") or {}
@@ -646,8 +646,9 @@ def classify_lane(
         explosive_blockers.append("catalyst score < 8/15")
     if total_score < 75:
         explosive_blockers.append("system conviction < 75")
-    if expected_upside_pct < 30.0:
-        explosive_blockers.append("modeled remaining upside < 30%")
+    explosive_potential = expected_upside_pct if explosive_upside_pct is None else explosive_upside_pct
+    if explosive_potential < 30.0:
+        explosive_blockers.append("modeled stretch upside < 30%")
     if not volume_explained:
         explosive_blockers.append("unexplained extreme volume")
     if promotion["dilution_risk"]:
@@ -663,7 +664,7 @@ def classify_lane(
             f"20d dollar liquidity ${avg_dollar/1_000_000:.1f}M",
             f"relative volume {relvol:.2f}x",
             f"20d move {change20:+.1f}%",
-            f"modeled remaining upside {expected_upside_pct:.1f}%",
+            f"modeled stretch upside {explosive_potential:.1f}%",
             "material catalyst verified from credible/primary evidence",
         ]
         reasons.extend(catalyst_evidence[:2])
@@ -791,10 +792,11 @@ def score_bundle(bundle: dict) -> dict:
 
     total = round(clamp(total), 1)
     deterministic_expected = round(max(-50, min(150, rr_up * 100)), 1)
+    stretch_upside = ((target_plan["stretch_target"] / price) - 1) * 100 if price else 0.0
     lane_info = classify_lane(
         bundle, fs=fs, fconf=fconf, news=news, t=t,
         catalyst_score=catalyst, total_score=total, expected_upside_pct=deterministic_expected,
-        negative_override=override,
+        negative_override=override, explosive_upside_pct=stretch_upside,
     )
     category = "Explosive Runner" if lane_info["lane"] == EXPLOSIVE_LANE else "Core" if lane_info["lane"] == CORE_LANE else "Watch"
     horizon_plan = holding_horizon_plan(
