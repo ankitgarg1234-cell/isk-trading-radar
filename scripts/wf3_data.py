@@ -125,7 +125,7 @@ def choose(members,market,d,limit):
 def main():
     ap=argparse.ArgumentParser();ap.add_argument("--start",default="2024-01-01");ap.add_argument("--end",default="2026-10-01")
     ap.add_argument("--deep-limit",type=int,default=80);ap.add_argument("--cache",default=".wf3_cache_v1")
-    ap.add_argument("--output",default="backtests/staged/raw_dataset.json.gz");args=ap.parse_args()
+    ap.add_argument("--output",default="backtests/staged/raw_dataset.json.gz");ap.add_argument("--prices-only",action="store_true");args=ap.parse_args()
     start=date.fromisoformat(args.start);end=date.fromisoformat(args.end);cache=args.cache
     s=requests.Session();s.headers["User-Agent"]="Mozilla/5.0 ISK staged walk-forward"
     err=None
@@ -173,6 +173,12 @@ def main():
                 if x["added"]:members.add(x["added"])
         pick=choose({x for x in members if x in market},market,d,args.deep_limit);pref[d.isoformat()]=pick;candidate_union.update(pick)
         if i%25==0:print("PREFILTER",i,"/",len(weeks),"unique",len(candidate_union),flush=True)
+    if args.prices_only:
+        out={"version":"wf3-prices-v1","generated_at":datetime.now(timezone.utc).isoformat(),"period":{"start":args.start,"end":args.end},"deep_limit":args.deep_limit,
+             "membership":{"start_members":sorted(members0),"changes":rel,"sectors":sectors},"prefilters":pref,"candidate_union":sorted(candidate_union),
+             "market":market,"sector_etfs":etfs,"benchmark_symbol":benchmark_symbol,"benchmark":benchmark,
+             "coverage":{"universe":len(union),"price_ok":len(market),"price_pct":round(price_pct*100,2),"candidate_union":len(candidate_union),"price_failed":price_failed}}
+        dump_gz(args.output,out);print(json.dumps(out["coverage"],indent=2),flush=True);return
     ss=requests.Session();ss.headers.update({"User-Agent":"ISK Trading Radar research https://github.com/ankitgarg1234-cell/isk-trading-radar","Accept":"application/json","Accept-Encoding":"gzip, deflate"})
     tm=ticker_map(ss,cache);lim=wf.Limiter(7);facts={};sec_failed=[]
     def ff(sym):
