@@ -1,0 +1,57 @@
+name: WF3 Offline PIT Backtest
+
+on:
+  push:
+    paths:
+      - scripts/wf3_offline_valuein.py
+      - backtests/staged/wf3_prices.json.gz
+      - backtests/staged/wf3_valuein_fundamentals.json.gz
+      - .github/workflows/wf3-offline-valuein.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wf3-offline-pit
+  cancel-in-progress: true
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install local model dependencies
+        run: pip install -r requirements.txt pandas lxml requests
+      - name: Smoke test 12 historical weeks
+        run: python scripts/wf3_offline_valuein.py --smoke
+      - name: Run full 2024-2026 replay
+        run: python scripts/wf3_offline_valuein.py
+      - name: Determinism rerun
+        run: |
+          python scripts/wf3_offline_valuein.py --output /tmp/wf3_check.json --markdown /tmp/wf3_check.md
+          python - <<'PY'
+          import json
+          a=json.load(open('backtests/results/walkforward_2024_2026_valuein.json'))
+          b=json.load(open('/tmp/wf3_check.json'))
+          print('HASH_A',a['deterministic_hash'])
+          print('HASH_B',b['deterministic_hash'])
+          if a['deterministic_hash'] != b['deterministic_hash']:
+              raise SystemExit('determinism check failed')
+          print('DETERMINISM_PASS')
+          PY
+      - name: Commit final result
+        run: |
+          git config user.name "isk-backtest-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add backtests/results/walkforward_2024_2026_valuein.json backtests/results/walkforward_2024_2026_valuein.md
+          git diff --cached --quiet && exit 0
+          git commit -m "Add 2024-2026 PIT walk-forward result [skip ci]"
+          git pull --rebase origin main
+          git push
