@@ -1,0 +1,32 @@
+name: WF3 Stop R-R Fast Probe
+
+on:
+  push:
+    branches:
+      - experiment/stop-rr-ablation
+    paths:
+      - scripts/wf3_stop_rr_ablation_fast.py
+      - .github/workflows/wf3-stop-rr-fast.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pandas lxml requests
+      - name: Run fast stop / R-R ablation
+        run: python scripts/wf3_stop_rr_ablation_fast.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wf3-stop-rr-fast
+          path: |
+            backtests/results/wf3_stop_rr_ablation_fast.json
+            backtests/results/wf3_stop_rr_ablation_fast.md
