@@ -53,12 +53,33 @@ def test_sec_companyfacts_produces_compatible_fundamentals(monkeypatch):
     assert out["sector"] == "Technology"
     assert round(out["revenueGrowth"], 2) == 0.30
     assert round(out["earningsGrowth"], 2) == 0.40
+    assert round(out["quarterlyRevenueGrowth"], 2) == 0.32
     assert round(out["grossMargins"], 2) == 0.60
     assert round(out["operatingMargins"], 2) == 0.20
     assert round(out["returnOnEquity"], 2) == 0.20
     assert round(out["debtToEquity"], 1) == 20.0
     assert round(out["currentRatio"], 1) == 2.0
     assert out["_coverage"] >= 5
+
+
+def test_sec_quarterly_growth_uses_same_quarter_yoy_not_previous_observation():
+    rows = [
+        {"val": 100, "end": "2025-03-31", "form": "10-Q", "fp": "Q1", "fy": 2025},
+        {"val": 150, "end": "2025-06-30", "form": "10-Q", "fp": "Q2", "fy": 2025},
+        {"val": 220, "end": "2026-03-31", "form": "10-Q", "fp": "Q1", "fy": 2026},
+    ]
+    growth = SECFundamentalsProvider._quarter_yoy_growth(rows)
+    assert round(growth, 2) == 1.20
+
+
+def test_sec_quarterly_growth_falls_back_to_near_one_year_date_match():
+    rows = [
+        {"val": 100, "end": "2025-03-31", "form": "10-Q"},
+        {"val": 150, "end": "2025-06-30", "form": "10-Q"},
+        {"val": 220, "end": "2026-03-30", "form": "10-Q"},
+    ]
+    growth = SECFundamentalsProvider._quarter_yoy_growth(rows)
+    assert round(growth, 2) == 1.20
 
 
 def test_sec_fallback_recovers_yahoo_fundamental_failure(monkeypatch):
