@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 import app.main as mainmod
 from app.db import SessionLocal, Position, Trade, AnalysisSnapshot
+from app.analysis_engine import SCORING_VERSION
 
 
 client=TestClient(app)
@@ -10,6 +11,7 @@ client=TestClient(app)
 
 def full_payload(symbol="TEST"):
     return {
+        "scoring_version":SCORING_VERSION,
         "symbol":symbol,"price":100,"provider":"fake","asof":"now","category":"Core","action":"BUY NOW","action_reason":"Test reason","position":None,
         "lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,
         "core_quality_qualified":True,"explosive_qualified":False,
