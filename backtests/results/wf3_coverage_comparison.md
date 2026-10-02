@@ -5,8 +5,8 @@ All strategy rules are fixed; only the number of stocks receiving daily deep ana
 | Deep coverage | Avg analyzed/day | Fundamental pass | Score>=68 after fundamentals | Lane qualified | Lane + R/R>=2x | Investable entries | Return | CAGR | Max DD | Trades | Alpha vs S&P |
 |---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | 80 | 79.9 | 8728 (15.83%) | 104 (1.19% of prior) | 104 | 63 | 6 | +3.75% | +1.35% | -1.06% | 3 | -63.68 pp |
-| 160 | 159.8 | 13522 (12.26%) | 181 (1.34% of prior) | 179 | 122 | 23 | +36.07% | +11.87% | -9.34% | 7 | -31.36 pp |
-| all | 493.5 | 27715 (8.14%) | 249 (0.90% of prior) | 247 | 178 | 42 | +33.46% | +11.08% | -11.79% | 15 | -33.97 pp |
+| 160 | 159.8 | 13522 (12.26%) | 181 (1.34% of prior) | 179 | 122 | 23 | +7.66% | +2.73% | -3.02% | 7 | -59.77 pp |
+| all | 493.5 | 27715 (8.14%) | 249 (0.90% of prior) | 247 | 178 | 42 | +5.24% | +1.88% | -6.17% | 15 | -62.19 pp |
 
 S&P 500 Total Return: +67.43% total, +20.64% CAGR, -18.75% max drawdown.
 
