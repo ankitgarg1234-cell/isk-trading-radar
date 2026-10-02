@@ -536,11 +536,15 @@ def add_position(background_tasks:BackgroundTasks,symbol:str=Form(...),shares:fl
     return RedirectResponse("/",303)
 
 @app.post("/positions/{position_id}/delete")
-def delete_position(position_id:int):
+def delete_position(position_id:int,background_tasks:BackgroundTasks):
     with SessionLocal() as db:
         p=db.get(Position,position_id)
-        if p:db.delete(p);db.commit()
+        if not p:raise HTTPException(status_code=404,detail="Manual holding not found")
+        symbol=p.symbol
+        db.delete(p)
+        db.commit()
     _invalidate_live_cache()
+    background_tasks.add_task(_analyze_symbols,[symbol])
     return RedirectResponse("/",303)
 
 @app.post("/cash")

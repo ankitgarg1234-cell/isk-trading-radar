@@ -556,6 +556,8 @@ def test_dashboard_tracks_manual_holdings_with_source_and_position_filters(monke
     assert "Screenshot" in body
     assert "do not panic sell" in body.lower()
     assert 'id="manualPositionsBody"' in body
+    assert 'class="remove-manual-position"' in body
+    assert 'Remove holding' in body
     assert 'data-filter-table="paperPositionsBody"' in body
     assert 'data-filter-table="manualPositionsBody"' in body
     assert body.count('class="position-column-filter"') >= 22
@@ -565,6 +567,36 @@ def test_dashboard_tracks_manual_holdings_with_source_and_position_filters(monke
     assert row["source_detail"] == "Screenshot"
     assert row["action"] == "HOLD — DON'T ADD"
     assert row["reallocation"]["status"] == "NO CHANGE"
+
+
+def test_remove_manual_holding_targets_selected_account_and_refreshes_live_state(monkeypatch):
+    from app.db import PaperPosition, PortfolioCash
+    refreshed = []
+    monkeypatch.setattr(mainmod.radar, "analyze_symbol", lambda symbol, persist=True: refreshed.append(symbol))
+    monkeypatch.setattr(mainmod.radar.provider, "fx_rate", lambda a,b: 1.0)
+    with SessionLocal() as db:
+        sold = Position(symbol="SOLD", shares=3, avg_cost=90, account="Avanza")
+        retained = Position(symbol="SOLD", shares=5, avg_cost=80, account="Other broker")
+        paper = PaperPosition(symbol="SOLD", shares=2, avg_cost=85)
+        db.add_all([sold, retained, paper, PortfolioCash(account="Main", cash=500),
+                    Trade(symbol="SOLD", side="BUY", shares=3, price=90, account="Avanza")])
+        db.commit()
+        sold_id, retained_id, paper_id = sold.id, retained.id, paper.id
+    assert len(client.get('/api/live').json()["positions"]) == 2
+    response = client.post(f'/positions/{sold_id}/delete', follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"] == "/"
+    assert refreshed == ["SOLD"]
+    positions = client.get('/api/live').json()["positions"]
+    assert [p["id"] for p in positions] == [retained_id]
+    with SessionLocal() as db:
+        assert db.get(Position, sold_id) is None
+        assert db.get(Position, retained_id).shares == 5
+        assert db.get(PaperPosition, paper_id).shares == 2
+        assert db.query(PortfolioCash).one().cash == 500
+        assert db.query(Trade).count() == 1
+    assert client.post(f'/positions/{sold_id}/delete', follow_redirects=False).status_code == 404
+    assert refreshed == ["SOLD"]
 
 
 def test_dashboard_keeps_explicit_absolute_and_sp500_comparison_visible():
