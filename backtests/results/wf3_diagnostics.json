@@ -1,0 +1,2139 @@
+{
+  "weeks": 144,
+  "analyses": 11505,
+  "core_qualified": 22,
+  "lane_qualified": 22,
+  "lane_rr2": 14,
+  "score68": 22,
+  "actionable_rr2": 0,
+  "fundamental_confidence": {
+    "high": 8347,
+    "medium": 2507,
+    "low": 651
+  },
+  "top_core_blockers": [
+    [
+      "system conviction < 68",
+      11483
+    ],
+    [
+      "fundamental score < 14/20",
+      9679
+    ],
+    [
+      "market-cap evidence unavailable",
+      1457
+    ],
+    [
+      "fundamental evidence confidence low",
+      651
+    ],
+    [
+      "promotion / reverse-split hard reject",
+      9
+    ],
+    [
+      "market cap < $500M",
+      6
+    ]
+  ],
+  "entry_zones": {
+    "APPROACHING_BREAKOUT": 8160,
+    "BETTER_BUY": 1132,
+    "VALUE_CORRIDOR": 1016,
+    "PRIMARY_BUY": 1197
+  },
+  "new_position_actions": {
+    "WATCH": 8250,
+    "WATCH \u2014 DATA REVIEW": 400,
+    "WAIT MORE": 2061,
+    "WAIT FOR BETTER BUY": 777,
+    "CONSIDER BUYING NOW": 13,
+    "CONSIDER STARTER BUY": 4
+  },
+  "score_quantiles": {
+    "p10": 41.5,
+    "p50": 50.0,
+    "p90": 58.3,
+    "max": 72.3
+  },
+  "fundamental_quantiles": {
+    "p10": 3.0,
+    "p50": 9.0,
+    "p90": 15.0,
+    "max": 20.0
+  },
+  "rr_quantiles": {
+    "p10": 0.43,
+    "p50": 1.02,
+    "p90": 6.95,
+    "max": 204.1
+  },
+  "top_candidates": [
+    {
+      "date": "2026-05-01",
+      "symbol": "FSLR",
+      "score": 71.5,
+      "fundamental": 15.0,
+      "fconf": "high",
+      "rr": 2.26,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 211.7100067138672
+    },
+    {
+      "date": "2026-05-29",
+      "symbol": "CRM",
+      "score": 70.9,
+      "fundamental": 16.0,
+      "fconf": "high",
+      "rr": 2.66,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 191.10000610351562
+    },
+    {
+      "date": "2025-12-05",
+      "symbol": "CRM",
+      "score": 69.8,
+      "fundamental": 15.0,
+      "fconf": "high",
+      "rr": 2.63,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 260.57000732421875
+    },
+    {
+      "date": "2025-06-06",
+      "symbol": "ANET",
+      "score": 69.3,
+      "fundamental": 19.0,
+      "fconf": "high",
+      "rr": 2.48,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 97.25
+    },
+    {
+      "date": "2024-05-17",
+      "symbol": "PODD",
+      "score": 69.0,
+      "fundamental": 17.0,
+      "fconf": "high",
+      "rr": 3.63,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 187.27000427246094
+    },
+    {
+      "date": "2024-11-01",
+      "symbol": "LULU",
+      "score": 69.0,
+      "fundamental": 16.0,
+      "fconf": "high",
+      "rr": 3.4,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 321.1700134277344
+    },
+    {
+      "date": "2025-07-25",
+      "symbol": "DECK",
+      "score": 69.0,
+      "fundamental": 18.0,
+      "fconf": "high",
+      "rr": 4.26,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 116.8499984741211
+    },
+    {
+      "date": "2026-01-30",
+      "symbol": "DECK",
+      "score": 69.0,
+      "fundamental": 16.0,
+      "fconf": "high",
+      "rr": 4.12,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 119.33999633789062
+    },
+    {
+      "date": "2025-05-09",
+      "symbol": "FSLR",
+      "score": 68.0,
+      "fundamental": 16.0,
+      "fconf": "high",
+      "rr": 6.52,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 140.67999267578125
+    },
+    {
+      "date": "2025-09-26",
+      "symbol": "ADBE",
+      "score": 68.0,
+      "fundamental": 16.0,
+      "fconf": "high",
+      "rr": 8.05,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 360.3699951171875
+    },
+    {
+      "date": "2025-12-05",
+      "symbol": "ADBE",
+      "score": 68.0,
+      "fundamental": 16.0,
+      "fconf": "high",
+      "rr": 5.1,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 346.260009765625
+    },
+    {
+      "date": "2026-05-15",
+      "symbol": "MSFT",
+      "score": 68.0,
+      "fundamental": 16.0,
+      "fconf": "high",
+      "rr": 4.75,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 421.9200134277344
+    },
+    {
+      "date": "2026-09-25",
+      "symbol": "LRCX",
+      "score": 68.0,
+      "fundamental": 20.0,
+      "fconf": "high",
+      "rr": 2.09,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 315.2099914550781
+    },
+    {
+      "date": "2026-10-01",
+      "symbol": "CIEN",
+      "score": 68.0,
+      "fundamental": 17.0,
+      "fconf": "high",
+      "rr": 3.17,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 379.1400146484375
+    },
+    {
+      "date": "2026-08-28",
+      "symbol": "NVDA",
+      "score": 72.3,
+      "fundamental": 20.0,
+      "fconf": "high",
+      "rr": 1.28,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 217.5500030517578
+    },
+    {
+      "date": "2026-06-18",
+      "symbol": "NVDA",
+      "score": 70.1,
+      "fundamental": 20.0,
+      "fconf": "high",
+      "rr": 1.53,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "PRIMARY_BUY",
+      "action": "CONSIDER BUYING NOW",
+      "core_blockers": [],
+      "price": 210.69000244140625
+    },
+    {
+      "date": "2026-08-14",
+      "symbol": "LRCX",
+      "score": 69.5,
+      "fundamental": 20.0,
+      "fconf": "high",
+      "rr": 1.04,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 332.3599853515625
+    },
+    {
+      "date": "2026-08-28",
+      "symbol": "ADSK",
+      "score": 69.5,
+      "fundamental": 15.0,
+      "fconf": "high",
+      "rr": 1.96,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 260.6600036621094
+    },
+    {
+      "date": "2026-05-22",
+      "symbol": "NVDA",
+      "score": 69.3,
+      "fundamental": 20.0,
+      "fconf": "high",
+      "rr": 0.99,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "PRIMARY_BUY",
+      "action": "CONSIDER BUYING NOW",
+      "core_blockers": [],
+      "price": 215.3300018310547
+    },
+    {
+      "date": "2025-12-19",
+      "symbol": "NVDA",
+      "score": 68.3,
+      "fundamental": 20.0,
+      "fconf": "high",
+      "rr": 1.88,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "PRIMARY_BUY",
+      "action": "CONSIDER BUYING NOW",
+      "core_blockers": [],
+      "price": 180.99000549316406
+    },
+    {
+      "date": "2025-12-19",
+      "symbol": "MU",
+      "score": 68.2,
+      "fundamental": 17.0,
+      "fconf": "high",
+      "rr": 0.65,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 265.9200134277344
+    },
+    {
+      "date": "2024-01-19",
+      "symbol": "ADBE",
+      "score": 68.1,
+      "fundamental": 18.0,
+      "fconf": "high",
+      "rr": 0.64,
+      "lane": "CORE_QUALITY",
+      "lane_qualified": true,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [],
+      "price": 611.5499877929688
+    },
+    {
+      "date": "2025-10-31",
+      "symbol": "MSFT",
+      "score": 67.9,
+      "fundamental": 16.0,
+      "fconf": "high",
+      "rr": 2.08,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "VALUE_CORRIDOR",
+      "action": "CONSIDER STARTER BUY",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 517.8099975585938
+    },
+    {
+      "date": "2025-11-07",
+      "symbol": "PLTR",
+      "score": 67.8,
+      "fundamental": 19.0,
+      "fconf": "high",
+      "rr": 2.94,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "BETTER_BUY",
+      "action": "CONSIDER STARTER BUY",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 177.92999267578125
+    },
+    {
+      "date": "2025-12-19",
+      "symbol": "MSFT",
+      "score": 67.3,
+      "fundamental": 16.0,
+      "fconf": "high",
+      "rr": 2.79,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "PRIMARY_BUY",
+      "action": "CONSIDER BUYING NOW",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 485.9200134277344
+    },
+    {
+      "date": "2024-02-09",
+      "symbol": "ON",
+      "score": 67.2,
+      "fundamental": 14.0,
+      "fconf": "high",
+      "rr": 2.15,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 80.80000305175781
+    },
+    {
+      "date": "2026-05-01",
+      "symbol": "MSFT",
+      "score": 67.1,
+      "fundamental": 16.0,
+      "fconf": "high",
+      "rr": 2.42,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 414.44000244140625
+    },
+    {
+      "date": "2026-08-28",
+      "symbol": "PTC",
+      "score": 67.1,
+      "fundamental": 17.0,
+      "fconf": "high",
+      "rr": 2.73,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 157.14999389648438
+    },
+    {
+      "date": "2024-01-19",
+      "symbol": "CSCO",
+      "score": 67.0,
+      "fundamental": 13.0,
+      "fconf": "high",
+      "rr": 3.25,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "fundamental score < 14/20",
+        "system conviction < 68"
+      ],
+      "price": 51.27000045776367
+    },
+    {
+      "date": "2024-11-08",
+      "symbol": "QCOM",
+      "score": 67.0,
+      "fundamental": 10.0,
+      "fconf": "medium",
+      "rr": 4.44,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "fundamental score < 14/20",
+        "system conviction < 68"
+      ],
+      "price": 170.91000366210938
+    },
+    {
+      "date": "2025-02-28",
+      "symbol": "ERIE",
+      "score": 67.0,
+      "fundamental": 13.0,
+      "fconf": "high",
+      "rr": 2.09,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "fundamental score < 14/20",
+        "system conviction < 68",
+        "market-cap evidence unavailable"
+      ],
+      "price": 428.07000732421875
+    },
+    {
+      "date": "2025-09-19",
+      "symbol": "ADBE",
+      "score": 67.0,
+      "fundamental": 16.0,
+      "fconf": "high",
+      "rr": 6.11,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 365.8999938964844
+    },
+    {
+      "date": "2026-01-23",
+      "symbol": "OKE",
+      "score": 67.0,
+      "fundamental": 12.0,
+      "fconf": "high",
+      "rr": 3.0,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "fundamental score < 14/20",
+        "system conviction < 68"
+      ],
+      "price": 78.0
+    },
+    {
+      "date": "2026-05-08",
+      "symbol": "APP",
+      "score": 67.0,
+      "fundamental": 16.0,
+      "fconf": "high",
+      "rr": 3.68,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 468.54998779296875
+    },
+    {
+      "date": "2026-05-15",
+      "symbol": "NOW",
+      "score": 67.0,
+      "fundamental": 15.0,
+      "fconf": "high",
+      "rr": 4.54,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 95.06999969482422
+    },
+    {
+      "date": "2026-05-29",
+      "symbol": "WDAY",
+      "score": 67.0,
+      "fundamental": 11.0,
+      "fconf": "high",
+      "rr": 2.99,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "fundamental score < 14/20",
+        "system conviction < 68",
+        "market-cap evidence unavailable"
+      ],
+      "price": 146.19000244140625
+    },
+    {
+      "date": "2026-07-02",
+      "symbol": "FDS",
+      "score": 67.0,
+      "fundamental": 11.0,
+      "fconf": "high",
+      "rr": 3.93,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "fundamental score < 14/20",
+        "system conviction < 68"
+      ],
+      "price": 250.08999633789062
+    },
+    {
+      "date": "2026-09-11",
+      "symbol": "ORCL",
+      "score": 67.0,
+      "fundamental": 15.0,
+      "fconf": "high",
+      "rr": 12.2,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "PRIMARY_BUY",
+      "action": "CONSIDER BUYING NOW",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 150.27999877929688
+    },
+    {
+      "date": "2026-05-22",
+      "symbol": "NOW",
+      "score": 66.4,
+      "fundamental": 15.0,
+      "fconf": "high",
+      "rr": 2.83,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 102.12999725341797
+    },
+    {
+      "date": "2024-01-12",
+      "symbol": "FTNT",
+      "score": 66.1,
+      "fundamental": 18.0,
+      "fconf": "high",
+      "rr": 2.43,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 62.439998626708984
+    },
+    {
+      "date": "2026-08-14",
+      "symbol": "WDC",
+      "score": 66.1,
+      "fundamental": 16.0,
+      "fconf": "high",
+      "rr": 2.14,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 508.79998779296875
+    },
+    {
+      "date": "2026-08-28",
+      "symbol": "SNPS",
+      "score": 66.1,
+      "fundamental": 12.0,
+      "fconf": "high",
+      "rr": 2.73,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "fundamental score < 14/20",
+        "system conviction < 68"
+      ],
+      "price": 442.6099853515625
+    },
+    {
+      "date": "2024-05-03",
+      "symbol": "HSY",
+      "score": 66.0,
+      "fundamental": 15.0,
+      "fconf": "high",
+      "rr": 4.24,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 197.9199981689453
+    },
+    {
+      "date": "2024-05-10",
+      "symbol": "PODD",
+      "score": 66.0,
+      "fundamental": 17.0,
+      "fconf": "high",
+      "rr": 22.6,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "BETTER_BUY",
+      "action": "WAIT MORE",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 165.89999389648438
+    },
+    {
+      "date": "2025-05-30",
+      "symbol": "MU",
+      "score": 66.0,
+      "fundamental": 14.0,
+      "fconf": "high",
+      "rr": 3.51,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 94.45999908447266
+    },
+    {
+      "date": "2025-06-06",
+      "symbol": "TER",
+      "score": 66.0,
+      "fundamental": 14.0,
+      "fconf": "high",
+      "rr": 7.56,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 85.2300033569336
+    },
+    {
+      "date": "2025-06-13",
+      "symbol": "FSLR",
+      "score": 66.0,
+      "fundamental": 16.0,
+      "fconf": "high",
+      "rr": 4.0,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 175.1999969482422
+    },
+    {
+      "date": "2025-12-12",
+      "symbol": "LULU",
+      "score": 66.0,
+      "fundamental": 13.0,
+      "fconf": "high",
+      "rr": 4.62,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "fundamental score < 14/20",
+        "system conviction < 68"
+      ],
+      "price": 204.97000122070312
+    },
+    {
+      "date": "2025-12-12",
+      "symbol": "NVDA",
+      "score": 66.0,
+      "fundamental": 20.0,
+      "fconf": "high",
+      "rr": 7.46,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "BETTER_BUY",
+      "action": "WAIT MORE",
+      "core_blockers": [
+        "system conviction < 68"
+      ],
+      "price": 175.02000427246094
+    },
+    {
+      "date": "2024-03-01",
+      "symbol": "FSLR",
+      "score": 65.0,
+      "fundamental": 13.0,
+      "fconf": "high",
+      "rr": 3.2,
+      "lane": null,
+      "lane_qualified": false,
+      "zone": "APPROACHING_BREAKOUT",
+      "action": "WATCH",
+      "core_blockers": [
+        "fundamental score < 14/20",
+        "system conviction < 68"
+      ],
+      "price": 158.0500030517578
+    }
+  ],
+  "weekly": [
+    {
+      "date": "2024-01-05",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-01-12",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-01-19",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 1,
+      "lane": 1,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-01-26",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-02-02",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-02-09",
+      "requested": 80,
+      "analyzed": 79,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-02-16",
+      "requested": 80,
+      "analyzed": 79,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-02-23",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-03-01",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-03-08",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-03-15",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-03-22",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-03-28",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-04-05",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-04-12",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-04-19",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-04-26",
+      "requested": 80,
+      "analyzed": 79,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-05-03",
+      "requested": 80,
+      "analyzed": 79,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-05-10",
+      "requested": 80,
+      "analyzed": 79,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-05-17",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 1,
+      "lane": 1,
+      "rr2": 1,
+      "actionable": 0
+    },
+    {
+      "date": "2024-05-24",
+      "requested": 80,
+      "analyzed": 79,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-05-31",
+      "requested": 80,
+      "analyzed": 79,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-06-07",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-06-14",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-06-21",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-06-28",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-07-05",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-07-12",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-07-19",
+      "requested": 80,
+      "analyzed": 79,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-07-26",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-08-02",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-08-09",
+      "requested": 80,
+      "analyzed": 78,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-08-16",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-08-23",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-08-30",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-09-06",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-09-13",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-09-20",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-09-27",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-10-04",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-10-11",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-10-18",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-10-25",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-11-01",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 1,
+      "lane": 1,
+      "rr2": 1,
+      "actionable": 0
+    },
+    {
+      "date": "2024-11-08",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-11-15",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-11-22",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-11-29",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-12-06",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-12-13",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-12-20",
+      "requested": 80,
+      "analyzed": 79,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2024-12-27",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-01-03",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-01-10",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-01-17",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-01-24",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-01-31",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-02-07",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-02-14",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-02-21",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-02-28",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-03-07",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-03-14",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-03-21",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-03-28",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-04-04",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-04-11",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-04-17",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-04-25",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-05-02",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-05-09",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 1,
+      "lane": 1,
+      "rr2": 1,
+      "actionable": 0
+    },
+    {
+      "date": "2025-05-16",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-05-23",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-05-30",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-06-06",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 1,
+      "lane": 1,
+      "rr2": 1,
+      "actionable": 0
+    },
+    {
+      "date": "2025-06-13",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-06-20",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-06-27",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-07-03",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-07-11",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-07-18",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-07-25",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 1,
+      "lane": 1,
+      "rr2": 1,
+      "actionable": 0
+    },
+    {
+      "date": "2025-08-01",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-08-08",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-08-15",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-08-22",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-08-29",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-09-05",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-09-12",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-09-19",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-09-26",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 1,
+      "lane": 1,
+      "rr2": 1,
+      "actionable": 0
+    },
+    {
+      "date": "2025-10-03",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-10-10",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-10-17",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-10-24",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-10-31",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-11-07",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-11-14",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-11-21",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-11-28",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-12-05",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 2,
+      "lane": 2,
+      "rr2": 2,
+      "actionable": 0
+    },
+    {
+      "date": "2025-12-12",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-12-19",
+      "requested": 80,
+      "analyzed": 79,
+      "core": 2,
+      "lane": 2,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2025-12-26",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-01-02",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-01-09",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-01-16",
+      "requested": 80,
+      "analyzed": 79,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-01-23",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-01-30",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 1,
+      "lane": 1,
+      "rr2": 1,
+      "actionable": 0
+    },
+    {
+      "date": "2026-02-06",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-02-13",
+      "requested": 80,
+      "analyzed": 79,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-02-20",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-02-27",
+      "requested": 80,
+      "analyzed": 79,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-03-06",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-03-13",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-03-20",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-03-27",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-04-02",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-04-10",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-04-17",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-04-24",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-05-01",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 1,
+      "lane": 1,
+      "rr2": 1,
+      "actionable": 0
+    },
+    {
+      "date": "2026-05-08",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-05-15",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 1,
+      "lane": 1,
+      "rr2": 1,
+      "actionable": 0
+    },
+    {
+      "date": "2026-05-22",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 1,
+      "lane": 1,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-05-29",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 1,
+      "lane": 1,
+      "rr2": 1,
+      "actionable": 0
+    },
+    {
+      "date": "2026-06-05",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-06-12",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-06-18",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 1,
+      "lane": 1,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-06-26",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-07-02",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-07-10",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-07-17",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-07-24",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-07-31",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-08-07",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-08-14",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 1,
+      "lane": 1,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-08-21",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-08-28",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 2,
+      "lane": 2,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-09-04",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-09-11",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-09-18",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 0,
+      "lane": 0,
+      "rr2": 0,
+      "actionable": 0
+    },
+    {
+      "date": "2026-09-25",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 1,
+      "lane": 1,
+      "rr2": 1,
+      "actionable": 0
+    },
+    {
+      "date": "2026-10-01",
+      "requested": 80,
+      "analyzed": 80,
+      "core": 1,
+      "lane": 1,
+      "rr2": 1,
+      "actionable": 0
+    }
+  ]
+}
