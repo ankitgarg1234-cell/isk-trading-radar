@@ -17,16 +17,15 @@ jobs:
           python-version: "3.12"
       - name: Test SEC bulk archive reachability
         run: |
+          code=$(curl -L --max-time 25 --connect-timeout 5 -A "ISK Trading Radar research https://github.com/ankitgarg1234-cell/isk-trading-radar" -H "Range: bytes=0-1023" -o /tmp/sec_head.bin -sS -w "%{http_code}" "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip")
+          echo "status=$code"
+          ls -l /tmp/sec_head.bin || true
+          xxd -l 4 /tmp/sec_head.bin || true
+          test "$code" = "200" -o "$code" = "206"
           python - <<'PY'
-          import requests
-          u='https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip'
-          h={'User-Agent':'ISK Trading Radar research https://github.com/ankitgarg1234-cell/isk-trading-radar','Range':'bytes=0-1023'}
-          r=requests.get(u,headers=h,timeout=(5,20),stream=True)
-          print('status',r.status_code)
-          print('content-length',r.headers.get('content-length'))
-          print('content-range',r.headers.get('content-range'))
-          chunk=next(r.iter_content(1024),b'')
-          print('bytes',len(chunk),'magic',chunk[:4])
-          if r.status_code not in (200,206) or chunk[:2] != b'PK':
+          from pathlib import Path
+          b=Path("/tmp/sec_head.bin").read_bytes()[:4]
+          print("magic",b)
+          if not b.startswith(b"PK"):
               raise SystemExit(1)
           PY
