@@ -1,0 +1,111 @@
+name: WF3 Scanner Coverage Ablation
+
+on:
+  push:
+    paths:
+      - scripts/wf3_coverage_ablation.py
+      - backtests/staged/wf3_valuein_fundamentals.json.gz
+      - .github/workflows/wf3-coverage-ablation.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wf3-coverage-ablation
+  cancel-in-progress: true
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        coverage: ["80","160","all"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pandas lxml requests
+      - name: Run coverage arm
+        run: |
+          python scripts/wf3_coverage_ablation.py \
+            --coverage "${{ matrix.coverage }}" \
+            --output "backtests/results/wf3_coverage_${{ matrix.coverage }}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: "wf3-coverage-${{ matrix.coverage }}"
+          path: "backtests/results/wf3_coverage_${{ matrix.coverage }}.json"
+          retention-days: 7
+
+  aggregate:
+    needs: run
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: "wf3-coverage-*"
+          path: backtests/results/coverage_parts
+          merge-multiple: true
+      - name: Build comparison
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('backtests/results/coverage_parts')
+          items=[]
+          for mode in ('80','160','all'):
+              p=root/f'wf3_coverage_{mode}.json'
+              items.append(json.load(open(p)))
+          benchmark=items[0]['benchmark']
+          out={
+              'version':'wf3-coverage-comparison-v1',
+              'period':items[0]['period'],
+              'fixed_rules':items[0]['fixed_rules'],
+              'data_coverage':items[-1]['data_coverage'],
+              'arms':items,
+              'benchmark':benchmark,
+          }
+          Path('backtests/results/wf3_coverage_comparison.json').write_text(json.dumps(out,indent=2))
+          lines=['# WF3 Scanner Coverage / Core-Gate Ablation','',
+                 'All strategy rules are fixed; only the number of stocks receiving daily deep analysis changes.','',
+                 '| Deep coverage | Avg analyzed/day | Fundamental pass | Score>=68 after fundamentals | Lane qualified | Lane + R/R>=2x | Investable entries | Return | CAGR | Max DD | Trades | Alpha vs S&P |',
+                 '|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|']
+          for x in items:
+              f=x['funnel'];r=x['portfolio_result']
+              lines.append(
+                  f"| {x['coverage_mode']} | {x['average_daily_deep_analyzed']:.1f} | "
+                  f"{f['fundamental_quality_pass']['observations']} ({f['fundamental_quality_pass']['pct_of_deep']:.2f}%) | "
+                  f"{f['score68_after_fundamentals']['observations']} ({f['score68_after_fundamentals']['pct_of_prior']:.2f}% of prior) | "
+                  f"{f['lane_qualified']['observations']} | {f['lane_rr2']['observations']} | {f['investable_entry']['observations']} | "
+                  f"{r['total_return_pct']:+.2f}% | {r['cagr_pct']:+.2f}% | {r['max_drawdown_pct']:.2f}% | {r['trade_count']} | {r['alpha_vs_benchmark_total_pct']:+.2f} pp |"
+              )
+          lines+=['',
+                  f"S&P 500 Total Return: {benchmark['total_return_pct']:+.2f}% total, {benchmark['cagr_pct']:+.2f}% CAGR, {benchmark['max_drawdown_pct']:.2f}% max drawdown.",
+                  '', '## Top Core blockers by coverage']
+          for x in items:
+              lines+=['',f"### Deep {x['coverage_mode']}"]
+              for reason,count in x['top_core_blockers'][:10]:
+                  lines.append(f'- {reason}: {count}')
+          lines+=['','## Interpretation',
+                  '- If opportunity counts and returns improve materially from 80 to 160/all, discovery coverage is a major bottleneck.',
+                  '- If deep analyses rise sharply but lane/RR/entry counts barely move, the qualification/entry gates are the dominant bottleneck.',
+                  '- No thresholds are changed in this experiment.']
+          Path('backtests/results/wf3_coverage_comparison.md').write_text('\n'.join(lines)+'\n')
+          print('\n'.join(lines))
+          PY
+      - name: Commit comparison
+        run: |
+          git config user.name "isk-backtest-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add backtests/results/wf3_coverage_comparison.json backtests/results/wf3_coverage_comparison.md
+          git diff --cached --quiet && exit 0
+          git commit -m "Add WF3 scanner coverage ablation result [skip ci]"
+          git pull --rebase origin main
+          git push
