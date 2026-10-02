@@ -1,5 +1,40 @@
-from app.analysis_engine import score_bundle, position_action, position_action_plan, analyst_score, parse_positions_from_text, portfolio_proposals
+from app.analysis_engine import score_bundle, fundamental_score, position_action, position_action_plan, analyst_score, parse_positions_from_text, portfolio_proposals
 from .helpers import bundle, strong_fundamentals, positive_news, negative_news
+
+
+def test_hypergrowth_ratios_are_scaled_as_ratios_not_percentage_points():
+    f = {
+        "revenueGrowth": 2.0568,
+        "earningsGrowth": 8.05,
+        "quarterlyRevenueGrowth": 1.147,
+        "grossMargins": 0.68,
+        "operatingMargins": 0.333,
+        "returnOnEquity": 0.173,
+    }
+    score, reasons, confidence = fundamental_score(f)
+    assert score == 19.0
+    assert confidence == "high"
+    assert any("Revenue growth 205.7% → 4/4" in r for r in reasons)
+    assert any("Earnings growth 805.0% → 4/4" in r for r in reasons)
+    assert any("Quarterly revenue growth 114.7%" in r and "→ +2" in r for r in reasons)
+
+
+def test_standard_ratio_fundamentals_keep_existing_score():
+    # Ordinary decimal-ratio inputs must remain unchanged by the hypergrowth fix.
+    score, reasons, confidence = fundamental_score(strong_fundamentals())
+    assert score == 20.0
+    assert confidence == "high"
+    assert any("Revenue growth 30.0% → 4/4" in r for r in reasons)
+    assert any("Earnings growth 35.0% → 4/4" in r for r in reasons)
+
+
+def test_hypergrowth_revenue_gets_growth_adjusted_valuation_bonus():
+    f = strong_fundamentals()
+    f["revenueGrowth"] = 2.0568
+    f["earningsGrowth"] = 8.05
+    f["forwardPE"] = 40
+    result = score_bundle(bundle(fundamentals=f))
+    assert result["breakdown"]["Valuation"] == 7
 
 
 def test_explosive_runner_requires_strong_fundamentals():

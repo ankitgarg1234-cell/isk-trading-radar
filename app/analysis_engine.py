@@ -65,11 +65,24 @@ def clamp(x: float, lo: float = 0.0, hi: float = 100.0) -> float:
 
 
 def pct(v: Any) -> float | None:
+    """Convert a normalized financial ratio to percentage points.
+
+    Internal fundamentals use decimal ratios (0.30 == 30%, 2.05 == 205%).
+    The previous magnitude heuristic treated ratios above 2.0 as if they were
+    already percentages, which materially under-scored hyper-growth companies.
+    Percentage-formatted strings are accepted as already-scaled display values.
+    """
     if v is None:
         return None
     try:
-        v = float(v)
-        return v * 100 if abs(v) <= 2 else v
+        if isinstance(v, str):
+            value = v.strip()
+            if not value:
+                return None
+            if value.endswith("%"):
+                return float(value[:-1].strip())
+            v = value
+        return float(v) * 100
     except Exception:
         return None
 
