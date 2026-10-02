@@ -372,8 +372,9 @@ def run_state(st,d,base,members,market):
     for s,p in list(st.pos.items()):
         a=analyses.get(s)
         if not a:continue
-        laneok=a.get("lane_qualified") is True and (a.get("lane")=="CORE_QUALITY" if st.core_only else a.get("lane") in ("CORE_QUALITY","EXPLOSIVE"))
-        if not laneok and reliable(a):exits.append((s,p.shares,"OUTSIDE ACTIVE LANES"));continue
+        # A holding leaving the current entry lane is NOT itself an exit.
+        # Existing positions follow the thesis-gated management rule: technical
+        # weakness / loss of lane qualification alone must not trigger a sale.
         if a["action"]=="EXIT":exits.append((s,p.shares,"THESIS EXIT"))
         elif a["action"] in ("REDUCE","TAKE PARTIAL PROFIT"):
             plan=position_action_plan(a["action"],a,float(a["price"]),{"shares":p.shares,"avg_cost":p.avg,"account":"Backtest"})
