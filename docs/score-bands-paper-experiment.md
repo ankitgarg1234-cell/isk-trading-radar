@@ -6,7 +6,7 @@ or broker execution. Separate SQL tables hold virtual balances and observations.
 
 ## Frozen settings
 
-- Start each virtual variant with $10,000. Freeze the dashboard risk profile at
+- Start the single virtual paper account with $10,000. Freeze the dashboard risk profile at
   initialization; planned per-position risk uses its existing 0.35/0.75/1.25/2%
   budget. Score weights are targets constrained by this budget, not promises.
 - Deterministic score >=70 AND analyst score >=75 AND entry R/R >=0.4.
@@ -42,19 +42,17 @@ or broker execution. Separate SQL tables hold virtual balances and observations.
   Yahoo last prices, not executable bid/ask quotes. Every trade records its
   signal/observation time and fees. Sale P&L includes allocated entry fees.
 
-## Controls and interpretation
+## Account and interpretation
 
-Three virtual variants share the same observations and friction:
+On 2026-10-03 the user requested one experimental account, not three comparison
+accounts. Only `complete_strategy` is active: new selection, agreed allocation
+bands, profit withdrawal and momentum stops, starting with $10,000.
 
-1. `current_rules_control`: current entry gate and original sizing, R/R >=2.
-2. `new_selection`: new selection/entry gate; original sizing and exit rules.
-3. `complete_strategy`: new selection, bands, profit withdrawal and stops.
-
-The first two reuse production entry/sizing/position-management functions but
-are rule-level shadow controls, not exact production-optimizer replicas: they
-operate on each fresh analyzed batch, omit its Top-20 rank gating, do not add to
-existing positions, and deduplicate identical profit stages. Consequently their
-performance cannot be advertised as the exact production baseline.
+The earlier control ledgers are archived inside the existing state for recovery;
+they are not displayed, scanned, filled or included in reported performance.
+Migration preserves the complete strategy's cash, positions, pending orders,
+trades, observations and frozen risk profile. Balances are not combined or reset.
+The S&P 500 remains a numerical benchmark, not a separate trading account.
 
 Stock dividends are omitted, as in live paper mark-to-market; the same-start
 observed benchmark is the S&P 500 total-return index. If a benchmark is missing
@@ -97,3 +95,8 @@ four pre-existing alert-fixture failures, reproduced unchanged on a248b22; its
 other 12 checks passed. Desktop and 390px mobile report views were rendered and
 inspected. The authentication test found and fixed session-middleware ordering;
 anonymous access is rejected and a valid login grants report access.
+
+Single-account update on 2026-10-03: 49 focused checks passed, including
+idempotent legacy migration, preservation of the active ledger, exclusion of
+archived positions from scanning, and exactly one report/API account. Desktop
+and mobile views were rendered and inspected again.

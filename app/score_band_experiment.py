@@ -17,7 +17,19 @@ from .analysis_engine import position_action, position_action_plan
 
 VERSION = "score-bands-paper-v1"
 BANDS = ((90, 40), (85, 30), (80, 20), (75, 15), (70, 10))
-VARIANTS = ("current_rules_control", "new_selection", "complete_strategy")
+VARIANTS = ("complete_strategy",)
+
+
+def ensure_single_account(state):
+    """Archive comparison ledgers without resetting or combining any balances."""
+    books = state["variants"]
+    if "complete_strategy" not in books:
+        raise ValueError("Complete strategy ledger is missing; refusing to reset the account")
+    inactive = [mode for mode in books if mode != "complete_strategy"]
+    for mode in inactive:
+        state.setdefault("archived_variants", {}).setdefault(mode, books.pop(mode))
+    state["spec"]["active_accounts"] = 1
+    return state
 
 
 def number(value):
@@ -89,7 +101,7 @@ def entry_check(a, price=None):
 
 def experiment_spec(profile="MEDIUM"):
     return {
-        "version": VERSION, "starting_cash": 10000.0, "profile": profile,
+        "version": VERSION, "starting_cash": 10000.0, "profile": profile, "active_accounts": 1,
         "risk_per_trade_pct": RISK_PROFILES[profile]["risk_per_trade_pct"],
         "bands": list(BANDS), "min_deterministic": 70, "min_analyst": 75, "min_rr": 0.4,
         "fee_bps": 10.0, "slippage_bps": 5.0, "fresh_seconds": 600,
@@ -301,6 +313,7 @@ def _manage(book, mode, spec, a, observed):
 
 def advance(state, observations, now, market_open, benchmark=None):
     """Advance only through fresh observations; reproducible and duplicate-safe."""
+    ensure_single_account(state)
     spec, fresh = state["spec"], []
     now_dt = timestamp(now)
     state["last_market_open"] = bool(market_open)
@@ -384,6 +397,7 @@ def advance(state, observations, now, market_open, benchmark=None):
 
 
 def summary(state):
+    ensure_single_account(state)
     benchmark = None
     if state.get("benchmark_start") and state.get("benchmark_last"):
         benchmark = (state["benchmark_last"] / state["benchmark_start"] - 1) * 100

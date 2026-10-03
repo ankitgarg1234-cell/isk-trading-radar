@@ -27,7 +27,7 @@ def main():
         "dated_analyst_archive_present": bool(archive),
         "historical_complete_strategy_return": None,
         "status": "requires_dated_analyst_validation" if archive else "blocked_missing_analyst_archive",
-        "next_step": "Capture actual analyst inputs, exchange quote times and decisions in isolated live paper accounts.",
+        "next_step": "Capture actual analyst inputs, exchange quote times and decisions in the isolated live paper account.",
         "non_negotiable": "Missing analyst data fails qualification; no present-day backfill or relaxed gate."}
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)

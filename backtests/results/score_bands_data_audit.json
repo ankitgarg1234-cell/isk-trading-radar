@@ -3,6 +3,7 @@
     "version": "score-bands-paper-v1",
     "starting_cash": 10000.0,
     "profile": "MEDIUM",
+    "active_accounts": 1,
     "risk_per_trade_pct": 0.75,
     "bands": [
       [
@@ -50,6 +51,6 @@
   "dated_analyst_archive_present": false,
   "historical_complete_strategy_return": null,
   "status": "blocked_missing_analyst_archive",
-  "next_step": "Capture actual analyst inputs, exchange quote times and decisions in isolated live paper accounts.",
+  "next_step": "Capture actual analyst inputs, exchange quote times and decisions in the isolated live paper account.",
   "non_negotiable": "Missing analyst data fails qualification; no present-day backfill or relaxed gate."
 }

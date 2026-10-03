@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from app.score_band_experiment import (
     advance, allocation_pct, entry_check, experiment_spec, new_state,
     profit_cash_quantity, proposed_quantity, summary, trailing_stop,
+    ensure_single_account,
 )
 
 
@@ -196,7 +197,11 @@ def test_report_waiting_state_and_api():
     response = client.get("/api/experiments/score-bands")
     assert response.status_code == 200
     assert response.json()["status"] == "waiting_for_market_open"
-    assert client.get("/experiments/score-bands").status_code == 200
+    assert list(response.json()["variants"]) == ["complete_strategy"]
+    page = client.get("/experiments/score-bands")
+    assert page.status_code == 200
+    assert "One paper account" in page.text
+    assert page.text.count("<tr><td>Strategy paper account") == 1
 
 
 def test_initial_stop_exits_on_next_quote_and_includes_entry_fees():
@@ -281,3 +286,54 @@ def test_scanner_passes_deep_batch_to_experiment_without_top20_cut(monkeypatch):
     assert [a["symbol"] for a in captured] == ["TEST"]
     assert service.last_experiment_result["status"] == "observing"
     assert not any("score-band" in s for s in result["errors"])
+
+
+def test_single_account_migration_preserves_balance_positions_and_history():
+    state = new_state("HIGH")
+    tick(state,observation())
+    tick(state,observation(minute=2))
+    expected = copy.deepcopy(state["variants"]["complete_strategy"])
+    control = copy.deepcopy(new_state()["variants"]["complete_strategy"])
+    control["pending"]["OLD"] = {"side":"BUY","observed_at":observation()["asof"]}
+    state["variants"]["current_rules_control"] = control
+    state["variants"]["new_selection"] = copy.deepcopy(control)
+    ensure_single_account(state)
+    assert list(state["variants"]) == ["complete_strategy"]
+    assert state["variants"]["complete_strategy"] == expected
+    assert state["archived_variants"]["current_rules_control"] == control
+    migrated = copy.deepcopy(state)
+    ensure_single_account(state)
+    assert state == migrated
+    assert state["spec"]["profile"] == "HIGH"
+    assert state["spec"]["active_accounts"] == 1
+
+
+def test_existing_database_migrates_to_one_without_reset_or_archive_tracking():
+    import json
+    from app.db import SessionLocal, ScoreBandExperiment
+    from app.score_band_experiment import VERSION
+    from app.score_band_capture import experiment_status, experiment_holding_symbols
+    state = new_state("HIGH")
+    book = state["variants"]["complete_strategy"]
+    book["cash"] = 4321.5
+    control = copy.deepcopy(new_state()["variants"]["complete_strategy"])
+    control["positions"]["CONTROLONLY"] = {"shares":1,"avg_cost":100}
+    state["variants"]["current_rules_control"] = control
+    with SessionLocal() as db:
+        db.add(ScoreBandExperiment(version=VERSION,state_json=json.dumps(state)))
+        db.commit()
+    result = experiment_status(True)
+    assert list(result["variants"]) == ["complete_strategy"]
+    assert result["variants"]["complete_strategy"]["cash"] == 4321.5
+    assert list(result["trades"]) == ["complete_strategy"]
+    assert "CONTROLONLY" not in experiment_holding_symbols()
+    with SessionLocal() as db:
+        persisted = json.loads(db.query(ScoreBandExperiment).one().state_json)
+        assert persisted["archived_variants"]["current_rules_control"] == control
+
+
+def test_missing_complete_ledger_refuses_to_manufacture_new_balance():
+    state = new_state()
+    state["variants"].clear()
+    with pytest.raises(ValueError,match="refusing to reset"):
+        ensure_single_account(state)

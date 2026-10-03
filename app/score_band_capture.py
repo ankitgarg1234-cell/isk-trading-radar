@@ -8,7 +8,7 @@ from threading import Lock
 
 from .db import SessionLocal, ScoreBandExperiment, ScoreBandObservation, PortfolioPreference, PaperAccount
 from .portfolio_engine import normalise_profile
-from .score_band_experiment import VERSION, advance, new_state, number, timestamp, summary
+from .score_band_experiment import VERSION, advance, new_state, number, timestamp, summary, ensure_single_account
 
 _LOCK = Lock()
 
@@ -16,7 +16,9 @@ _LOCK = Lock()
 def _load(db):
     row = db.query(ScoreBandExperiment).filter_by(version=VERSION).with_for_update().first()
     if row:
-        return row, json.loads(row.state_json)
+        state = ensure_single_account(json.loads(row.state_json))
+        row.state_json = json.dumps(state, default=str, separators=(",", ":"))
+        return row, state
     preference = db.query(PortfolioPreference).filter_by(account="Main").first()
     state = new_state(normalise_profile(preference.risk_profile if preference else "MEDIUM"))
     row = ScoreBandExperiment(version=VERSION, state_json=json.dumps(state))
@@ -98,6 +100,6 @@ def experiment_holding_symbols():
         row = db.query(ScoreBandExperiment).filter_by(version=VERSION).first()
         if not row:
             return []
-        state = json.loads(row.state_json)
+        state = ensure_single_account(json.loads(row.state_json))
         return sorted({s for book in state["variants"].values()
                        for s in set(book["positions"]) | set(book["pending"])})
