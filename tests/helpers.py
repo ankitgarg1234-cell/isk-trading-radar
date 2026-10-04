@@ -22,15 +22,15 @@ def strong_fundamentals():
 def positive_news():
     now=int(datetime.now(timezone.utc).timestamp())
     return [
-        {"title":"Company raises guidance after record earnings beat","publisher":"Reuters","published":now,"link":"https://example.com/a"},
-        {"title":"Company wins major contract and announces partnership","publisher":"Business Wire","published":now,"link":"https://example.com/b"},
+        {"title":"Company raises guidance after record earnings beat","publisher":"Reuters","relatedTickers":["TEST"],"published":now,"link":"https://example.com/a"},
+        {"title":"Company wins major contract and announces partnership","publisher":"Business Wire","relatedTickers":["TEST"],"published":now,"link":"https://example.com/b"},
     ]
 
 
 def negative_news(two=True):
     now=int(datetime.now(timezone.utc).timestamp())
-    rows=[{"title":"Company cuts guidance after earnings miss","publisher":"Reuters","published":now,"link":"https://example.com/c"}]
-    if two: rows.append({"title":"SEC investigation follows accounting warning","publisher":"Bloomberg","published":now,"link":"https://example.com/d"})
+    rows=[{"title":"Company cuts guidance after earnings miss","publisher":"Reuters","relatedTickers":["TEST"],"published":now,"link":"https://example.com/c"}]
+    if two: rows.append({"title":"SEC investigation follows accounting warning","publisher":"Bloomberg","relatedTickers":["TEST"],"published":now,"link":"https://example.com/d"})
     return rows
 
 
@@ -40,5 +40,5 @@ def bundle(fundamentals=None, news=None, price=124.75):
         "history":history(),"fundamentals":fundamentals if fundamentals is not None else strong_fundamentals(),
         "news":news if news is not None else positive_news(),
         "sector_benchmark":{"symbol":"XLK","price":250,"history":history(start=180,daily=.28,last_volume_multiplier=1.1)},
-        "provider":"fake","asof":"2026-09-27T12:00:00+00:00"
+        "provider":"fake","asof":datetime.now(timezone.utc).isoformat()
     }

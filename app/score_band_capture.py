@@ -9,6 +9,7 @@ from threading import Lock
 from .db import SessionLocal, ScoreBandExperiment, ScoreBandObservation, PortfolioPreference, PaperAccount
 from .config import settings
 from .market import YahooMarketProvider
+from .analysis_engine import LEGACY_SCORING_VERSION
 from .portfolio_engine import normalise_profile
 from .score_band_experiment import VERSION, advance, new_state, number, timestamp, summary, ensure_single_account, arm_trial
 
@@ -78,7 +79,16 @@ def compact_observation(full):
 
 def run_experiment_cycle(full_analyses, market_open, now=None):
     now = now or datetime.now(timezone.utc)
-    observations = [compact_observation(a) for a in full_analyses]
+    observations = []
+    for a in full_analyses:
+        locked = a.get("_locked_trial_observation")
+        if isinstance(locked, dict) and locked.get("scoring_version") == LEGACY_SCORING_VERSION:
+            observations.append(copy.deepcopy(locked))
+        elif locked is not None or (a.get("scoring_version") not in (None, LEGACY_SCORING_VERSION)) or (a.get("news") or {}).get("version") == "headline-context-v2":
+            # Fail closed: never pass revised scoring into the frozen trial.
+            continue
+        else:
+            observations.append(compact_observation(a))
     benchmark_quote = fresh_benchmark(now) if settings.score_band_trial_armed_at and market_open else (None, None)
     with _LOCK, SessionLocal() as db:
         row, state = _load(db)

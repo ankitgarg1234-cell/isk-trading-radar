@@ -16,7 +16,7 @@ from .market import YahooMarketProvider
 from .analysis_engine import score_bundle, position_action, position_action_plan, SCORING_VERSION
 from .portfolio_engine import candidate_rank_score, build_optimizer_plan, normalise_profile, INVESTABLE_ENTRY_ACTIONS, MIN_ENTRY_RISK_REWARD
 from .paper_engine import run_paper_cycle
-from .score_band_capture import run_experiment_cycle, experiment_holding_symbols
+from .score_band_capture import run_experiment_cycle, experiment_holding_symbols, compact_observation
 from .ai_engine import AIEngine
 
 NY = ZoneInfo("America/New_York")
@@ -105,7 +105,7 @@ def _compact_payload(full: dict) -> dict:
         news = dict(news)
         items = news.get("items")
         if isinstance(items, list):
-            news["items"] = items[:5]
+            news["items"] = items[:15] if news.get("version") == "headline-context-v2" else items[:5]
         compact["news"] = news
     strategic = compact.get("strategic_capital")
     if isinstance(strategic, dict):
@@ -193,6 +193,19 @@ class RadarService:
         symbol = symbol.upper().strip()
         bundle = self.provider.bundle(symbol)
         result = score_bundle(bundle)
+        locked = None
+        legacy = None
+        if settings.score_band_trial_armed_at:
+            # Same provider observations, frozen complete scoring path, no refetch.
+            legacy = score_bundle(bundle, news_model="legacy-v1")
+            result["news_scoring_comparison"] = {
+                "trial_scoring_version": legacy["scoring_version"],
+                "trial_deterministic_score": legacy["deterministic_score"],
+                "revised_deterministic_score": result["deterministic_score"],
+                "trial_news_score": legacy["news"]["score"],
+                "revised_news_score": result["news"]["score"],
+                "trial_uses_revised_news": False,
+            }
         prior_payload = {}
         with SessionLocal() as db:
             p = db.query(Position).filter(Position.symbol == symbol).order_by(Position.created_at.desc()).first()
@@ -261,6 +274,12 @@ class RadarService:
             except Exception:
                 pass
         action, reason = position_action(result, bundle["price"], pd)
+        if legacy is not None:
+            legacy["previous_snapshot"] = result.get("previous_snapshot") or {}
+            # Preserve the original thesis assessment as well as score/targets.
+            position_action(legacy, bundle["price"], pd)
+            locked = compact_observation({**bundle, **legacy})
+            locked["news_scoring_comparison"] = dict(result["news_scoring_comparison"])
         plan = position_action_plan(action, result, bundle["price"], pd)
         ai = self.ai.analyze(symbol, bundle, result)
         full = {**bundle, **result, **ai, "action": action, "action_reason": reason, "action_plan": plan, "position": pd}
@@ -275,6 +294,10 @@ class RadarService:
                     "quarterly_status": f.get("_quarterly_status"),
                     "quarterly_method": f.get("_quarterly_method"),
                 }, sort_keys=True), flush=True)
+        # Transient locked input is attached after persistence to avoid copying
+        # an additional analysis into every live candidate/snapshot.
+        if locked is not None:
+            full["_locked_trial_observation"] = locked
         return full
 
     def persist(self, full: dict):

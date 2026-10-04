@@ -588,6 +588,7 @@ class YahooMarketProvider:
                     "title": n.get("title") or "", "publisher": n.get("publisher") or "",
                     "link": n.get("link") or n.get("clickThroughUrl", {}).get("url") or "",
                     "published": n.get("providerPublishTime"), "type": n.get("type") or "news",
+                    "relatedTickers": n.get("relatedTickers") or [],
                 })
             return out
         except Exception:

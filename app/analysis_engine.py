@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from statistics import mean
 from typing import Any
 
+from .news_scoring import analyze_news, VERSION as NEWS_VERSION
+
 POSITIVE = {
     "beat", "beats", "upgrade", "upgraded", "approval", "approved", "record",
     "growth", "surge", "strong", "contract", "partnership", "launch", "raises",
@@ -50,7 +52,8 @@ CORE_MIN_AVG_DOLLAR_VOLUME = 10_000_000.0
 EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME = 20_000_000.0
 MIN_FUNDAMENTAL_SCORE = 14.0  # 70/100 normalized fundamental quality
 EXPLOSIVE_MAX_TRADING_SESSIONS = 20
-SCORING_VERSION = "2026-10-02-sec-quarterly-v5"
+LEGACY_SCORING_VERSION = "2026-10-02-sec-quarterly-v5"
+SCORING_VERSION = "2026-10-04-news-context-v6"
 
 PROMOTION_SEVERE_TERMS = {
     "reverse split", "going concern", "minimum bid", "nasdaq compliance",
@@ -147,7 +150,7 @@ def _priced_in(published: Any) -> str:
         return "unknown"
 
 
-def news_analysis(news: list[dict]) -> dict:
+def legacy_news_analysis(news: list[dict]) -> dict:
     pos = neg = 0.0
     material = 0
     catalysts: list[str] = []
@@ -187,6 +190,11 @@ def news_analysis(news: list[dict]) -> dict:
         "high_negative_events": high_negative, "catalysts": sorted(set(catalysts)),
         "items": items,
     }
+
+
+def news_analysis(news: list[dict], *, symbol="", company_name="", asof=None) -> dict:
+    return analyze_news(news, symbol=symbol, company_name=company_name, asof=asof,
+                        credibility=_credibility, priced_in=_priced_in)
 
 
 def fundamental_score(f: dict) -> tuple[float, list[str], str]:
@@ -729,11 +737,16 @@ def classify_lane(
     }
 
 
-def score_bundle(bundle: dict) -> dict:
+def score_bundle(bundle: dict, *, news_model: str = NEWS_VERSION) -> dict:
     price = float(bundle.get("price") or 0)
     rows = bundle.get("history") or []
     f = bundle.get("fundamentals") or {}
-    news = news_analysis(bundle.get("news") or [])
+    if news_model not in {NEWS_VERSION, "legacy-v1"}:
+        raise ValueError("Unknown news scoring version")
+    news = legacy_news_analysis(bundle.get("news") or []) if news_model == "legacy-v1" else news_analysis(
+        bundle.get("news") or [], symbol=bundle.get("symbol", ""),
+        company_name=f.get("companyName") or bundle.get("company_name") or "",
+        asof=bundle.get("asof"))
     fs, freasons, fconf = fundamental_score(f)
     t = technicals(rows, price)
 
@@ -840,7 +853,7 @@ def score_bundle(bundle: dict) -> dict:
         "Risk/Reward": round(rr_score, 1),
     }
     return {
-        "scoring_version": SCORING_VERSION,
+        "scoring_version": LEGACY_SCORING_VERSION if news_model == "legacy-v1" else SCORING_VERSION,
         "deterministic_score": total,
         "analyst_score": a_score,
         "expected_yield_pct": deterministic_expected,
@@ -936,7 +949,14 @@ def thesis_assessment(result: dict) -> dict:
         prior_fscore=float((prior.get("breakdown") or {}).get("Fundamentals"))
     except Exception:
         prior_fscore=None
-    titles=[str(i.get("title") or "").lower() for i in (news.get("items") or []) if i.get("sentiment") == "negative"]
+    if news.get("version") == NEWS_VERSION:
+        # Mixed/grouped coverage must retain the adverse source passage, not
+        # just the representative (possibly positive) headline.
+        titles = [str(source.get("title") or "").lower()
+                  for item in news.get("items") or []
+                  for source in item.get("sources") or [] if source.get("negative_events")]
+    else:
+        titles=[str(i.get("title") or "").lower() for i in (news.get("items") or []) if i.get("sentiment") == "negative"]
     breaking_terms=sorted({term for title in titles for term in THESIS_BREAKING_TERMS if term in title})
     severe_terms=sorted({term for title in titles for term in SEVERE_EXIT_TERMS if term in title})
     fundamental_deterioration=(
