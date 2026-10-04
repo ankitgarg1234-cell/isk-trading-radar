@@ -1,0 +1,723 @@
+{
+  "status": "completed_with_data_gaps",
+  "run_completed": true,
+  "performance_valid": false,
+  "strategy_yield": null,
+  "protocol": {
+    "version": "score-bands-history-v1",
+    "start": "2024-01-01",
+    "end": "2025-12-31",
+    "strategy": {
+      "version": "score-bands-paper-v1",
+      "starting_cash": 10000.0,
+      "profile": "HIGH",
+      "active_accounts": 1,
+      "risk_per_trade_pct": 1.25,
+      "bands": [
+        [
+          90,
+          40
+        ],
+        [
+          85,
+          30
+        ],
+        [
+          80,
+          20
+        ],
+        [
+          75,
+          15
+        ],
+        [
+          70,
+          10
+        ]
+      ],
+      "min_deterministic": 70,
+      "min_analyst": 75,
+      "min_rr": 0.4,
+      "fee_bps": 10.0,
+      "slippage_bps": 5.0,
+      "fresh_seconds": 600,
+      "initial_exit": "complete strategy: entry-time modeled stop; next fresh observation fill",
+      "strong_momentum": "price >= EMA20 and RSI14 >= 50",
+      "post_harvest_stop": "max(previous stop, peak observed price - (2 if strong else 1) * ATR14)",
+      "profit_withdrawal": "once: ceil(unrealized price gain / net sale price), preserving >=1 share",
+      "entry_levels": "frozen at signal time; breakout uses preceding completed daily closes",
+      "fill_model": "next fresh scanner observation, adverse 5bps slippage, 10bps fee",
+      "coverage": "all fresh deep analyses supplied by rotating scanner; no Top-20 limit; not a complete market census",
+      "benchmark": "same-start observed S&P 500 total-return index; dividends on stock positions omitted"
+    },
+    "source_hashes": {
+      "prices": "6ab928b5ab5a1226dfecbccd9b50e444766aba9c00f6ce4f372801cbaaab2793",
+      "fundamentals": "a066363bd896bb583478adcb6590f5094042ef47158b357b2cde3d2c1aff6893",
+      "archive": null
+    },
+    "code_hashes": {
+      "scripts/score_band_historical.py": "3dffca34874e6d5e6c82403c6c1ab5d501ab1341e4db699de5213886a283efaa",
+      "app/score_band_experiment.py": "1f321b2bedb5f1eb2b0ff1b630489fd5fb462e4efbd6ce77201acf7a77b4f893",
+      "app/analysis_engine.py": "74ea556a45961f78c5fd578a4c0d8c9e43d032c396dc94ee92691da6a519477e",
+      "app/portfolio_engine.py": "1df9d7465b2085e6353e6bd4e79daff984ca3a5b5d22e45b42d877292faed498"
+    },
+    "policy": "Fixed present-day rules applied retrospectively; no fitting or parameter search. Not an out-of-sample validation.",
+    "execution": "Same frozen intraday paper engine; later quotes only; 10-minute buy expiry preserved",
+    "benchmark": "S&P 500 total return, USD, previous year-end close to year-end close",
+    "stock_dividends": "Omitted to match frozen paper strategy; benchmark includes reinvested dividends"
+  },
+  "benchmark_symbol": "^SP500TR",
+  "annual_comparison": [
+    {
+      "year": 2024,
+      "full_calendar_year": true,
+      "baseline_date": "2023-12-29",
+      "baseline_level": 10327.830078125,
+      "end_date": "2024-12-31",
+      "end_level": 12911.8203125,
+      "benchmark_return_pct": 25.0197,
+      "strategy_return_pct": null,
+      "excess_return_pp": null
+    },
+    {
+      "year": 2025,
+      "full_calendar_year": true,
+      "baseline_date": "2024-12-31",
+      "baseline_level": 12911.8203125,
+      "end_date": "2025-12-31",
+      "end_level": 15220.4501953125,
+      "benchmark_return_pct": 17.88,
+      "strategy_return_pct": null,
+      "excess_return_pp": null
+    }
+  ],
+  "coverage": {
+    "price_universe": 555,
+    "price_symbols": 539,
+    "missing_price_symbols": [
+      "ANSS",
+      "CDAY",
+      "CMA",
+      "CTRA",
+      "CTLT",
+      "DAY",
+      "DFS",
+      "HES",
+      "HOLX",
+      "IPG",
+      "JNPR",
+      "K",
+      "MRO",
+      "PXD",
+      "SATS",
+      "WBA"
+    ],
+    "fundamental_symbols": 507,
+    "usable_fundamental_symbols": 478,
+    "fact_rows": 125709,
+    "months_completed": 24,
+    "months_planned": 24,
+    "sessions": 502,
+    "benchmark_missing_dates": [],
+    "unproven_derived_quarter_facts": 60,
+    "after_close_or_weekend_accessions": 2373,
+    "missing_price_member_days": 5068
+  },
+  "monthly_chunks": [
+    {
+      "month": "2024-01",
+      "sessions": 21,
+      "missing_price_member_days": 294,
+      "missing_price_symbols": [
+        "ANSS",
+        "CDAY",
+        "CMA",
+        "CTLT",
+        "CTRA",
+        "DFS",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "MRO",
+        "PXD",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 30,
+      "filings_outside_regular_session": 33,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2024-02",
+      "sessions": 20,
+      "missing_price_member_days": 280,
+      "missing_price_symbols": [
+        "ANSS",
+        "CMA",
+        "CTLT",
+        "CTRA",
+        "DAY",
+        "DFS",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "MRO",
+        "PXD",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 244,
+      "filings_outside_regular_session": 303,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2024-03",
+      "sessions": 20,
+      "missing_price_member_days": 280,
+      "missing_price_symbols": [
+        "ANSS",
+        "CMA",
+        "CTLT",
+        "CTRA",
+        "DAY",
+        "DFS",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "MRO",
+        "PXD",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 34,
+      "filings_outside_regular_session": 40,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2024-04",
+      "sessions": 22,
+      "missing_price_member_days": 308,
+      "missing_price_symbols": [
+        "ANSS",
+        "CMA",
+        "CTLT",
+        "CTRA",
+        "DAY",
+        "DFS",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "MRO",
+        "PXD",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 93,
+      "filings_outside_regular_session": 121,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2024-05",
+      "sessions": 22,
+      "missing_price_member_days": 291,
+      "missing_price_symbols": [
+        "ANSS",
+        "CMA",
+        "CTLT",
+        "CTRA",
+        "DAY",
+        "DFS",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "MRO",
+        "PXD",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 169,
+      "filings_outside_regular_session": 202,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2024-06",
+      "sessions": 19,
+      "missing_price_member_days": 242,
+      "missing_price_symbols": [
+        "ANSS",
+        "CMA",
+        "CTLT",
+        "CTRA",
+        "DAY",
+        "DFS",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "MRO",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 23,
+      "filings_outside_regular_session": 26,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2024-07",
+      "sessions": 22,
+      "missing_price_member_days": 264,
+      "missing_price_symbols": [
+        "ANSS",
+        "CTLT",
+        "CTRA",
+        "DAY",
+        "DFS",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "MRO",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 113,
+      "filings_outside_regular_session": 147,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2024-08",
+      "sessions": 22,
+      "missing_price_member_days": 264,
+      "missing_price_symbols": [
+        "ANSS",
+        "CTLT",
+        "CTRA",
+        "DAY",
+        "DFS",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "MRO",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 154,
+      "filings_outside_regular_session": 184,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2024-09",
+      "sessions": 20,
+      "missing_price_member_days": 240,
+      "missing_price_symbols": [
+        "ANSS",
+        "CTLT",
+        "CTRA",
+        "DAY",
+        "DFS",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "MRO",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 19,
+      "filings_outside_regular_session": 22,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2024-10",
+      "sessions": 23,
+      "missing_price_member_days": 276,
+      "missing_price_symbols": [
+        "ANSS",
+        "CTLT",
+        "CTRA",
+        "DAY",
+        "DFS",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "MRO",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 150,
+      "filings_outside_regular_session": 178,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2024-11",
+      "sessions": 20,
+      "missing_price_member_days": 237,
+      "missing_price_symbols": [
+        "ANSS",
+        "CTLT",
+        "CTRA",
+        "DAY",
+        "DFS",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "MRO",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 119,
+      "filings_outside_regular_session": 151,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2024-12",
+      "sessions": 21,
+      "missing_price_member_days": 225,
+      "missing_price_symbols": [
+        "ANSS",
+        "CTLT",
+        "CTRA",
+        "DAY",
+        "DFS",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 31,
+      "filings_outside_regular_session": 36,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2025-01",
+      "sessions": 20,
+      "missing_price_member_days": 200,
+      "missing_price_symbols": [
+        "ANSS",
+        "CTRA",
+        "DAY",
+        "DFS",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 33,
+      "filings_outside_regular_session": 41,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2025-02",
+      "sessions": 19,
+      "missing_price_member_days": 190,
+      "missing_price_symbols": [
+        "ANSS",
+        "CTRA",
+        "DAY",
+        "DFS",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 231,
+      "filings_outside_regular_session": 284,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2025-03",
+      "sessions": 21,
+      "missing_price_member_days": 210,
+      "missing_price_symbols": [
+        "ANSS",
+        "CTRA",
+        "DAY",
+        "DFS",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 39,
+      "filings_outside_regular_session": 45,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2025-04",
+      "sessions": 21,
+      "missing_price_member_days": 210,
+      "missing_price_symbols": [
+        "ANSS",
+        "CTRA",
+        "DAY",
+        "DFS",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 110,
+      "filings_outside_regular_session": 134,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2025-05",
+      "sessions": 21,
+      "missing_price_member_days": 201,
+      "missing_price_symbols": [
+        "ANSS",
+        "CTRA",
+        "DAY",
+        "DFS",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 171,
+      "filings_outside_regular_session": 206,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2025-06",
+      "sessions": 20,
+      "missing_price_member_days": 180,
+      "missing_price_symbols": [
+        "ANSS",
+        "CTRA",
+        "DAY",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 22,
+      "filings_outside_regular_session": 29,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2025-07",
+      "sessions": 22,
+      "missing_price_member_days": 164,
+      "missing_price_symbols": [
+        "ANSS",
+        "CTRA",
+        "DAY",
+        "HES",
+        "HOLX",
+        "IPG",
+        "JNPR",
+        "K",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 129,
+      "filings_outside_regular_session": 154,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2025-08",
+      "sessions": 21,
+      "missing_price_member_days": 124,
+      "missing_price_symbols": [
+        "CTRA",
+        "DAY",
+        "HOLX",
+        "IPG",
+        "K",
+        "WBA"
+      ],
+      "filings_after_close_or_weekend": 144,
+      "filings_outside_regular_session": 179,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2025-09",
+      "sessions": 21,
+      "missing_price_member_days": 105,
+      "missing_price_symbols": [
+        "CTRA",
+        "DAY",
+        "HOLX",
+        "IPG",
+        "K"
+      ],
+      "filings_after_close_or_weekend": 21,
+      "filings_outside_regular_session": 24,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2025-10",
+      "sessions": 23,
+      "missing_price_member_days": 115,
+      "missing_price_symbols": [
+        "CTRA",
+        "DAY",
+        "HOLX",
+        "IPG",
+        "K"
+      ],
+      "filings_after_close_or_weekend": 134,
+      "filings_outside_regular_session": 174,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2025-11",
+      "sessions": 19,
+      "missing_price_member_days": 94,
+      "missing_price_symbols": [
+        "CTRA",
+        "DAY",
+        "HOLX",
+        "IPG",
+        "K"
+      ],
+      "filings_after_close_or_weekend": 132,
+      "filings_outside_regular_session": 156,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    },
+    {
+      "month": "2025-12",
+      "sessions": 22,
+      "missing_price_member_days": 74,
+      "missing_price_symbols": [
+        "CTRA",
+        "DAY",
+        "HOLX",
+        "K"
+      ],
+      "filings_after_close_or_weekend": 28,
+      "filings_outside_regular_session": 34,
+      "benchmark_missing_dates": [],
+      "benchmark_unexpected_dates": [],
+      "historical_analyst_observations": 0,
+      "strict_strategy_return_pct": null
+    }
+  ],
+  "blockers": [
+    {
+      "code": "analyst_archive_absent",
+      "detail": "No dated historical analyst counts/targets with verified availability and revision history."
+    },
+    {
+      "code": "intraday_archive_absent",
+      "detail": "Daily OHLC cannot reproduce next fresh quote fills or ten-minute entry expiry."
+    },
+    {
+      "code": "full_universe_absent",
+      "detail": "Historical S&P constituent sample only, not the full U.S. scanner universe."
+    },
+    {
+      "code": "delisted_prices_missing",
+      "detail": "16 historical symbols have no cached prices; affected member-days are reported rather than silently excluded."
+    },
+    {
+      "code": "news_archive_absent",
+      "detail": "General news, publication timestamps and material-negative history are absent; filings alone cannot recreate them."
+    },
+    {
+      "code": "corporate_action_basis_unverified",
+      "detail": "Yahoo OHLC is split-adjusted; exact as-traded prices/volume, splits and spinoff/cash events need a verified bridge."
+    },
+    {
+      "code": "fundamental_provenance_incomplete",
+      "detail": "Use accepted_at, not filing_date; derived quarters require audited contemporaneous source dependencies."
+    },
+    {
+      "code": "sector_history_incomplete",
+      "detail": "Current sector classifications do not establish historical classifications for all former members."
+    }
+  ],
+  "interpretation": "Audit finished, not an invested strategy result. Missing required inputs are not replaced with present-day data, relaxed gates or a 0% cash return.",
+  "result_hash": "67d5152148844eda07011b5c78c1c8ee38717876f60e38ec0980db881fdefd58"
+}
