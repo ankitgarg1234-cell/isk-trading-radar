@@ -7,20 +7,40 @@ from datetime import datetime, timezone
 from threading import Lock
 
 from .db import SessionLocal, ScoreBandExperiment, ScoreBandObservation, PortfolioPreference, PaperAccount
+from .config import settings
+from .market import YahooMarketProvider
 from .portfolio_engine import normalise_profile
-from .score_band_experiment import VERSION, advance, new_state, number, timestamp, summary, ensure_single_account
+from .score_band_experiment import VERSION, advance, new_state, number, timestamp, summary, ensure_single_account, arm_trial
 
 _LOCK = Lock()
+_BENCHMARK_PROVIDER = YahooMarketProvider()
+
+
+def fresh_benchmark(now):
+    """Independent exchange-timed index observation; no prior-close substitution."""
+    try:
+        meta = _BENCHMARK_PROVIDER.chart("^SP500TR", "1d", "1m").get("meta") or {}
+        price = number(meta.get("regularMarketPrice"))
+        observed = datetime.fromtimestamp(float(meta["regularMarketTime"]), tz=timezone.utc)
+        if price and price > 0 and 0 <= (now - observed).total_seconds() <= 600:
+            return price, observed.isoformat()
+    except Exception:
+        pass
+    return None, None
 
 
 def _load(db):
     row = db.query(ScoreBandExperiment).filter_by(version=VERSION).with_for_update().first()
     if row:
         state = ensure_single_account(json.loads(row.state_json))
+        if settings.score_band_trial_armed_at:
+            arm_trial(state, settings.score_band_trial_armed_at)
         row.state_json = json.dumps(state, default=str, separators=(",", ":"))
         return row, state
     preference = db.query(PortfolioPreference).filter_by(account="Main").first()
     state = new_state(normalise_profile(preference.risk_profile if preference else "MEDIUM"))
+    if settings.score_band_trial_armed_at:
+        arm_trial(state, settings.score_band_trial_armed_at)
     row = ScoreBandExperiment(version=VERSION, state_json=json.dumps(state))
     db.add(row)
     db.flush()
@@ -59,6 +79,7 @@ def compact_observation(full):
 def run_experiment_cycle(full_analyses, market_open, now=None):
     now = now or datetime.now(timezone.utc)
     observations = [compact_observation(a) for a in full_analyses]
+    benchmark_quote = fresh_benchmark(now) if settings.score_band_trial_armed_at and market_open else (None, None)
     with _LOCK, SessionLocal() as db:
         row, state = _load(db)
         original_seen = dict(state["variants"]["complete_strategy"]["seen"])
@@ -69,7 +90,10 @@ def run_experiment_cycle(full_analyses, market_open, now=None):
             updated = account.updated_at.replace(tzinfo=timezone.utc) if account.updated_at.tzinfo is None else account.updated_at
             if (now - updated).total_seconds() > 1800:
                 benchmark = None
-        result = advance(state, observations, now.isoformat(), market_open, benchmark)
+        benchmark_asof = None
+        if state.get("trial"):
+            benchmark, benchmark_asof = benchmark_quote
+        result = advance(state, observations, now.isoformat(), market_open, benchmark, benchmark_asof)
         for a in observations:
             observed = a.get("asof") or ""
             sym = a.get("symbol")
@@ -80,12 +104,15 @@ def run_experiment_cycle(full_analyses, market_open, now=None):
         row.updated_at = now
         db.commit()
         return {**result, "version": VERSION, "started_at": state["started_at"],
-                "coverage": state["coverage"], "profile": state["spec"]["profile"]}
+                "coverage": state["coverage"], "profile": state["spec"]["profile"], "trial": summary(state).get("trial")}
 
 
 def experiment_status(include_history=False):
     with _LOCK, SessionLocal() as db:
         row, state = _load(db)
+        if state.get("trial", {}).get("ends_at") and timestamp(state["trial"]["ends_at"]) <= datetime.now(timezone.utc):
+            advance(state, [], datetime.now(timezone.utc).isoformat(), False)
+            row.state_json = json.dumps(state, default=str, separators=(",", ":"))
         db.commit()
         out = summary(state)
         out["observation_count"] = db.query(ScoreBandObservation).filter_by(version=VERSION).count()

@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import copy
 import math
+from calendar import monthrange
+from zoneinfo import ZoneInfo
 from datetime import datetime, timezone
 
 from .portfolio_engine import (
@@ -130,6 +132,40 @@ def new_state(profile="MEDIUM"):
 def equity(book):
     return book["cash"] + sum(p["shares"] * book["marks"].get(s, p["avg_cost"])
                                for s, p in book["positions"].items())
+
+
+def arm_trial(state, armed_at):
+    if timestamp(armed_at) is None:
+        raise ValueError("Trial activation requires a valid timestamp")
+    book = state["variants"]["complete_strategy"]
+    if not state.get("trial") and not state.get("started_at") and not book["positions"] and not book["trades"] and not book["pending"]:
+        # Restore the approved profile only for an entirely unstarted account.
+        state["spec"] = experiment_spec("HIGH")
+    # Retries and deployments never reset or restart an existing trial.
+    state.setdefault("trial", {"armed_at": armed_at, "status": "waiting_for_inputs",
+        "started_at": None, "ends_at": None, "baseline_equity": None,
+        "benchmark_start": None, "benchmark_last": None, "baseline_trade_count": None,
+        "peak_equity": None, "max_drawdown_pct": 0.0})
+    return state["trial"]
+
+
+def trial_summary(state):
+    trial = state.get("trial")
+    if not trial:
+        return None
+    out = copy.deepcopy(trial)
+    book = state["variants"]["complete_strategy"]
+    value = trial.get("final_equity", equity(book))
+    baseline = trial.get("baseline_equity")
+    out["return_pct"] = round((value / baseline - 1) * 100, 4) if baseline else None
+    first, last = trial.get("benchmark_start"), trial.get("benchmark_last")
+    valuation, sampled = timestamp(trial.get("valuation_asof")), timestamp(trial.get("benchmark_asof"))
+    aligned = valuation and sampled and 0 <= (valuation - sampled).total_seconds() <= state["spec"]["fresh_seconds"]
+    out["benchmark_return_pct"] = round((last / first - 1) * 100, 4) if first and last and aligned else None
+    out["excess_return_pct"] = round(out["return_pct"] - out["benchmark_return_pct"], 4) if out["return_pct"] is not None and out["benchmark_return_pct"] is not None else None
+    out["trade_count"] = len(book["trades"]) - trial["baseline_trade_count"] if trial.get("baseline_trade_count") is not None else 0
+    out["valuation_asof"] = trial.get("valuation_asof")
+    return out
 
 
 def proposed_quantity(a, book, spec, price, existing=None):
@@ -311,11 +347,19 @@ def _manage(book, mode, spec, a, observed):
         book["pending"][symbol] = {"side": "SELL", "shares": qty, "reason": reason, "observed_at": observed}
 
 
-def advance(state, observations, now, market_open, benchmark=None):
+def advance(state, observations, now, market_open, benchmark=None, benchmark_asof=None):
     """Advance only through fresh observations; reproducible and duplicate-safe."""
     ensure_single_account(state)
     spec, fresh = state["spec"], []
     now_dt = timestamp(now)
+    trial = state.get("trial")
+    if trial and (trial["status"] == "completed" or (trial.get("ends_at") and now_dt and now_dt >= timestamp(trial["ends_at"]))):
+        if trial["status"] != "completed":
+            book = state["variants"]["complete_strategy"]
+            trial.update(status="completed", completed_at=now, final_equity=equity(book))
+            trial["cancelled_pending"] = copy.deepcopy(book["pending"])
+            book["pending"] = {}
+        return {"status": "trial_completed", "observations": 0, "fills": 0}
     state["last_market_open"] = bool(market_open)
     if not market_open:
         state["last_cycle"] = now
@@ -339,6 +383,19 @@ def advance(state, observations, now, market_open, benchmark=None):
         for a in fresh:
             if a["asof"] > book["seen"].get(a["symbol"], ""):
                 book["marks"][a["symbol"]] = float(a["price"])
+    if trial and trial["status"] == "waiting_for_inputs":
+        if not (now_dt and now_dt >= timestamp(trial["armed_at"]) and fresh
+                and any(number(a.get("analyst_score")) is not None for a in fresh)):
+            state["last_cycle"] = now
+            state["coverage"]["trial_waiting_for_inputs_cycles"] = state["coverage"].get("trial_waiting_for_inputs_cycles", 0) + 1
+            return {"status": "trial_waiting_for_inputs", "observations": 0, "fills": 0}
+        local = now_dt.astimezone(ZoneInfo("America/New_York"))
+        month, year = (1, local.year + 1) if local.month == 12 else (local.month + 1, local.year)
+        finish = local.replace(year=year, month=month, day=min(local.day, monthrange(year, month)[1]))
+        book = state["variants"]["complete_strategy"]
+        trial.update(status="running", started_at=now, ends_at=finish.astimezone(timezone.utc).isoformat(),
+            baseline_equity=equity(book), benchmark_start=benchmark, benchmark_last=benchmark,
+            baseline_trade_count=len(book["trades"]), peak_equity=equity(book))
     for a in fresh:
         observed, symbol = a["asof"], a["symbol"]
         seen_any = False
@@ -372,6 +429,15 @@ def advance(state, observations, now, market_open, benchmark=None):
             key = "qualified_entry" if okay else reason
             state["coverage"][key] = state["coverage"].get(key, 0) + 1
     if fresh:
+        if trial:
+            book = state["variants"]["complete_strategy"]
+            value = equity(book)
+            trial["peak_equity"] = max(trial["peak_equity"], value)
+            trial["max_drawdown_pct"] = min(trial["max_drawdown_pct"], (value / trial["peak_equity"] - 1) * 100)
+            trial["valuation_asof"] = now
+            if number(benchmark) and benchmark > 0:
+                trial["benchmark_last"] = benchmark
+                trial["benchmark_asof"] = benchmark_asof or now
         first_observation = state["started_at"] is None
         state["started_at"] = state["started_at"] or now
         if number(benchmark) and benchmark > 0:
@@ -427,4 +493,5 @@ def summary(state):
     return {"version": VERSION, "started_at": state["started_at"], "last_cycle": state["last_cycle"],
             "spec": state["spec"], "coverage": state["coverage"],
             "benchmark_return_pct": benchmark, "variants": variants,
-            "status": "observing" if state["started_at"] else ("waiting_for_fresh_quotes" if state.get("last_market_open") else "waiting_for_market_open")}
+            "trial": trial_summary(state),
+            "status": ("trial_" + state["trial"]["status"]) if state.get("trial") else "observing" if state["started_at"] else ("waiting_for_fresh_quotes" if state.get("last_market_open") else "waiting_for_market_open")}

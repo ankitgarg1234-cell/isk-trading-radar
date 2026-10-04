@@ -22,7 +22,10 @@ async def lifespan(app:FastAPI):
     task=None
     experiment = await asyncio.to_thread(experiment_status)
     radar.last_experiment_result = {"status": experiment["status"], "version": experiment["version"],
-        "started_at": experiment["started_at"], "profile": experiment["spec"]["profile"]}
+        "started_at": experiment["started_at"], "profile": experiment["spec"]["profile"],
+        "trial_status": (experiment.get("trial") or {}).get("status"),
+        "trial_ends_at": (experiment.get("trial") or {}).get("ends_at"),
+        "optional_finnhub_configured": bool(settings.finnhub_api_key)}
     if not settings.disable_scanner:
         task=asyncio.create_task(radar.loop())
     yield
