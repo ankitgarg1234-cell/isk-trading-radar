@@ -150,3 +150,68 @@ def test_benchmark_accepts_fresh_exchange_quote(monkeypatch):
     monkeypatch.setattr(capture._BENCHMARK_PROVIDER, "chart", lambda *args: {
         "meta": {"regularMarketPrice": 100, "regularMarketTime": now.timestamp()}})
     assert capture.fresh_benchmark(now) == (100, now.isoformat())
+
+
+def test_active_trial_dashboard_uses_same_ledger_without_creating_old_account(monkeypatch):
+    import json
+    from dataclasses import replace
+    from app.config import settings
+    import app.paper_engine as engine
+    import app.score_band_capture as capture
+    from app.db import SessionLocal, ScoreBandExperiment, PaperAccount
+    from app.score_band_experiment import VERSION
+    configured = replace(settings, score_band_trial_armed_at=ARMED)
+    monkeypatch.setattr(engine, 'settings', configured)
+    monkeypatch.setattr(capture, 'settings', configured)
+    s = state()
+    a = observation(stop=99)
+    advance(s, [a], a['asof'], True, 100)
+    a = observation(minute=2, stop=99)
+    advance(s, [a], a['asof'], True, 101)
+    before = copy.deepcopy(s)
+    with SessionLocal() as db:
+        db.add(ScoreBandExperiment(version=VERSION, state_json=json.dumps(s)))
+        db.commit()
+        out = engine.paper_status(db)
+        assert out['canonical_strategy'] is True
+        assert out['cash'] == round(s['variants']['complete_strategy']['cash'], 2)
+        assert out['position_count'] == 1 and out['positions'][0]['shares'] == 39
+        assert out['trade_count'] == 1
+        assert db.query(PaperAccount).count() == 0
+        assert json.loads(db.query(ScoreBandExperiment).first().state_json)['variants'] == before['variants']
+        assert engine.run_paper_cycle(object())['status'] == 'canonical_strategy'
+        assert engine.manual_paper_add(object(), 'TEST', 1)['status'] == 'blocked'
+        assert engine.manual_paper_close(object(), 'TEST')['status'] == 'blocked'
+        engine.reset_paper(db)
+        assert db.query(ScoreBandExperiment).count() == 1
+
+
+def test_canonical_dashboard_renders_started_account_with_missing_benchmark(monkeypatch):
+    import json
+    from dataclasses import replace
+    from pathlib import Path
+    from jinja2 import Environment, FileSystemLoader
+    from app.config import settings
+    import app.paper_engine as engine
+    import app.score_band_capture as capture
+    from app.db import SessionLocal, ScoreBandExperiment
+    from app.score_band_experiment import VERSION
+    configured = replace(settings, score_band_trial_armed_at=ARMED)
+    monkeypatch.setattr(engine, 'settings', configured)
+    monkeypatch.setattr(capture, 'settings', configured)
+    s = state(); a = observation()
+    advance(s, [a], a['asof'], True)
+    with SessionLocal() as db:
+        db.add(ScoreBandExperiment(version=VERSION, state_json=json.dumps(s))); db.commit()
+        out = engine.paper_status(db)
+    assert out['benchmark_return_pct'] is None
+    assert out['excess_return_pct'] is None
+    import app.main as mainmod
+    from fastapi.testclient import TestClient
+    monkeypatch.setattr(mainmod, 'settings', configured)
+    mainmod._invalidate_live_cache()
+    response = TestClient(mainmod.app).get('/')
+    assert response.status_code == 200
+    assert 'Agreed score-band strategy' in response.text
+    assert 'Manual paper trade' not in response.text
+    assert 'Reset paper test' not in response.text

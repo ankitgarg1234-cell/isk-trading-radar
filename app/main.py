@@ -720,7 +720,7 @@ def scan_now():
 
 @app.post("/paper/run-now")
 def paper_run_now():
-    result=run_paper_cycle(radar.provider,force_rebalance=True)
+    result=radar.scan_once(force=True) if settings.score_band_trial_armed_at else run_paper_cycle(radar.provider,force_rebalance=True)
     _invalidate_live_cache()
     return RedirectResponse("/",303)
 

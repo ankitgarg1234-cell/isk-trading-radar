@@ -16,8 +16,11 @@ trial ends on 5 November at the same New York time.
 The trading rules remain deterministic >=70, analyst >=75 and entry R/R >=0.4,
 with allocation targets 10/15/20/30/40%, whole shares, the initial risk limit,
 later fresh-quote fills, modeled friction, one-time profit-sized cash withdrawal
-and the monotonic momentum stop. The dashboard's separate existing Top-20
-optimizer still uses its own rules; the trial report is `/experiments/score-bands`.
+and the monotonic momentum stop. The corrected scorer feeds both the dashboard
+and this ledger. This is the only active paper execution path while armed;
+the old Top-20 execution path is disabled and old rows are preserved. The
+dashboard paper portfolio projects this ledger; its report remains
+`/experiments/score-bands` for URL compatibility.
 
 At activation, capture actual equity and the trade-count baseline. Trial ROI,
 trade counts and drawdown describe this new window rather than account lifetime.

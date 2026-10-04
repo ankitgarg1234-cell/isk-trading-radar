@@ -1,6 +1,6 @@
 # News relevance and context correction
 
-The revised dashboard scoring version is `2026-10-04-news-context-v6`;
+The canonical scoring version is `2026-10-04-single-paper-v7`;
 the news assessor is `headline-context-v2`. This change addresses explicit
 company relevance, repeated event coverage, overlapping word matches,
 negation, speculation and mixed positive/negative reports.
@@ -32,24 +32,24 @@ requires a separate calibration change. No extra provider, AI API, article-body
 scraping or credentials are introduced. Ambiguous unmatched events remain
 unscored; the assessor does not verify full articles or financial figures.
 
-The locked one-month trial consumes `legacy-v1`, including the original complete
-score, catalyst calculation, target geometry and R/R, computed from the same
-provider bundle without another fetch. Its compact input is transient and never
-creates another account. A revised analysis without a locked input is rejected
-by the trial adapter. Dashboard snapshots record old/revised score comparisons.
-No accounts, cash, holdings, experiment clock or thresholds are reset.
+There is one scoring path. The dashboard and canonical paper strategy receive
+exactly the same corrected analysis, including news, deterministic score,
+analyst score, targets and R/R. No legacy news model or alternate trial score
+is computed. Observations retain their scoring version for auditability.
+The agreed paper ledger is the dashboard's active paper account. When the
+trial is armed, the old Top-20 engine cannot execute or accept manual paper
+trades, and its reset endpoint cannot alter the active ledger. Existing old
+rows are preserved. Run-now invokes the scanner and agreed execution path.
+Cash, shares, clock and thresholds are preserved; production's trial was
+waiting for inputs with no trades when this correction was authorized.
 
 The model version invalidates older candidate scores through the existing cache
 refresh path. The detail page displays grouped events, evidence directions,
 point adjustments, duplicate/exclusion counts and headline-only confidence.
 
-Validation: 113 news, model, trial and balance checks passed, including 34 new
-news-context checks. A broader run passed 160 checks and reproduced the same
-four existing scanner and eight existing dashboard failures. The four scanner
-failures were independently reproduced on the unchanged deployed baseline;
-the eight dashboard failures were already reproduced before the month trial
-deployment. Five full scoring scenarios matched the unchanged frozen model
-exactly, including score, targets, lane classification and R/R.
+Validation covers single-score delivery, corrected observation capture,
+account projection without a second ledger, disabled old execution and
+preservation of quantities, balances and trial clock.
 
 A live CRDO feed sample on 4 October returned 15 headlines. The old news score
 was 15/15; the revised score was neutral 7.5/15, with four excluded headlines

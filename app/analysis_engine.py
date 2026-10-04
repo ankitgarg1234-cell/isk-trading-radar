@@ -52,8 +52,7 @@ CORE_MIN_AVG_DOLLAR_VOLUME = 10_000_000.0
 EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME = 20_000_000.0
 MIN_FUNDAMENTAL_SCORE = 14.0  # 70/100 normalized fundamental quality
 EXPLOSIVE_MAX_TRADING_SESSIONS = 20
-LEGACY_SCORING_VERSION = "2026-10-02-sec-quarterly-v5"
-SCORING_VERSION = "2026-10-04-news-context-v6"
+SCORING_VERSION = "2026-10-04-single-paper-v7"
 
 PROMOTION_SEVERE_TERMS = {
     "reverse split", "going concern", "minimum bid", "nasdaq compliance",
@@ -148,48 +147,6 @@ def _priced_in(published: Any) -> str:
         return "older / more likely reflected in price"
     except Exception:
         return "unknown"
-
-
-def legacy_news_analysis(news: list[dict]) -> dict:
-    pos = neg = 0.0
-    material = 0
-    catalysts: list[str] = []
-    items: list[dict] = []
-    high_negative = 0
-    for n in news[:15]:
-        title_raw = n.get("title") or ""
-        title = title_raw.lower()
-        publisher = n.get("publisher") or ""
-        p = sum(1 for w in POSITIVE if w in title)
-        m = sum(1 for w in NEGATIVE if w in title)
-        mat = sum(1 for w in MATERIAL if w in title)
-        cat = [w for w in CATALYST if w in title]
-        credibility, cred = _credibility(publisher)
-        pos += p * cred
-        neg += m * cred
-        material += min(2, mat)
-        catalysts.extend(cat)
-        sentiment = "positive" if p > m else "negative" if m > p else "neutral"
-        materiality = "high" if mat >= 1 else "normal"
-        if sentiment == "negative" and materiality == "high":
-            high_negative += 1
-        items.append({
-            **n,
-            "sentiment": sentiment,
-            "materiality": materiality,
-            "credibility": credibility,
-            "priced_in": _priced_in(n.get("published")),
-            "thesis_impact": "supports" if sentiment == "positive" else "weakens" if sentiment == "negative" else "neutral",
-        })
-    raw = pos - neg
-    score = clamp(7.5 + raw * 1.5, 0, 15)
-    label = "Bullish" if raw >= 2 else "Bearish" if raw <= -2 else "Neutral"
-    return {
-        "score": round(score, 1), "label": label, "positive": round(pos, 1),
-        "negative": round(neg, 1), "material_events": material,
-        "high_negative_events": high_negative, "catalysts": sorted(set(catalysts)),
-        "items": items,
-    }
 
 
 def news_analysis(news: list[dict], *, symbol="", company_name="", asof=None) -> dict:
@@ -737,13 +694,11 @@ def classify_lane(
     }
 
 
-def score_bundle(bundle: dict, *, news_model: str = NEWS_VERSION) -> dict:
+def score_bundle(bundle: dict) -> dict:
     price = float(bundle.get("price") or 0)
     rows = bundle.get("history") or []
     f = bundle.get("fundamentals") or {}
-    if news_model not in {NEWS_VERSION, "legacy-v1"}:
-        raise ValueError("Unknown news scoring version")
-    news = legacy_news_analysis(bundle.get("news") or []) if news_model == "legacy-v1" else news_analysis(
+    news = news_analysis(
         bundle.get("news") or [], symbol=bundle.get("symbol", ""),
         company_name=f.get("companyName") or bundle.get("company_name") or "",
         asof=bundle.get("asof"))
@@ -853,7 +808,7 @@ def score_bundle(bundle: dict, *, news_model: str = NEWS_VERSION) -> dict:
         "Risk/Reward": round(rr_score, 1),
     }
     return {
-        "scoring_version": LEGACY_SCORING_VERSION if news_model == "legacy-v1" else SCORING_VERSION,
+        "scoring_version": SCORING_VERSION,
         "deterministic_score": total,
         "analyst_score": a_score,
         "expected_yield_pct": deterministic_expected,

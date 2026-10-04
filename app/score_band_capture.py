@@ -1,15 +1,16 @@
-"""Persistence adapter for the separate experiment; no writes to existing ledgers."""
+"""Persistence adapter for the canonical strategy paper account."""
 from __future__ import annotations
 
 import copy
 import json
 from datetime import datetime, timezone
 from threading import Lock
+from zoneinfo import ZoneInfo
 
 from .db import SessionLocal, ScoreBandExperiment, ScoreBandObservation, PortfolioPreference, PaperAccount
 from .config import settings
 from .market import YahooMarketProvider
-from .analysis_engine import LEGACY_SCORING_VERSION
+from .analysis_engine import SCORING_VERSION
 from .portfolio_engine import normalise_profile
 from .score_band_experiment import VERSION, advance, new_state, number, timestamp, summary, ensure_single_account, arm_trial
 
@@ -79,19 +80,11 @@ def compact_observation(full):
 
 def run_experiment_cycle(full_analyses, market_open, now=None):
     now = now or datetime.now(timezone.utc)
-    observations = []
-    for a in full_analyses:
-        locked = a.get("_locked_trial_observation")
-        if isinstance(locked, dict) and locked.get("scoring_version") == LEGACY_SCORING_VERSION:
-            observations.append(copy.deepcopy(locked))
-        elif locked is not None or (a.get("scoring_version") not in (None, LEGACY_SCORING_VERSION)) or (a.get("news") or {}).get("version") == "headline-context-v2":
-            # Fail closed: never pass revised scoring into the frozen trial.
-            continue
-        else:
-            observations.append(compact_observation(a))
+    observations = [compact_observation(a) for a in full_analyses]
     benchmark_quote = fresh_benchmark(now) if settings.score_band_trial_armed_at and market_open else (None, None)
     with _LOCK, SessionLocal() as db:
         row, state = _load(db)
+        state["spec"]["scoring_version"] = SCORING_VERSION
         original_seen = dict(state["variants"]["complete_strategy"]["seen"])
         # The existing paper cycle updates this total-return index observation.
         account = db.query(PaperAccount).filter_by(account="Optimizer Paper").first()
@@ -124,6 +117,7 @@ def experiment_status(include_history=False):
             advance(state, [], datetime.now(timezone.utc).isoformat(), False)
             row.state_json = json.dumps(state, default=str, separators=(",", ":"))
         db.commit()
+        state["spec"]["scoring_version"] = SCORING_VERSION
         out = summary(state)
         out["observation_count"] = db.query(ScoreBandObservation).filter_by(version=VERSION).count()
         if include_history:
@@ -140,3 +134,44 @@ def experiment_holding_symbols():
         state = ensure_single_account(json.loads(row.state_json))
         return sorted({s for book in state["variants"].values()
                        for s in set(book["positions"]) | set(book["pending"])})
+
+
+def canonical_paper_status(db):
+    """Read the dashboard projection from the strategy ledger, without a second account."""
+    row, state = _load(db)
+    report = summary(state)
+    book = state['variants']['complete_strategy']
+    metrics = report['variants']['complete_strategy']
+    value = metrics['equity']
+    positions = []
+    for symbol, p in book['positions'].items():
+        price = book['marks'].get(symbol, p['avg_cost'])
+        cost = p['shares'] * p['avg_cost']
+        marked = p['shares'] * price
+        entry = next((t for t in book['trades'] if t['symbol'] == symbol and t['side'] == 'BUY' and t['observed_at'] == p['opened_at']), {})
+        positions.append({**p, 'symbol': symbol, 'price': price, 'value': marked,
+            'cost_basis': cost, 'pnl': marked-cost, 'pnl_pct': (marked/cost-1)*100 if cost else 0,
+            'weight_pct': marked/value*100 if value else 0, 'day_change_pct': None,
+            'entry_rank_score': entry.get('deterministic_score', 0),
+            'lane': 'SCORE_QUALIFIED', 'lane_label': 'Score qualified',
+            'reason': entry.get('reason', 'Agreed paper strategy'), 'graduated_from_explosive': False})
+    today = datetime.now(timezone.utc).astimezone(ZoneInfo('America/New_York')).date()
+    prior = next((p for p in reversed(book['curve']) if timestamp(p['asof']).astimezone(ZoneInfo('America/New_York')).date() < today), None)
+    base = prior['equity'] if prior else state['spec']['starting_cash']
+    daily = value-base
+    benchmark = report['benchmark_return_pct']
+    return {'canonical_strategy': True, 'enabled': True, 'started': bool(state['started_at']),
+        'starting_cash': state['spec']['starting_cash'], 'cash': metrics['cash'],
+        'equity': value, 'invested': round(value-metrics['cash'], 2),
+        'return_pct': metrics['return_pct'], 'absolute_return': value-state['spec']['starting_cash'],
+        'daily_pnl': daily, 'daily_pnl_pct': daily/base*100 if base else 0,
+        'benchmark_label': 'S&P 500 Total Return', 'benchmark_return_pct': benchmark,
+        'excess_return_pct': metrics['excess_return_pct'], 'drawdown_pct': metrics['max_drawdown_pct'],
+        'current_drawdown_pct': (1-value/book['peak_equity'])*100 if book['peak_equity'] else 0,
+        'positions': positions, 'position_count': len(positions), 'trade_count': len(book['trades']),
+        'trades': [{**t, 'created_at': t['observed_at'], 'rank_score': t.get('deterministic_score', 0)} for t in reversed(book['trades'][-12:])],
+        'legacy_trades': [], 'legacy_trade_count': 0, 'core_position_count': 0,
+        'explosive_position_count': 0, 'outside_lane_position_count': 0,
+        'normalized_legacy_position_count': 0, 'normalized_legacy_symbols': [],
+        'current_valid_origin_count': len(positions), 'started_at': state['started_at'],
+        'updated_at': state['last_cycle'], 'scoring_version': SCORING_VERSION}

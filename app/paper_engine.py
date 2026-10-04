@@ -252,6 +252,8 @@ def _live_paper_price(provider, symbol: str, fallback: float = 0.0) -> tuple[flo
 
 
 def manual_paper_close(provider, symbol: str, shares: float | None = None) -> dict:
+    if settings.score_band_trial_armed_at:
+        return {"status": "blocked", "message": "The active paper trial executes the agreed strategy automatically."}
     symbol = str(symbol or "").upper().strip()
     if not symbol:
         return {"status": "error", "message": "Ticker is required"}
@@ -274,6 +276,8 @@ def manual_paper_close(provider, symbol: str, shares: float | None = None) -> di
 
 
 def manual_paper_add(provider, symbol: str, shares: float) -> dict:
+    if settings.score_band_trial_armed_at:
+        return {"status": "blocked", "message": "The active paper trial executes the agreed strategy automatically."}
     symbol = str(symbol or "").upper().strip()
     qty = math.floor(float(shares or 0) + 1e-9)
     if not symbol:
@@ -432,6 +436,8 @@ def _repair_unreliable_lane_exits(db, account: PaperAccount, analyses: dict[str,
 
 def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: bool = False) -> dict:
     """Run one shadow-paper cycle. No broker or real Position/Trade rows are touched."""
+    if settings.score_band_trial_armed_at:
+        return {"status": "canonical_strategy", "executed_orders": [], "blocked_orders": []}
     if not settings.paper_trading_enabled:
         return {"status": "disabled"}
     now = datetime.now(timezone.utc)
@@ -759,6 +765,9 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
 
 
 def paper_status(db) -> dict:
+    if settings.score_band_trial_armed_at:
+        from .score_band_capture import canonical_paper_status
+        return canonical_paper_status(db)
     account = db.query(PaperAccount).filter(PaperAccount.account == PAPER_ACCOUNT).first()
     if not account:
         return {
@@ -936,6 +945,8 @@ def paper_status(db) -> dict:
 
 
 def reset_paper(db) -> None:
+    if settings.score_band_trial_armed_at:
+        return {"status": "blocked", "message": "The active paper trial executes the agreed strategy automatically."}
     db.query(PaperSnapshot).filter(PaperSnapshot.account == PAPER_ACCOUNT).delete(synchronize_session=False)
     db.query(PaperTrade).filter(PaperTrade.account == PAPER_ACCOUNT).delete(synchronize_session=False)
     db.query(PaperPosition).filter(PaperPosition.account == PAPER_ACCOUNT).delete(synchronize_session=False)

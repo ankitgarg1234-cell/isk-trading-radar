@@ -3,7 +3,7 @@ from dataclasses import replace
 
 import pytest
 
-from app.analysis_engine import news_analysis, legacy_news_analysis, score_bundle, LEGACY_SCORING_VERSION
+from app.analysis_engine import news_analysis, score_bundle, SCORING_VERSION
 from .helpers import bundle
 
 NOW = "2026-10-04T18:45:00+00:00"
@@ -55,7 +55,6 @@ def test_upgrade_is_one_event_not_two_overlapping_substrings():
     n = assess(article("CRDO upgraded by broker"))
     assert n["positive"] == 1.25
     assert len(n["items"][0]["matched_events"]) == 1
-    assert legacy_news_analysis([article("CRDO upgraded by broker")])["positive"] == 2.5
 
 
 def test_mixed_report_preserves_negative_and_removes_bullish_bonus():
@@ -124,16 +123,11 @@ def test_event_credit_is_capped_and_source_order_does_not_change_score():
     assert first["positive"] <= 2.5
 
 
-def test_locked_version_retains_original_score_target_and_scale():
-    sample = bundle(news=[article("Unrelated upgraded stock reports record profit growth")])
-    legacy = score_bundle(sample, news_model="legacy-v1")
-    revised = score_bundle(sample)
-    assert legacy["scoring_version"] == LEGACY_SCORING_VERSION
-    assert legacy["news"]["score"] == 15
-    assert revised["news"]["score"] == 7.5
-    assert revised["news"]["excluded_count"] == 1
-    assert legacy["breakdown"]["Fundamentals"] == revised["breakdown"]["Fundamentals"]
-    assert legacy["analyst_score"] == revised["analyst_score"]
+def test_one_score_uses_corrected_news():
+    result = score_bundle(bundle(news=[article("Unrelated upgraded stock reports record profit growth")]))
+    assert result["scoring_version"] == SCORING_VERSION
+    assert result["news"]["score"] == 7.5
+    assert result["news"]["excluded_count"] == 1
 
 
 def test_provider_preserves_explicit_ticker_metadata(monkeypatch):
@@ -143,7 +137,7 @@ def test_provider_preserves_explicit_ticker_metadata(monkeypatch):
     assert provider.news("CRDO")[0]["relatedTickers"] == ["CRDO"]
 
 
-def test_scanner_passes_frozen_analysis_without_persisting_second_account(monkeypatch):
+def test_scanner_persists_the_single_corrected_analysis(monkeypatch):
     from app.scanner import RadarService
     from app.config import settings
     from app.score_band_capture import compact_observation
@@ -156,18 +150,13 @@ def test_scanner_passes_frozen_analysis_without_persisting_second_account(monkey
     saved = []
     monkeypatch.setattr(service, "persist", lambda full: saved.append(dict(full)))
     full = service.analyze_symbol("TEST")
-    locked = full["_locked_trial_observation"]
-    from app.analysis_engine import position_action
-    frozen_result = score_bundle(sample, news_model="legacy-v1")
-    position_action(frozen_result, sample["price"], None)
-    expected = compact_observation({**sample, **frozen_result})
-    for key in ("deterministic_score", "levels", "target_plan", "news", "scoring_version", "thesis_assessment"):
-        assert locked[key] == expected[key]
-    assert "_locked_trial_observation" not in saved[0]
-    assert full["news_scoring_comparison"]["trial_uses_revised_news"] is False
+    assert full["scoring_version"] == SCORING_VERSION
+    assert full["deterministic_score"] == saved[0]["deterministic_score"]
+    assert "_locked_trial_observation" not in full
+    assert "news_scoring_comparison" not in full
 
 
-def test_capture_fails_closed_when_revised_analysis_lacks_locked_input(monkeypatch):
+def test_capture_accepts_corrected_analysis_without_alternate_input(monkeypatch):
     import app.score_band_capture as capture
     from app.config import settings
     monkeypatch.setattr(capture, "settings", replace(settings, score_band_trial_armed_at=NOW))
@@ -180,10 +169,11 @@ def test_capture_fails_closed_when_revised_analysis_lacks_locked_input(monkeypat
     monkeypatch.setattr(capture, "advance", record)
     capture.run_experiment_cycle([{"news": {"version": "headline-context-v2"}}], market_open=True,
                                  now=datetime.fromisoformat(NOW))
-    assert got == []
+    assert len(got) == 1
+    assert got[0]["news"]["version"] == "headline-context-v2"
 
 
-def test_news_audit_template_renders_exclusions_and_comparison():
+def test_news_audit_template_has_no_alternate_trial_score():
     from jinja2 import Environment, FileSystemLoader
     from pathlib import Path
     sample = bundle()
@@ -192,7 +182,7 @@ def test_news_audit_template_renders_exclusions_and_comparison():
     result.update(symbol="TEST", price=100, ai_score=0, reasons=[], risks=[], sensitivity=[])
     template = Environment(loader=FileSystemLoader(Path(__file__).resolve().parents[1] / "app/templates"))
     rendered = template.get_template("analysis.html").render(d=result)
-    assert "unique headline groups" in rendered and "Locked trial score: 90" in rendered
+    assert "unique headline groups" in rendered and "Locked trial score" not in rendered
 
 
 def test_multi_ticker_association_without_identified_subject_is_excluded():
@@ -204,10 +194,9 @@ def test_repeated_release_text_on_separate_dates_is_not_one_event():
     assert n["unique_event_count"] == 2
 
 
-def test_capture_uses_locked_observation_and_preserves_score_version(monkeypatch):
+def test_capture_preserves_dashboard_score_and_version(monkeypatch):
     import app.score_band_capture as capture
     from app.config import settings
-    from .test_score_band_experiment import observation
     monkeypatch.setattr(capture, "settings", replace(settings, score_band_trial_armed_at=NOW))
     monkeypatch.setattr(capture, "fresh_benchmark", lambda now: (None, None))
     got = []
@@ -216,12 +205,10 @@ def test_capture_uses_locked_observation_and_preserves_score_version(monkeypatch
         got.extend(observations)
         return original(state, observations, *args)
     monkeypatch.setattr(capture, "advance", record)
-    locked = observation(NOW)
-    locked["scoring_version"] = LEGACY_SCORING_VERSION
-    capture.run_experiment_cycle([{"deterministic_score": 1, "_locked_trial_observation": locked}],
-                                 market_open=True, now=datetime.fromisoformat(NOW))
-    assert got[0]["deterministic_score"] == locked["deterministic_score"]
-    assert got[0]["scoring_version"] == LEGACY_SCORING_VERSION
+    full = {**bundle(), **score_bundle(bundle())}
+    capture.run_experiment_cycle([full], market_open=True, now=datetime.fromisoformat(NOW))
+    assert got[0]["deterministic_score"] == full["deterministic_score"]
+    assert got[0]["scoring_version"] == SCORING_VERSION
 
 
 def test_compact_dashboard_retains_the_news_audit_without_heavy_price_history():
