@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import func
 
-from .analysis_engine import SCORING_VERSION, CORE_MIN_AVG_DOLLAR_VOLUME, technicals
+from .analysis_engine import SCORING_VERSION, CORE_MIN_AVG_DOLLAR_VOLUME, technicals, pct, fundamental_input_diagnostics
 from .db import SessionLocal, FullScanRun, FullScanResult, RadarCandidate
 from .market_evidence import transient_missing, positive
 from .trading_rules import entry_status, number
@@ -38,6 +38,7 @@ def compact_result(full, source="fresh_analysis"):
     score, analyst, rr = (number(full.get("deterministic_score")),
                           number(full.get("analyst_score")), number(status["risk_reward"]))
     points = {k: number(v) for k, v in (full.get("breakdown") or {}).items()}
+    diagnostics = fundamental_input_diagnostics(f)
     price = number(full.get("price"))
     temporary_gap = (analyst is None and transient_missing(f, "analyst")) or (
         not any(positive(f.get(k)) for k in ("forwardPE", "trailingPE")) and transient_missing(f, "valuation")) or (
@@ -47,6 +48,14 @@ def compact_result(full, source="fresh_analysis"):
         "risk_reward": rr, "qualified": status["qualified"], "ready_at_quote": status["ready"],
         "blocker": status["blocker"], "reason": status["reason"], "lane": full.get("lane"),
         "breakdown": points, "core_blockers": full.get("core_blockers") or [],
+        **diagnostics,
+        "fundamental_confidence": full.get("fundamental_confidence"),
+        "fundamental_reasons": full.get("fundamental_reasons") or [],
+        "sector": f.get("sector"), "fundamental_period": f.get("_fundamental_period"),
+        "net_income_tag": f.get("_net_income_tag"), "equity_tag": f.get("_equity_tag"),
+        "revenue_growth_pct": pct(f.get("revenueGrowth")), "earnings_growth_pct": pct(f.get("earningsGrowth")),
+        "gross_margin_pct": pct(f.get("grossMargins")), "operating_margin_pct": pct(f.get("operatingMargins")),
+        "roe_pct": pct(f.get("returnOnEquity")), "debt_to_equity_pct": number(f.get("debtToEquity")),
         "explosive_blockers": full.get("explosive_blockers") or [],
         "gate_pass": {"deterministic_70": score is not None and 70 <= score <= 100,
             "analyst_75": analyst is not None and 75 <= analyst <= 100,
@@ -109,6 +118,8 @@ def accumulate(summary, row, delta=1):
             add(counters, "cached_post_close", int(row.get("source") == "cached_post_close"))
             add(missing, "analyst_score", int(row.get("missing_analyst", False)))
             add(missing, "transient_data_gap", int(row.get("transient_data_gap", False)))
+            add(missing, "incomplete_fundamental_inputs", int(bool(row.get("fundamental_missing_inputs"))))
+            add(missing, "financial_sector_model_limit", int(bool(row.get("fundamental_model_limitation"))))
             for k, v in (row.get("breakdown") or {}).items():
                 if v is not None:
                     add(points, k, v); add(point_count, k)
@@ -134,7 +145,7 @@ class FullUniverseScan:
                 return self.status()
             with SessionLocal() as db:
                 run = db.get(FullScanRun, KEY)
-                if run and run.status in ACTIVE:
+                if run and run.status in ACTIVE and run.scoring_version == SCORING_VERSION:
                     run_id = run.run_id
                 else:
                     universe = self.radar.provider.us_equity_universe()
@@ -330,7 +341,20 @@ class FullUniverseScan:
             fields = ["symbol","status","price","avg_dollar_volume_20","deterministic_score","analyst_score",
                       "risk_reward","qualified","ready_at_quote","lane","blocker","analyst_status",
                       "valuation_status","market_cap_status","quote_asof","collected_at","source","error"]
+            component_columns = {"fundamentals_points":"Fundamentals", "catalyst_points":"Catalyst",
+                "news_points":"News", "momentum_points":"Momentum", "sector_points":"Sector",
+                "valuation_points":"Valuation", "analyst_confirmation_points":"Analyst confirmation",
+                "risk_reward_points":"Risk/Reward"}
+            fields += list(component_columns) + ["scoring_version","sector","fundamental_confidence",
+                "fundamental_missing_inputs","fundamental_model_limitation","fundamental_reasons",
+                "fundamental_period","net_income_tag","equity_tag","revenue_growth_pct","earnings_growth_pct",
+                "gross_margin_pct","operating_margin_pct","roe_pct","debt_to_equity_pct"]
             out = io.StringIO(); writer = csv.DictWriter(out, fields, extrasaction="ignore"); writer.writeheader()
             for row in db.query(FullScanResult).filter_by(run_id=run.run_id).order_by(FullScanResult.ordinal):
-                writer.writerow({"symbol":row.symbol,"status":row.status,**json.loads(row.payload_json)})
+                data = {"symbol":row.symbol,"status":row.status,**json.loads(row.payload_json)}
+                data.update({column:(data.get("breakdown") or {}).get(component)
+                             for column,component in component_columns.items()})
+                for key in ("fundamental_missing_inputs", "fundamental_reasons"):
+                    data[key] = "; ".join(data.get(key) or [])
+                writer.writerow(data)
             return out.getvalue()

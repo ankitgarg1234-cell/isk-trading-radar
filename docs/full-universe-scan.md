@@ -12,4 +12,11 @@ The gates remain deterministic >=70, analyst >=75, exact target/stop R/R >=0.4, 
 
 `full_scan_runs` and `full_scan_results` are additive database tables. Per-symbol checkpoints survive process restarts; startup resumes active work. A lease prevents another worker from claiming an active run, and scoring-version changes halt resumption to avoid mixing models. The existing ledger and trial dates are untouched. Counts are provisional until completion, and completion with errors/missing analyst coverage/transient input gaps is labeled `completed_with_data_gaps`.
 
+CSV exports include the eight deterministic components, scoring version, exact
+fundamental-input gaps, source concepts, financial period, confidence and source
+ratios expressed as percentages. The audit page shows component averages and
+separate counts for incomplete financial inputs and the financial-services model
+limitation. Missing exact debt does not rule out conservative liabilities-bound
+credit. These diagnostics do not change qualification or scoring bands.
+
 Validation: 400 focused checks passed, four documented preexisting legacy failures deselected. The 17 new full-scan controls cover exact 70/75/0.4 boundaries, matching price/liquidity arithmetic, all 70 synthetic eligible names analyzed beyond the ordinary 48 limit, errors separated from exclusions, no paper ledger writes, resume without duplicates, lease and model-version boundaries, cache provenance, per-gate accounting, endpoint rendering and CSV coverage. Production counts are runtime outputs, not inferred from fixtures.

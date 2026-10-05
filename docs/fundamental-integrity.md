@@ -1,6 +1,6 @@
 # Fundamental source and calculation integrity
 
-Production scoring version: `2026-10-05-fundamental-integrity-v8`.
+Production scoring version: `2026-10-06-current-sec-aliases-v15`.
 The canonical dashboard and single paper strategy use the same scorer.
 The scoring bands, 20-point fundamental cap, neutral unavailable baseline,
 qualification gates, allocation bands, fees, exits and trial clock are preserved.
@@ -44,6 +44,22 @@ The detail page labels the annual period, income definition, ROE method,
 balance-sheet date, unavailable metrics and any subtotal reduced by the 20-point
 cap. A new scoring version refreshes old stored analyses. Fundamentals from an
 older scoring version cannot be used as evidence of company deterioration.
+
+Income aliases are now selected by a matching current annual start/end period,
+and equity aliases by their latest eligible balance-sheet observation. An old
+preferred concept cannot hide a current alternative concept. Growth comparisons
+stay within the selected concept; missing prior-year data is never stitched from
+another alias. Valid zero/negative values retain their existing scoring treatment.
+The Broadcom SEC fixture reproduces obsolete NetIncomeLoss (last annual 2024)
+and StockholdersEquity (last balance 2019), while ProfitLoss and equity including
+noncontrolling interests remain current. Matched source arithmetic restores
+292.3% earnings growth, 31.0% ROE and 59.6% debt/equity. Existing fundamental
+bands yield 12 → 20; unchanged other components give 50 → 58, still below 70.
+
+The export and detail page separate unavailable exact inputs from observed weak
+values. Financial-services issuers are explicitly labelled as subject to the
+existing industrial margin/debt scoring limitation. This release does not add
+a sector-specific financial model or normalize incomplete inputs into full credit.
 
 Validation includes adversarial dates/units, positive and negative equity,
 profit/loss transitions, zero/missing debt, overlapping debt tags, stale aliases,

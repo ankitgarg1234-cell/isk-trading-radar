@@ -54,7 +54,7 @@ CORE_MIN_AVG_DOLLAR_VOLUME = 10_000_000.0
 EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME = 20_000_000.0
 MIN_FUNDAMENTAL_SCORE = 14.0  # 70/100 normalized fundamental quality
 EXPLOSIVE_MAX_TRADING_SESSIONS = 20
-SCORING_VERSION = "2026-10-05-catalyst-valuation-gates-v14"
+SCORING_VERSION = "2026-10-06-current-sec-aliases-v15"
 
 PROMOTION_SEVERE_TERMS = {
     "reverse split", "going concern", "minimum bid", "nasdaq compliance",
@@ -163,6 +163,23 @@ def _priced_in(published: Any) -> str:
 def news_analysis(news: list[dict], *, symbol="", company_name="", asof=None) -> dict:
     return analyze_news(news, symbol=symbol, company_name=company_name, asof=asof,
                         credibility=_credibility, priced_in=_priced_in)
+
+
+def fundamental_input_diagnostics(f: dict) -> dict:
+    """Report evidence gaps separately from weak observed values; no score changes."""
+    ratios = ("revenueGrowth", "earningsGrowth", "grossMargins", "operatingMargins", "returnOnEquity")
+    missing = [key for key in ratios if pct(f.get(key)) is None]
+    try:
+        debt = float(f.get("debtToEquity"))
+        valid_debt = math.isfinite(debt) and debt >= 0
+    except (TypeError, ValueError):
+        valid_debt = False
+    if not valid_debt:
+        missing.append("debtToEquity")
+    limitation = ("Financial-services margin and debt ratios are not directly comparable to industrial companies; "
+                  "the current fundamental bands have no separate financial-services model."
+                  if f.get("sector") == "Financial Services" else None)
+    return {"fundamental_missing_inputs": missing, "fundamental_model_limitation": limitation}
 
 
 def fundamental_score(f: dict) -> tuple[float, list[str], str]:
@@ -944,6 +961,7 @@ def score_bundle(bundle: dict) -> dict:
         "valuation_reasons": valuation_detail["reasons"],
         "fundamental_reasons": freasons,
         "fundamental_confidence": fconf,
+        **fundamental_input_diagnostics(f),
         "analyst_reasons": a_reasons,
         "analyst_target_mean_price": float(f.get("targetMeanPrice")) if f.get("targetMeanPrice") not in (None, "") else None,
         "analyst_target_high_price": float(f.get("targetHighPrice")) if f.get("targetHighPrice") not in (None, "") else None,

@@ -160,6 +160,37 @@ class SECFundamentalsProvider:
                 return us[tag]
         return None
 
+    @classmethod
+    def _annual_fact_at(cls, facts, tags, start, end):
+        """Choose an alias with the actual current fiscal period, not first existence.
+
+        Keep one entire concept series for growth comparisons. Never splice an
+        obsolete alias's prior year onto a new concept's current year.
+        """
+        for tag in tags:
+            fact = cls._fact(facts, (tag,))
+            if any(r.get("start") == start and r.get("end") == end for r in cls._annual_values(fact)):
+                return fact, tag
+        return None, None
+
+    @classmethod
+    def _instant_fact_at(cls, facts, tags, end):
+        """Prefer the latest available eligible series through the balance date."""
+        candidates = []
+        for priority, tag in enumerate(tags):
+            fact = cls._fact(facts, (tag,))
+            rows = [r for r in cls._entries(fact, ("USD",))
+                    if r.get("form") in {"10-K", "10-K/A", "10-Q", "10-Q/A", "20-F", "20-F/A"}
+                    and not r.get("start")
+                    and r.get("end") and str(r["end"]) <= str(end or "")
+                    and _safe_float(r.get("val")) is not None]
+            if rows:
+                candidates.append((max(str(r["end"]) for r in rows), -priority, fact, tag))
+        if not candidates:
+            return None, None
+        _, _, fact, tag = max(candidates, key=lambda r: (r[0], r[1]))
+        return fact, tag
+
     @staticmethod
     def _entries(fact: dict | None, preferred_units: tuple[str, ...]) -> list[dict]:
         if not fact:
@@ -384,10 +415,8 @@ class SECFundamentalsProvider:
             (str(r.get("end") or "") for r in self._annual_values(f) + self._quarter_values(f)),
             default="",
         ))
-        net_income_fact = self._fact(facts, ("NetIncomeLoss", "ProfitLoss"))
         gross_profit_fact = self._fact(facts, ("GrossProfit",))
         op_income_fact = self._fact(facts, ("OperatingIncomeLoss",))
-        equity_fact = self._fact(facts, ("StockholdersEquity", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"))
         current_assets_fact = self._fact(facts, ("AssetsCurrent",))
         current_liab_fact = self._fact(facts, ("LiabilitiesCurrent",))
         liabilities_fact = self._fact(facts, ("Liabilities",))
@@ -396,7 +425,6 @@ class SECFundamentalsProvider:
         shares_outstanding_fact = dei.get("EntityCommonStockSharesOutstanding")
 
         revenue = self._annual_values(revenue_fact)
-        net_income = self._annual_values(net_income_fact)
         gross_profit = self._annual_values(gross_profit_fact)
         op_income = self._annual_values(op_income_fact)
         ocf = self._annual_values(ocf_fact)
@@ -413,6 +441,11 @@ class SECFundamentalsProvider:
 
         annual = revenue[-1] if revenue else {}
         annual_end = annual.get("end")
+        net_income_fact, income_tag = self._annual_fact_at(
+            facts, ("NetIncomeLoss", "ProfitLoss"), annual.get("start"), annual_end)
+        equity_fact, equity_tag = self._instant_fact_at(
+            facts, ("StockholdersEquity", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"), latest_period)
+        net_income = self._annual_values(net_income_fact)
         annual_reports = [report_dates[i] for i, form in enumerate(recent.get("form") or [])
                           if form in {"10-K", "10-K/A", "20-F", "20-F/A"}
                           and i < len(report_dates) and _iso_days(report_dates[i], report_dates[i]) == 0]
@@ -489,6 +522,8 @@ class SECFundamentalsProvider:
             "_source": "SEC EDGAR/XBRL",
             "_fundamental_period": annual_end if annual_current else None,
             "_fundamental_integrity": "matched-fiscal-periods-v1",
+            "_net_income_tag": income_tag,
+            "_equity_tag": equity_tag,
             "_annual_status": "available" if annual_current else "latest annual revenue unavailable",
             "_earnings_change": earnings_change,
             "_earnings_basis": "annual GAAP total net income; includes discontinued operations where reported",

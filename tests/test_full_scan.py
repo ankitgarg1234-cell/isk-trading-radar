@@ -130,6 +130,23 @@ def test_scoring_version_change_stops_audit_instead_of_mixing_results(monkeypatc
     assert scan.status()["status"] == "scoring_version_changed"
 
 
+def test_start_after_model_change_creates_clean_current_version_run(monkeypatch):
+    scan, _, _ = service(monkeypatch, ["A", "B"])
+    monkeypatch.setattr(scan, "_launch", lambda run_id:None)
+    old_id = scan.start()["run_id"]
+    scan._claim(old_id)
+    scan._record(old_id, [compact_result(payload("A"))], "analysis")
+    with SessionLocal() as db:
+        r = db.get(FullScanRun, "latest"); r.scoring_version = "old"; db.commit()
+    fresh, analyzed, _ = service(monkeypatch, ["A", "B"])
+    result = fresh.start()
+    assert result["run_id"] != old_id and result["scoring_version"] == SCORING_VERSION
+    assert [s for s, _ in analyzed] == ["A", "B"]
+    assert result["summary"]["counts"]["scored"] == 2
+    with SessionLocal() as db:
+        assert db.query(FullScanResult).filter_by(run_id=old_id, status="scored").count() == 1
+
+
 def test_independent_gate_counts_and_temporary_gaps_are_not_qualification():
     a=payload(score=69.9); b=payload(analyst=None)
     b["fundamentals"]["_analyst_status"]="unavailable (request budget)"
@@ -138,7 +155,8 @@ def test_independent_gate_counts_and_temporary_gaps_are_not_qualification():
     assert s["independent_gate_pass_counts"]["deterministic_70"] == 2
     assert s["independent_gate_pass_counts"]["analyst_75"] == 2
     assert s["independent_gate_pass_counts"]["qualified"] == 1
-    assert s["missing_data"] == {"analyst_score":1,"transient_data_gap":1}
+    assert s["missing_data"]["analyst_score"] == 1
+    assert s["missing_data"]["transient_data_gap"] == 1
     accumulate(s,rows[1],-1);accumulate(s,compact_result(payload()),1)
     assert s["counts"]["scored"] == 3 and s["missing_data"]["analyst_score"] == 0
     assert s["mean_score_components"]["Fundamentals"] == 18
@@ -206,3 +224,30 @@ def test_completed_resume_does_not_duplicate_score_aggregates(monkeypatch):
     d=scan.status()
     assert d["qualified_count"] == 0 and d["summary"]["counts"]["scored"] == 1
     assert d["summary"]["independent_gate_pass_counts"]["qualified"] == 0
+
+
+def test_export_exposes_components_and_unavailable_inputs_without_changing_gates(monkeypatch):
+    scan, _, _ = service(monkeypatch, ["A"])
+    a = payload("A")
+    a["fundamentals"].update(sector="Financial Services", revenueGrowth=.064,
+                             earningsGrowth=.07, returnOnEquity=.34, debtToEquity=172.3)
+    a["fundamental_confidence"] = "medium"
+    a["fundamental_reasons"] = ["Revenue growth 6.4% → 2/4"]
+    scan.radar.analyze_symbol = lambda *args, **kwargs:a
+    result = scan.start()
+    row = next(csv.DictReader(io.StringIO(scan.results_csv())))
+    assert float(row["deterministic_score"]) == a["deterministic_score"]
+    assert float(row["fundamentals_points"]) == 18
+    assert float(row["catalyst_points"]) == 5 and float(row["valuation_points"]) == 7
+    assert row["fundamental_missing_inputs"] == "grossMargins; operatingMargins"
+    assert row["fundamental_confidence"] == "medium"
+    assert "no separate financial-services model" in row["fundamental_model_limitation"]
+    assert float(row["revenue_growth_pct"]) == pytest.approx(6.4)
+    assert float(row["roe_pct"]) == pytest.approx(34)
+    assert float(row["debt_to_equity_pct"]) == pytest.approx(172.3)
+    assert row["scoring_version"] == SCORING_VERSION
+    assert result["summary"]["missing_data"]["incomplete_fundamental_inputs"] == 1
+    assert result["summary"]["missing_data"]["financial_sector_model_limit"] == 1
+    scan._claim(result["run_id"])
+    scan._record(result["run_id"], [compact_result(payload("A"))], "analysis")
+    assert scan.status()["summary"]["missing_data"]["financial_sector_model_limit"] == 0
