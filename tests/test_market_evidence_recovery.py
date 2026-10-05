@@ -20,8 +20,9 @@ def inputs():
     return current, saved
 
 
-def test_transient_failure_retains_valid_evidence_without_advancing_age():
-    c, s = inputs(); recover_market_evidence(c, [s])
+@pytest.mark.parametrize('status', ['unavailable (request budget)', 'unavailable (endpoint cooldown)'])
+def test_transient_failure_retains_valid_evidence_without_advancing_age(status):
+    c, s = inputs(); c['fundamentals']['_valuation_status'] = status; recover_market_evidence(c, [s])
     assert c['fundamentals']['trailingPE'] == 80  # High P/E must not turn neutral/cheap.
     assert c['fundamentals']['marketCap'] == 1e9
     assert c['fundamentals']['_valuation_asof'] == s['fundamentals']['_valuation_asof']

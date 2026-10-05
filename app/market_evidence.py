@@ -19,7 +19,7 @@ def positive(value):
 
 def transient_missing(f, prefix):
     status = str(f.get(f"_{prefix}_status") or "")
-    return any(reason in status for reason in ("request budget", "enrichment budget", "HTTP 429", "ReadTimeout", "ConnectTimeout", "ReadError", "ConnectError"))
+    return any(reason in status for reason in ("request budget", "enrichment budget", "endpoint cooldown", "HTTP 429", "ReadTimeout", "ConnectTimeout", "ReadError", "ConnectError"))
 
 
 def recover_market_evidence(bundle, saved):
