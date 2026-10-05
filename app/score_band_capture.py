@@ -53,7 +53,7 @@ def _load(db):
 def compact_observation(full):
     keys = ("symbol", "price", "currency", "asof", "scoring_version", "deterministic_score",
         "analyst_score", "risk_reward", "fundamental_confidence", "decision_confidence", "breakdown",
-        "lane", "lane_qualified", "levels", "target_plan", "holding_horizon", "technicals",
+        "lane", "lane_qualified", "levels", "target_plan", "holding_horizon", "short_horizon_forecast", "technicals",
         "news", "negative_news_override", "thesis_assessment", "promotion_risk", "data_sources")
     out = {k: copy.deepcopy(full.get(k)) for k in keys}
     out["collected_at"] = full.get("asof")

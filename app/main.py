@@ -11,6 +11,7 @@ from sqlalchemy import text, or_
 from .config import settings
 from .db import engine, SessionLocal, Position, PaperPosition, AnalysisRequest, Trade, PortfolioCash, PortfolioPreference, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, storage_status
 from .analysis_engine import parse_positions_from_text, position_action, position_action_plan, SCORING_VERSION
+from .short_horizon import VERSION as FORECAST_VERSION, forecast_current
 from .portfolio_engine import RISK_PROFILES, ACTION_RANK, normalise_profile, stock_risk_score, system_signal, active_level, analyst_label, suggested_position_size, account_risk, projected_risk, risk_band, build_optimizer_plan, candidate_rank_score
 from .paper_engine import paper_status, reset_paper, run_paper_cycle, manual_paper_add, manual_paper_close
 from .scanner import radar
@@ -67,7 +68,7 @@ def logout(request:Request):request.session.clear();return RedirectResponse("/lo
 def health():
     try:
         with engine.connect() as conn:conn.execute(text("SELECT 1"))
-        return {"status":"ok","database":"connected","scoring_version":SCORING_VERSION,"storage":storage_status(),"article_news":article_news.worker.status(),"scanner_running":radar.running,"scan_in_progress":radar.scan_in_progress,"scan_started_at":radar.scan_started_at,"last_scan":radar.last_scan,"last_scan_duration_seconds":radar.last_scan_duration_seconds,"last_scan_result":radar.last_result,"last_error":radar.last_error,"market_open":radar.market_open(),"universe_size":radar.universe_size,"live_poll_seconds":settings.live_poll_seconds,"dashboard_cache_seconds":settings.dashboard_cache_seconds,"score_band_experiment":radar.last_experiment_result}
+        return {"status":"ok","database":"connected","scoring_version":SCORING_VERSION,"forecast_version":FORECAST_VERSION,"forecast_mode":"research_only","storage":storage_status(),"article_news":article_news.worker.status(),"scanner_running":radar.running,"scan_in_progress":radar.scan_in_progress,"scan_started_at":radar.scan_started_at,"last_scan":radar.last_scan,"last_scan_duration_seconds":radar.last_scan_duration_seconds,"last_scan_result":radar.last_result,"last_error":radar.last_error,"market_open":radar.market_open(),"universe_size":radar.universe_size,"live_poll_seconds":settings.live_poll_seconds,"dashboard_cache_seconds":settings.dashboard_cache_seconds,"score_band_experiment":radar.last_experiment_result}
     except Exception as exc:return JSONResponse({"status":"degraded","database":str(exc)},status_code=503)
 
 @app.get("/api/experiments/score-bands")
@@ -687,7 +688,7 @@ def analysis_page(request:Request,symbol:str,refresh:int=0):
                     except:data=None
     # Never serve a deterministic score created by an older scoring algorithm.
     # This prevents persisted pre-deploy snapshots from surviving a scoring fix.
-    if data is not None and (data.get("scoring_version") != SCORING_VERSION or article_news.is_dirty(symbol, data.get("asof"))):
+    if data is not None and (data.get("scoring_version") != SCORING_VERSION or not forecast_current(data) or article_news.is_dirty(symbol, data.get("asof"))):
         try:data=radar.analyze_symbol(symbol,True)
         except Exception:data=None
     if data is None:
@@ -704,13 +705,13 @@ def analysis_json(symbol:str, refresh:int=0):
         c=db.query(RadarCandidate).filter(RadarCandidate.symbol==symbol).first()
         if c and c.current_json:
             data=_candidate_payload(c)
-            if data.get("scoring_version") == SCORING_VERSION and not article_news.is_dirty(symbol, data.get("asof")):
+            if data.get("scoring_version") == SCORING_VERSION and forecast_current(data) and not article_news.is_dirty(symbol, data.get("asof")):
                 return data
         s=db.query(AnalysisSnapshot).filter(AnalysisSnapshot.symbol==symbol).order_by(AnalysisSnapshot.created_at.desc()).first()
         if s:
             try:
                 data=json.loads(s.payload_json)
-                if data.get("scoring_version") == SCORING_VERSION and not article_news.is_dirty(symbol, data.get("asof")):
+                if data.get("scoring_version") == SCORING_VERSION and forecast_current(data) and not article_news.is_dirty(symbol, data.get("asof")):
                     return data
             except Exception:
                 pass

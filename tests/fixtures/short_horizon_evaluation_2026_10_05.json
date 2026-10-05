@@ -1,0 +1,670 @@
+{
+  "version": "short-horizon-research-v1",
+  "execution_enabled": false,
+  "scope": "Captured-price rolling-origin diagnostics; not a full-universe or point-in-time strategy backtest",
+  "inputs": [
+    {
+      "file": "short_horizon_prices_2026_10_05.json",
+      "sha256": "a57643038b95635ed40cc86ceaddba4c8516359485dd12702323556863295f7b"
+    }
+  ],
+  "securities": [
+    {
+      "symbol": "NVDA",
+      "forecast": {
+        "version": "short-horizon-research-v1",
+        "mode": "research_only",
+        "execution_enabled": false,
+        "status": "available",
+        "horizon_unit": "calendar_days",
+        "default_horizon_days": 30,
+        "rows": [
+          {
+            "days": 15,
+            "forecast_date": "2026-10-20",
+            "estimated_sessions": 11,
+            "default": false,
+            "within_lane_window": true,
+            "down_price": 222.54,
+            "base_price": 241.7,
+            "up_price": 265.32,
+            "mean_price": 242.07,
+            "base_return_pct": 1.17,
+            "expected_return_pct": 1.33,
+            "risk_reward": 0.088,
+            "stop": 206.93,
+            "sector_used": true,
+            "validation": {
+              "status": "insufficient_independent_windows",
+              "folds": 23,
+              "independent_windows": 8,
+              "sector_context_folds": 10,
+              "minimum_independent_windows": 20,
+              "first_origin": "2026-04-07",
+              "last_outcome": "2026-09-29",
+              "diagnostic_metrics": {
+                "model_mae_pct_points": 5.453,
+                "no_change_mae_pct_points": 5.402,
+                "simple_trend_mae_pct_points": 5.733,
+                "interval_coverage_pct": 87.0
+              },
+              "independent_metrics": {
+                "model_mae_pct_points": 5.616,
+                "no_change_mae_pct_points": 5.473,
+                "simple_trend_mae_pct_points": 5.683,
+                "interval_coverage_pct": 87.5
+              },
+              "reason": "Need at least 20 non-overlapping windows, >5% lower error than both benchmarks and 70\u201390% coverage of the nominal 80% interval. Historical checks alone do not authorize execution."
+            }
+          },
+          {
+            "days": 25,
+            "forecast_date": "2026-10-30",
+            "estimated_sessions": 19,
+            "default": false,
+            "within_lane_window": true,
+            "down_price": 222.07,
+            "base_price": 244.54,
+            "up_price": 264.96,
+            "mean_price": 243.38,
+            "base_return_pct": 2.36,
+            "expected_return_pct": 1.88,
+            "risk_reward": 0.176,
+            "stop": 206.93,
+            "sector_used": true,
+            "validation": {
+              "status": "insufficient_independent_windows",
+              "folds": 22,
+              "independent_windows": 6,
+              "sector_context_folds": 9,
+              "minimum_independent_windows": 20,
+              "first_origin": "2026-04-07",
+              "last_outcome": "2026-09-29",
+              "diagnostic_metrics": {
+                "model_mae_pct_points": 5.222,
+                "no_change_mae_pct_points": 4.932,
+                "simple_trend_mae_pct_points": 5.619,
+                "interval_coverage_pct": 72.7
+              },
+              "independent_metrics": {
+                "model_mae_pct_points": 7.135,
+                "no_change_mae_pct_points": 6.905,
+                "simple_trend_mae_pct_points": 7.5,
+                "interval_coverage_pct": 66.7
+              },
+              "reason": "Need at least 20 non-overlapping windows, >5% lower error than both benchmarks and 70\u201390% coverage of the nominal 80% interval. Historical checks alone do not authorize execution."
+            }
+          },
+          {
+            "days": 30,
+            "forecast_date": "2026-11-04",
+            "estimated_sessions": 22,
+            "default": true,
+            "within_lane_window": true,
+            "down_price": 220.46,
+            "base_price": 244.48,
+            "up_price": 265.43,
+            "mean_price": 243.87,
+            "base_return_pct": 2.34,
+            "expected_return_pct": 2.08,
+            "risk_reward": 0.175,
+            "stop": 206.93,
+            "sector_used": true,
+            "validation": {
+              "status": "insufficient_independent_windows",
+              "folds": 22,
+              "independent_windows": 5,
+              "sector_context_folds": 9,
+              "minimum_independent_windows": 20,
+              "first_origin": "2026-04-07",
+              "last_outcome": "2026-10-02",
+              "diagnostic_metrics": {
+                "model_mae_pct_points": 7.159,
+                "no_change_mae_pct_points": 6.788,
+                "simple_trend_mae_pct_points": 6.9,
+                "interval_coverage_pct": 72.7
+              },
+              "independent_metrics": {
+                "model_mae_pct_points": 6.783,
+                "no_change_mae_pct_points": 6.827,
+                "simple_trend_mae_pct_points": 8.816,
+                "interval_coverage_pct": 60.0
+              },
+              "reason": "Need at least 20 non-overlapping windows, >5% lower error than both benchmarks and 70\u201390% coverage of the nominal 80% interval. Historical checks alone do not authorize execution."
+            }
+          },
+          {
+            "days": 45,
+            "forecast_date": "2026-11-19",
+            "estimated_sessions": 33,
+            "default": false,
+            "within_lane_window": true,
+            "down_price": 220.0,
+            "base_price": 245.97,
+            "up_price": 266.73,
+            "mean_price": 244.84,
+            "base_return_pct": 2.96,
+            "expected_return_pct": 2.49,
+            "risk_reward": 0.221,
+            "stop": 206.93,
+            "sector_used": true,
+            "validation": {
+              "status": "insufficient_independent_windows",
+              "folds": 20,
+              "independent_windows": 3,
+              "sector_context_folds": 7,
+              "minimum_independent_windows": 20,
+              "first_origin": "2026-04-07",
+              "last_outcome": "2026-10-05",
+              "diagnostic_metrics": {
+                "model_mae_pct_points": 8.183,
+                "no_change_mae_pct_points": 7.446,
+                "simple_trend_mae_pct_points": 9.118,
+                "interval_coverage_pct": 65.0
+              },
+              "independent_metrics": {
+                "model_mae_pct_points": 11.231,
+                "no_change_mae_pct_points": 10.14,
+                "simple_trend_mae_pct_points": 12.141,
+                "interval_coverage_pct": 66.7
+              },
+              "reason": "Need at least 20 non-overlapping windows, >5% lower error than both benchmarks and 70\u201390% coverage of the nominal 80% interval. Historical checks alone do not authorize execution."
+            }
+          },
+          {
+            "days": 60,
+            "forecast_date": "2026-12-04",
+            "estimated_sessions": 44,
+            "default": false,
+            "within_lane_window": true,
+            "down_price": 218.93,
+            "base_price": 244.91,
+            "up_price": 273.34,
+            "mean_price": 245.42,
+            "base_return_pct": 2.52,
+            "expected_return_pct": 2.73,
+            "risk_reward": 0.188,
+            "stop": 206.93,
+            "sector_used": true,
+            "validation": {
+              "status": "insufficient_independent_windows",
+              "folds": 17,
+              "independent_windows": 2,
+              "sector_context_folds": 4,
+              "minimum_independent_windows": 20,
+              "first_origin": "2026-04-07",
+              "last_outcome": "2026-09-29",
+              "diagnostic_metrics": {
+                "model_mae_pct_points": 8.823,
+                "no_change_mae_pct_points": 7.905,
+                "simple_trend_mae_pct_points": 8.778,
+                "interval_coverage_pct": 82.4
+              },
+              "independent_metrics": {
+                "model_mae_pct_points": 14.635,
+                "no_change_mae_pct_points": 13.52,
+                "simple_trend_mae_pct_points": 12.764,
+                "interval_coverage_pct": 50.0
+              },
+              "reason": "Need at least 20 non-overlapping windows, >5% lower error than both benchmarks and 70\u201390% coverage of the nominal 80% interval. Historical checks alone do not authorize execution."
+            }
+          }
+        ],
+        "price_asof": "2026-10-05T16:00:01-04:00",
+        "price": 238.9,
+        "history_asof": "2026-10-05",
+        "history_sessions": 251,
+        "method": "Damped log-return trend with 50% shrinkage toward zero; optional 10% sector context; centered historical block-return percentiles",
+        "limitations": [
+          "Research estimates do not change scores, entry gates, targets, stops, sizing or paper orders",
+          "10th/90th percentile bounds form an estimated 80% interval; coverage is tested, not assumed",
+          "Calendar horizons use weekday session counts; exchange holidays can reduce actual sessions",
+          "Earnings, FDA decisions and other future event gaps are not modeled",
+          "Historical adjusted closes may include subsequent corporate-action adjustments; this is a price-model diagnostic, not a point-in-time strategy backtest"
+        ],
+        "reason": "Forecasts available for evaluation; execution remains on the existing strategy",
+        "sector_symbol": "XLK",
+        "sector_status": "available",
+        "price_source": "Yahoo Finance chart"
+      }
+    },
+    {
+      "symbol": "MSFT",
+      "forecast": {
+        "version": "short-horizon-research-v1",
+        "mode": "research_only",
+        "execution_enabled": false,
+        "status": "available",
+        "horizon_unit": "calendar_days",
+        "default_horizon_days": 30,
+        "rows": [
+          {
+            "days": 15,
+            "forecast_date": "2026-10-20",
+            "estimated_sessions": 11,
+            "default": false,
+            "within_lane_window": true,
+            "down_price": 490.5,
+            "base_price": 524.9,
+            "up_price": 593.53,
+            "mean_price": 533.95,
+            "base_return_pct": -0.05,
+            "expected_return_pct": 1.67,
+            "risk_reward": -0.006,
+            "stop": 475.52,
+            "sector_used": true,
+            "validation": {
+              "status": "insufficient_independent_windows",
+              "folds": 23,
+              "independent_windows": 8,
+              "sector_context_folds": 10,
+              "minimum_independent_windows": 20,
+              "first_origin": "2026-04-07",
+              "last_outcome": "2026-09-29",
+              "diagnostic_metrics": {
+                "model_mae_pct_points": 6.798,
+                "no_change_mae_pct_points": 6.6,
+                "simple_trend_mae_pct_points": 7.12,
+                "interval_coverage_pct": 73.9
+              },
+              "independent_metrics": {
+                "model_mae_pct_points": 9.148,
+                "no_change_mae_pct_points": 9.072,
+                "simple_trend_mae_pct_points": 9.261,
+                "interval_coverage_pct": 62.5
+              },
+              "reason": "Need at least 20 non-overlapping windows, >5% lower error than both benchmarks and 70\u201390% coverage of the nominal 80% interval. Historical checks alone do not authorize execution."
+            }
+          },
+          {
+            "days": 25,
+            "forecast_date": "2026-10-30",
+            "estimated_sessions": 19,
+            "default": false,
+            "within_lane_window": true,
+            "down_price": 474.47,
+            "base_price": 524.78,
+            "up_price": 642.5,
+            "mean_price": 538.09,
+            "base_return_pct": -0.08,
+            "expected_return_pct": 2.46,
+            "risk_reward": -0.008,
+            "stop": 475.52,
+            "sector_used": true,
+            "validation": {
+              "status": "insufficient_independent_windows",
+              "folds": 22,
+              "independent_windows": 6,
+              "sector_context_folds": 9,
+              "minimum_independent_windows": 20,
+              "first_origin": "2026-04-07",
+              "last_outcome": "2026-09-29",
+              "diagnostic_metrics": {
+                "model_mae_pct_points": 8.456,
+                "no_change_mae_pct_points": 7.857,
+                "simple_trend_mae_pct_points": 9.24,
+                "interval_coverage_pct": 68.2
+              },
+              "independent_metrics": {
+                "model_mae_pct_points": 7.312,
+                "no_change_mae_pct_points": 7.186,
+                "simple_trend_mae_pct_points": 8.779,
+                "interval_coverage_pct": 66.7
+              },
+              "reason": "Need at least 20 non-overlapping windows, >5% lower error than both benchmarks and 70\u201390% coverage of the nominal 80% interval. Historical checks alone do not authorize execution."
+            }
+          },
+          {
+            "days": 30,
+            "forecast_date": "2026-11-04",
+            "estimated_sessions": 22,
+            "default": true,
+            "within_lane_window": true,
+            "down_price": 459.26,
+            "base_price": 525.78,
+            "up_price": 648.75,
+            "mean_price": 539.51,
+            "base_return_pct": 0.11,
+            "expected_return_pct": 2.73,
+            "risk_reward": 0.012,
+            "stop": 475.52,
+            "sector_used": true,
+            "validation": {
+              "status": "insufficient_independent_windows",
+              "folds": 22,
+              "independent_windows": 5,
+              "sector_context_folds": 9,
+              "minimum_independent_windows": 20,
+              "first_origin": "2026-04-07",
+              "last_outcome": "2026-10-02",
+              "diagnostic_metrics": {
+                "model_mae_pct_points": 8.986,
+                "no_change_mae_pct_points": 8.545,
+                "simple_trend_mae_pct_points": 10.147,
+                "interval_coverage_pct": 77.3
+              },
+              "independent_metrics": {
+                "model_mae_pct_points": 10.577,
+                "no_change_mae_pct_points": 9.676,
+                "simple_trend_mae_pct_points": 12.584,
+                "interval_coverage_pct": 60.0
+              },
+              "reason": "Need at least 20 non-overlapping windows, >5% lower error than both benchmarks and 70\u201390% coverage of the nominal 80% interval. Historical checks alone do not authorize execution."
+            }
+          },
+          {
+            "days": 45,
+            "forecast_date": "2026-11-19",
+            "estimated_sessions": 33,
+            "default": false,
+            "within_lane_window": true,
+            "down_price": 456.47,
+            "base_price": 517.93,
+            "up_price": 647.21,
+            "mean_price": 544.08,
+            "base_return_pct": -1.38,
+            "expected_return_pct": 3.6,
+            "risk_reward": -0.146,
+            "stop": 475.52,
+            "sector_used": true,
+            "validation": {
+              "status": "insufficient_independent_windows",
+              "folds": 20,
+              "independent_windows": 3,
+              "sector_context_folds": 7,
+              "minimum_independent_windows": 20,
+              "first_origin": "2026-04-07",
+              "last_outcome": "2026-10-05",
+              "diagnostic_metrics": {
+                "model_mae_pct_points": 15.01,
+                "no_change_mae_pct_points": 13.888,
+                "simple_trend_mae_pct_points": 15.177,
+                "interval_coverage_pct": 55.0
+              },
+              "independent_metrics": {
+                "model_mae_pct_points": 17.306,
+                "no_change_mae_pct_points": 16.137,
+                "simple_trend_mae_pct_points": 21.584,
+                "interval_coverage_pct": 33.3
+              },
+              "reason": "Need at least 20 non-overlapping windows, >5% lower error than both benchmarks and 70\u201390% coverage of the nominal 80% interval. Historical checks alone do not authorize execution."
+            }
+          },
+          {
+            "days": 60,
+            "forecast_date": "2026-12-04",
+            "estimated_sessions": 44,
+            "default": false,
+            "within_lane_window": true,
+            "down_price": 441.44,
+            "base_price": 541.44,
+            "up_price": 641.5,
+            "mean_price": 545.87,
+            "base_return_pct": 3.1,
+            "expected_return_pct": 3.94,
+            "risk_reward": 0.327,
+            "stop": 475.52,
+            "sector_used": true,
+            "validation": {
+              "status": "insufficient_independent_windows",
+              "folds": 17,
+              "independent_windows": 2,
+              "sector_context_folds": 4,
+              "minimum_independent_windows": 20,
+              "first_origin": "2026-04-07",
+              "last_outcome": "2026-09-29",
+              "diagnostic_metrics": {
+                "model_mae_pct_points": 16.495,
+                "no_change_mae_pct_points": 16.958,
+                "simple_trend_mae_pct_points": 17.9,
+                "interval_coverage_pct": 41.2
+              },
+              "independent_metrics": {
+                "model_mae_pct_points": 22.13,
+                "no_change_mae_pct_points": 18.996,
+                "simple_trend_mae_pct_points": 27.008,
+                "interval_coverage_pct": 0
+              },
+              "reason": "Need at least 20 non-overlapping windows, >5% lower error than both benchmarks and 70\u201390% coverage of the nominal 80% interval. Historical checks alone do not authorize execution."
+            }
+          }
+        ],
+        "price_asof": "2026-10-05T16:00:02-04:00",
+        "price": 525.18,
+        "history_asof": "2026-10-05",
+        "history_sessions": 251,
+        "method": "Damped log-return trend with 50% shrinkage toward zero; optional 10% sector context; centered historical block-return percentiles",
+        "limitations": [
+          "Research estimates do not change scores, entry gates, targets, stops, sizing or paper orders",
+          "10th/90th percentile bounds form an estimated 80% interval; coverage is tested, not assumed",
+          "Calendar horizons use weekday session counts; exchange holidays can reduce actual sessions",
+          "Earnings, FDA decisions and other future event gaps are not modeled",
+          "Historical adjusted closes may include subsequent corporate-action adjustments; this is a price-model diagnostic, not a point-in-time strategy backtest"
+        ],
+        "reason": "Forecasts available for evaluation; execution remains on the existing strategy",
+        "sector_symbol": "XLK",
+        "sector_status": "available",
+        "price_source": "Yahoo Finance chart"
+      }
+    },
+    {
+      "symbol": "CRDO",
+      "forecast": {
+        "version": "short-horizon-research-v1",
+        "mode": "research_only",
+        "execution_enabled": false,
+        "status": "available",
+        "horizon_unit": "calendar_days",
+        "default_horizon_days": 30,
+        "rows": [
+          {
+            "days": 15,
+            "forecast_date": "2026-10-20",
+            "estimated_sessions": 11,
+            "default": false,
+            "within_lane_window": true,
+            "down_price": 159.43,
+            "base_price": 222.36,
+            "up_price": 275.24,
+            "mean_price": 222.06,
+            "base_return_pct": 4.65,
+            "expected_return_pct": 4.51,
+            "risk_reward": 0.137,
+            "stop": 140.32,
+            "sector_used": true,
+            "validation": {
+              "status": "insufficient_independent_windows",
+              "folds": 23,
+              "independent_windows": 8,
+              "sector_context_folds": 10,
+              "minimum_independent_windows": 20,
+              "first_origin": "2026-04-07",
+              "last_outcome": "2026-09-29",
+              "diagnostic_metrics": {
+                "model_mae_pct_points": 18.564,
+                "no_change_mae_pct_points": 17.549,
+                "simple_trend_mae_pct_points": 19.483,
+                "interval_coverage_pct": 82.6
+              },
+              "independent_metrics": {
+                "model_mae_pct_points": 23.763,
+                "no_change_mae_pct_points": 22.293,
+                "simple_trend_mae_pct_points": 23.166,
+                "interval_coverage_pct": 87.5
+              },
+              "reason": "Need at least 20 non-overlapping windows, >5% lower error than both benchmarks and 70\u201390% coverage of the nominal 80% interval. Historical checks alone do not authorize execution."
+            }
+          },
+          {
+            "days": 25,
+            "forecast_date": "2026-10-30",
+            "estimated_sessions": 19,
+            "default": false,
+            "within_lane_window": true,
+            "down_price": 151.5,
+            "base_price": 231.15,
+            "up_price": 292.94,
+            "mean_price": 226.53,
+            "base_return_pct": 8.78,
+            "expected_return_pct": 6.61,
+            "risk_reward": 0.259,
+            "stop": 140.32,
+            "sector_used": true,
+            "validation": {
+              "status": "insufficient_independent_windows",
+              "folds": 22,
+              "independent_windows": 6,
+              "sector_context_folds": 9,
+              "minimum_independent_windows": 20,
+              "first_origin": "2026-04-07",
+              "last_outcome": "2026-09-29",
+              "diagnostic_metrics": {
+                "model_mae_pct_points": 22.578,
+                "no_change_mae_pct_points": 20.418,
+                "simple_trend_mae_pct_points": 24.968,
+                "interval_coverage_pct": 81.8
+              },
+              "independent_metrics": {
+                "model_mae_pct_points": 26.396,
+                "no_change_mae_pct_points": 24.359,
+                "simple_trend_mae_pct_points": 26.657,
+                "interval_coverage_pct": 83.3
+              },
+              "reason": "Need at least 20 non-overlapping windows, >5% lower error than both benchmarks and 70\u201390% coverage of the nominal 80% interval. Historical checks alone do not authorize execution."
+            }
+          },
+          {
+            "days": 30,
+            "forecast_date": "2026-11-04",
+            "estimated_sessions": 22,
+            "default": true,
+            "within_lane_window": true,
+            "down_price": 157.52,
+            "base_price": 226.96,
+            "up_price": 297.44,
+            "mean_price": 227.73,
+            "base_return_pct": 6.81,
+            "expected_return_pct": 7.18,
+            "risk_reward": 0.201,
+            "stop": 140.32,
+            "sector_used": true,
+            "validation": {
+              "status": "insufficient_independent_windows",
+              "folds": 22,
+              "independent_windows": 5,
+              "sector_context_folds": 9,
+              "minimum_independent_windows": 20,
+              "first_origin": "2026-04-07",
+              "last_outcome": "2026-10-02",
+              "diagnostic_metrics": {
+                "model_mae_pct_points": 24.55,
+                "no_change_mae_pct_points": 22.848,
+                "simple_trend_mae_pct_points": 29.458,
+                "interval_coverage_pct": 81.8
+              },
+              "independent_metrics": {
+                "model_mae_pct_points": 32.269,
+                "no_change_mae_pct_points": 29.178,
+                "simple_trend_mae_pct_points": 34.456,
+                "interval_coverage_pct": 60.0
+              },
+              "reason": "Need at least 20 non-overlapping windows, >5% lower error than both benchmarks and 70\u201390% coverage of the nominal 80% interval. Historical checks alone do not authorize execution."
+            }
+          },
+          {
+            "days": 45,
+            "forecast_date": "2026-11-19",
+            "estimated_sessions": 33,
+            "default": false,
+            "within_lane_window": true,
+            "down_price": 163.65,
+            "base_price": 209.84,
+            "up_price": 320.92,
+            "mean_price": 230.67,
+            "base_return_pct": -1.24,
+            "expected_return_pct": 8.56,
+            "risk_reward": -0.037,
+            "stop": 140.32,
+            "sector_used": true,
+            "validation": {
+              "status": "insufficient_independent_windows",
+              "folds": 20,
+              "independent_windows": 3,
+              "sector_context_folds": 7,
+              "minimum_independent_windows": 20,
+              "first_origin": "2026-04-07",
+              "last_outcome": "2026-10-05",
+              "diagnostic_metrics": {
+                "model_mae_pct_points": 29.141,
+                "no_change_mae_pct_points": 25.751,
+                "simple_trend_mae_pct_points": 39.455,
+                "interval_coverage_pct": 90.0
+              },
+              "independent_metrics": {
+                "model_mae_pct_points": 46.953,
+                "no_change_mae_pct_points": 44.216,
+                "simple_trend_mae_pct_points": 45.631,
+                "interval_coverage_pct": 66.7
+              },
+              "reason": "Need at least 20 non-overlapping windows, >5% lower error than both benchmarks and 70\u201390% coverage of the nominal 80% interval. Historical checks alone do not authorize execution."
+            }
+          },
+          {
+            "days": 60,
+            "forecast_date": "2026-12-04",
+            "estimated_sessions": 44,
+            "default": false,
+            "within_lane_window": true,
+            "down_price": 141.81,
+            "base_price": 218.59,
+            "up_price": 322.46,
+            "mean_price": 234.58,
+            "base_return_pct": 2.88,
+            "expected_return_pct": 10.4,
+            "risk_reward": 0.085,
+            "stop": 140.32,
+            "sector_used": true,
+            "validation": {
+              "status": "insufficient_independent_windows",
+              "folds": 17,
+              "independent_windows": 2,
+              "sector_context_folds": 4,
+              "minimum_independent_windows": 20,
+              "first_origin": "2026-04-07",
+              "last_outcome": "2026-09-29",
+              "diagnostic_metrics": {
+                "model_mae_pct_points": 30.047,
+                "no_change_mae_pct_points": 25.582,
+                "simple_trend_mae_pct_points": 52.578,
+                "interval_coverage_pct": 82.4
+              },
+              "independent_metrics": {
+                "model_mae_pct_points": 50.363,
+                "no_change_mae_pct_points": 49.436,
+                "simple_trend_mae_pct_points": 83.487,
+                "interval_coverage_pct": 50.0
+              },
+              "reason": "Need at least 20 non-overlapping windows, >5% lower error than both benchmarks and 70\u201390% coverage of the nominal 80% interval. Historical checks alone do not authorize execution."
+            }
+          }
+        ],
+        "price_asof": "2026-10-05T16:00:01-04:00",
+        "price": 212.48,
+        "history_asof": "2026-10-05",
+        "history_sessions": 251,
+        "method": "Damped log-return trend with 50% shrinkage toward zero; optional 10% sector context; centered historical block-return percentiles",
+        "limitations": [
+          "Research estimates do not change scores, entry gates, targets, stops, sizing or paper orders",
+          "10th/90th percentile bounds form an estimated 80% interval; coverage is tested, not assumed",
+          "Calendar horizons use weekday session counts; exchange holidays can reduce actual sessions",
+          "Earnings, FDA decisions and other future event gaps are not modeled",
+          "Historical adjusted closes may include subsequent corporate-action adjustments; this is a price-model diagnostic, not a point-in-time strategy backtest"
+        ],
+        "reason": "Forecasts available for evaluation; execution remains on the existing strategy",
+        "sector_symbol": "XLK",
+        "sector_status": "available",
+        "price_source": "Yahoo Finance chart"
+      }
+    }
+  ]
+}

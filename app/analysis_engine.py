@@ -8,6 +8,7 @@ from statistics import mean
 from typing import Any
 
 from .news_scoring import analyze_news, VERSION as NEWS_VERSION
+from .short_horizon import build_forecast
 from .trading_rules import MIN_DETERMINISTIC_SCORE, MIN_ANALYST_SCORE, MIN_ENTRY_RISK_REWARD, number, entry_status, signal_geometry
 
 POSITIVE = {
@@ -919,6 +920,7 @@ def score_bundle(bundle: dict) -> dict:
         "deterministic_holding_period_max_days": deterministic_horizon[1],
         "holding_horizon": horizon_plan,
         "target_plan": target_plan,
+        "short_horizon_forecast": build_forecast(bundle, {"lane": lane_info["lane"], "levels": levels}),
         "analyst_holding_period_min_days": 180 if analyst_yield is not None else None,
         "analyst_holding_period_max_days": 365 if analyst_yield is not None else None,
         "category": category,
