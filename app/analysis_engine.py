@@ -52,7 +52,7 @@ CORE_MIN_AVG_DOLLAR_VOLUME = 10_000_000.0
 EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME = 20_000_000.0
 MIN_FUNDAMENTAL_SCORE = 14.0  # 70/100 normalized fundamental quality
 EXPLOSIVE_MAX_TRADING_SESSIONS = 20
-SCORING_VERSION = "2026-10-05-article-context-v9"
+SCORING_VERSION = "2026-10-05-market-evidence-v10"
 
 PROMOTION_SEVERE_TERMS = {
     "reverse split", "going concern", "minimum bid", "nasdaq compliance",
@@ -268,7 +268,7 @@ def analyst_score(f: dict, price: float) -> tuple[float | None, list[str], float
     return round(raw_points / available_weight * 100, 1), parts, target_upside
 
 
-def technicals(rows: list[dict], price: float) -> dict:
+def technicals(rows: list[dict], price: float, volume_evidence: dict | None = None) -> dict:
     closes = [r["close"] for r in rows if r.get("close") is not None]
     vols = [r.get("volume") or 0 for r in rows]
     e20 = ema(closes[-80:], 20)
@@ -287,7 +287,8 @@ def technicals(rows: list[dict], price: float) -> dict:
     near_20d_high = (price / high20) if high20 else 0.0
     return {
         "ema20": e20, "ema50": e50, "ema200": e200, "rsi": rs, "atr": a,
-        "relative_volume": rel, "avg_volume_20": avgvol, "avg_dollar_volume_20": avg_dollar_volume,
+        "relative_volume": volume_evidence.get("relative_volume") if volume_evidence is not None else rel,
+        "raw_daily_relative_volume": rel, "relative_volume_evidence": volume_evidence, "avg_volume_20": avgvol, "avg_dollar_volume_20": avg_dollar_volume,
         "high20": high20, "low20": low20, "near_20d_high": near_20d_high,
         "high52": high52, "change20_pct": change20,
     }
@@ -718,7 +719,7 @@ def score_bundle(bundle: dict) -> dict:
         company_name=f.get("companyName") or bundle.get("company_name") or "",
         asof=bundle.get("asof"))
     fs, freasons, fconf = fundamental_score(f)
-    t = technicals(rows, price)
+    t = technicals(rows, price, bundle.get("relative_volume_evidence"))
 
     mom = 0.0
     mreasons: list[str] = []
@@ -746,8 +747,8 @@ def score_bundle(bundle: dict) -> dict:
     if pe:
         try:
             pe = float(pe)
-            valuation = 8 if pe < 20 else 7 if pe < 30 else 5 if pe < 45 else 3
-            if rg and rg > 25 and pe < 45:
+            valuation = 5 if not math.isfinite(pe) or pe <= 0 else 8 if pe < 20 else 7 if pe < 30 else 5 if pe < 45 else 3
+            if rg and rg > 25 and 0 < pe < 45:
                 valuation = min(10, valuation + 2)
         except Exception:
             pass
@@ -786,6 +787,10 @@ def score_bundle(bundle: dict) -> dict:
         optional_missing_inputs.append("analyst consensus")
     if f.get("targetMeanPrice") in (None, ""):
         optional_missing_inputs.append("consensus price target")
+    if not f.get("forwardPE") and not f.get("trailingPE"):
+        optional_missing_inputs.append("valuation P/E")
+    if bundle.get("relative_volume_evidence") is not None and t.get("relative_volume") is None:
+        optional_missing_inputs.append("time-matched relative volume")
     data_quality_pct = round(quality_points / 8 * 100, 1)
     decision_confidence = "high" if data_quality_pct >= 75 else "medium" if data_quality_pct >= 50 else "low"
     rr_up = (levels["target"] - price) / price if price else 0

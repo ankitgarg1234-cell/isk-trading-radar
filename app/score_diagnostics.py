@@ -17,6 +17,8 @@ def scan_score_diagnostics(analyses):
     missing = {"valuation_pe": 0, "consensus_price_target": 0, "market_cap": 0}
     yahoo_unavailable = 0
     low_volume = 0
+    normalized_available = 0
+    normalized_missing = 0
     bins = {"below_50": 0, "50_to_below_60": 0, "60_to_below_70": 0,
             "70_to_below_80": 0, "80_to_100": 0}
     for analysis in analyses:
@@ -30,7 +32,9 @@ def scan_score_diagnostics(analyses):
             missing["market_cap"] += 1
         if str(f.get("_yahoo_status") or "").startswith("unavailable"):
             yahoo_unavailable += 1
-        volume = _number(t.get("relative_volume"))
+        volume = _number(t.get("raw_daily_relative_volume", t.get("relative_volume")))
+        normalized_available += int(bool(t.get("relative_volume_evidence")) and t.get("relative_volume") is not None)
+        normalized_missing += int(bool(t.get("relative_volume_evidence")) and t.get("relative_volume") is None)
         low_volume += int(volume is not None and volume < 1.2)
         score = _number(analysis.get("deterministic_score"))
         if score is None or not 0 <= score <= 100:
@@ -54,5 +58,7 @@ def scan_score_diagnostics(analyses):
         "score_bins": bins, "missing_inputs": missing,
         "yahoo_fundamentals_unavailable": yahoo_unavailable,
         "raw_relative_volume_below_1_2": low_volume,
-        "relative_volume_basis": "latest daily volume / previous 20 full-session daily volumes; not time-of-day normalized",
+        "relative_volume_basis": "matching completed regular-session five-minute intervals; raw daily ratio retained only for diagnostics",
+        "normalized_relative_volume_available": normalized_available,
+        "normalized_relative_volume_missing": normalized_missing,
         "top_candidates": scores[:5]}

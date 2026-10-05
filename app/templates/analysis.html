@@ -16,7 +16,7 @@
   <section class="panel">
     <div class="section-title-row"><div><span class="kicker">EVIDENCE PROVENANCE</span><h2>What data actually powered this decision</h2></div><span class="pill">{{ d.get('decision_confidence') or 'unknown' }} confidence</span></div>
     <div class="table-wrap"><table><thead><tr><th>Evidence</th><th>Source</th><th>Status</th><th>As of / detail</th></tr></thead><tbody>
-      {% for key,label in [('price','Price / history'),('fundamentals','Fundamentals'),('news','News'),('analyst','Analyst consensus'),('sector','Sector benchmark'),('strategic_capital','Government / strategic capital')] %}
+      {% for key,label in [('price','Price / history'),('fundamentals','Fundamentals'),('news','News'),('analyst','Analyst consensus'),('valuation','Valuation P/E'),('price_targets','Price targets'),('market_cap','Market cap'),('relative_volume','Time-matched relative volume'),('sector','Sector benchmark'),('strategic_capital','Government / strategic capital')] %}
       {% set src=(d.get('evidence_sources') or {}).get(key,{}) %}
       <tr><td>{{ label }}</td><td>{{ src.get('source') or 'unavailable' }}</td><td>{{ src.get('status') or 'unavailable' }}</td><td>{{ src.get('asof') or (src.get('benchmark') if src.get('benchmark') else (src.get('items') ~ ' items' if src.get('items') is not none else '—')) }}</td></tr>
       {% endfor %}
@@ -37,7 +37,7 @@
     </div>
     <div class="panel">
       <div class="section-title-row"><div><span class="kicker">TECHNICAL STATE</span><h2>Momentum context</h2></div></div>
-      <div class="kv"><span>EMA20</span><b>{{ '%.2f'|format(d.technicals.ema20 or 0) }}</b><span>EMA50</span><b>{{ '%.2f'|format(d.technicals.ema50 or 0) }}</b><span>EMA200</span><b>{{ '%.2f'|format(d.technicals.ema200 or 0) }}</b><span>RSI</span><b>{{ '%.1f'|format(d.technicals.rsi or 0) }}</b><span>Relative volume</span><b>{{ '%.2f'|format(d.technicals.relative_volume or 0) }}×</b><span>20d change</span><b>{{ '%.1f'|format(d.technicals.change20_pct or 0) }}%</b></div>
+      <div class="kv"><span>EMA20</span><b>{{ '%.2f'|format(d.technicals.ema20 or 0) }}</b><span>EMA50</span><b>{{ '%.2f'|format(d.technicals.ema50 or 0) }}</b><span>EMA200</span><b>{{ '%.2f'|format(d.technicals.ema200 or 0) }}</b><span>RSI</span><b>{{ '%.1f'|format(d.technicals.rsi or 0) }}</b><span>Relative volume</span><b>{% if d.technicals.get('relative_volume') is not none %}{{ '%.2f'|format(d.technicals.relative_volume) }}×{% else %}Unavailable{% endif %}</b><span>20d change</span><b>{{ '%.1f'|format(d.technicals.change20_pct or 0) }}%</b></div>{% set volume=d.technicals.get('relative_volume_evidence') or {} %}{% if volume %}<p class="footnote">{{ volume.get('basis') }} • {{ volume.get('status') }}{% if volume.get('cutoff') %} • Through {{ volume.get('cutoff') }}, {{ volume.get('historical_sessions') }} prior sessions{% endif %}</p>{% endif %}
     </div>
   </section>
 

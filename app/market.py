@@ -5,6 +5,10 @@ from typing import Any
 import time
 import math
 import re
+import json
+from collections import OrderedDict
+from threading import Lock
+from .market_evidence import EndpointCache, positive, matched_relative_volume
 from difflib import SequenceMatcher
 import httpx
 
@@ -485,17 +489,15 @@ class FinnhubAnalystProvider:
 
     def __init__(self, token: str | None = None, timeout: float = 8.0):
         self.token = token or settings.finnhub_api_key
+        self.cache = EndpointCache()
         self.client = httpx.Client(timeout=timeout, headers={"Accept": "application/json"})
 
     def recommendations(self, symbol: str) -> dict:
         if not self.token or symbol.endswith(".ST"):
             return {"_analyst_status": "optional Finnhub key not configured", "_analyst_source": "Finnhub (optional)"}
-        r = self.client.get(
-            "https://finnhub.io/api/v1/stock/recommendation",
-            params={"symbol": symbol, "token": self.token},
-        )
-        r.raise_for_status()
-        rows = r.json() or []
+        rows, status = self.cache.fetch(self.client, "recommendation", symbol, self.token, 3600)
+        if not isinstance(rows, list):
+            return {"_analyst_status": status, "_analyst_source": "Finnhub recommendation trends"}
         if not rows:
             return {"_analyst_status": "no recommendation trend returned", "_analyst_source": "Finnhub"}
         row = rows[0]
@@ -505,6 +507,43 @@ class FinnhubAnalystProvider:
             "_analyst_period": row.get("period"), "_analyst_status": "available",
             "_analyst_source": "Finnhub recommendation trends",
         }
+
+    def market_evidence(self, symbol: str) -> dict:
+        out = {}
+        if not self.token or symbol.endswith(".ST"):
+            return out
+        observed = datetime.now(timezone.utc).isoformat()
+        metrics, status = self.cache.fetch(self.client, "metric", symbol, self.token, 21600, {"metric": "all"})
+        metric = (metrics or {}).get("metric") or {} if isinstance(metrics, dict) else {}
+        pe = positive(metric.get("peTTM")) if not (metrics or {}).get("symbol") or metrics.get("symbol") == symbol else None
+        out.update(trailingPE=pe, _valuation_source="Finnhub basic financials (TTM P/E)",
+                   _valuation_asof=(metrics or {}).get("_retrieved_at") or observed, _valuation_status="available; provider observation date not supplied" if pe else status if status != "available" else "unavailable (positive TTM P/E not returned)")
+        profile, status = self.cache.fetch(self.client, "profile2", symbol, self.token, 21600)
+        profile = profile if isinstance(profile, dict) else {}
+        if profile.get("ticker") == symbol and profile.get("currency") == "USD":
+            cap, shares = positive(profile.get("marketCapitalization")), positive(profile.get("shareOutstanding"))
+            if cap:
+                out.update(marketCap=cap * 1_000_000, _market_cap_source="Finnhub company profile (millions converted to USD)",
+                           _market_cap_asof=profile.get("_retrieved_at") or observed, _market_cap_status="available; retrieved at shown time")
+            if shares:
+                out.update(sharesOutstanding=shares * 1_000_000)
+        targets, status = self.cache.fetch(self.client, "price-target", symbol, self.token, 3600)
+        targets = targets if isinstance(targets, dict) else {}
+        out.update(_target_source="Finnhub price-target consensus", _target_status=status)
+        try:
+            updated = datetime.fromisoformat(str(targets.get("lastUpdated") or "").replace("Z", "+00:00"))
+            if updated.tzinfo is None:
+                updated = updated.replace(tzinfo=timezone.utc)
+            age = (datetime.now(timezone.utc) - updated).total_seconds()
+            mean, low, high = (positive(targets.get(key)) for key in ("targetMean", "targetLow", "targetHigh"))
+            if targets.get("symbol") != symbol or not 0 <= age <= 90 * 86400 or not mean or not low or not high or not low <= mean <= high:
+                raise ValueError()
+            out.update(targetMeanPrice=mean, targetLowPrice=low, targetHighPrice=high,
+                       _target_asof=updated.isoformat(), _target_status="available")
+        except (ValueError, TypeError):
+            if status == "available":
+                out["_target_status"] = "unavailable (missing, stale or invalid target evidence)"
+        return out
 
 
 class YahooMarketProvider:
@@ -523,6 +562,11 @@ class YahooMarketProvider:
             headers={"User-Agent": UA, "Accept": "application/json"},
             follow_redirects=True,
         )
+        self._auth_lock = Lock()
+        self._crumb = None
+        self._auth_retry_at = 0.0
+        self._volume_cache = OrderedDict()
+        self._volume_lock = Lock()
         self.sec = sec_provider or SECFundamentalsProvider(timeout=max(timeout, 12.0))
         self.analyst = analyst_provider or FinnhubAnalystProvider(timeout=timeout)
         self.strategic = strategic_provider or StrategicCapitalProvider(timeout=max(timeout, 12.0))
@@ -550,14 +594,80 @@ class YahooMarketProvider:
                 return obj.get("fmt")
         return obj
 
+    def _yahoo_crumb(self):
+        with self._auth_lock:
+            if self._crumb:
+                return self._crumb
+            if time.monotonic() < self._auth_retry_at:
+                return None
+            self._auth_retry_at = time.monotonic() + 900
+            try:
+                # The cookie endpoint can return 404 while still setting the cookie.
+                self.client.get("https://fc.yahoo.com")
+                response = self.client.get("https://query1.finance.yahoo.com/v1/test/getcrumb")
+                response.raise_for_status()
+                crumb = response.text.strip()
+                if not crumb or len(crumb) > 128 or any(x in crumb for x in ("<", "{", "\n")):
+                    return None
+                self._crumb = crumb
+                return crumb
+            except Exception:
+                return None
+
+    def relative_volume_evidence(self, symbol, quote_ts):
+        try:
+            key = (symbol, int(float(quote_ts or 0)) // 300)
+        except (ValueError, TypeError, OverflowError):
+            return {"relative_volume": None, "status": "unavailable (invalid quote timestamp)", "basis": "same-time regular-session volume"}
+        with self._volume_lock:
+            cached = self._volume_cache.get(key)
+            if cached and cached[0] > time.monotonic():
+                self._volume_cache.move_to_end(key)
+                return dict(cached[1])
+        try:
+            # Bound decoded response memory; never retain intraday histories in analyses.
+            with self.client.stream("GET", f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}",
+                                    params={"range": "1mo", "interval": "5m", "includePrePost": "false"}) as response:
+                response.raise_for_status()
+                body = bytearray()
+                for chunk in response.iter_bytes():
+                    if len(body) + len(chunk) > 2 * 1024 * 1024:
+                        raise MarketDataError("intraday response exceeds 2 MiB")
+                    body.extend(chunk)
+            payload = json.loads(body)
+            chart = ((payload.get("chart") or {}).get("result") or [{}])[0]
+            evidence = matched_relative_volume(chart, quote_ts)
+        except Exception as exc:
+            evidence = {"relative_volume": None, "status": f"unavailable ({type(exc).__name__})",
+                        "source": "Yahoo Finance 5-minute chart", "basis": "same-time completed regular-session volume"}
+        with self._volume_lock:
+            self._volume_cache[key] = (time.monotonic() + 300, evidence)
+            self._volume_cache.move_to_end(key)
+            while len(self._volume_cache) > 128:
+                self._volume_cache.popitem(last=False)
+        return dict(evidence)
+
     def yahoo_fundamentals(self, symbol: str) -> dict:
         modules = "summaryDetail,defaultKeyStatistics,financialData,price,assetProfile,recommendationTrend,earningsTrend"
         try:
-            data = self._json(
-                f"https://query1.finance.yahoo.com/v10/finance/quoteSummary/{symbol}",
-                {"modules": modules},
-            )
-            result = (((data.get("quoteSummary") or {}).get("result") or [{}])[0])
+            url = f"https://query1.finance.yahoo.com/v10/finance/quoteSummary/{symbol}"
+            params = {"modules": modules}
+            if self._crumb:
+                params["crumb"] = self._crumb
+            try:
+                data = self._json(url, params)
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code != 401:
+                    raise
+                self._crumb = None
+                crumb = self._yahoo_crumb()
+                if not crumb:
+                    raise
+                data = self._json(url, {"modules": modules, "crumb": crumb})
+            results = (data.get("quoteSummary") or {}).get("result") or []
+            if not results or not results[0]:
+                raise MarketDataError("empty quoteSummary")
+            result = results[0]
             out = self._flatten_summary(result)
             out["_status"] = "available"
             out["_source"] = "Yahoo quoteSummary"
@@ -566,7 +676,7 @@ class YahooMarketProvider:
             return out
         except Exception as exc:
             return {
-                "_status": f"unavailable ({type(exc).__name__})",
+                "_status": f"unavailable (HTTP {exc.response.status_code})" if isinstance(exc, httpx.HTTPStatusError) else f"unavailable ({type(exc).__name__})",
                 "_source": "Yahoo quoteSummary",
                 "_analyst_status": "unavailable from Yahoo quoteSummary",
                 "_analyst_source": "Yahoo quoteSummary",
@@ -641,11 +751,24 @@ class YahooMarketProvider:
         elif merged.get("_analyst_status") != "available":
             merged["_analyst_status"] = analyst.get("_analyst_status") or merged.get("_analyst_status") or "unavailable"
             merged["_analyst_source"] = analyst.get("_analyst_source") or merged.get("_analyst_source") or "unavailable"
+        if hasattr(self.analyst, "market_evidence") and any(not positive(merged.get(key)) for key in ("trailingPE", "marketCap", "targetMeanPrice")):
+            try:
+                evidence = self.analyst.market_evidence(symbol)
+            except Exception as exc:
+                evidence = {"_market_evidence_status": f"unavailable ({type(exc).__name__})"}
+            for fields, prefix in ((('trailingPE',), 'valuation'), (('marketCap', 'sharesOutstanding'), 'market_cap'), (('targetMeanPrice', 'targetLowPrice', 'targetHighPrice'), 'target')):
+                present = positive(merged.get(fields[0])) or (prefix == 'valuation' and positive(merged.get('forwardPE')))
+                if present:
+                    continue
+                for key, value in evidence.items():
+                    if value is not None and (key in fields or key.startswith(f"_{prefix}_")):
+                        merged[key] = value
         return merged
 
     def _flatten_summary(self, result: dict) -> dict:
         fd = result.get("financialData") or {}
         sd = result.get("summaryDetail") or {}
+        ks = result.get("defaultKeyStatistics") or {}
         pr = result.get("price") or {}
         ap = result.get("assetProfile") or {}
         trends = result.get("recommendationTrend") or {}
@@ -655,9 +778,10 @@ class YahooMarketProvider:
         return {
             "sector": ap.get("sector"), "industry": ap.get("industry"),
             "companyName": self._v(pr.get("longName")) or self._v(pr.get("shortName")),
-            "marketCap": self._v(pr.get("marketCap")), "totalRevenue": self._v(fd.get("totalRevenue")),
-            "trailingPE": self._v(sd.get("trailingPE")),
-            "forwardPE": self._v(sd.get("forwardPE")), "priceToSalesTrailing12Months": self._v(sd.get("priceToSalesTrailing12Months")),
+            "marketCap": self._v(pr.get("marketCap")) or self._v(sd.get("marketCap")), "totalRevenue": self._v(fd.get("totalRevenue")),
+            "sharesOutstanding": self._v(ks.get("sharesOutstanding")),
+            "trailingPE": self._v(sd.get("trailingPE")) or self._v(ks.get("trailingPE")),
+            "forwardPE": self._v(sd.get("forwardPE")) or self._v(ks.get("forwardPE")), "priceToSalesTrailing12Months": self._v(sd.get("priceToSalesTrailing12Months")),
             "revenueGrowth": self._v(fd.get("revenueGrowth")), "earningsGrowth": self._v(fd.get("earningsGrowth")),
             "grossMargins": self._v(fd.get("grossMargins")), "operatingMargins": self._v(fd.get("operatingMargins")),
             "returnOnEquity": self._v(fd.get("returnOnEquity")), "debtToEquity": self._v(fd.get("debtToEquity")),
@@ -788,6 +912,7 @@ class YahooMarketProvider:
                 quote_asof = datetime.fromtimestamp(float(quote_ts), tz=timezone.utc).isoformat()
         except (TypeError, ValueError, OverflowError):
             pass
+        volume_evidence = self.relative_volume_evidence(symbol, (daily.get("meta") or {}).get("regularMarketTime")) if not symbol.endswith(".ST") else {"relative_volume": None, "status": "unavailable (US session normalization only)", "basis": "US regular session"}
         data_sources = {
             "price": {"source": "Yahoo Finance chart", "status": "available" if rows and current else "unavailable", "asof": datetime.now(timezone.utc).isoformat(), "quote_asof": quote_asof},
             "fundamentals": {
@@ -795,6 +920,7 @@ class YahooMarketProvider:
                 "status": fundamentals.get("_status") or "unavailable",
                 "asof": fundamentals.get("_fundamental_period"),
             },
+            "relative_volume": volume_evidence,
             "news": {"source": "Yahoo Finance search", "status": "available" if news else "no recent items", "items": len(news)},
             "analyst": {
                 "source": fundamentals.get("_analyst_source") or "unavailable",
@@ -812,7 +938,13 @@ class YahooMarketProvider:
                 "asof": strategic_capital.get("official_checked_at") or datetime.now(timezone.utc).isoformat(),
             },
         }
+        for key, prefix, field in (("valuation", "valuation", "trailingPE"), ("price_targets", "target", "targetMeanPrice"), ("market_cap", "market_cap", "marketCap")):
+            available = positive(fundamentals.get(field)) or (key == "valuation" and positive(fundamentals.get("forwardPE")))
+            data_sources[key] = {"source": fundamentals.get(f"_{prefix}_source") or ("Yahoo quoteSummary" if available else "unavailable"),
+                                 "status": fundamentals.get(f"_{prefix}_status") or ("available" if available else "unavailable"),
+                                 "asof": fundamentals.get(f"_{prefix}_asof")}
         return {
+            "relative_volume_evidence": volume_evidence,
             "symbol": symbol, "price": current, "previous_close": previous,
             "currency": currency, "exchange": exchange, "history": rows,
             "fundamentals": fundamentals, "news": news,
