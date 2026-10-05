@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from collections import defaultdict
 from typing import Any
-from .trading_rules import MIN_ENTRY_RISK_REWARD
+from .trading_rules import MIN_ENTRY_RISK_REWARD, qualification_check, entry_check
 
 RISK_PROFILES = {
     "LOW": {
@@ -142,27 +142,19 @@ def stock_risk_score(a: dict) -> float:
 
 def system_signal(a: dict, owned: bool = False) -> str:
     action = str(a.get("action") or "WATCH").upper()
-    ai = _float(a.get("ai_score"))
-    det = _float(a.get("deterministic_score"))
-
     if owned:
         if action == "EXIT":
             return "STRONG SELL"
         if action in {"REDUCE", "TAKE PARTIAL PROFIT"}:
             return "SELL" if action == "REDUCE" else "TAKE PROFIT"
         if action == "ADD":
-            return "BUY"
+            return "BUY" if entry_check(a)[0] else "HOLD"
         # Once a paper position already exists, WAIT/WATCH/BUY-zone language is
         # entry timing, not an instruction to purchase a second allocation.
         return "HOLD"
 
-    if action in {"BUY NOW", "BREAKOUT BUY"}:
-        return "STRONG BUY" if ai >= 88 and det >= 80 else "BUY"
-    if action in {"CONSIDER BUYING NOW", "CONSIDER STARTER BUY"}:
-        entry = entry_attention_signal(a)
-        if entry:
-            return entry
-        return "STARTER BUY" if action == "CONSIDER STARTER BUY" else "BUY"
+    if action in {"BUY NOW", "BREAKOUT BUY", "CONSIDER BUYING NOW", "CONSIDER STARTER BUY", "STRONG BUY", "BUY", "STARTER BUY"}:
+        return entry_attention_signal(a) or "WATCH"
     if action in {"EXIT"}:
         return "STRONG SELL"
     if action in {"REDUCE"}:
@@ -491,42 +483,14 @@ def entry_attention_signal(a: dict) -> str | None:
     This intentionally does not blend AI/analyst scores into the decision.
     They remain separate confirmation signals.
     """
-    if a.get("lane_qualified") is not True:
-        return None
-    if a.get("lane") not in {"CORE_QUALITY", "EXPLOSIVE"}:
-        return None
-    if _float(a.get("price")) < 5.0:
-        return None
-    if bool((a.get("promotion_risk") or {}).get("hard_reject")):
-        return None
-    if _float(a.get("risk_reward")) < MIN_ENTRY_RISK_REWARD:
-        return None
-    if bool((a.get("thesis_assessment") or {}).get("invalidated")):
-        return None
-    if a.get("negative_news_override"):
-        return None
-    if str(a.get("decision_confidence") or "medium").lower() == "low":
-        return None
-    zone = str(a.get("entry_zone_status") or "").upper()
-    if not zone:
-        price = _float(a.get("price"))
-        levels = a.get("levels") or {}
-        b0, b1 = _float(levels.get("better_low")), _float(levels.get("better_high"))
-        p0, p1 = _float(levels.get("buy_low")), _float(levels.get("buy_high"))
-        if b0 and b0 <= price <= b1:
-            zone = "BETTER_BUY"
-        elif p0 and p0 <= price <= p1:
-            zone = "PRIMARY_BUY"
-    if zone not in {"PRIMARY_BUY", "BETTER_BUY"}:
+    if not entry_check(a)[0]:
         return None
     score = _float(a.get("deterministic_score"))
     if score >= 85:
         return "STRONG BUY"
     if score >= 75:
         return "BUY"
-    if score >= 68 and zone in {"BETTER_BUY", "PRIMARY_BUY"}:
-        return "STARTER BUY"
-    return None
+    return "STARTER BUY"
 
 
 def candidate_rank_score(a: dict) -> dict:
@@ -666,13 +630,13 @@ def build_optimizer_plan(
             continue
         rank = candidate_rank_score(a)
         lane = rank.get("lane")
-        lane_qualified = a.get("lane_qualified") is True and lane in {"CORE_QUALITY", "EXPLOSIVE"}
-        hard_price_ok = _float(a.get("price")) >= 5.0
-        hard_promotion_ok = not bool((a.get("promotion_risk") or {}).get("hard_reject"))
-        risk_reward = _float(a.get("risk_reward"))
-        hard_rr_ok = risk_reward >= MIN_ENTRY_RISK_REWARD
-        if not lane_qualified or not hard_price_ok or not hard_promotion_ok or not hard_rr_ok:
+        qualified, _, calculated_rr = qualification_check(a)
+        # Existing holdings stay visible for thesis/exit management even if a
+        # new-entry gate fails. They can never become selected_new.
+        if sym not in owned and not qualified:
             continue
+        risk_reward = calculated_rr if calculated_rr is not None else _float(a.get("risk_reward"))
+        hard_rr_ok = qualified
         srisk = rank["stock_risk"]
         fit = risk_fit(srisk, profile)
         sector = str((a.get("fundamentals") or {}).get("sector") or "Unknown")
@@ -726,7 +690,7 @@ def build_optimizer_plan(
             elif raw_action == "TAKE PARTIAL PROFIT":
                 r["optimizer_action"] = "TAKE PARTIAL PROFIT"
                 r["decision_reason"] = "TAKE PARTIAL PROFIT — already owned; profit-management action"
-            elif raw_action == "ADD":
+            elif raw_action == "ADD" and entry_check(r["analysis"])[0]:
                 r["optimizer_action"] = "ADD"
                 r["decision_reason"] = "ADD — explicit add signal on an existing position"
             else:

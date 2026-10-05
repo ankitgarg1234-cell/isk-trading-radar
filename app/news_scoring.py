@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from difflib import SequenceMatcher
 from urllib.parse import urlsplit
 
-VERSION = "article-context-v4"
+VERSION = "article-context-v5"
 
 # Each rule describes one event, rather than awarding every substring hit.
 RULES = (
@@ -29,11 +29,16 @@ RULES = (
     ("legal", "negative", r"\b(?:sec investigation|accounting (?:probe|fraud|warning)|fraud|restatement|bankruptcy|recall)\b|\b(?:faces?|facing|files?|filed)\b.{0,25}\blawsuit\b"),
     ("financing", "negative", r"\b(?:announces?|announced|launches?|launched|prices?|priced)\b.{0,30}\b(?:stock|share|equity|public) offering\b|\bdilution\b"),
     ("buyback", "positive", r"\b(?:announces?|announced|raises?|raised|expands?|expanded|authorizes?|authorized)\b.{0,30}\b(?:buyback|share repurchase)\b"),
+    ("acquisition", "positive", r"\b(?:announces?|announced|completes?|completed)\b.{0,40}\b(?:acquisition|merger)\b|\bagrees? to (?:acquire|merge)\b|\bsigns? (?:a )?definitive (?:(?:merger|acquisition) agreement|agreement to (?:acquire|merge))\b"),
+    ("trial", "positive", r"\b(?:meets?|met|achieves?|achieved)\b.{0,30}\b(?:primary|co-primary) endpoints?\b|\b(?:reports?|reported|announces?|announced)\b.{0,25}\bpositive\b.{0,25}\b(?:phase (?:3|iii)|trial)\b"),
+    ("trial", "negative", r"\b(?:fails?|failed|misses?|missed)\b.{0,30}\b(?:primary|co-primary) endpoints?\b|\b(?:halts?|halted|stops?|stopped)\b.{0,25}\b(?:phase (?:3|iii)|clinical) trial\b"),
+    ("analyst_day", "positive", r"\b(?:holds?|held|hosts?|hosted|announces?|announced)\b.{0,30}\b(?:analyst|investor) day\b"),
 )
 PATTERNS = [(kind, direction, re.compile(pattern, re.I)) for kind, direction, pattern in RULES]
 CATALYSTS = {"guidance": "guidance", "earnings": "earnings", "contract": "contract",
              "partnership": "partnership", "product": "launch", "regulatory": "fda",
-             "financing": "offering", "buyback": "buyback"}
+             "financing": "offering", "buyback": "buyback", "acquisition": "acquisition",
+             "trial": "trial", "analyst_day": "analyst day"}
 MATERIAL_KINDS = set(CATALYSTS) | {"legal"}
 OPINION = re.compile(r"\?|\b(?:could|might|may|should|rumou?r|speculat\w*|stocks? to (?:buy|watch)|worth buying|next big|is it time|poised to|expected to|set to)\b", re.I)
 NEGATION = re.compile(r"\b(?:not|never|no|without|fails? to|failed to|unlikely to|denies?|denied)\b(?:\W+\w+){0,3}\W*$", re.I)
@@ -89,6 +94,11 @@ def _signals(title, aliases):
         # Conversely, an unasserted event inside a question still earns nothing.
         # A dated May reference is a month, not a speculative modal verb.
         opinion_text = re.sub(r"\bMay\s+(?:[12]?\d|3[01])(?:,\s*20\d{2})?\b", "dated release", sentence)
+        # A reported broker action is an asserted event. Its destination rating
+        # ("upgrades Microsoft stock to Buy") is not a stock-picking opinion.
+        # Questions and modal forecasts elsewhere in the sentence still block it.
+        if any(kind == "rating" and pattern.search(sentence) for kind, _, pattern in PATTERNS):
+            opinion_text = re.sub(r"\bstocks?\s+to\s+buy\b", "destination rating", opinion_text, flags=re.I)
         if OPINION.search(opinion_text):
             skipped_opinion = True
             continue
@@ -142,8 +152,18 @@ def _same_event(a, b):
     kinds_b = {k for k, _ in b["signals"]}
     if kinds_a != kinds_b or not kinds_a:
         return False
-    # Same earnings/ratings release is one event, including conflicting takes.
-    if kinds_a <= {"earnings", "guidance", "rating"}:
+    if kinds_a == {"rating"}:
+        def actor(title):
+            passive = re.search(r"\b(?:upgraded|downgraded)\b.*?\bby\s+(.+?)(?:\s+to\s+|\s+at\s+|,|$)", title)
+            active = re.match(r"(.+?)\s+(?:upgrades?|downgrades?|initiates?)\b", title)
+            return (passive or active).group(1).strip() if passive or active else None
+        actor_a, actor_b = actor(ta), actor(tb)
+        if actor_a and actor_b and actor_a != actor_b:
+            return False
+    # A broker's upgrade and another broker's downgrade are independent actions.
+    # Only earnings/guidance can be grouped by period alone. Rating coverage
+    # needs matching identity/title/URL or close textual similarity.
+    if kinds_a <= {"earnings", "guidance"}:
         return True
     return SequenceMatcher(None, ta, tb).ratio() >= 0.82
 
@@ -186,7 +206,7 @@ def analyze_news(news, *, symbol, company_name, asof, credibility, priced_in):
             groups.append([item])
         else:
             group.append(item)
-    items, pos, neg, material, high_negative = [], 0.0, 0.0, 0, 0
+    items, pos, neg, material, high_negative, positive_material = [], 0.0, 0.0, 0, 0, 0
     catalysts = set()
     for i, group in enumerate(groups):
         # Merge evidence once per event. Contradictory coverage cannot be erased
@@ -205,7 +225,11 @@ def analyze_news(news, *, symbol, company_name, asof, credibility, priced_in):
         important = bool(kinds & MATERIAL_KINDS)
         material += int(important)
         high_negative += int(important and negative > 0)
-        catalysts.update(CATALYSTS[k] for k in kinds if k in CATALYSTS)
+        # Negative/mixed announcements remain material for risk overrides but
+        # cannot improve bullish Catalyst points or extend bullish targets.
+        bullish_kinds = {k for k, d in evidence if d == "positive" and k in CATALYSTS} if positive and not negative else set()
+        positive_material += int(bool(bullish_kinds))
+        catalysts.update(CATALYSTS[k] for k in bullish_kinds)
         pos += positive
         neg += negative
         representative = max(group, key=lambda x: (len(x["signals"]), x["weight"]))
@@ -223,7 +247,8 @@ def analyze_news(news, *, symbol, company_name, asof, credibility, priced_in):
     return {"version": VERSION, "score": round(max(0, min(15, 7.5 + 1.5 * raw)), 1),
         "baseline_points": 7.5, "label": "Unavailable" if not items else "Bullish" if raw >= 2 else "Bearish" if raw <= -2 else "Neutral",
         "positive": round(pos, 3), "negative": round(neg, 3), "material_events": material,
-        "high_negative_events": high_negative, "catalysts": sorted(catalysts), "items": items,
+        "high_negative_events": high_negative, "positive_material_events": positive_material,
+        "catalysts": sorted(catalysts), "items": items,
         "input_count": len(news[:15]), "unique_event_count": len(items),
         "duplicate_count": sum(len(g)-1 for g in groups), "excluded_count": len(excluded), "excluded_items": excluded,
         "coverage": "available" if items else "unavailable", "confidence": "headline and explicit author stance" if assessed else "headline-only",

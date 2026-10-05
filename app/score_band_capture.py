@@ -11,6 +11,7 @@ from .db import SessionLocal, ScoreBandExperiment, ScoreBandObservation, Portfol
 from .config import settings
 from .market import YahooMarketProvider
 from .analysis_engine import SCORING_VERSION
+from .trading_rules import signal_geometry
 from .portfolio_engine import normalise_profile
 from .score_band_experiment import VERSION, advance, new_state, number, timestamp, summary, ensure_single_account, arm_trial
 
@@ -64,14 +65,7 @@ def compact_observation(full):
         "strongBuy", "buy", "hold", "sell", "strongSell", "_analyst_source", "_analyst_period", "_analyst_status")}
     # Keep entry geometry independent of the current live price. The production
     # high20 includes today's running close, which cannot confirm its own breakout.
-    day = str(out.get("asof") or "")[:10]
-    completed = [r for r in (full.get("history") or []) if str(r.get("date") or "") < day and number(r.get("close"))]
-    atr = number((full.get("technicals") or {}).get("atr"))
-    if len(completed) >= 20 and atr and out.get("levels"):
-        high20 = max(float(r["close"]) for r in completed[-20:])
-        out["levels"]["breakout"] = round(high20 + 0.1 * atr, 4)
-        out["levels"]["do_not_chase"] = round(min(float(out["levels"]["do_not_chase"]), high20 + 1.1 * atr), 4)
-        out["breakout_anchor"] = {"through_date": completed[-1]["date"], "high20_close": high20}
+    out["levels"], out["breakout_anchor"] = signal_geometry(full)
     # Avoid archival duplication of full news bodies and one-year price arrays.
     if isinstance(out.get("news"), dict):
         out["news"] = {k: v for k, v in out["news"].items() if k not in {"items", "headlines"}}

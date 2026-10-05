@@ -27,6 +27,8 @@ def _core_payload(symbol="CORE", score=90, price=10):
         "core_quality_qualified": True,
         "explosive_qualified": False,
         "deterministic_score": score,
+        "analyst_score": 80,
+        "target_plan": {"base_target":price*1.3,"stretch_target":price*1.4},
         "breakdown": {
             "Fundamentals": 20 * factor,
             "Catalyst": 15 * factor,
@@ -320,6 +322,7 @@ def test_secondary_chatter_cannot_verify_explosive_catalyst():
     b["news"] = [{
         "title": "Company raises guidance after record earnings beat",
         "publisher": "Random Stocks Blog",
+        "relatedTickers": ["TEST"],
         "published": now,
         "link": "https://example.com/chatter",
     }]

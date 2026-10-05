@@ -16,9 +16,7 @@ from tests.helpers import bundle
 
 @pytest.mark.parametrize("rr,okay", [(0.39, False), (0.4, True), (0.5, True), (1.99, True), (2, True)])
 def test_dashboard_alerts_and_paper_share_rr_boundary(rr, okay):
-    a = sample_analysis()
-    a["risk_reward"] = rr
-    a["deterministic_score"] = 80
+    a = {**sample_analysis(), **observation(score=80, target=100 + 10 * rr, stop=90)}
     assert (entry_attention_signal(a) is not None) == okay
     assert (_attention_buy_signal(a)[0] is not None) == okay
     plan = build_optimizer_plan({"TEST": a})

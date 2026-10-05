@@ -1,0 +1,209 @@
+{
+  "MSFT": {
+    "asof": "2026-10-05T18:04:26.101566+00:00",
+    "company": "MICROSOFT CORP",
+    "news": [
+      {
+        "title": "Stock Market Today: Dow Up As Microsoft, SpaceX Pop; Brazil Play, Chip Leader Offer Entries (Live Coverage)",
+        "publisher": "Investor's Business Daily",
+        "link": "https://finance.yahoo.com/m/b052bf47-576e-3ce4-8529-4e950340dfb3/stock-market-today%3A-dow-up-as.html",
+        "published": 1791223003,
+        "relatedTickers": [
+          "SPCX",
+          "MELI",
+          "MSFT",
+          "MRK",
+          "^DJI",
+          "^IXIC",
+          "V",
+          "XP",
+          "NKE",
+          "NVDA"
+        ]
+      },
+      {
+        "title": "Melius Research upgrades Microsoft stock to Buy, $665 target",
+        "publisher": "Quartz",
+        "link": "https://finance.yahoo.com/markets/stocks/articles/melius-research-upgrades-microsoft-stock-173111124.html",
+        "published": 1791221471,
+        "relatedTickers": [
+          "MSFT"
+        ]
+      },
+      {
+        "title": "Analyst Drops Massive Take on Microsoft Stock Over AI's Biggest Fear",
+        "publisher": "GuruFocus.com",
+        "link": "https://finance.yahoo.com/technology/ai/articles/analyst-drops-massive-microsoft-stock-172855017.html",
+        "published": 1791221335,
+        "relatedTickers": [
+          "MSFT"
+        ]
+      },
+      {
+        "title": "MSFT Gets A Bullish Call From Melius \u2014 Analyst Says AI Fears Could Benefit Leaders Like Microsoft",
+        "publisher": "Stocktwits",
+        "link": "https://finance.yahoo.com/markets/stocks/articles/msft-gets-bullish-call-melius-164934940.html",
+        "published": 1791218974,
+        "relatedTickers": [
+          "MSFT"
+        ]
+      },
+      {
+        "title": "Microsoft Was Early to AI. Nearly 4 Years Later, It's Still Searching for a Breakout Hit",
+        "publisher": "GuruFocus.com",
+        "link": "https://finance.yahoo.com/technology/ai/articles/microsoft-early-ai-nearly-4-162930073.html",
+        "published": 1791217770,
+        "relatedTickers": [
+          "MSFT"
+        ]
+      },
+      {
+        "title": "Microsoft Could Be SpaceX's Next Big AI Customer: Bernstein Sees AI Revenue Surging Nearly 500%",
+        "publisher": "Benzinga Prediction Markets",
+        "link": "https://finance.yahoo.com/technology/ai/articles/microsoft-could-spacexs-next-big-161639495.html",
+        "published": 1791216999,
+        "relatedTickers": [
+          "SPCX",
+          "MSFT",
+          "GOOG"
+        ]
+      },
+      {
+        "title": "Microsoft Stock Gets a $665 Target as Melius Turns Bullish on AI Security. Here\u2019s What It Takes to Reach $1,145",
+        "publisher": "TIKR",
+        "link": "https://finance.yahoo.com/markets/stocks/articles/microsoft-stock-gets-665-target-160721568.html",
+        "published": 1791216441,
+        "relatedTickers": [
+          "MSFT"
+        ]
+      }
+    ],
+    "fundamentals": {
+      "revenueGrowth": 0.17788686799846665,
+      "trailingPE": 28.7325,
+      "_valuation_source": "Finnhub basic financials (TTM P/E)",
+      "_valuation_asof": "2026-10-05T18:01:22.174662+00:00",
+      "_valuation_status": "available; provider observation date not supplied"
+    }
+  },
+  "CRDO": {
+    "asof": "2026-10-05T18:17:05.135523+00:00",
+    "company": "Credo Technology Group Holding Ltd",
+    "news": [
+      {
+        "title": "Credo Stock at a Premium Valuation: Opportunity or Stay Cautious?",
+        "publisher": "Zacks",
+        "link": "https://finance.yahoo.com/markets/stocks/articles/credo-stock-premium-valuation-opportunity-144600108.html",
+        "published": 1791211560,
+        "relatedTickers": [
+          "CRDO",
+          "AVGO",
+          "MRVL",
+          "ALAB"
+        ]
+      },
+      {
+        "title": "Credo Has One Number That Could Change the Stock\u2019s Long-Term Story",
+        "publisher": "24/7 Wall St.",
+        "link": "https://finance.yahoo.com/markets/stocks/articles/credo-one-number-could-change-111540468.html",
+        "published": 1791198940,
+        "relatedTickers": [
+          "CRDO"
+        ]
+      },
+      {
+        "title": "Credo (CRDO) Grew Revenue 114.70%. Why Can Nobody Price It?",
+        "publisher": "Insider Monkey",
+        "link": "https://finance.yahoo.com/markets/stocks/articles/credo-crdo-grew-revenue-114-003644154.html",
+        "published": 1791160604,
+        "relatedTickers": [
+          "CRDO"
+        ]
+      },
+      {
+        "title": "Why Credo Technology Stock Is Surging 8% on an Unemployment Jump",
+        "publisher": "Barchart",
+        "link": "https://finance.yahoo.com/markets/stocks/articles/why-credo-technology-stock-surging-160406795.html",
+        "published": 1790957046,
+        "relatedTickers": [
+          "CRDO"
+        ]
+      },
+      {
+        "title": "Up 30%, Should You Buy Credo Technology Right Now?",
+        "publisher": "Motley Fool",
+        "link": "https://finance.yahoo.com/markets/stocks/articles/30-buy-credo-technology-now-125000599.html",
+        "published": 1790945400,
+        "relatedTickers": [
+          "CRDO",
+          "NVDA"
+        ]
+      },
+      {
+        "title": "Credo Technology Group Holding Insider Sold Shares Worth $5,333,158, According to a Recent SEC Filing",
+        "publisher": "MT Newswires",
+        "link": "https://finance.yahoo.com/markets/stocks/articles/credo-technology-group-holding-insider-205526335.html",
+        "published": 1790888126,
+        "relatedTickers": [
+          "CRDO"
+        ]
+      },
+      {
+        "title": "Arm vs. Credo Technology Group: Which Tech Stock Is a Better Buy in 2026?",
+        "publisher": "Motley Fool",
+        "link": "https://finance.yahoo.com/markets/stocks/articles/arm-vs-credo-technology-group-184144709.html",
+        "published": 1790880104,
+        "relatedTickers": [
+          "CRDO",
+          "ARM"
+        ]
+      },
+      {
+        "title": "Credo Technology Group (CRDO) Up 17.9% Since Last Earnings Report: Can It Continue?",
+        "publisher": "Zacks",
+        "link": "https://finance.yahoo.com/markets/stocks/articles/credo-technology-group-crdo-17-143002233.html",
+        "published": 1790865002,
+        "relatedTickers": [
+          "CRDO",
+          "^GSPC",
+          "MRVL"
+        ]
+      },
+      {
+        "title": "Credo Technology CEO Sells Company Shares Worth $2.5 Million",
+        "publisher": "Motley Fool",
+        "link": "https://finance.yahoo.com/markets/stocks/articles/credo-technology-ceo-sells-company-044401778.html",
+        "published": 1790829841,
+        "relatedTickers": [
+          "CRDO"
+        ]
+      },
+      {
+        "title": "Wall Street Is Watching Nvidia. I\u2019m Watching Credo. Here\u2019s My 2027 Price Target",
+        "publisher": "24/7 Wall St.",
+        "link": "https://finance.yahoo.com/markets/stocks/articles/wall-street-watching-nvidia-m-173036431.html",
+        "published": 1790703036,
+        "relatedTickers": [
+          "CRDO",
+          "NVDA"
+        ]
+      },
+      {
+        "title": "Can Credo Technology (CRDO) Turn 1.6T Optical Transceivers Into Its Next AI Growth Driver?",
+        "publisher": "Insider Monkey",
+        "link": "https://finance.yahoo.com/technology/ai/articles/credo-technology-crdo-turn-1-093222223.html",
+        "published": 1790501542,
+        "relatedTickers": [
+          "CRDO"
+        ]
+      }
+    ],
+    "fundamentals": {
+      "revenueGrowth": 2.0567592009615936,
+      "trailingPE": 76.3393,
+      "_valuation_source": "Finnhub basic financials (TTM P/E)",
+      "_valuation_asof": "2026-10-05T17:38:43.464306+00:00",
+      "_valuation_status": "available; provider observation date not supplied"
+    }
+  }
+}

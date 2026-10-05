@@ -2,6 +2,14 @@ from app.analysis_engine import score_bundle, fundamental_score, forward_target_
 from .helpers import bundle, strong_fundamentals, positive_news, negative_news
 
 
+def qualified_result(result):
+    """Supply the evidence now mandatory for new-position actions."""
+    result.update(analyst_score=80,lane="CORE_QUALITY",lane_qualified=True,
+        decision_confidence="high",target_plan={"base_target":result['levels']['do_not_chase']})
+    result['technicals'].setdefault('change20_pct',0)
+    return result
+
+
 def test_hypergrowth_ratios_are_scaled_as_ratios_not_percentage_points():
     f = {
         "revenueGrowth": 2.0568,
@@ -132,16 +140,16 @@ def test_existing_profitable_position_can_take_partial_profit():
     assert "Profitable" in reason
 
 
-def test_new_position_waits_for_better_buy_when_weakening():
+def test_primary_buy_uses_shared_paper_momentum_rule():
     result={
         "deterministic_score":82,
         "news":{"label":"Bearish","material_events":1,"high_negative_events":0},
         "technicals":{"ema20":205,"rsi":40,"relative_volume":1.0},
         "levels":{"buy_low":195,"buy_high":200,"better_low":186,"better_high":189,"stop":180,"do_not_chase":225,"breakout":215},
     }
-    action,reason=position_action(result,198,None)
-    assert action == "WAIT MORE"
-    assert "186.00" in reason
+    action,reason=position_action(qualified_result(result),198,None)
+    assert action == "BUY NOW"  # RSI >=40 and no confirmed negative 20d trend; shared paper gate.
+    assert "Qualified primary" in reason
 
 
 def test_buy_now_when_buy_zone_and_thesis_intact():
@@ -151,7 +159,7 @@ def test_buy_now_when_buy_zone_and_thesis_intact():
         "technicals":{"ema20":198,"rsi":55,"relative_volume":1.3},
         "levels":{"buy_low":195,"buy_high":200,"better_low":190,"better_high":193,"stop":182,"do_not_chase":225,"breakout":215},
     }
-    action,_=position_action(result,198,None)
+    action,_=position_action(qualified_result(result),198,None)
     assert action == "BUY NOW"
 
 
@@ -282,7 +290,7 @@ def test_analyst_score_can_use_recommendation_counts_without_target():
     assert any("Recommendation mix" in r for r in reasons)
 
 
-def test_primary_buy_zone_moderate_score_can_consider_buying_now():
+def test_primary_buy_below_70_cannot_recommend_entry():
     result={
         "deterministic_score":68,
         "news":{"label":"Neutral","material_events":0,"high_negative_events":0},
@@ -292,12 +300,12 @@ def test_primary_buy_zone_moderate_score_can_consider_buying_now():
         "fundamental_confidence":"high",
         "decision_confidence":"high",
     }
-    action,reason=position_action(result,97,None)
-    assert action == "CONSIDER BUYING NOW"
-    assert "Primary buy zone reached" in reason
+    action,reason=position_action(qualified_result(result),97,None)
+    assert action == "WATCH — GATE FAILED"
+    assert "70/100" in reason
 
 
-def test_value_corridor_does_not_revert_to_wait_for_buy_zone():
+def test_value_corridor_waits_for_canonical_entry_trigger():
     result={
         "deterministic_score":70,
         "news":{"label":"Neutral","material_events":0,"high_negative_events":0},
@@ -307,9 +315,9 @@ def test_value_corridor_does_not_revert_to_wait_for_buy_zone():
         "fundamental_confidence":"high",
         "decision_confidence":"high",
     }
-    action,reason=position_action(result,93,None)
-    assert action == "CONSIDER STARTER BUY"
-    assert "below the primary buy zone" in reason
+    action,reason=position_action(qualified_result(result),93,None)
+    assert action == "WATCH"
+    assert "Waiting for a buy-zone" in reason
 
 
 def test_value_corridor_waits_for_better_buy_when_falling():
@@ -322,13 +330,13 @@ def test_value_corridor_waits_for_better_buy_when_falling():
         "fundamental_confidence":"high",
         "decision_confidence":"high",
     }
-    action,reason=position_action(result,93,None)
-    assert action == "WAIT FOR BETTER BUY"
-    assert "85.00" in reason and "90.00" in reason
+    action,reason=position_action(qualified_result(result),93,None)
+    assert action == "WATCH"
+    assert "Momentum confirmation" in reason
 
 
-def test_better_buy_zone_mild_weakness_does_not_force_wait():
-    """A Better Buy zone is expected to coincide with some weakness; one flag should stage, not veto."""
+def test_better_buy_below_ema_with_negative_trend_waits():
+    """The dashboard must use the same momentum check as paper execution."""
     result={
         "deterministic_score":72,
         "news":{"label":"Neutral","material_events":0,"high_negative_events":0},
@@ -338,9 +346,9 @@ def test_better_buy_zone_mild_weakness_does_not_force_wait():
         "fundamental_confidence":"high",
         "decision_confidence":"high",
     }
-    action,reason=position_action(result,69.62,None)
-    assert action in {"CONSIDER STARTER BUY","CONSIDER BUYING NOW"}
-    assert "Better-buy zone reached" in reason
+    action,reason=position_action(qualified_result(result),69.62,None)
+    assert action == "WATCH"
+    assert "Momentum confirmation" in reason
 
 
 def test_better_buy_zone_strong_converging_weakness_can_still_wait():
@@ -353,6 +361,6 @@ def test_better_buy_zone_strong_converging_weakness_can_still_wait():
         "fundamental_confidence":"high",
         "decision_confidence":"high",
     }
-    action,reason=position_action(result,69.62,None)
-    assert action == "WAIT MORE"
-    assert "falling-knife" in reason
+    action,reason=position_action(qualified_result(result),69.62,None)
+    assert action == "WATCH"
+    assert "Momentum confirmation" in reason

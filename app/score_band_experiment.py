@@ -16,7 +16,7 @@ from .portfolio_engine import (
     suggested_position_size,
 )
 from .analysis_engine import position_action, position_action_plan
-from .trading_rules import MIN_ENTRY_RISK_REWARD
+from .trading_rules import MIN_ENTRY_RISK_REWARD, entry_check
 
 VERSION = "score-bands-paper-v1"
 BANDS = ((90, 40), (85, 30), (80, 20), (75, 15), (70, 10))
@@ -56,50 +56,6 @@ def timestamp(value):
         return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
     except (ValueError, TypeError):
         return None
-
-
-def entry_check(a, price=None):
-    """One shared proposed gate for signal generation and fill-price rechecking."""
-    price = number(a.get("price") if price is None else price)
-    score, analyst = number(a.get("deterministic_score")), number(a.get("analyst_score"))
-    lv, t = a.get("levels") or {}, a.get("technicals") or {}
-    target = number((a.get("target_plan") or {}).get("base_target"))
-    stop = number(lv.get("stop"))
-    if score is None or not 70 <= score <= 100:
-        return False, "deterministic_below_70_or_invalid", None
-    if analyst is None:
-        return False, "analyst_missing", None
-    if not 75 <= analyst <= 100:
-        return False, "analyst_below_75_or_invalid", None
-    if price is None or price < 5 or str(a.get("currency") or "USD") != "USD":
-        return False, "price_or_currency_invalid", None
-    if a.get("lane_qualified") is not True:
-        return False, "quality_or_liquidity_gate", None
-    if (a.get("promotion_risk") or {}).get("hard_reject"):
-        return False, "promotion_risk", None
-    if a.get("negative_news_override") or (a.get("thesis_assessment") or {}).get("invalidated"):
-        return False, "material_negative_or_thesis_invalid", None
-    if str(a.get("decision_confidence") or "low") == "low":
-        return False, "data_confidence_low", None
-    if stop is None or target is None or not 0 < stop < price < target:
-        return False, "target_stop_invalid", None
-    rr = (target - price) / (price - stop)
-    if rr + 1e-12 < MIN_ENTRY_RISK_REWARD:
-        return False, "rr_below_0_4", rr
-    chase = number(lv.get("do_not_chase"))
-    if chase is None or price > chase:
-        return False, "do_not_chase", rr
-    rsi, ema, change = (number(t.get(k)) for k in ("rsi", "ema20", "change20_pct"))
-    if rsi is None or ema is None or change is None or rsi < 40 or (price < ema and change < -2):
-        return False, "momentum_not_ready", rr
-    for low, high, route in (("buy_low", "buy_high", "pullback"), ("better_low", "better_high", "better_buy")):
-        lo, hi = number(lv.get(low)), number(lv.get(high))
-        if lo is not None and hi is not None and lo <= price <= hi:
-            return True, route, rr
-    breakout, volume = number(lv.get("breakout")), number(t.get("relative_volume"))
-    if breakout is not None and price >= breakout and volume is not None and volume >= 1.5:
-        return True, "breakout", rr
-    return False, "no_entry_trigger", rr
 
 
 def experiment_spec(profile="MEDIUM"):

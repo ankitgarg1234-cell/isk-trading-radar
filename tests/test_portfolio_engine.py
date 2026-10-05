@@ -13,6 +13,7 @@ def sample_analysis():
         "deterministic_score":88,"ai_score":92,"analyst_score":80,
         "entry_zone_status":"PRIMARY_BUY","decision_confidence":"high",
         "levels":{"buy_low":95,"buy_high":101,"better_low":90,"better_high":93,"breakout":108,"stop":92,"target":130,"do_not_chase":115},
+        "target_plan":{"base_target":130,"stretch_target":140},
         "technicals":{"atr":3,"relative_volume":1.2,"change20_pct":6,"rsi":55,"ema20":98},
         "risk_reward":3.5,
         "news":{"label":"Neutral","material_events":0,"high_negative_events":0},
@@ -48,13 +49,13 @@ def test_account_risk_flags_concentrated_portfolio():
     assert r["largest_position_pct"] >= 70
     assert r["gap"] > 0
 
-def test_primary_buy_69_is_starter_buy_consistently():
+def test_primary_buy_69_remains_watch_despite_raw_buy_language():
     a=sample_analysis()
     a["action"]="CONSIDER BUYING NOW"
     a["deterministic_score"]=69
     a["ai_score"]=76
     a["entry_zone_status"]="PRIMARY_BUY"
-    assert system_signal(a,False) == "STARTER BUY"
+    assert system_signal(a,False) == "WATCH"
 
 
 
@@ -114,8 +115,10 @@ def test_entry_attention_requires_minimum_0_4x_rr():
     a["action"]="CONSIDER BUYING NOW"
     a["deterministic_score"]=80
     a["risk_reward"]=0.399
+    a["target_plan"]["base_target"]=100+8*.399
     assert entry_attention_signal(a) is None
     a["risk_reward"]=0.4
+    a["target_plan"]["base_target"]=103.2
     assert entry_attention_signal(a) == "BUY"
 
 
@@ -123,11 +126,13 @@ def test_optimizer_filters_sub_0_4x_rr_and_backfills_better_match():
     low=sample_analysis()
     low["symbol"]="LOWRR"
     low["risk_reward"]=0.39
+    low["target_plan"]["base_target"]=100+8*.39
     low["deterministic_score"]=95
 
     good=sample_analysis()
     good["symbol"]="GOODRR"
     good["risk_reward"]=0.4
+    good["target_plan"]["base_target"]=103.2
     good["deterministic_score"]=82
 
     plan=build_optimizer_plan(

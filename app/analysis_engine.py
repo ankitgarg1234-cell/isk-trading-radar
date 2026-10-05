@@ -8,6 +8,7 @@ from statistics import mean
 from typing import Any
 
 from .news_scoring import analyze_news, VERSION as NEWS_VERSION
+from .trading_rules import MIN_DETERMINISTIC_SCORE, MIN_ANALYST_SCORE, MIN_ENTRY_RISK_REWARD, number, entry_status, signal_geometry
 
 POSITIVE = {
     "beat", "beats", "upgrade", "upgraded", "approval", "approved", "record",
@@ -52,7 +53,7 @@ CORE_MIN_AVG_DOLLAR_VOLUME = 10_000_000.0
 EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME = 20_000_000.0
 MIN_FUNDAMENTAL_SCORE = 14.0  # 70/100 normalized fundamental quality
 EXPLOSIVE_MAX_TRADING_SESSIONS = 20
-SCORING_VERSION = "2026-10-05-score-input-integrity-v13"
+SCORING_VERSION = "2026-10-05-catalyst-valuation-gates-v14"
 
 PROMOTION_SEVERE_TERMS = {
     "reverse split", "going concern", "minimum bid", "nasdaq compliance",
@@ -602,6 +603,8 @@ def _verified_news_catalyst(news: dict, relvol: float) -> tuple[bool, list[str]]
         title_l = title.lower()
         if item.get("materiality") != "high":
             continue
+        if item.get("sentiment") != "positive" or (item.get("negative_weight") or 0) > 0:
+            continue
         credibility = str(item.get("credibility") or "standard")
         if credibility not in {"high", "primary-release"}:
             continue
@@ -618,6 +621,7 @@ def classify_lane(
     bundle: dict, *, fs: float, fconf: str, news: dict, t: dict,
     catalyst_score: float, total_score: float, expected_upside_pct: float,
     negative_override: str | None, explosive_upside_pct: float | None = None,
+    analyst_confirmation: float | None = None, entry_rr: float = 0,
 ) -> dict:
     promotion = _promotion_risk(bundle, news, t)
     f = bundle.get("fundamentals") or {}
@@ -633,7 +637,9 @@ def classify_lane(
         not promotion["hard_reject"]
         and fs >= MIN_FUNDAMENTAL_SCORE
         and fconf in {"medium", "high"}
-        and total_score >= 68
+        and total_score >= MIN_DETERMINISTIC_SCORE
+        and analyst_confirmation is not None and MIN_ANALYST_SCORE <= analyst_confirmation <= 100
+        and entry_rr + 1e-12 >= MIN_ENTRY_RISK_REWARD
         and not negative_override
         and avg_dollar >= CORE_MIN_AVG_DOLLAR_VOLUME
         and market_cap >= MIN_MARKET_CAP
@@ -643,8 +649,12 @@ def classify_lane(
         core_reasons.append(msg); core_blockers.append("fundamental score < 14/20")
     if fconf == "low":
         core_reasons.append("fundamental evidence confidence is low"); core_blockers.append("fundamental evidence confidence low")
-    if total_score < 68:
-        core_reasons.append(f"system conviction {total_score:.1f}/100 below 68"); core_blockers.append("system conviction < 68")
+    if total_score < MIN_DETERMINISTIC_SCORE:
+        core_reasons.append(f"system conviction {total_score:.1f}/100 below 70"); core_blockers.append("system conviction < 70")
+    if analyst_confirmation is None or not MIN_ANALYST_SCORE <= analyst_confirmation <= 100:
+        core_reasons.append("analyst confirmation unavailable or below 75/100"); core_blockers.append("analyst score unavailable or < 75")
+    if entry_rr + 1e-12 < MIN_ENTRY_RISK_REWARD:
+        core_reasons.append(f"entry R/R {entry_rr:.3f}x below 0.4x"); core_blockers.append("entry risk/reward < 0.4x")
     if negative_override:
         core_reasons.append(str(negative_override)); core_blockers.append("material negative-news override")
     if market_cap <= 0:
@@ -733,6 +743,59 @@ def classify_lane(
     }
 
 
+def valuation_calculation(f: dict) -> dict:
+    """Existing valuation bands, with validated basis selection and an audit trail."""
+    pe, basis, skipped = None, None, []
+    for key, label in (("forwardPE", "forward P/E"), ("trailingPE", "trailing TTM P/E")):
+        candidate = number(f.get(key))
+        if candidate is not None and candidate > 0:
+            pe, basis = candidate, label
+            break
+        if f.get(key) is not None:
+            skipped.append(f"Invalid {label} ignored")
+    rg = pct(f.get("revenueGrowth"))
+    reasons = list(skipped)
+    base = 5.0 if pe is None else 8 if pe < 20 else 7 if pe < 30 else 5 if pe < 45 else 3
+    bonus = 2 if pe is not None and rg is not None and math.isfinite(rg) and rg > 25 and pe < 45 else 0
+    if pe is None:
+        reasons.append("Positive finite P/E unavailable: neutral 5/10; no growth bonus")
+    else:
+        band = "below 20" if pe < 20 else "20 to below 30" if pe < 30 else "30 to below 45" if pe < 45 else "45 or more"
+        reasons.append(f"{basis} {pe:.2f}: {band} band → {base}/10")
+        if basis == "trailing TTM P/E":
+            reasons.append("Valid forward P/E unavailable; trailing earnings are used without forecasting them")
+        if bonus:
+            reasons.append(f"Annual revenue growth {rg:.1f}% >25% and P/E <45 → +2")
+        elif rg is not None and math.isfinite(rg) and rg > 25:
+            reasons.append(f"Annual revenue growth {rg:.1f}% exceeds 25%, but P/E ≥45 blocks the existing +2 bonus")
+        else:
+            reasons.append("Growth bonus requires annual revenue growth >25% and P/E <45")
+    return {"score": min(10, base + bonus), "base_points": base, "growth_bonus": bonus,
+            "pe": pe, "basis": basis, "revenue_growth_pct": rg, "reasons": reasons,
+            "source": f.get("_valuation_source") or f.get("_source"),
+            "asof": f.get("_valuation_asof"), "status": f.get("_valuation_status")}
+
+
+def catalyst_calculation(news: dict) -> dict:
+    kinds = news.get("catalysts") or []
+    events = int(news.get("positive_material_events") or 0)
+    kind_points, event_points = len(kinds) * 2, min(events, 3)
+    score = clamp(5 + kind_points + event_points, 0, 15)
+    reasons = ["Neutral baseline → 5/15",
+               f"{len(kinds)} positive factual catalyst categories ×2 → +{kind_points}",
+               f"{events} distinct positive material event groups, capped at 3 → +{event_points}"]
+    if kinds:
+        reasons.append("Matched categories: " + ", ".join(kinds))
+    else:
+        reasons.append("No qualifying positive business catalyst in the supplied headlines")
+    reasons.append("Broker rating actions earn News points; Analyst confirmation uses provider consensus. Author opinions do not create factual business catalysts")
+    if news.get("high_negative_events"):
+        reasons.append("Negative or mixed events receive no bullish catalyst credit; negative-news safeguards remain active")
+    return {"score": score, "baseline_points": 5, "category_points": kind_points,
+            "event_points": event_points, "positive_material_events": events,
+            "categories": kinds, "reasons": reasons}
+
+
 def score_bundle(bundle: dict) -> dict:
     price = float(bundle.get("price") or 0)
     rows = bundle.get("history") or []
@@ -758,23 +821,16 @@ def score_bundle(bundle: dict) -> dict:
             mom += points
             mreasons.append(f"{label} +{points}")
 
-    catalyst = clamp(5 + len(news["catalysts"]) * 2 + min(news["material_events"], 3), 0, 15)
-    target_plan = forward_target_plan(t, f, price, catalyst, int(news.get("material_events") or 0))
+    catalyst_detail = catalyst_calculation(news)
+    catalyst = catalyst_detail["score"]
+    target_plan = forward_target_plan(t, f, price, catalyst, int(news.get("positive_material_events") or 0))
     levels = buy_levels(t, price)
     levels["target"] = target_plan["base_target"]
     levels["stretch_target"] = target_plan["stretch_target"]
+    levels, breakout_anchor = signal_geometry({**bundle, "levels": levels, "technicals": t})
     sector, sector_reasons = sector_score(bundle)
-    pe = f.get("forwardPE") or f.get("trailingPE")
-    rg = pct(f.get("revenueGrowth"))
-    valuation = 5.0
-    if pe:
-        try:
-            pe = float(pe)
-            valuation = 5 if not math.isfinite(pe) or pe <= 0 else 8 if pe < 20 else 7 if pe < 30 else 5 if pe < 45 else 3
-            if rg and rg > 25 and 0 < pe < 45:
-                valuation = min(10, valuation + 2)
-        except Exception:
-            pass
+    valuation_detail = valuation_calculation(f)
+    valuation = valuation_detail["score"]
 
     a_score, a_reasons, analyst_yield = analyst_score(f, price)
     # Evidence confidence is based on decision-critical evidence only. Analyst
@@ -810,7 +866,7 @@ def score_bundle(bundle: dict) -> dict:
         optional_missing_inputs.append("analyst consensus")
     if f.get("targetMeanPrice") in (None, ""):
         optional_missing_inputs.append("consensus price target")
-    if not f.get("forwardPE") and not f.get("trailingPE"):
+    if valuation_detail["pe"] is None:
         optional_missing_inputs.append("valuation P/E")
     if bundle.get("relative_volume_evidence") is not None and t.get("relative_volume") is None:
         optional_missing_inputs.append("time-matched relative volume")
@@ -837,6 +893,7 @@ def score_bundle(bundle: dict) -> dict:
         bundle, fs=fs, fconf=fconf, news=news, t=t,
         catalyst_score=catalyst, total_score=total, expected_upside_pct=deterministic_expected,
         negative_override=override, explosive_upside_pct=deterministic_expected,
+        analyst_confirmation=a_score, entry_rr=rr,
     )
     category = "Explosive Runner" if lane_info["lane"] == EXPLOSIVE_LANE else "Core" if lane_info["lane"] == CORE_LANE else "Watch"
     horizon_plan = holding_horizon_plan(
@@ -852,6 +909,8 @@ def score_bundle(bundle: dict) -> dict:
     }
     return {
         "scoring_version": SCORING_VERSION,
+        "currency": bundle.get("currency") or "USD",
+        "breakout_anchor": breakout_anchor,
         "deterministic_score": total,
         "analyst_score": a_score,
         "expected_yield_pct": deterministic_expected,
@@ -877,6 +936,10 @@ def score_bundle(bundle: dict) -> dict:
         "catalyst_evidence": lane_info.get("catalyst_evidence") or [],
         "strategic_catalyst_evidence": lane_info["strategic_catalyst_evidence"],
         "breakdown": breakdown,
+        "catalyst_calculation": catalyst_detail,
+        "catalyst_reasons": catalyst_detail["reasons"],
+        "valuation_calculation": valuation_detail,
+        "valuation_reasons": valuation_detail["reasons"],
         "fundamental_reasons": freasons,
         "fundamental_confidence": fconf,
         "analyst_reasons": a_reasons,
@@ -1090,42 +1153,16 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
         return "WATCH — DATA REVIEW", "Evidence coverage is incomplete; wait for sufficient data before opening a new position"
     if zone == "DO_NOT_CHASE":
         return "DON'T CHASE", "Price is above the do-not-chase threshold"
-    if zone == "PRIMARY_BUY":
-        if (falling_risk or (bearish and momentum_weak)) and downside_to_better >= 3:
-            return "WAIT MORE", f"Buy level reached, but price is below EMA20 / recent momentum is weakening; better-buy zone is {lv['better_low']:.2f}–{lv['better_high']:.2f}"
-        if s >= 80 and not bearish:
-            return "BUY NOW", "Primary buy zone reached with high deterministic conviction and no material bearish override"
-        if s >= 65 and not bearish:
-            return "CONSIDER BUYING NOW", f"Primary buy zone reached; score {s:.0f}, evidence coverage is adequate, and no material bearish override is present"
-        return "WAIT MORE", f"Primary buy zone reached, but deterministic conviction is only {s:.0f}/100"
-    if zone == "BETTER_BUY":
-        technical_context = f"RSI {rsi:.1f}, 20d {change20:.1f}%, price vs EMA20 {ema_gap_pct:.1f}%"
-        if better_buy_falling_risk or (bearish and momentum_weak):
-            return "WAIT MORE", f"Better-buy zone reached, but multiple downside signals still point to falling-knife risk ({technical_context}); wait for stabilization"
-        if s >= 75 and not bearish and not mild_better_buy_weakness:
-            return "BUY NOW", f"Better-buy zone reached with strong score {s:.0f}, adequate evidence, and stable momentum ({technical_context})"
-        if s >= 65 and not bearish:
-            if mild_better_buy_weakness:
-                return "CONSIDER STARTER BUY", f"Better-buy zone reached and score is {s:.0f}; only one moderate weakness flag remains ({technical_context}), so consider a staged starter position rather than waiting for a lower price"
-            return "CONSIDER BUYING NOW", f"Better-buy zone reached with score {s:.0f}, adequate evidence, and thesis intact ({technical_context})"
-        return "WATCH", f"Better-buy zone reached, but score {s:.0f}/100 is not yet sufficient despite the attractive price"
-    if zone == "VALUE_CORRIDOR":
-        if falling_risk or (bearish and momentum_weak):
-            return "WAIT FOR BETTER BUY", f"Price has crossed below the primary buy zone, but momentum remains weak; next modeled better-buy zone is {lv['better_low']:.2f}–{lv['better_high']:.2f}"
-        if s >= 65 and not bearish:
-            return "CONSIDER STARTER BUY", f"Price is below the primary buy zone but above the better-buy zone; score {s:.0f} and thesis remain acceptable"
-        return "WATCH", f"Price is cheaper than the primary buy zone, but score {s:.0f}/100 does not justify an entry yet"
-    if zone == "DEEP_VALUE":
-        if s >= 70 and not bearish and not falling_risk:
-            return "REVIEW BUY", "Price is below the better-buy zone but still above invalidation; rerun support/thesis checks before entry"
-        return "WAIT MORE", "Price is below the better-buy zone and close enough to invalidation to require stabilization first"
-    if zone == "BREAKOUT" and relvol >= 1.5 and s >= 75 and not bearish:
-        return "BREAKOUT BUY", "Breakout confirmed by relative volume and adequate deterministic conviction"
-    if zone == "BREAKOUT":
-        return "WATCH BREAKOUT", "Price is above the breakout level, but volume/conviction confirmation is insufficient"
-    if zone == "APPROACHING_BREAKOUT":
-        return "WATCH", "Price is above the primary buy zone but has not confirmed a breakout; avoid chasing the middle"
-    return "WATCH", "No active entry trigger is present"
+    status = entry_status({**result, "price": price})
+    result["entry_qualification"] = status
+    if not status["qualified"]:
+        return "WATCH — GATE FAILED", status["reason"]
+    if not status["ready"]:
+        return "WATCH", status["reason"]
+    if s >= 75:
+        return "BUY NOW", status["reason"] + f"; deterministic conviction {s:.1f}/100"
+    return "CONSIDER STARTER BUY", status["reason"] + f"; deterministic conviction {s:.1f}/100"
+
 
 def position_action_plan(action: str, result: dict, price: float, position: dict | None) -> dict | None:
     if not position:

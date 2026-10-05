@@ -17,6 +17,20 @@ class FakeProvider:
 class FakeAI: pass
 
 
+def attention_payload(fields):
+    from tests.test_score_band_experiment import observation
+    p=fields.get('price',100)
+    a=observation(price=p,target=p*1.2,stop=p*.9)
+    a['levels'].update(buy_low=p*.98,buy_high=p*1.02,better_low=p*.94,
+        better_high=p*.97,breakout=p*1.1,do_not_chase=p*1.14)
+    a['technicals']['ema20']=p*.99
+    lv={**a['levels'],**fields.get('levels',{})}
+    a.update(fields);a['levels']=lv
+    if 'target_plan' not in fields:
+        a['target_plan']={'base_target':lv.get('target',p*1.2)}
+    return a
+
+
 def test_closed_market_refreshes_universe_metadata_after_restart(monkeypatch):
     r=RadarService(provider=FakeProvider(),ai=FakeAI())
     monkeypatch.setattr(r,"market_open",lambda now=None: False)
@@ -115,6 +129,7 @@ def test_persist_generates_buy_alert_without_duplicate_on_same_action():
         "lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,
         "core_quality_qualified":True,"explosive_qualified":False,"promotion_risk":{"hard_reject":False},
     }
+    payload=attention_payload(payload)
     r.persist(payload); r.persist(payload)
     with SessionLocal() as db:
         assert db.query(RadarCandidate).filter(RadarCandidate.symbol=="BUYME").one().action == "BUY NOW"
@@ -141,6 +156,7 @@ def test_persist_refreshes_same_active_alert_instead_of_duplicating():
         "lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,
         "core_quality_qualified":True,"explosive_qualified":False,"promotion_risk":{"hard_reject":False},
     }
+    payload=attention_payload(payload)
     r.persist(payload)
     payload["action_reason"]="updated reason"
     r.persist(payload)
@@ -199,8 +215,10 @@ def test_attention_buy_ladder_only_surfaces_agreed_entry_scores():
     cases=[
         (53,"PRIMARY_BUY",None),
         (67,"BETTER_BUY",None),
-        (68,"PRIMARY_BUY","STARTER BUY"),
-        (68,"BETTER_BUY","STARTER BUY"),
+        (68,"PRIMARY_BUY",None),
+        (68,"BETTER_BUY",None),
+        (70,"PRIMARY_BUY","STARTER BUY"),
+        (70,"BETTER_BUY","STARTER BUY"),
         (74,"BETTER_BUY","STARTER BUY"),
         (75,"PRIMARY_BUY","BUY"),
         (84,"BETTER_BUY","BUY"),
@@ -208,7 +226,9 @@ def test_attention_buy_ladder_only_surfaces_agreed_entry_scores():
         (100,"BETTER_BUY","STRONG BUY"),
     ]
     for score,zone,expected in cases:
-        payload={**base,"deterministic_score":score,"entry_zone_status":zone}
+        payload=attention_payload({**base,"deterministic_score":score,"entry_zone_status":zone})
+        if zone=='BETTER_BUY':
+            payload['levels'].update(buy_low=105,buy_high=108,better_low=98,better_high=102)
         action,_=_attention_buy_signal(payload)
         assert action == expected
 
@@ -235,16 +255,16 @@ def test_agreed_buy_attention_actions_are_persisted():
         ("SB85",85,"PRIMARY_BUY","STRONG BUY"),
         ("BUY75",75,"BETTER_BUY","BUY"),
         ("ST74",74,"BETTER_BUY","STARTER BUY"),
-        ("PB68",68,"PRIMARY_BUY","STARTER BUY"),
+        ("PB70",70,"PRIMARY_BUY","STARTER BUY"),
     ]:
-        r.persist({
+        r.persist(attention_payload({
             "symbol":symbol,"price":100,"deterministic_score":score,"analyst_score":80,"ai_score":82,
             "expected_yield_pct":20,"ai_expected_yield_pct":22,"category":"Core","action":"WAIT MORE",
             "action_reason":"underlying radar state","entry_zone_status":zone,"decision_confidence":"high",
             "negative_news_override":False,"thesis_assessment":{"invalidated":False},"levels":{},
             "lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,
             "core_quality_qualified":True,"explosive_qualified":False,"promotion_risk":{"hard_reject":False},
-        })
+        }))
         with SessionLocal() as db:
             a=db.query(Alert).filter(Alert.symbol==symbol,Alert.acknowledged==False).one()
             assert a.action == expected
@@ -258,6 +278,7 @@ def test_uncapped_policy_adds_new_buy_without_rotation_for_space(monkeypatch):
             db.add(Position(symbol=sym,shares=10,avg_cost=100,account="Test"))
         weak={"symbol":"WEAK","price":95,"action":"HOLD — DON'T ADD","deterministic_score":50,"ai_score":55,"expected_yield_pct":4,"risk_reward":1.0,"decision_confidence":"high","entry_zone_status":"WATCH","levels":{},"fundamentals":{"sector":"Industrials"},"news":{"material_events":0},"lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,"core_quality_qualified":True,"explosive_qualified":False,"promotion_risk":{"hard_reject":False}}
         best={"symbol":"BEST","price":50,"action":"BUY NOW","deterministic_score":90,"ai_score":94,"expected_yield_pct":35,"risk_reward":3.2,"decision_confidence":"high","entry_zone_status":"PRIMARY_BUY","levels":{"buy_low":48,"buy_high":52,"stop":42,"target":70},"fundamentals":{"sector":"Technology"},"news":{"material_events":0},"thesis_assessment":{"invalidated":False},"lane":"CORE_QUALITY","lane_label":"Core Quality Lane","lane_qualified":True,"core_quality_qualified":True,"explosive_qualified":False,"promotion_risk":{"hard_reject":False}}
+        best=attention_payload(best)
         db.add(RadarCandidate(symbol="WEAK",action="HOLD — DON'T ADD",score=50,ai_score=55,price=95,portfolio_rank_score=30,current_json=json.dumps(weak)))
         db.add(RadarCandidate(symbol="BEST",action="BUY NOW",score=90,ai_score=94,price=50,portfolio_rank_score=90,current_json=json.dumps(best)))
         db.commit()

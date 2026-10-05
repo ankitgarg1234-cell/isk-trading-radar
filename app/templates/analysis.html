@@ -5,11 +5,14 @@
 <main class="container">
   {% if d.error %}<section class="panel"><div class="error-box">{{ d.error }}</div></section>{% endif %}
   <section class="score-grid">
-    <div class="panel score-card"><span>Deterministic score</span><strong>{{ '%.0f'|format(d.deterministic_score or 0) }}</strong><small>/100</small></div>
-    <div class="panel score-card"><span>Analyst score</span><strong>{{ ('%.0f'|format(d.analyst_score)) if d.analyst_score is not none else '—' }}</strong><small>{{ 'external consensus' if d.analyst_score is not none else (d.get('analyst_data_status') or 'not returned by current provider') }}</small></div>
+    <div class="panel score-card"><span>Deterministic score</span><strong>{{ '%.1f'|format(d.deterministic_score or 0) }}</strong><small>/100 · entry requires ≥70</small></div>
+    <div class="panel score-card"><span>Analyst score</span><strong>{{ ('%.1f'|format(d.analyst_score)) if d.analyst_score is not none else '—' }}</strong><small>{{ 'external consensus · entry requires ≥75' if d.analyst_score is not none else (d.get('analyst_data_status') or 'not returned by current provider') }}</small></div>
     <div class="panel score-card"><span>AI contextual score</span><strong>{{ '%.0f'|format(d.ai_score or 0) }}</strong><small>{{ d.mode or '' }}</small></div>
-    <div class="panel score-card"><span>{{ 'Forward R/R' if d.position else 'Risk / reward' }}</span><strong>{{ '%.1f'|format(d.risk_reward or 0) }}×</strong><small>{% if d.get('position_plan') and d.get('position_plan').get('entry_rr') is not none %}Entry-plan R/R {{ '%.1f'|format(d.get('position_plan').get('entry_rr')) }}×{% else %}base target vs invalidation{% endif %}</small></div>
+    <div class="panel score-card"><span>{{ 'Forward R/R' if d.position else 'Risk / reward' }}</span><strong>{{ '%.3f'|format((d.get('entry_qualification') or {}).get('risk_reward') if (d.get('entry_qualification') or {}).get('risk_reward') is not none else (d.risk_reward or 0)) }}×</strong><small>{% if d.get('position_plan') and d.get('position_plan').get('entry_rr') is not none %}Entry-plan R/R {{ '%.3f'|format(d.get('position_plan').get('entry_rr')) }}×{% else %}base target vs invalidation · entry requires ≥0.4×{% endif %}</small></div>
   </section>
+  {% set gate=d.get('entry_qualification') or {} %}{% if gate and not d.position %}
+  <section class="panel"><span class="kicker">ENTRY QUALIFICATION</span><h2>{{ 'Entry ready' if gate.get('ready') else 'Qualified — waiting for entry' if gate.get('qualified') else 'Gate failed — watch only' }}</h2><p>{{ gate.get('reason') }}</p>{% if d.get('core_blockers') %}<p class="subtle">{{ d.get('core_blockers')|join(' · ') }}</p>{% endif %}</section>
+  {% endif %}
 
   <section class="panel action-banner"><div><span class="kicker">POSITION-AWARE ACTION</span><h2>{{ d.action }}</h2><p>{{ d.action_reason }}</p>{% if d.get('action_plan') %}<p><b>Suggested size:</b> {% if d.get('action_plan').suggested_shares %}{{ d.get('action_plan').suggested_shares }} shares ({{ d.get('action_plan').actual_percent }}% of position), leaving {{ d.get('action_plan').remaining_shares }}{% else %}No partial quantity suggested{% endif %}. {{ d.get('action_plan').rationale }}</p>{% endif %}<p class="subtle">Evidence confidence: {{ d.get('decision_confidence') or 'unknown' }} • {{ d.get('data_quality_pct') or 0 }}% critical-evidence coverage{% if d.get('missing_inputs') %} • Missing critical: {{ d.get('missing_inputs')|join(', ') }}{% endif %}{% if d.get('optional_missing_inputs') %} • Optional unavailable: {{ d.get('optional_missing_inputs')|join(', ') }}{% endif %}</p></div>{% if d.position %}<div class="position-mini"><b>Current holding</b><span>{{ d.position.shares }} shares</span><span>Avg {{ ('%.2f SEK'|format(d.position.avg_cost)) if d.currency == 'SEK' else ('$%.2f'|format(d.position.avg_cost)) }}</span><span>{{ d.position.account }}</span></div>{% else %}<span class="pill muted">No current position found</span>{% endif %}</section>
 
@@ -21,7 +24,12 @@
       <tr><td>{{ label }}</td><td>{{ src.get('source') or 'unavailable' }}</td><td>{{ src.get('status') or 'unavailable' }}</td><td>{{ src.get('asof') or (src.get('benchmark') if src.get('benchmark') else (src.get('items') ~ ' items' if src.get('items') is not none else '—')) }}</td></tr>
       {% endfor %}
     </tbody></table></div>
-    <p class="footnote">Analyst consensus and price targets are optional confirmation inputs. Their absence does not by itself lower a position to DATA REVIEW.</p>
+    <p class="footnote">New entries require an Analyst score of at least 75. Consensus price targets are optional. Missing analyst data does not by itself require an existing holding to be sold.</p>
+  </section>
+
+  <section class="two-col">
+    <div class="panel"><h3>Catalyst calculation</h3><ul>{% for x in d.get('catalyst_reasons') or [] %}<li>{{ x }}</li>{% endfor %}</ul><p class="footnote">Only positive factual business events earn Catalyst credit. The score is capped at 15.</p></div>
+    <div class="panel"><h3>Valuation calculation</h3><ul>{% for x in d.get('valuation_reasons') or [] %}<li>{{ x }}</li>{% endfor %}</ul>{% set v=d.get('valuation_calculation') or {} %}<p class="footnote">{{ v.get('source') or 'P/E source unavailable' }}{% if v.get('asof') %} · observed {{ v.get('asof') }}{% endif %}. Existing bands: P/E &lt;20 →8; &lt;30 →7; &lt;45 →5; ≥45 →3. Growth bonus +2 only for revenue growth &gt;25% with P/E &lt;45; maximum 10.</p></div>
   </section>
 
   <section class="three-col">

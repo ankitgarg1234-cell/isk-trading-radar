@@ -16,6 +16,8 @@ from .db import SessionLocal, Position, AnalysisRequest, WatchlistItem, Analysis
 from .market import YahooMarketProvider
 from .analysis_engine import score_bundle, position_action, position_action_plan, SCORING_VERSION
 from .market_evidence import recover_market_evidence, transient_missing, positive
+from .trading_rules import entry_status
+from .news_scoring import VERSION as NEWS_VERSION
 from . import article_news
 from .portfolio_engine import candidate_rank_score, build_optimizer_plan, normalise_profile, INVESTABLE_ENTRY_ACTIONS, MIN_ENTRY_RISK_REWARD
 from .paper_engine import run_paper_cycle
@@ -28,48 +30,12 @@ NY = ZoneInfo("America/New_York")
 
 
 def _attention_buy_signal(full: dict, has_position: bool = False) -> tuple[str | None, str | None]:
-    """Return the attention-queue buy signal for an active primary/better-buy zone.
-
-    The attention queue is intentionally stricter than the general Radar. Price
-    reaching an entry band is not itself actionable. Only the agreed deterministic
-    conviction ladder is surfaced:
-      85-100 -> STRONG BUY
-      75-84  -> BUY
-      68-74 in BETTER_BUY -> STARTER BUY
-      68-74 in PRIMARY_BUY -> STARTER BUY
-    Monitoring states below 68 stay in the Radar and never become attention alerts.
-    Material bearish/thesis-invalidated setups are blocked from buy attention.
-    """
-    if full.get("lane_qualified") is False:
+    """Buy attention uses the canonical paper thresholds and trigger."""
+    from .portfolio_engine import entry_attention_signal
+    signal = entry_attention_signal(full)
+    if signal is None:
         return None, None
-    if bool((full.get("thesis_assessment") or {}).get("invalidated")):
-        return None, None
-    if float(full.get("risk_reward") or 0) < MIN_ENTRY_RISK_REWARD:
-        return None, None
-    if full.get("negative_news_override"):
-        return None, None
-    if str(full.get("decision_confidence") or "medium").lower() == "low":
-        return None, None
-    zone = str(full.get("entry_zone_status") or "").upper()
-    if not zone:
-        price=float(full.get("price") or 0)
-        levels=full.get("levels") or {}
-        better_low=float(levels.get("better_low") or 0); better_high=float(levels.get("better_high") or 0)
-        buy_low=float(levels.get("buy_low") or 0); buy_high=float(levels.get("buy_high") or 0)
-        if better_low and better_low <= price <= better_high:
-            zone="BETTER_BUY"
-        elif buy_low and buy_low <= price <= buy_high:
-            zone="PRIMARY_BUY"
-    if zone not in {"PRIMARY_BUY", "BETTER_BUY"}:
-        return None, None
-    score = float(full.get("deterministic_score") or 0)
-    if score >= 85:
-        return "STRONG BUY", f"{zone.replace('_', ' ').title()} reached with deterministic conviction {score:.0f}/100"
-    if score >= 75:
-        return "BUY", f"{zone.replace('_', ' ').title()} reached with deterministic conviction {score:.0f}/100"
-    if score >= 68 and zone in {"BETTER_BUY", "PRIMARY_BUY"}:
-        return "STARTER BUY", f"{zone.replace('_', ' ').title()} reached with deterministic conviction {score:.0f}/100"
-    return None, None
+    return signal, entry_status(full)["reason"] + f"; deterministic conviction {float(full['deterministic_score']):g}/100"
 
 
 def _strategic_fingerprint(signal: dict | None) -> str:
@@ -109,7 +75,7 @@ def _compact_payload(full: dict) -> dict:
         news = dict(news)
         items = news.get("items")
         if isinstance(items, list):
-            news["items"] = items[:15] if news.get("version") in {"headline-context-v2", "article-context-v3", "article-context-v4"} else items[:5]
+            news["items"] = items[:15] if news.get("version") in {NEWS_VERSION, "headline-context-v2", "article-context-v3", "article-context-v4"} else items[:5]
         compact["news"] = news
     strategic = compact.get("strategic_capital")
     if isinstance(strategic, dict):
@@ -317,6 +283,7 @@ class RadarService:
         plan = position_action_plan(action, result, bundle["price"], pd)
         ai = self.ai.analyze(symbol, bundle, result)
         full = {**bundle, **result, **ai, "action": action, "action_reason": reason, "action_plan": plan, "position": pd}
+        full["entry_qualification"] = entry_status(full)
         if persist:
             self.persist(full)
             if prior_payload.get("scoring_version") != SCORING_VERSION:

@@ -22,8 +22,9 @@ def payload(symbol, score=85, sector="Technology", expected=25, ai=88, price=100
         "core_quality_qualified":True,"explosive_qualified":False,
         "entry_zone_status":"PRIMARY_BUY","action":"BUY NOW","negative_news_override":None,
         "thesis_assessment":{"invalidated":False},
-        "levels":{"buy_low":price*.97,"buy_high":price*1.02,"better_low":price*.9,"better_high":price*.93,"stop":price*.88,"target":price*1.3},
-        "technicals":{"atr":2,"relative_volume":1.2,"change20_pct":5},"news":{"material_events":0},
+        "levels":{"buy_low":price*.97,"buy_high":price*1.02,"better_low":price*.9,"better_high":price*.93,"stop":price*.88,"target":price*1.3,"breakout":price*1.08,"do_not_chase":price*1.15},
+        "target_plan":{"base_target":price*1.3,"stretch_target":price*1.4},
+        "technicals":{"atr":2,"relative_volume":1.2,"change20_pct":5,"rsi":55,"ema20":price*.98},"news":{"material_events":0},
         "fundamentals":{"sector":sector},
     }
 
@@ -66,21 +67,18 @@ def test_optimizer_does_not_force_five_positions_when_only_three_qualify():
 
 
 
-def test_primary_buy_69_is_investable_and_selected():
+def test_primary_buy_69_fails_the_shared_70_entry_floor():
     a=payload("CELC",score=69,sector="Healthcare",expected=20,ai=76,price=84.79)
     a["action"]="CONSIDER BUYING NOW"
     a["entry_zone_status"]="PRIMARY_BUY"
     plan=build_optimizer_plan({"CELC":a},profile="HIGH",visible_limit=20,shortlist_limit=10)
-    row=plan["visible"][0]
-    assert row["entry_signal"] == "STARTER BUY"
-    assert row["bucket"] == "INVEST NOW"
-    assert row in plan["selected_new"]
+    assert not plan["visible"] and not plan["selected_new"]
 
 
 def test_risk_fit_does_not_block_qualified_top20_entry():
     high_risk = payload("RISKY", score=90, sector="Technology", expected=35, price=10)
     high_risk["category"] = "Explosive Runner"
-    high_risk["technicals"] = {"atr": 1.2, "relative_volume": 3.0, "change20_pct": 35}
+    high_risk["technicals"].update(atr=1.2,relative_volume=3.0,change20_pct=35)
     plan = build_optimizer_plan({"RISKY": high_risk}, profile="LOW", visible_limit=20, shortlist_limit=10)
     row = plan["visible"][0]
     assert row["entry_signal"] in {"STRONG BUY", "BUY", "STARTER BUY"}
