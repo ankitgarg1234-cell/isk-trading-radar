@@ -229,11 +229,13 @@ class RadarService:
             if prior and prior.current_json:
                 try:
                     prior_payload=json.loads(prior.current_json)
+                    # A calculation repair is not a deterioration in the company.
+                    # Compare fundamentals only within the same scoring version.
                     result["previous_snapshot"]={
                         "breakdown": prior_payload.get("breakdown") or {},
                         "deterministic_score": prior_payload.get("deterministic_score"),
                         "action": prior_payload.get("action"),
-                    }
+                    } if prior_payload.get("scoring_version") == SCORING_VERSION else {}
                 except Exception:
                     prior_payload = {}
                     result["previous_snapshot"] = {}

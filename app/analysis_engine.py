@@ -52,7 +52,7 @@ CORE_MIN_AVG_DOLLAR_VOLUME = 10_000_000.0
 EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME = 20_000_000.0
 MIN_FUNDAMENTAL_SCORE = 14.0  # 70/100 normalized fundamental quality
 EXPLOSIVE_MAX_TRADING_SESSIONS = 20
-SCORING_VERSION = "2026-10-04-single-paper-v7"
+SCORING_VERSION = "2026-10-05-fundamental-integrity-v8"
 
 PROMOTION_SEVERE_TERMS = {
     "reverse split", "going concern", "minimum bid", "nasdaq compliance",
@@ -84,9 +84,11 @@ def pct(v: Any) -> float | None:
             if not value:
                 return None
             if value.endswith("%"):
-                return float(value[:-1].strip())
+                result = float(value[:-1].strip())
+                return result if math.isfinite(result) else None
             v = value
-        return float(v) * 100
+        result = float(v) * 100
+        return result if math.isfinite(result) else None
     except Exception:
         return None
 
@@ -160,11 +162,16 @@ def fundamental_score(f: dict) -> tuple[float, list[str], str]:
     observed = 0
     rg = pct(f.get("revenueGrowth"))
     qrg = pct(f.get("quarterlyRevenueGrowth"))
-    eg = pct(f.get("earningsGrowth") or f.get("growth"))
+    eg = pct(f.get("earningsGrowth"))
     gm = pct(f.get("grossMargins"))
     om = pct(f.get("operatingMargins"))
     roe = pct(f.get("returnOnEquity"))
-    de = f.get("debtToEquity")
+    try:
+        de = float(f["debtToEquity"]) if f.get("debtToEquity") is not None else None
+        if de is not None and (not math.isfinite(de) or de < 0):
+            de = None
+    except (ValueError, TypeError):
+        de = None
     checks = [
         (rg, 4, [(25, 4), (15, 3), (5, 2), (-math.inf, 0)], "Revenue growth", "%"),
         (eg, 4, [(25, 4), (10, 3), (0, 1), (-math.inf, 0)], "Earnings growth", "%"),
@@ -185,7 +192,7 @@ def fundamental_score(f: dict) -> tuple[float, list[str], str]:
             de = float(de)
             pts = 2 if de < 75 else 1 if de < 150 else 0
             score += pts
-            reasons.append(f"Debt/equity {de:.0f} → {pts}/2")
+            reasons.append(f"Debt/equity {de:.1f}% ({de/100:.3f}×) → {pts}/2")
         except Exception:
             pass
     if qrg is not None:
@@ -194,6 +201,14 @@ def fundamental_score(f: dict) -> tuple[float, list[str], str]:
         score += qpts
         accel = " (accelerating)" if rg is not None and qrg >= rg + 5 else ""
         reasons.append(f"Quarterly revenue growth {qrg:.1f}%{accel} → +{qpts}")
+    if eg is None and f.get("_earnings_change"):
+        reasons.append(f"Earnings: {f['_earnings_change']} → no percentage-growth credit")
+    if f.get("_roe_status") and roe is None:
+        reasons.append(f"ROE unavailable: {f['_roe_status']}")
+    if f.get("_debt_status") and de is None:
+        reasons.append(f"Debt/equity unavailable: {f['_debt_status']}")
+    if score > 20:
+        reasons.append(f"Fundamental subtotal {score:.1f} → capped at 20/20 (quarterly bonus included)")
     if observed == 0:
         return 10.0, ["Fundamental feed unavailable: neutral 10/20 until verified"], "low"
     confidence = "high" if observed >= 5 else "medium" if observed >= 3 else "low"

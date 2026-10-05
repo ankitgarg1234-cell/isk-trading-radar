@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone, timedelta
 from typing import Any
 import time
+import math
 import re
 from difflib import SequenceMatcher
 import httpx
@@ -28,7 +29,8 @@ def _safe_float(value: Any) -> float | None:
     try:
         if value is None:
             return None
-        return float(value)
+        result = float(value)
+        return result if math.isfinite(result) else None
     except Exception:
         return None
 
@@ -162,9 +164,7 @@ class SECFundamentalsProvider:
         for unit in preferred_units:
             if unit in units:
                 return list(units.get(unit) or [])
-        # Use first available unit only as a last resort.
-        for rows in units.values():
-            return list(rows or [])
+        # Never silently divide USD facts by another currency or unit.
         return []
 
     @classmethod
@@ -175,10 +175,10 @@ class SECFundamentalsProvider:
             if r.get("form") not in {"10-K", "10-K/A", "20-F", "20-F/A"}:
                 continue
             days = _iso_days(r.get("start"), r.get("end"))
-            if days is not None and not 300 <= days <= 430:
+            if days is None or not 300 <= days <= 430:
                 continue
             end = r.get("end")
-            if not end or r.get("val") is None:
+            if not end or _safe_float(r.get("val")) is None:
                 continue
             prior = keep.get(end)
             if not prior or str(r.get("filed") or "") >= str(prior.get("filed") or ""):
@@ -198,7 +198,7 @@ class SECFundamentalsProvider:
             if days is None or not 65 <= days <= 120:
                 continue
             end = r.get("end")
-            if not end or r.get("val") is None:
+            if not end or _safe_float(r.get("val")) is None:
                 continue
             prior = keep.get(end)
             if not prior or str(r.get("filed") or "") >= str(prior.get("filed") or ""):
@@ -256,14 +256,78 @@ class SECFundamentalsProvider:
         return _safe_float(candidates[-1].get("val"))
 
     @staticmethod
-    def _growth(rows: list[dict]) -> float | None:
+    def _growth_pair(rows: list[dict]) -> tuple[dict, dict]:
         if len(rows) < 2:
-            return None
-        current = _safe_float(rows[-1].get("val"))
-        previous = _safe_float(rows[-2].get("val"))
-        if current is None or previous in (None, 0):
-            return None
-        return current / previous - 1
+            return {}, {}
+        rows = sorted(rows, key=lambda r: str(r.get("end") or ""))
+        current = rows[-1]
+        candidates = [r for r in rows[:-1]
+                      if 350 <= (_iso_days(r.get("end"), current.get("end")) or 0) <= 380
+                      and 350 <= (_iso_days(r.get("start"), current.get("start")) or 0) <= 380]
+        previous = min(candidates, key=lambda r: abs(_iso_days(r["end"], current["end"])-365)) if candidates else {}
+        return current, previous
+
+    @classmethod
+    def _growth(cls, rows: list[dict]) -> float | None:
+        current, previous = cls._growth_pair(rows)
+        value, base = _safe_float(current.get("val")), _safe_float(previous.get("val"))
+        # A percentage growth rate is not meaningful against a loss or zero base.
+        return value / base - 1 if value is not None and base is not None and base > 0 else None
+
+    @classmethod
+    def _earnings_change(cls, rows: list[dict]) -> str:
+        current, previous = cls._growth_pair(rows)
+        value, base = _safe_float(current.get("val")), _safe_float(previous.get("val"))
+        if value is None or base is None:
+            return "no comparable fiscal year"
+        if base > 0:
+            return "profit to loss" if value < 0 else "percentage growth available"
+        if base == 0:
+            return "zero prior-year income; percentage growth unavailable"
+        if value >= 0:
+            return "returned to profitability" if value > 0 else "returned to breakeven"
+        return "improving loss" if value > base else "worsening loss" if value < base else "unchanged loss"
+
+    @classmethod
+    def _instant_at(cls, fact: dict | None, end: str) -> float | None:
+        candidates = [r for r in cls._entries(fact, ("USD",))
+                      if r.get("end") == end and not r.get("start")
+                      and r.get("form") in {"10-K", "10-K/A", "10-Q", "10-Q/A", "20-F", "20-F/A"}]
+        latest = max(candidates, key=lambda r: str(r.get("filed") or ""), default={})
+        return _safe_float(latest.get("val"))
+
+    @classmethod
+    def _debt_at(cls, facts: dict, end: str) -> tuple[float | None, str]:
+        def value(tags):
+            # Aliases are alternatives, not additive line items. Prefer fresh
+            # facts at the requested balance-sheet date, never an obsolete tag.
+            rows = [r for tag in tags for r in cls._entries(cls._fact(facts, (tag,)), ("USD",))
+                    if r.get("end") == end and not r.get("start")
+                    and r.get("form") in {"10-K", "10-K/A", "10-Q", "10-Q/A", "20-F", "20-F/A"}]
+            latest = max(rows, key=lambda r: str(r.get("filed") or ""), default={})
+            return _safe_float(latest.get("val"))
+        short = value(("ShortTermBorrowings", "ShortTermBorrowingsCurrent"))
+        if short is not None and short < 0:
+            return None, "invalid negative short-term borrowings"
+        current_total = value(("DebtCurrent", "ShortTermBorrowingsAndCurrentPortionOfLongTermDebt"))
+        # A historical short-term-borrowing series cannot silently become zero.
+        if current_total is None and short is None and any(cls._fact(facts, (tag,)) for tag in ("ShortTermBorrowings", "ShortTermBorrowingsCurrent")):
+            return None, "short-term borrowings missing at balance-sheet date"
+        total_long = value(("LongTermDebtAndFinanceLeaseObligationsIncludingCurrentMaturities", "LongTermDebt"))
+        if total_long is not None:
+            total = total_long + (short if short is not None else 0)
+        else:
+            # These total-current tags already include short-term borrowings.
+            current_long = value(("LongTermDebtAndFinanceLeaseObligationsCurrent", "LongTermDebtCurrent"))
+            noncurrent = value(("LongTermDebtAndFinanceLeaseObligationsNoncurrent", "LongTermDebtNoncurrent"))
+            if noncurrent is None or (current_total is None and current_long is None):
+                return None, "incomplete debt components at balance-sheet date"
+            if any(v is not None and v < 0 for v in (noncurrent, current_total, current_long)):
+                return None, "invalid negative debt component"
+            total = noncurrent + (current_total if current_total is not None else current_long + (short if short is not None else 0))
+        if total < 0:
+            return None, "invalid negative debt"
+        return total, "reported debt tags; aliases excluded from sums"
 
     @staticmethod
     def _quarter_yoy_growth(rows: list[dict]) -> float | None:
@@ -291,7 +355,7 @@ class SECFundamentalsProvider:
             return None
         _, prior = min(candidates, key=lambda x: (x[0], str(x[1].get("end") or "")))
         previous = _safe_float(prior.get("val"))
-        if previous in (None, 0):
+        if previous is None or previous <= 0:
             return None
         return current / previous - 1
 
@@ -339,45 +403,53 @@ class SECFundamentalsProvider:
         quarter_current = latest_quarter.get("end") == latest_period
         quarterly_growth = self._quarter_yoy_growth(quarterly_revenue) if quarter_current else None
 
-        latest_rev = _safe_float(revenue[-1].get("val")) if revenue else None
-        latest_ni = _safe_float(net_income[-1].get("val")) if net_income else None
-        latest_gp = _safe_float(gross_profit[-1].get("val")) if gross_profit else None
-        latest_oi = _safe_float(op_income[-1].get("val")) if op_income else None
-        latest_ocf = _safe_float(ocf[-1].get("val")) if ocf else None
-        equity = self._latest_instant(equity_fact)
-        current_assets = self._latest_instant(current_assets_fact)
-        current_liab = self._latest_instant(current_liab_fact)
+        annual = revenue[-1] if revenue else {}
+        annual_end = annual.get("end")
+        annual_reports = [report_dates[i] for i, form in enumerate(recent.get("form") or [])
+                          if form in {"10-K", "10-K/A", "20-F", "20-F/A"}
+                          and i < len(report_dates) and _iso_days(report_dates[i], report_dates[i]) == 0]
+        latest_annual_report = max(annual_reports, default="")
+        annual_current = bool(annual_end and (not latest_annual_report or annual_end == latest_annual_report))
+        def matched(series):
+            return [r for r in series if r.get("start") == annual.get("start") and r.get("end") == annual_end]
+        # Missing current facts must not be substituted with older-year numerators.
+        income_row = matched(net_income)
+        latest_rev = _safe_float(annual.get("val")) if annual_current else None
+        if latest_rev is not None and latest_rev <= 0:
+            latest_rev = None
+        latest_ni = _safe_float(income_row[-1].get("val")) if annual_current and income_row else None
+        def amount(series):
+            rows = matched(series)
+            return _safe_float(rows[-1].get("val")) if annual_current and rows else None
+        latest_gp, latest_oi, latest_ocf = amount(gross_profit), amount(op_income), amount(ocf)
+        # ROE uses income and average equity for the same fiscal year.
+        equity_end = self._instant_at(equity_fact, annual_end) if annual_end else None
+        equity_start_date = (datetime.fromisoformat(annual["start"])-timedelta(days=1)).date().isoformat() if annual.get("start") else None
+        equity_start = self._instant_at(equity_fact, equity_start_date) if equity_start_date else None
+        average_equity = (equity_start+equity_end)/2 if equity_start is not None and equity_end is not None and equity_start > 0 and equity_end > 0 else None
+        balance_equity = self._instant_at(equity_fact, latest_period)
+        current_assets = self._instant_at(current_assets_fact, latest_period)
+        current_liab = self._instant_at(current_liab_fact, latest_period)
         shares_outstanding = self._latest_instant(shares_outstanding_fact, ("shares",))
-
-        debt_tags = (
-            "LongTermDebtAndFinanceLeaseObligationsCurrent",
-            "LongTermDebtCurrent",
-            "ShortTermBorrowings",
-        )
-        debt_noncurrent_tags = (
-            "LongTermDebtAndFinanceLeaseObligationsNoncurrent",
-            "LongTermDebtNoncurrent",
-            "LongTermDebt",
-        )
-        debt_current = self._latest_instant(self._fact(facts, debt_tags)) or 0.0
-        debt_noncurrent = self._latest_instant(self._fact(facts, debt_noncurrent_tags)) or 0.0
-        debt_total = debt_current + debt_noncurrent
+        debt_total, debt_status = self._debt_at(facts, latest_period)
+        income_series = [r for r in net_income if str(r.get("end") or "") < str(annual_end or "")] + income_row
+        earnings_change = self._earnings_change(income_series) if latest_ni is not None else "no matched annual net income"
 
         sic = submissions.get("sic")
         sic_desc = submissions.get("sicDescription") or ""
         sector = sic_to_sector(sic, sic_desc)
 
         out = {
-            "revenueGrowth": self._growth(revenue),
-            "earningsGrowth": self._growth(net_income),
+            "revenueGrowth": self._growth(revenue) if annual_current else None,
+            "earningsGrowth": self._growth(income_series) if latest_ni is not None else None,
             "quarterlyRevenueGrowth": quarterly_growth,
             "totalRevenue": latest_rev,
             "grossMargins": (latest_gp / latest_rev) if latest_gp is not None and latest_rev else None,
             "operatingMargins": (latest_oi / latest_rev) if latest_oi is not None and latest_rev else None,
-            "returnOnEquity": (latest_ni / equity) if latest_ni is not None and equity not in (None, 0) else None,
-            "debtToEquity": (debt_total / equity * 100) if debt_total and equity not in (None, 0) else None,
-            "currentRatio": (current_assets / current_liab) if current_assets is not None and current_liab not in (None, 0) else None,
-            "operatingCashConversion": (latest_ocf / latest_ni) if latest_ocf is not None and latest_ni not in (None, 0) else None,
+            "returnOnEquity": (latest_ni / average_equity) if latest_ni is not None and average_equity is not None else None,
+            "debtToEquity": (debt_total / balance_equity * 100) if debt_total is not None and balance_equity is not None and balance_equity > 0 else None,
+            "currentRatio": (current_assets / current_liab) if current_assets is not None and current_liab is not None and current_liab > 0 else None,
+            "operatingCashConversion": (latest_ocf / latest_ni) if latest_ocf is not None and latest_ni is not None and latest_ni > 0 else None,
             "sharesOutstanding": shares_outstanding,
             "sector": sector,
             "industry": sic_desc or None,
@@ -386,7 +458,18 @@ class SECFundamentalsProvider:
             "cik": ref["cik"],
             "_status": "available",
             "_source": "SEC EDGAR/XBRL",
-            "_fundamental_period": revenue[-1].get("end") if revenue else None,
+            "_fundamental_period": annual_end if annual_current else None,
+            "_fundamental_integrity": "matched-fiscal-periods-v1",
+            "_annual_status": "available" if annual_current else "latest annual revenue unavailable",
+            "_earnings_change": earnings_change,
+            "_earnings_basis": "annual GAAP total net income; includes discontinued operations where reported",
+            "_roe_method": "annual GAAP net income / average opening and closing fiscal-year equity",
+            "_roe_status": "available" if average_equity is not None and latest_ni is not None else "missing matched income/equity or nonpositive equity",
+            "_balance_period": latest_period or None,
+            "_debt_status": debt_status if balance_equity is not None and balance_equity > 0 else "missing or nonpositive balance-sheet equity",
+            "_debt_value": debt_total,
+            "_roe_equity_start": equity_start,
+            "_roe_equity_end": equity_end,
             "_quarterly_period": latest_period or None,
             "_quarterly_source": "SEC EDGAR/XBRL",
             "_quarterly_method": latest_quarter.get("_derived", "reported quarter") if quarter_current else None,
@@ -510,6 +593,14 @@ class YahooMarketProvider:
             if merged.get(key) in (None, "") and value not in (None, ""):
                 merged[key] = value
 
+        if sec.get("_fundamental_integrity"):
+            for key in ("revenueGrowth", "earningsGrowth", "grossMargins", "operatingMargins",
+                        "returnOnEquity", "debtToEquity", "totalRevenue", "currentRatio", "operatingCashConversion"):
+                merged[key] = sec.get(key)
+            for key, value in sec.items():
+                if key.startswith("_") and key not in {"_status", "_source"}:
+                    merged[key] = value
+
         # Prefer SEC sector/industry if Yahoo did not return them.
         if not merged.get("sector") and sec.get("sector"):
             merged["sector"] = sec["sector"]
@@ -525,7 +616,9 @@ class YahooMarketProvider:
             else "Yahoo quoteSummary" if yahoo_core
             else sec.get("_source") or yahoo.get("_source") or "unavailable"
         )
-        merged["_fundamental_period"] = sec.get("_fundamental_period") or merged.get("_fundamental_period")
+        if sec.get("_fundamental_integrity"):
+            merged["_fundamental_source"] = "SEC EDGAR/XBRL"
+        merged["_fundamental_period"] = sec.get("_fundamental_period") if sec.get("_fundamental_integrity") else (sec.get("_fundamental_period") or merged.get("_fundamental_period"))
         if yahoo.get("quarterlyRevenueGrowth") is None:
             for key in ("_quarterly_period", "_quarterly_source", "_quarterly_method", "_quarterly_status"):
                 merged[key] = sec.get(key)
@@ -573,7 +666,8 @@ class YahooMarketProvider:
             "recommendationKey": fd.get("recommendationKey"), "numberOfAnalystOpinions": self._v(fd.get("numberOfAnalystOpinions")),
             "strongBuy": current_trend.get("strongBuy"), "buy": current_trend.get("buy"), "hold": current_trend.get("hold"),
             "sell": current_trend.get("sell"), "strongSell": current_trend.get("strongSell"),
-            "growth": self._v(earnings_current.get("growth")),
+            "forecastEarningsGrowth": self._v(earnings_current.get("growth")),
+            "_earnings_basis": "Yahoo reported earnings growth; provider period/basis",
         }
 
     def news(self, symbol: str, count: int = 15) -> list[dict]:

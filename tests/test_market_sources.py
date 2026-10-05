@@ -37,10 +37,11 @@ def test_sec_companyfacts_produces_compatible_fundamentals(monkeypatch):
             "GrossProfit": {"units": {"USD": [_duration(78, "2025-01-01", "2025-12-31")] }},
             "OperatingIncomeLoss": {"units": {"USD": [_duration(26, "2025-01-01", "2025-12-31")] }},
             "NetCashProvidedByUsedInOperatingActivities": {"units": {"USD": [_duration(18, "2025-01-01", "2025-12-31")] }},
-            "StockholdersEquity": {"units": {"USD": [_instant(70, "2025-12-31")] }},
-            "AssetsCurrent": {"units": {"USD": [_instant(90, "2025-12-31")] }},
-            "LiabilitiesCurrent": {"units": {"USD": [_instant(45, "2025-12-31")] }},
-            "LongTermDebtNoncurrent": {"units": {"USD": [_instant(14, "2025-12-31")] }},
+            "StockholdersEquity": {"units": {"USD": [_instant(50, "2024-12-31"), _instant(70, "2025-12-31"), _instant(70, "2026-03-31")] }},
+            "AssetsCurrent": {"units": {"USD": [_instant(90, "2026-03-31")] }},
+            "LiabilitiesCurrent": {"units": {"USD": [_instant(45, "2026-03-31")] }},
+            "LongTermDebtCurrent": {"units": {"USD": [_instant(0, "2026-03-31")] }},
+            "LongTermDebtNoncurrent": {"units": {"USD": [_instant(14, "2026-03-31")] }},
         }}
     }
 
@@ -56,7 +57,7 @@ def test_sec_companyfacts_produces_compatible_fundamentals(monkeypatch):
     assert round(out["quarterlyRevenueGrowth"], 2) == 0.32
     assert round(out["grossMargins"], 2) == 0.60
     assert round(out["operatingMargins"], 2) == 0.20
-    assert round(out["returnOnEquity"], 2) == 0.20
+    assert round(out["returnOnEquity"], 2) == 0.23
     assert round(out["debtToEquity"], 1) == 20.0
     assert round(out["currentRatio"], 1) == 2.0
     assert out["_coverage"] >= 5
