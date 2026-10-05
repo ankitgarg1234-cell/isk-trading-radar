@@ -140,7 +140,7 @@ def test_request_budget_never_sleeps_or_exceeds_limit():
     client = httpx.Client(transport=httpx.MockTransport(lambda r: calls.append(r) or httpx.Response(200, json={'metric': {'peTTM': 25}})))
     for i in range(50):
         cache.fetch(client, 'metric', str(i), 'secret', 21600)
-    assert len(calls) == 45
+    assert len(calls) == 15
 
 
 def test_fallback_does_not_relabel_existing_yahoo_fields(monkeypatch):

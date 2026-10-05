@@ -19,11 +19,18 @@ def scan_score_diagnostics(analyses):
     low_volume = 0
     normalized_available = 0
     normalized_missing = 0
+    analyst_available = 0
+    analyst_missing_statuses = {}
     bins = {"below_50": 0, "50_to_below_60": 0, "60_to_below_70": 0,
             "70_to_below_80": 0, "80_to_100": 0}
     for analysis in analyses:
         f = analysis.get("fundamentals") or {}
         t = analysis.get("technicals") or {}
+        if _number(analysis.get("analyst_score")) is not None:
+            analyst_available += 1
+        else:
+            status = str(f.get("_analyst_status") or "unavailable")
+            analyst_missing_statuses[status] = analyst_missing_statuses.get(status, 0) + 1
         if not any((_number(f.get(k)) or 0) > 0 for k in ("forwardPE", "trailingPE")):
             missing["valuation_pe"] += 1
         if (_number(f.get("targetMeanPrice")) or 0) <= 0:
@@ -61,4 +68,7 @@ def scan_score_diagnostics(analyses):
         "relative_volume_basis": "matching completed regular-session five-minute intervals; raw daily ratio retained only for diagnostics",
         "normalized_relative_volume_available": normalized_available,
         "normalized_relative_volume_missing": normalized_missing,
+        "analyst_scores_available": analyst_available,
+        "analyst_scores_missing": len(analyses) - analyst_available,
+        "analyst_missing_statuses": analyst_missing_statuses,
         "top_candidates": scores[:5]}

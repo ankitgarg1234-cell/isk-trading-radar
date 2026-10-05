@@ -20,7 +20,7 @@ def positive(value):
 class EndpointCache:
     """Compact per-provider cache with a shared request budget and failure cooldown."""
     def __init__(self):
-        self.entries = OrderedDict()
+        self.entries = {}
         self.requests = deque()
         self.blocked = {}
         self.lock = Lock()
@@ -29,17 +29,21 @@ class EndpointCache:
         key = (endpoint, symbol)
         now = time.monotonic()
         with self.lock:
-            cached = self.entries.get(key)
+            entries = self.entries.setdefault(endpoint, OrderedDict())
+            cached = entries.get(key)
             if cached and cached[0] > now:
-                self.entries.move_to_end(key)
+                entries.move_to_end(key)
                 return cached[1], cached[2]
             if max(self.blocked.get(endpoint, 0), self.blocked.get("*", 0)) > now:
                 return None, "unavailable (endpoint cooldown)"
-            while self.requests and self.requests[0] < now - 60:
+            while self.requests and self.requests[0][0] < now - 60:
                 self.requests.popleft()
             if len(self.requests) >= 45:
                 return None, "unavailable (request budget)"
-            self.requests.append(now)
+            # Optional enrichment must leave room for recommendation scores.
+            if endpoint != "recommendation" and sum(ep != "recommendation" for _, ep in self.requests) >= 15:
+                return None, "unavailable (enrichment budget; recommendations reserved)"
+            self.requests.append((now, endpoint))
         data, status = None, "unavailable"
         cooldown = 0
         try:
@@ -59,10 +63,15 @@ class EndpointCache:
                     data = {"symbol": data.get("symbol"), "metric": {"peTTM": (data.get("metric") or {}).get("peTTM")}}
                 elif endpoint == "recommendation":
                     data = data[:1]
+                elif endpoint == "profile2":
+                    data = {k: data.get(k) for k in ("ticker", "currency", "marketCapitalization", "shareOutstanding")}
+                elif endpoint == "price-target":
+                    data = {k: data.get(k) for k in ("symbol", "targetMean", "targetLow", "targetHigh", "lastUpdated")}
         except Exception as exc:
             # Never include exception URLs: Finnhub tokens are query parameters.
             code = getattr(getattr(exc, "response", None), "status_code", None)
             status = f"unavailable (HTTP {code})" if code else f"unavailable ({type(exc).__name__})"
+            data = None
         with self.lock:
             if cooldown:
                 self.blocked[endpoint] = now + cooldown
@@ -70,10 +79,15 @@ class EndpointCache:
                     self.blocked["*"] = now + cooldown
             if isinstance(data, dict):
                 data = {**data, "_retrieved_at": datetime.now(timezone.utc).isoformat()}
-            self.entries[key] = (now + (ttl if data is not None else 300), data, status)
-            self.entries.move_to_end(key)
-            while len(self.entries) > 256:
-                self.entries.popitem(last=False)
+            entries = self.entries[endpoint]
+            # A temporary account throttle must be retried when its cooldown
+            # expires, rather than suppressing scores for an extra five minutes.
+            failure_ttl = 60 if cooldown == 60 else 300
+            entries[key] = (now + (ttl if data is not None else failure_ttl), data, status)
+            entries.move_to_end(key)
+            limit = 256 if endpoint == "recommendation" else 32 if endpoint == "price-target" else 128
+            while len(entries) > limit:
+                entries.popitem(last=False)
         return data, status
 
 

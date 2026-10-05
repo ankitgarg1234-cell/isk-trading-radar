@@ -495,7 +495,7 @@ class FinnhubAnalystProvider:
     def recommendations(self, symbol: str) -> dict:
         if not self.token or symbol.endswith(".ST"):
             return {"_analyst_status": "optional Finnhub key not configured", "_analyst_source": "Finnhub (optional)"}
-        rows, status = self.cache.fetch(self.client, "recommendation", symbol, self.token, 3600)
+        rows, status = self.cache.fetch(self.client, "recommendation", symbol, self.token, 21600)
         if not isinstance(rows, list):
             return {"_analyst_status": status, "_analyst_source": "Finnhub recommendation trends"}
         if not rows:
@@ -507,6 +507,17 @@ class FinnhubAnalystProvider:
             "_analyst_period": row.get("period"), "_analyst_status": "available",
             "_analyst_source": "Finnhub recommendation trends",
         }
+
+    def prefetch_recommendations(self, symbols: list[str]) -> None:
+        # Sequential calls use the same account budget and bounded cache. A
+        # provider failure remains isolated from price/fundamental analysis.
+        if not self.token:
+            return
+        for symbol in symbols[:48]:
+            try:
+                self.recommendations(symbol)
+            except Exception:
+                continue
 
     def market_evidence(self, symbol: str) -> dict:
         out = {}

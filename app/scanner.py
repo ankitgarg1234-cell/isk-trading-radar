@@ -935,6 +935,10 @@ class RadarService:
         syms = self.candidate_symbols()
         batch, queued_count = self._deep_analysis_batch(syms)
         effective_batch_size = len(batch)
+        # Fetch scores before optional P/E/profile enrichment consumes requests.
+        analyst_provider = getattr(self.provider, "analyst", None)
+        if hasattr(analyst_provider, "prefetch_recommendations"):
+            analyst_provider.prefetch_recommendations(batch)
         ok = 0
         errors: list[str] = []
         lane_core = 0
