@@ -46,7 +46,7 @@
   </section>
 
   <section class="panel ops-strip" aria-label="Trading status">
-    <div class="ops-stat"><span>Universe</span><b id="universeSize">{{ scanner.universe_size or 'initializing' }}</b><small>last discovery cycle: <span id="scannerCoreCount">{{ scanner.last_universe_core_candidates }}</span> Core • <span id="scannerExplosiveCount">{{ scanner.last_universe_explosive_candidates }}</span> Explosive</small></div>
+    <div class="ops-stat"><span>Listed US stocks</span><b id="universeSize">{{ scanner.universe_size or 'initializing' }}</b><small>last discovery cycle: <span id="scannerCoreCount">{{ scanner.last_universe_core_candidates }}</span> Core • <span id="scannerExplosiveCount">{{ scanner.last_universe_explosive_candidates }}</span> Explosive</small></div>
     <div class="ops-stat"><span>Qualified</span><b><span id="optimizerCore">{{ optimizer.core_quality }}</span> Core</b><small><span id="optimizerExplosive">{{ optimizer.explosive }}</span> Explosive</small></div>
     <div class="ops-stat"><span>Actionable now</span><b id="optimizerInvest">{{ optimizer.invest_now }}</b><small>Top-20 buy signals</small></div>
     <div class="ops-stat"><span>Account risk</span><b><span id="accountRiskScore">{{ '%.0f'|format(account_risk.score) }}</span>/100</b><small id="accountRiskBand">{{ account_risk.band }} • target {{ account_risk.target_label }}</small></div>

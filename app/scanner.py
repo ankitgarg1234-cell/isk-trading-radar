@@ -170,6 +170,8 @@ class RadarService:
         self.last_deep_analyzed = 0
         self.last_experiment_result = {"status": "waiting_for_market_open", "version": "score-bands-paper-v1"}
         self.last_universe_start = 0
+        self._universe_cursor = None
+        self._deferred_analysis_symbols: list[str] = []
         # Process-local material state used only to decide whether the paper
         # optimizer needs an immediate event-driven run.  It is intentionally
         # not stored in Neon; a service restart may cause one harmless recheck.
@@ -627,7 +629,10 @@ class RadarService:
             slot = seconds_from_open // max(30, settings.scan_interval_seconds)
         else:
             slot = self.scan_count
-        start = int((slot * batch_size) % len(universe))
+        # Initialize near the current session slot, then advance by batches that
+        # actually ran. Wall-clock slots skip names whenever a cycle runs long.
+        start = int((slot * batch_size) % len(universe)) if self._universe_cursor is None else self._universe_cursor % len(universe)
+        self._universe_cursor = (start + batch_size) % len(universe)
         self.last_universe_start = start
         if start + batch_size <= len(universe):
             return universe[start:start + batch_size]
@@ -769,6 +774,20 @@ class RadarService:
         broad_symbols = [q["symbol"] for q in broad]
         ordered = holdings + stale + priority + discovery_symbols + broad_symbols
         return list(dict.fromkeys(s.upper() for s in ordered if s))
+
+    def _deep_analysis_batch(self, symbols: list[str]) -> tuple[list[str], int]:
+        """Size from the actual queue and carry overflow into the next cycle.
+
+        Stale-score refreshes are additional work, not part of configured
+        discovery quotas. Never discard the rotating candidates at the tail.
+        Keep only ticker strings between cycles, with no retained market bundles.
+        """
+        holdings = self.holding_symbols()
+        queued = list(dict.fromkeys(holdings + self._deferred_analysis_symbols + symbols))
+        budget = min(48, max(settings.scan_batch_size, len(queued)))
+        batch = queued[:budget]
+        self._deferred_analysis_symbols = queued[budget:]
+        return batch, len(queued)
 
     def _paper_optimizer_policy_fingerprint(self) -> str:
         """Fingerprint every rule that can change paper-entry eligibility.
@@ -914,17 +933,8 @@ class RadarService:
                 "errors": errors,
             }
         syms = self.candidate_symbols()
-        # The configured broad-market deep candidates must actually reach full
-        # analysis. A fixed 32-name cap previously let holdings/watch/discovery
-        # consume most slots, leaving only a handful of the 16 broad candidates.
-        required_batch = (
-            len(self.holding_symbols())
-            + settings.priority_deep_limit
-            + settings.discovery_deep_candidates
-            + settings.universe_deep_candidates
-        )
-        effective_batch_size = min(48, max(settings.scan_batch_size, required_batch))
-        batch = syms[:effective_batch_size]
+        batch, queued_count = self._deep_analysis_batch(syms)
+        effective_batch_size = len(batch)
         ok = 0
         errors: list[str] = []
         lane_core = 0
@@ -1071,6 +1081,9 @@ class RadarService:
             "rr_below_min_symbols": rr_below_min_symbols,
             "min_entry_risk_reward": MIN_ENTRY_RISK_REWARD,
             "effective_batch_size": effective_batch_size,
+            "deep_analysis_queued": queued_count,
+            "deep_analysis_deferred": len(self._deferred_analysis_symbols),
+            "universe_coverage_basis": "listed universe; one sequential quick-scan batch per completed cycle, selected names fully analyzed",
             "lane_core_analyzed": lane_core,
             "lane_explosive_analyzed": lane_explosive,
             "core_quality_pass_analyzed": core_quality_pass,
