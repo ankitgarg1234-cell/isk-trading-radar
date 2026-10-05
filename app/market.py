@@ -293,12 +293,15 @@ class SECFundamentalsProvider:
         return "improving loss" if value > base else "worsening loss" if value < base else "unchanged loss"
 
     @classmethod
-    def _instant_at(cls, fact: dict | None, end: str) -> float | None:
+    def _instant_row_at(cls, fact: dict | None, end: str) -> dict:
         candidates = [r for r in cls._entries(fact, ("USD",))
                       if r.get("end") == end and not r.get("start")
                       and r.get("form") in {"10-K", "10-K/A", "10-Q", "10-Q/A", "20-F", "20-F/A"}]
-        latest = max(candidates, key=lambda r: str(r.get("filed") or ""), default={})
-        return _safe_float(latest.get("val"))
+        return max(candidates, key=lambda r: str(r.get("filed") or ""), default={})
+
+    @classmethod
+    def _instant_at(cls, fact: dict | None, end: str) -> float | None:
+        return _safe_float(cls._instant_row_at(fact, end).get("val"))
 
     @classmethod
     def _debt_at(cls, facts: dict, end: str) -> tuple[float | None, str]:
@@ -387,6 +390,7 @@ class SECFundamentalsProvider:
         equity_fact = self._fact(facts, ("StockholdersEquity", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"))
         current_assets_fact = self._fact(facts, ("AssetsCurrent",))
         current_liab_fact = self._fact(facts, ("LiabilitiesCurrent",))
+        liabilities_fact = self._fact(facts, ("Liabilities",))
         ocf_fact = self._fact(facts, ("NetCashProvidedByUsedInOperatingActivities",))
         dei = (facts.get("facts") or {}).get("dei") or {}
         shares_outstanding_fact = dei.get("EntityCommonStockSharesOutstanding")
@@ -426,6 +430,19 @@ class SECFundamentalsProvider:
             rows = matched(series)
             return _safe_float(rows[-1].get("val")) if annual_current and rows else None
         latest_gp, latest_oi, latest_ocf = amount(gross_profit), amount(op_income), amount(ocf)
+        gross_margin_method = "reported gross profit / matched annual revenue" if latest_gp is not None else "unavailable"
+        if latest_gp is None and latest_rev is not None:
+            # Some issuers (including Alphabet) report revenue and cost of
+            # revenue without a GrossProfit fact. Complete cost tags are aliases,
+            # never additive, and must belong to the same fiscal period/filing.
+            costs = [r for tag in ("CostOfRevenue", "CostOfGoodsAndServicesSold")
+                     for r in matched(self._annual_values(self._fact(facts, (tag,))))
+                     if (not annual.get("accn") or r.get("accn") == annual["accn"])
+                     and _safe_float(r.get("val")) is not None and float(r["val"]) >= 0]
+            cost = max(costs, key=lambda r: str(r.get("filed") or ""), default=None)
+            if cost is not None:
+                latest_gp = latest_rev - float(cost["val"])
+                gross_margin_method = "(reported revenue - matched cost of revenue) / revenue"
         # ROE uses income and average equity for the same fiscal year.
         equity_end = self._instant_at(equity_fact, annual_end) if annual_end else None
         equity_start_date = (datetime.fromisoformat(annual["start"])-timedelta(days=1)).date().isoformat() if annual.get("start") else None
@@ -436,6 +453,14 @@ class SECFundamentalsProvider:
         current_liab = self._instant_at(current_liab_fact, latest_period)
         shares_outstanding = self._latest_instant(shares_outstanding_fact, ("shares",))
         debt_total, debt_status = self._debt_at(facts, latest_period)
+        liabilities_row = self._instant_row_at(liabilities_fact, latest_period)
+        equity_row = self._instant_row_at(equity_fact, latest_period)
+        liabilities = _safe_float(liabilities_row.get("val"))
+        matched_balance = bool(liabilities_row and equity_row and
+            (liabilities_row.get("accn") == equity_row.get("accn") if liabilities_row.get("accn") and equity_row.get("accn")
+             else liabilities_row.get("filed") == equity_row.get("filed")))
+        debt_bound = (liabilities / balance_equity * 100
+                      if matched_balance and liabilities is not None and liabilities >= 0 and balance_equity is not None and balance_equity > 0 else None)
         income_series = [r for r in net_income if str(r.get("end") or "") < str(annual_end or "")] + income_row
         earnings_change = self._earnings_change(income_series) if latest_ni is not None else "no matched annual net income"
 
@@ -472,6 +497,10 @@ class SECFundamentalsProvider:
             "_balance_period": latest_period or None,
             "_debt_status": debt_status if balance_equity is not None and balance_equity > 0 else "missing or nonpositive balance-sheet equity",
             "_debt_value": debt_total,
+            "_debt_to_equity_upper_bound": debt_bound,
+            "_debt_bound_period": latest_period if debt_bound is not None else None,
+            "_debt_bound_method": "reported total liabilities / equity at the same balance-sheet date" if debt_bound is not None else None,
+            "_gross_margin_method": gross_margin_method,
             "_roe_equity_start": equity_start,
             "_roe_equity_end": equity_end,
             "_quarterly_period": latest_period or None,
@@ -520,16 +549,20 @@ class FinnhubAnalystProvider:
                 continue
 
     def market_evidence(self, symbol: str) -> dict:
+        return self.market_evidence_for(symbol)
+
+    def market_evidence_for(self, symbol: str, *, need_valuation=True, need_profile=True, need_target=True) -> dict:
         out = {}
         if not self.token or symbol.endswith(".ST"):
             return out
         observed = datetime.now(timezone.utc).isoformat()
-        metrics, status = self.cache.fetch(self.client, "metric", symbol, self.token, 21600, {"metric": "all"})
-        metric = (metrics or {}).get("metric") or {} if isinstance(metrics, dict) else {}
-        pe = positive(metric.get("peTTM")) if not (metrics or {}).get("symbol") or metrics.get("symbol") == symbol else None
-        out.update(trailingPE=pe, _valuation_source="Finnhub basic financials (TTM P/E)",
-                   _valuation_asof=(metrics or {}).get("_retrieved_at") or observed, _valuation_status="available; provider observation date not supplied" if pe else status if status != "available" else "unavailable (positive TTM P/E not returned)")
-        profile, status = self.cache.fetch(self.client, "profile2", symbol, self.token, 21600)
+        if need_valuation:
+            metrics, status = self.cache.fetch(self.client, "metric", symbol, self.token, 21600, {"metric": "all"})
+            metric = (metrics or {}).get("metric") or {} if isinstance(metrics, dict) else {}
+            pe = positive(metric.get("peTTM")) if not (metrics or {}).get("symbol") or metrics.get("symbol") == symbol else None
+            out.update(trailingPE=pe, _valuation_source="Finnhub basic financials (TTM P/E)",
+                       _valuation_asof=(metrics or {}).get("_retrieved_at") or observed, _valuation_status="available; provider observation date not supplied" if pe else status if status != "available" else "unavailable (positive TTM P/E not returned)")
+        profile, status = self.cache.fetch(self.client, "profile2", symbol, self.token, 21600) if need_profile else (None, "not requested")
         profile = profile if isinstance(profile, dict) else {}
         if profile.get("ticker") == symbol and profile.get("currency") == "USD":
             cap, shares = positive(profile.get("marketCapitalization")), positive(profile.get("shareOutstanding"))
@@ -538,6 +571,8 @@ class FinnhubAnalystProvider:
                            _market_cap_asof=profile.get("_retrieved_at") or observed, _market_cap_status="available; retrieved at shown time")
             if shares:
                 out.update(sharesOutstanding=shares * 1_000_000)
+        if not need_target:
+            return out
         targets, status = self.cache.fetch(self.client, "price-target", symbol, self.token, 3600)
         targets = targets if isinstance(targets, dict) else {}
         out.update(_target_source="Finnhub price-target consensus", _target_status=status)
@@ -764,7 +799,13 @@ class YahooMarketProvider:
             merged["_analyst_source"] = analyst.get("_analyst_source") or merged.get("_analyst_source") or "unavailable"
         if hasattr(self.analyst, "market_evidence") and any(not positive(merged.get(key)) for key in ("trailingPE", "marketCap", "targetMeanPrice")):
             try:
-                evidence = self.analyst.market_evidence(symbol)
+                if hasattr(self.analyst, "market_evidence_for"):
+                    evidence = self.analyst.market_evidence_for(symbol,
+                        need_valuation=not any(positive(merged.get(k)) for k in ("forwardPE", "trailingPE")),
+                        need_profile=not positive(merged.get("marketCap")) and not positive(merged.get("sharesOutstanding")),
+                        need_target=not positive(merged.get("targetMeanPrice")))
+                else:
+                    evidence = self.analyst.market_evidence(symbol)
             except Exception as exc:
                 evidence = {"_market_evidence_status": f"unavailable ({type(exc).__name__})"}
             for fields, prefix in ((('trailingPE',), 'valuation'), (('marketCap', 'sharesOutstanding'), 'market_cap'), (('targetMeanPrice', 'targetLowPrice', 'targetHighPrice'), 'target')):

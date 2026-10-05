@@ -108,7 +108,7 @@ def _compact_payload(full: dict) -> dict:
         news = dict(news)
         items = news.get("items")
         if isinstance(items, list):
-            news["items"] = items[:15] if news.get("version") in {"headline-context-v2", "article-context-v3"} else items[:5]
+            news["items"] = items[:15] if news.get("version") in {"headline-context-v2", "article-context-v3", "article-context-v4"} else items[:5]
         compact["news"] = news
     strategic = compact.get("strategic_capital")
     if isinstance(strategic, dict):

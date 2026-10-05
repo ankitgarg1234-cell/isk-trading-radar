@@ -52,7 +52,7 @@ CORE_MIN_AVG_DOLLAR_VOLUME = 10_000_000.0
 EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME = 20_000_000.0
 MIN_FUNDAMENTAL_SCORE = 14.0  # 70/100 normalized fundamental quality
 EXPLOSIVE_MAX_TRADING_SESSIONS = 20
-SCORING_VERSION = "2026-10-05-market-evidence-v11"
+SCORING_VERSION = "2026-10-05-score-input-integrity-v12"
 
 PROMOTION_SEVERE_TERMS = {
     "reverse split", "going concern", "minimum bid", "nasdaq compliance",
@@ -109,9 +109,16 @@ def rsi(values: list[float], period: int = 14) -> float | None:
     if len(vals) <= period:
         return None
     changes = [vals[i] - vals[i - 1] for i in range(1, len(vals))]
-    gains = [max(c, 0) for c in changes[-period:]]
-    losses = [max(-c, 0) for c in changes[-period:]]
-    ag, al = mean(gains), mean(losses)
+    # Seed once, then carry Wilder's averages through the available history.
+    # A rolling simple average (Cutler RSI) can reject an otherwise constructive
+    # setup when an old loss drops out of the last fourteen observations.
+    ag = mean(max(c, 0) for c in changes[:period])
+    al = mean(max(-c, 0) for c in changes[:period])
+    for change in changes[period:]:
+        ag = (ag * (period - 1) + max(change, 0)) / period
+        al = (al * (period - 1) + max(-change, 0)) / period
+    if ag == al == 0:
+        return 50.0
     if al == 0:
         return 100.0
     rs = ag / al
@@ -195,6 +202,20 @@ def fundamental_score(f: dict) -> tuple[float, list[str], str]:
             reasons.append(f"Debt/equity {de:.1f}% ({de/100:.3f}×) → {pts}/2")
         except Exception:
             pass
+    elif (f.get("debtToEquity") is None and f.get("_fundamental_integrity") and f.get("_balance_period")
+          and f.get("_debt_bound_period") == f["_balance_period"]):
+        # All balance-sheet debt is contained in total liabilities. A matched
+        # liabilities/equity bound can prove an existing scoring band without
+        # fabricating an exact debt value or assuming missing borrowings are zero.
+        try:
+            bound = float(f.get("_debt_to_equity_upper_bound"))
+            if math.isfinite(bound) and bound >= 0 and bound < 150:
+                pts = 2 if bound < 75 else 1
+                observed += 1
+                score += pts
+                reasons.append(f"Reported liabilities/equity {bound:.1f}% bounds debt/equity → {pts}/2 (exact debt unavailable)")
+        except (TypeError, ValueError):
+            pass
     if qrg is not None:
         observed += 1
         qpts = 2 if qrg >= 25 else 1 if qrg >= 10 else 0
@@ -203,6 +224,8 @@ def fundamental_score(f: dict) -> tuple[float, list[str], str]:
         reasons.append(f"Quarterly revenue growth {qrg:.1f}%{accel} → +{qpts}")
     if eg is None and f.get("_earnings_change"):
         reasons.append(f"Earnings: {f['_earnings_change']} → no percentage-growth credit")
+    if gm is not None and f.get("_gross_margin_method"):
+        reasons.append(f"Gross margin method: {f['_gross_margin_method']}")
     if f.get("_roe_status") and roe is None:
         reasons.append(f"ROE unavailable: {f['_roe_status']}")
     if f.get("_debt_status") and de is None:

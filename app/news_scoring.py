@@ -10,13 +10,13 @@ from datetime import datetime, timezone
 from difflib import SequenceMatcher
 from urllib.parse import urlsplit
 
-VERSION = "article-context-v3"
+VERSION = "article-context-v4"
 
 # Each rule describes one event, rather than awarding every substring hit.
 RULES = (
     ("guidance", "positive", r"\b(?:rais(?:e[sd]?|ing)|boost(?:s|ed)?|increas(?:e[sd]?|ing)|upward)\b.{0,35}\b(?:guidance|outlook|forecast)\b|\b(?:guidance|outlook|forecast)\b.{0,25}\b(?:raised|increased|boosted)\b"),
     ("guidance", "negative", r"\b(?:cut(?:s|ting)?|lower(?:s|ed|ing)?|slash(?:es|ed)?|withdraw(?:s|n)?)\b.{0,35}\b(?:guidance|outlook|forecast)\b|\b(?:guidance|outlook|forecast)\b.{0,25}\b(?:cut|lowered|withdrawn)\b"),
-    ("earnings", "positive", r"\bbeat(?:s)?\b.{0,35}\b(?:earnings|revenue|estimates|expectations)\b|\b(?:earnings|revenue|profit|eps)\b.{0,30}\b(?:beat(?:s)?|surge[sd]?|grow(?:s|th)?|rise[sn]?)\b|\brecord\b.{0,15}\b(?:revenue|earnings|profit)\b"),
+    ("earnings", "positive", r"\bbeat(?:s)?\b.{0,35}\b(?:earnings|revenue|estimates|expectations)\b|\b(?:earnings|revenue|profit|eps)\b.{0,30}\b(?:beat(?:s)?|surge[sd]?|grow(?:s|th)?|grew|rise[sn]?|rose|increased)\b|\bgrew\b.{0,15}\b(?:revenue|earnings|profit)\b|\brecord\b.{0,15}\b(?:revenue|earnings|profit)\b"),
     ("earnings", "negative", r"\bmiss(?:es|ed)?\b.{0,35}\b(?:earnings|revenue|estimates|expectations)\b|\b(?:earnings|revenue|profit|eps)\b.{0,30}\b(?:miss(?:es|ed)?|declin(?:e[sd]?|ing)|fall[sn]?|disappoint(?:s|ed)?)\b"),
     ("rating", "positive", r"\bupgrad(?:e[sd]?|ing)\b|\b(?:initiates?|initiated)\b.{0,30}\b(?:buy|outperform)\b"),
     ("rating", "negative", r"\bdowngrad(?:e[sd]?|ing)\b"),
@@ -40,6 +40,8 @@ NEGATION = re.compile(r"\b(?:not|never|no|without|fails? to|failed to|unlikely t
 CONTRADICTS = re.compile(r"\b(?:disappoint\w*|slows?|slowed|weak\w*)\b", re.I)
 GENERIC = {"company", "group", "holding", "holdings", "inc", "incorporated", "ltd", "limited", "corporation", "corp", "plc", "the"}
 SPLIT = re.compile(r"\s*(?:;|\bbut\b|\bwhile\b|\band\b|\bafter\b|\bwhereas\b|\bas\b)\s*", re.I)
+SENTENCES = re.compile(r"(?<=[.!?])\s+(?=[A-Z])")
+CONTINUATION = re.compile(r"^\s*(?:raises?|cuts?|reports?|announces?|wins?|receives?|misses?|beats?|signs?|secures?|record|earnings|revenue|profit|guidance)\b|^\s*(?:the\s+)?(?:stock|shares?|company|it)\s+(?:(?:is|was|gets?|has been)\s+)?(?:upgraded|downgraded)\b", re.I)
 
 
 def _time(value):
@@ -78,27 +80,38 @@ def _relevance(n, symbol, aliases):
 
 
 def _signals(title, aliases):
-    if OPINION.search(title):
-        return set(), "speculation, question or opinion; no asserted event scored"
     found = set()
-    clauses = SPLIT.split(title)
     named = any(p.search(title) for p in aliases)
-    for clause in clauses:
-        # If an explicit company is present, only that company's clauses and
-        # subjectless continuations are eligible; another named subject is not.
-        target = any(p.search(clause) for p in aliases)
-        if named and not target and not re.match(r"^\s*(?:raises?|cuts?|reports?|announces?|wins?|receives?|misses?|beats?|record|earnings|revenue|profit|guidance)\b", clause, re.I):
+    skipped_opinion = False
+    active_target = not named
+    for sentence in SENTENCES.split(title):
+        # An appended question must not erase an earlier factual assertion.
+        # Conversely, an unasserted event inside a question still earns nothing.
+        # A dated May reference is a month, not a speculative modal verb.
+        opinion_text = re.sub(r"\bMay\s+(?:[12]?\d|3[01])(?:,\s*20\d{2})?\b", "dated release", sentence)
+        if OPINION.search(opinion_text):
+            skipped_opinion = True
             continue
-        for kind, direction, pattern in PATTERNS:
-            for match in pattern.finditer(clause):
-                if NEGATION.search(clause[:match.start()]) or re.search(r"\b(?:not|never|no|without)\b", match.group(), re.I):
+        for clause in SPLIT.split(sentence):
+            # Another named company/broker subject cannot borrow the target's
+            # relevance. Explicit subjectless continuations remain eligible.
+            target = any(p.search(clause) for p in aliases)
+            if target:
+                active_target = True
+            elif named:
+                if not (active_target and CONTINUATION.match(clause)):
+                    if any(pattern.search(clause) for _, _, pattern in PATTERNS):
+                        active_target = False
                     continue
-                # A rule cannot turn "profit growth disappoints" bullish.
-                if direction == "positive" and kind == "earnings" and CONTRADICTS.search(clause):
-                    found.add((kind, "negative"))
-                else:
-                    found.add((kind, direction))
-    return found, "asserted headline events" if found else "no unambiguous event rule matched"
+            for kind, direction, pattern in PATTERNS:
+                for match in pattern.finditer(clause):
+                    if NEGATION.search(clause[:match.start()]) or re.search(r"\b(?:not|never|no|without)\b", match.group(), re.I):
+                        continue
+                    if direction == "positive" and kind == "earnings" and CONTRADICTS.search(clause):
+                        found.add((kind, "negative"))
+                    else:
+                        found.add((kind, direction))
+    return found, "asserted headline events" if found else "speculation, question or opinion; no asserted event scored" if skipped_opinion else "no unambiguous event rule matched"
 
 
 def _canonical_url(link):
