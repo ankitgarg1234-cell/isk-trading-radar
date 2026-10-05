@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Full universe scan — ISK Trading Radar</title><link rel="stylesheet" href="/static/style.css">
+</head><body><header class="topbar"><h1>Full universe scan</h1><a class="btn secondary" href="/">Trading Radar</a></header>
+<main class="container"><section class="panel">
+<p>Checks every listed stock against the same price and liquidity gates, then fully scores every survivor. No top-candidate quota.</p>
+<p><b>Deterministic ≥70 · Analyst ≥75 · R/R ≥0.4× · Core or Explosive quality</b></p>
+<p>After-hours analysis only. A ready entry at the saved quote still requires a fresh market-open check before paper execution.</p>
+<button class="btn primary" id="start">Start / resume full scan</button>
+<a class="btn secondary" href="/api/full-scan/results.csv">Download all stock results</a>
+<p id="progress" aria-live="polite">Loading scan progress…</p><progress id="bar" max="100" value="0" style="width:100%"></progress>
+<p id="coverage"></p><p id="gaps"></p><p id="time" class="subtle"></p>
+</section><section class="panel"><h2>How many pass?</h2>
+<p>Each gate count is independent and applies to fully scored stocks. All requirements must pass together to qualify.</p>
+<div class="table-wrap"><table><thead><tr><th>Gate</th><th>Stocks passing</th></tr></thead><tbody id="gates"></tbody></table></div>
+</section><section class="panel"><h2>Qualifying stocks</h2><p id="qualifierCount"></p>
+<div class="table-wrap"><table><thead><tr><th>Stock</th><th>Price</th><th>Deterministic</th><th>Analyst</th><th>R/R</th><th>Lane</th><th>Entry at quote</th></tr></thead><tbody id="stocks"></tbody></table></div>
+</section><section class="panel"><h2>Why stocks are held back</h2><p>The first failing gate is shown here. The downloaded results also contain data-source status.</p>
+<div class="table-wrap"><table><thead><tr><th>First blocker</th><th>Stocks</th></tr></thead><tbody id="blockers"></tbody></table></div>
+</section></main>
+<script>
+const labels={deterministic_70:'Deterministic ≥70',analyst_75:'Analyst ≥75',risk_reward_0_4:'R/R ≥0.4×',fundamentals_14:'Fundamentals ≥14/20',lane:'Core / Explosive lane',qualified:'All qualification gates',ready_at_quote:'Entry trigger ready at saved quote'};
+const text=(id,value)=>document.getElementById(id).textContent=value;
+const numeric=(v,d=1)=>typeof v==='number'?v.toFixed(d):'Unavailable';
+function table(id,rows){const body=document.getElementById(id);body.replaceChildren();for(const values of rows){const tr=document.createElement('tr');for(const value of values){const td=document.createElement('td');if(value instanceof Node)td.append(value);else td.textContent=String(value);tr.append(td);}body.append(tr);}}
+async function refresh(){try{const response=await fetch('/api/full-scan',{cache:'no-store'});if(!response.ok)throw Error('Unable to load scan');const d=await response.json();if(d.status==='not_started'){text('progress','Full scan has not started.');return;}
+const c=d.status_counts||{},s=d.summary||{},m=s.missing_data||{};text('progress',`${d.status.replaceAll('_',' ')} · ${d.processed} / ${d.universe_size} checked (${d.progress_pct}%)`);document.getElementById('bar').value=d.progress_pct;
+text('coverage',`${c.scored||0} fully scored · ${c.excluded||0} excluded by exact price/currency/liquidity gates · ${c.awaiting_analysis||0} awaiting full scoring · ${c.pending||0} awaiting initial check.`);
+text('gaps',`${c.error||0} data-fetch errors · ${m.analyst_score||0} scored stocks without analyst coverage · ${m.transient_data_gap||0} scored stocks with temporary data gaps. These are unresolved data limits, not proof that a stock fails economically.`);
+text('time',`Session: ${d.session_date} · Updated: ${d.updated_at} · Scoring: ${d.scoring_version}${d.worker_running?' · Scan running':' · Worker idle'}`);
+table('gates',Object.entries(labels).map(([k,label])=>[label,(s.independent_gate_pass_counts||{})[k]||0]));
+text('qualifierCount',`${d.qualified_count} stocks qualify so far. Results remain provisional until the full scan finishes.`);
+table('stocks',(d.qualified_stocks||[]).map(r=>{const a=document.createElement('a');a.href='/analysis/'+encodeURIComponent(r.symbol);a.textContent=r.symbol;return [a,numeric(r.price,2),numeric(r.deterministic_score),numeric(r.analyst_score),numeric(r.risk_reward,3)+'×',r.lane||'—',r.ready_at_quote?'Ready at saved quote':r.reason];}));
+table('blockers',Object.entries(s.first_blocker_counts||{}).filter(([,n])=>n>0).sort((a,b)=>b[1]-a[1]).map(([k,n])=>[k.replaceAll('_',' '),n]));
+}catch(e){text('progress',e.message);}}
+document.getElementById('start').addEventListener('click',async()=>{const b=document.getElementById('start');b.disabled=true;try{const r=await fetch('/api/full-scan',{method:'POST'});const d=await r.json();if(d.message)text('progress',d.message);else await refresh();}catch(e){text('progress',e.message);}finally{b.disabled=false;}});
+refresh();setInterval(refresh,30000);
+</script></body></html>

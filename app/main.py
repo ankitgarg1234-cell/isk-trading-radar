@@ -3,7 +3,7 @@ import asyncio, json, os, threading, time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, Request, Form, UploadFile, File, HTTPException, BackgroundTasks
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -19,6 +19,10 @@ from .ai_engine import AIEngine
 from .score_band_capture import experiment_status
 from . import article_news
 from .trading_rules import MIN_ENTRY_RISK_REWARD
+from .full_scan import FullUniverseScan
+
+full_scan = FullUniverseScan(radar)
+radar.full_universe_scan = full_scan
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
@@ -31,8 +35,10 @@ async def lifespan(app:FastAPI):
         "optional_finnhub_configured": bool(settings.finnhub_api_key)}
     if not settings.disable_scanner:
         article_news.worker.start()
+        await asyncio.to_thread(full_scan.resume)
         task=asyncio.create_task(radar.loop())
     yield
+    full_scan.stop()
     article_news.worker.stop()
     if task:
         task.cancel()
@@ -722,6 +728,23 @@ def scan_now():
     result=radar.scan_once(force=True)
     _invalidate_live_cache()
     return result
+
+@app.post("/api/full-scan")
+def start_full_scan():
+    return full_scan.start()
+
+@app.get("/api/full-scan")
+def full_scan_status():
+    return full_scan.status()
+
+@app.get("/api/full-scan/results.csv")
+def full_scan_results():
+    return Response(full_scan.results_csv(), media_type="text/csv",
+                    headers={"Content-Disposition":"attachment; filename=full-universe-scan.csv"})
+
+@app.get("/scan-audit", response_class=HTMLResponse)
+def full_scan_page(request: Request):
+    return templates.TemplateResponse(request, "full_scan.html", {})
 
 @app.post("/paper/run-now")
 def paper_run_now():

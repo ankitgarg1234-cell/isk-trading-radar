@@ -238,6 +238,34 @@ def storage_status() -> dict:
         ),
     }
 
+class FullScanRun(Base):
+    __tablename__ = "full_scan_runs"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    run_id: Mapped[str] = mapped_column(String(40), index=True)
+    status: Mapped[str] = mapped_column(String(40))
+    scoring_version: Mapped[str] = mapped_column(String(80))
+    session_date: Mapped[str] = mapped_column(String(10))
+    universe_json: Mapped[str] = mapped_column(Text)
+    summary_json: Mapped[str] = mapped_column(Text, default="{}")
+    worker_id: Mapped[str] = mapped_column(String(40), default="")
+    lease_until: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime)
+    updated_at: Mapped[datetime] = mapped_column(DateTime)
+    finished_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+
+
+class FullScanResult(Base):
+    __tablename__ = "full_scan_results"
+    __table_args__ = (UniqueConstraint("run_id", "symbol", name="uq_full_scan_symbol"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    run_id: Mapped[str] = mapped_column(String(40), index=True)
+    symbol: Mapped[str] = mapped_column(String(16))
+    ordinal: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(32), index=True)
+    qualified: Mapped[bool] = mapped_column(Boolean, default=False)
+    payload_json: Mapped[str] = mapped_column(Text, default="{}")
+
+
 Base.metadata.create_all(engine)
 
 def _ensure_runtime_columns():

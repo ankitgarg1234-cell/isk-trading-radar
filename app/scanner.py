@@ -161,7 +161,7 @@ class RadarService:
         mins = now.hour * 60 + now.minute
         return 570 <= mins < 960
 
-    def analyze_symbol(self, symbol: str, persist: bool = True, strategic_refresh: bool = False):
+    def analyze_symbol(self, symbol: str, persist: bool = True, strategic_refresh: bool = False, contextual_ai: bool = True):
         symbol = symbol.upper().strip()
         bundle = self.provider.bundle(symbol)
         prior_payload = {}
@@ -281,7 +281,11 @@ class RadarService:
                 pass
         action, reason = position_action(result, bundle["price"], pd)
         plan = position_action_plan(action, result, bundle["price"], pd)
-        ai = self.ai.analyze(symbol, bundle, result)
+        if contextual_ai:
+            ai = self.ai.analyze(symbol, bundle, result)
+        else:
+            from .analysis_engine import heuristic_ai
+            ai = heuristic_ai(result)
         full = {**bundle, **result, **ai, "action": action, "action_reason": reason, "action_plan": plan, "position": pd}
         full["entry_qualification"] = entry_status(full)
         if persist:
@@ -902,6 +906,9 @@ class RadarService:
             self._scan_lock.release()
 
     def _scan_once_impl(self, force: bool = False):
+        audit = getattr(self, "full_universe_scan", None)
+        if not force and not self.market_open() and audit and audit.active():
+            return {"status": "full_universe_audit_running", "execution_enabled": False}
         if not force and not self.market_open():
             # Universe metadata is safe to refresh while the market is closed.
             # Without this, a fresh process starts at universe_size=0 and the

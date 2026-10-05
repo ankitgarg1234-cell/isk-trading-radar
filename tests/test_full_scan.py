@@ -1,0 +1,208 @@
+import copy
+import csv
+import io
+import json
+from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
+from threading import Lock
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app import full_scan as module
+from app.analysis_engine import SCORING_VERSION, technicals
+from app.db import SessionLocal, FullScanRun, FullScanResult
+from app.full_scan import FullUniverseScan, compact_result, preflight, summarize, accumulate
+from tests.test_score_band_experiment import observation
+
+NOW = datetime(2026, 10, 5, 22, tzinfo=timezone.utc)
+
+
+def payload(symbol="TEST", **kwargs):
+    a = observation(**kwargs)
+    a.update(symbol=symbol, asof=NOW.isoformat(), scoring_version=SCORING_VERSION,
+             breakdown={"Fundamentals":18,"Catalyst":5,"Valuation":7},
+             fundamentals={"_analyst_status":"available","trailingPE":25},
+             data_sources={"price":{"quote_asof":"2026-10-05T20:00:00+00:00"}})
+    return a
+
+
+class Provider:
+    def __init__(self, symbols, quotes=None):
+        self.symbols, self.quotes = symbols, quotes or {}
+    def us_equity_universe(self):
+        return [{"symbol":s} for s in self.symbols]
+    def chart(self, symbol, *args):
+        if symbol == "ERROR": raise TimeoutError("do not expose a credential-bearing URL")
+        price, volume = self.quotes.get(symbol, (100,200000))
+        return {"price":price,"rows":[{"date":"2026-10-05","close":price,"volume":volume} for _ in range(252)],
+                "meta":{"regularMarketTime":int(datetime(2026,10,5,20,tzinfo=timezone.utc).timestamp())}}
+    def _rows_from_chart(self, chart):
+        return chart["rows"],chart["price"],99,"USD","NMS"
+
+
+def service(monkeypatch, symbols, quotes=None):
+    monkeypatch.setattr(module, "now", lambda:NOW)
+    provider = Provider(symbols, quotes)
+    analyzed, persisted = [], []
+    def analyze(symbol, **kwargs):
+        analyzed.append((symbol,kwargs))
+        return payload(symbol)
+    radar = SimpleNamespace(provider=provider,market_open=lambda:False,
+        _scan_lock=Lock(),analyze_symbol=analyze,persist=lambda full:persisted.append(full["symbol"]))
+    scan = FullUniverseScan(radar)
+    monkeypatch.setattr(scan,"_launch",lambda run_id:scan._run(run_id))
+    return scan, analyzed, persisted
+
+
+@pytest.mark.parametrize("score,analyst,target,expected",[
+    (69.999,90,110,False),(70,74.999,110,False),(70,None,110,False),
+    (70,75,103.999,False),(70,75,104,True),(70,75,110,True)])
+def test_full_scan_uses_exact_shared_gates(score,analyst,target,expected):
+    a=payload(score=score,analyst=analyst,target=target,stop=90)
+    a["risk_reward"]=10; a["action"]="BUY"
+    before=copy.deepcopy(a)
+    r=compact_result(a)
+    assert r["qualified"] is expected and a == before
+    assert r["risk_reward"] == pytest.approx((target-100)/10)
+
+
+def test_preflight_matches_scoring_liquidity_and_only_rejects_hard_floors():
+    p=Provider(["TEST"])
+    p.quotes["TEST"]=(5,2000000)
+    q=preflight(p,"TEST","2026-10-05")
+    assert q["status"] == "awaiting_analysis" # exact $5 and $10M included
+    assert q["avg_dollar_volume_20"] == technicals(p.chart("TEST")["rows"],5)["avg_dollar_volume_20"]
+    p.quotes["TEST"]=(4.999,2000000)
+    assert preflight(p,"TEST","2026-10-05")["blocker"] == "price_or_currency_invalid"
+    p.quotes["TEST"]=(10,999999)
+    assert preflight(p,"TEST","2026-10-05")["blocker"] == "liquidity_below_10m"
+    with pytest.raises(ValueError):preflight(p,"TEST","2026-10-06")
+
+
+def test_complete_universe_has_no_top_n_deep_cutoff_and_errors_are_separate(monkeypatch):
+    symbols=[f"S{i}" for i in range(70)]+["LOW","ILLIQUID","ERROR"]
+    scan, analyzed, persisted=service(monkeypatch,symbols,{"LOW":(4,1e7),"ILLIQUID":(100,99999)})
+    result=scan.start()
+    assert result["status"] == "completed_with_data_gaps"
+    assert result["universe_size"] == result["processed"] == 73
+    assert len(analyzed) == len(persisted) == result["qualified_count"] == 70
+    assert result["status_counts"] == {"scored":70,"excluded":2,"error":1}
+    assert result["execution_enabled"] is False
+    assert all(kwargs == {"persist":False,"contextual_ai":False} for _,kwargs in analyzed)
+    rows=list(csv.DictReader(io.StringIO(scan.results_csv())))
+    assert len(rows) == 73 and len({r["symbol"] for r in rows}) == 73
+    assert next(r for r in rows if r["symbol"]=="ERROR")["error"] == "TimeoutError"
+    assert "credential" not in scan.results_csv()
+
+
+def test_resume_does_not_repeat_completed_symbols_and_survives_new_worker(monkeypatch):
+    scan, _, _=service(monkeypatch,["A","B","C"])
+    monkeypatch.setattr(scan,"_launch",lambda run_id:None)
+    result=scan.start();run_id=result["run_id"]
+    scan._claim(run_id)
+    scan._record(run_id,[compact_result(payload("A"))],"prefilter")
+    with SessionLocal() as db:
+        run=db.get(FullScanRun,"latest");run.lease_until=NOW-timedelta(seconds=1);db.commit()
+    resumed, analyzed, _=service(monkeypatch,["A","B","C"])
+    result=resumed.start()
+    assert result["run_id"] == run_id and result["processed"] == 3
+    assert [s for s,_ in analyzed] == ["B","C"]
+    assert result["summary"]["counts"]["scored"] == 3
+
+
+def test_other_worker_cannot_take_unexpired_lease(monkeypatch):
+    scan,_,_=service(monkeypatch,["A"])
+    monkeypatch.setattr(scan,"_launch",lambda run_id:None)
+    run_id=scan.start()["run_id"]
+    assert scan._claim(run_id)
+    second,_,_=service(monkeypatch,["A"])
+    assert second._claim(run_id) is None
+
+
+def test_scoring_version_change_stops_audit_instead_of_mixing_results(monkeypatch):
+    scan,_,_=service(monkeypatch,["A"])
+    monkeypatch.setattr(scan,"_launch",lambda run_id:None)
+    run_id=scan.start()["run_id"]
+    with SessionLocal() as db:
+        r=db.get(FullScanRun,"latest");r.scoring_version="old";db.commit()
+    assert scan._claim(run_id) is None
+    assert scan.status()["status"] == "scoring_version_changed"
+
+
+def test_independent_gate_counts_and_temporary_gaps_are_not_qualification():
+    a=payload(score=69.9); b=payload(analyst=None)
+    b["fundamentals"]["_analyst_status"]="unavailable (request budget)"
+    rows=[compact_result(a),compact_result(b),compact_result(payload())]
+    s=summarize(rows)
+    assert s["independent_gate_pass_counts"]["deterministic_70"] == 2
+    assert s["independent_gate_pass_counts"]["analyst_75"] == 2
+    assert s["independent_gate_pass_counts"]["qualified"] == 1
+    assert s["missing_data"] == {"analyst_score":1,"transient_data_gap":1}
+    accumulate(s,rows[1],-1);accumulate(s,compact_result(payload()),1)
+    assert s["counts"]["scored"] == 3 and s["missing_data"]["analyst_score"] == 0
+    assert s["mean_score_components"]["Fundamentals"] == 18
+
+
+def test_does_not_start_during_open_market_or_mutate_paper_ledger(monkeypatch):
+    from app.db import ScoreBandExperiment, PaperAccount, PaperPosition, PaperTrade
+    scan,analyzed,_=service(monkeypatch,["A"])
+    scan.radar.market_open=lambda:True
+    assert scan.start()["status"] == "market_open" and not analyzed
+    scan.radar.market_open=lambda:False;scan.start()
+    with SessionLocal() as db:
+        assert all(db.query(model).count()==0 for model in [ScoreBandExperiment,PaperAccount,PaperPosition,PaperTrade])
+
+
+def test_normal_after_hours_cycle_yields_but_open_market_keeps_running(monkeypatch):
+    from app.scanner import RadarService
+    radar=RadarService(provider=Provider(["A"]))
+    radar.full_universe_scan=SimpleNamespace(active=lambda:True)
+    monkeypatch.setattr(radar,"market_open",lambda:False)
+    monkeypatch.setattr(radar,"stale_scoring_symbols",lambda **kw:pytest.fail("should yield provider budget"))
+    assert radar._scan_once_impl()["status"] == "full_universe_audit_running"
+
+
+def test_api_progress_page_and_export(monkeypatch):
+    from app.main import app
+    import app.main as main
+    scan,_,_=service(monkeypatch,["A"])
+    monkeypatch.setattr(main,"full_scan",scan)
+    client=TestClient(app)
+    assert client.post('/api/full-scan').json()["qualified_count"] == 1
+    assert client.get('/api/full-scan').json()["gates"] == {"deterministic":70,"analyst":75,"risk_reward":.4}
+    assert "A,scored," in client.get('/api/full-scan/results.csv').text
+    page=client.get('/scan-audit')
+    assert page.status_code == 200 and "No top-candidate quota" in page.text
+
+
+def test_cache_reuse_requires_post_close_current_version_and_nontransient_inputs(monkeypatch):
+    from app.db import RadarCandidate
+    scan,_,_=service(monkeypatch,["TEST"])
+    def store(a):
+        with SessionLocal() as db:
+            row=db.query(RadarCandidate).filter_by(symbol="TEST").first() or RadarCandidate(symbol="TEST")
+            row.current_json=json.dumps(a);db.add(row);db.commit()
+    a=payload();store(a)
+    assert scan._cached("TEST","2026-10-05")["source"] == "cached_post_close"
+    a["asof"]="2026-10-05T19:59:00+00:00";store(a)
+    assert scan._cached("TEST","2026-10-05") is None
+    a=payload();a["scoring_version"]="old";store(a)
+    assert scan._cached("TEST","2026-10-05") is None
+    a=payload();a["fundamentals"]["trailingPE"]=None
+    a["fundamentals"]["_valuation_status"]="unavailable (enrichment budget)";store(a)
+    assert scan._cached("TEST","2026-10-05") is None
+    a["fundamentals"]["trailingPE"]=25
+    a["fundamentals"]["_valuation_status"]="available (cached validated evidence; refresh unavailable (enrichment budget))";store(a)
+    assert scan._cached("TEST","2026-10-05") is not None
+
+
+def test_completed_resume_does_not_duplicate_score_aggregates(monkeypatch):
+    scan,_,_=service(monkeypatch,["A"])
+    monkeypatch.setattr(scan,"_launch",lambda run_id:None)
+    run_id=scan.start()["run_id"];scan._claim(run_id)
+    scan._record(run_id,[compact_result(payload("A"))],"analysis")
+    scan._record(run_id,[compact_result(payload("A",score=69))],"analysis")
+    d=scan.status()
+    assert d["qualified_count"] == 0 and d["summary"]["counts"]["scored"] == 1
+    assert d["summary"]["independent_gate_pass_counts"]["qualified"] == 0
