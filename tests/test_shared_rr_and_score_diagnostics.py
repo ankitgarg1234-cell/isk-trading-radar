@@ -1,0 +1,75 @@
+import copy
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.main import app
+from app.analysis_engine import score_bundle
+from app.portfolio_engine import MIN_ENTRY_RISK_REWARD, entry_attention_signal, build_optimizer_plan
+from app.scanner import _attention_buy_signal
+from app.score_band_experiment import entry_check, experiment_spec
+from app.score_diagnostics import scan_score_diagnostics
+from tests.test_portfolio_engine import sample_analysis
+from tests.test_score_band_experiment import observation
+from tests.helpers import bundle
+
+
+@pytest.mark.parametrize("rr,okay", [(0.39, False), (0.4, True), (0.5, True), (1.99, True), (2, True)])
+def test_dashboard_alerts_and_paper_share_rr_boundary(rr, okay):
+    a = sample_analysis()
+    a["risk_reward"] = rr
+    a["deterministic_score"] = 80
+    assert (entry_attention_signal(a) is not None) == okay
+    assert (_attention_buy_signal(a)[0] is not None) == okay
+    plan = build_optimizer_plan({"TEST": a})
+    assert bool(plan["visible"]) == okay
+    paper = observation(score=80, target=100 + 10 * rr, stop=90)
+    assert entry_check(paper)[0] == okay
+    assert plan["min_entry_risk_reward"] == experiment_spec()["min_rr"] == MIN_ENTRY_RISK_REWARD == 0.4
+
+
+def test_lower_rr_floor_does_not_change_scores_or_allow_sub_70_paper_entries():
+    a = observation(score=69.9, target=104, stop=90)
+    before = copy.deepcopy(a)
+    assert entry_check(a)[1] == "deterministic_below_70_or_invalid"
+    assert a == before
+
+
+def test_dashboard_renders_shared_floor():
+    response = TestClient(app).get("/")
+    assert response.status_code == 200
+    assert "R/R ≥ 0.4x" in response.text
+    assert "R/R ≥ 2.0x" not in response.text
+
+
+def test_diagnostics_keep_only_five_best_and_count_inputs_without_mutation():
+    rows = [dict(sample_analysis(), symbol=f"S{i}", deterministic_score=40 + i * 10)
+            for i in range(7)]
+    rows[0]["fundamentals"] = {"forwardPE": 25, "targetMeanPrice": 130, "marketCap": 1e9}
+    before = copy.deepcopy(rows)
+    d = scan_score_diagnostics(rows)
+    assert d["maximum_score"] == 100
+    assert d["score_at_least_70"] == 4
+    assert sum(d["score_bins"].values()) == 7
+    assert len(d["top_candidates"]) == 5
+    assert [row["symbol"] for row in d["top_candidates"]] == ["S6", "S5", "S4", "S3", "S2"]
+    assert d["missing_inputs"] == {"valuation_pe": 6, "consensus_price_target": 6, "market_cap": 6}
+    assert rows == before
+
+
+def test_diagnostics_distinguish_invalid_scores_and_empty_cycle():
+    rows = [{"symbol": str(i), "deterministic_score": value}
+            for i, value in enumerate([None, float("nan"), float("inf"), -1, 101, "bad"])]
+    d = scan_score_diagnostics(rows)
+    assert d["invalid_scores"] == 6
+    assert d["maximum_score"] is None
+    assert d["score_at_least_70"] == 0
+    assert scan_score_diagnostics([])["analyzed"] == 0
+
+
+def test_real_scoring_can_exceed_70_with_supported_inputs():
+    result = score_bundle(bundle())
+    assert result["deterministic_score"] > 70
+    assert result["lane_qualified"] is True
+    # Component display rounding can differ from the rounded total by tenths.
+    assert abs(sum(result["breakdown"].values()) - result["deterministic_score"]) <= 0.4

@@ -19,6 +19,7 @@ from . import article_news
 from .portfolio_engine import candidate_rank_score, build_optimizer_plan, normalise_profile, INVESTABLE_ENTRY_ACTIONS, MIN_ENTRY_RISK_REWARD
 from .paper_engine import run_paper_cycle
 from .score_band_capture import run_experiment_cycle, experiment_holding_symbols, compact_observation
+from .score_diagnostics import scan_score_diagnostics
 from .ai_engine import AIEngine
 
 NY = ZoneInfo("America/New_York")
@@ -781,7 +782,7 @@ class RadarService:
             pref = db.query(PortfolioPreference).filter(PortfolioPreference.account == "Main").first()
             profile = normalise_profile(pref.risk_profile if pref else "MEDIUM")
         material = {
-            "policy_version": "eligibility-v4-min-rr-2x",
+            "policy_version": "eligibility-v5-shared-min-rr",
             "risk_profile": profile,
             "visible_limit": settings.optimizer_visible_limit,
             "paper_trade_cost_bps": settings.paper_trade_cost_bps,
@@ -1056,6 +1057,7 @@ class RadarService:
             errors.append(f"persisted qualified telemetry: {type(e).__name__}")
         return {
             "status": "ok", "analyzed": ok, "errors": errors, "candidates": len(syms),
+            "score_diagnostics": scan_score_diagnostics(experiment_observations),
             "universe_size": self.universe_size,
             "universe_prefiltered": self.last_universe_prefiltered,
             "universe_deep_candidates": self.last_universe_candidates,

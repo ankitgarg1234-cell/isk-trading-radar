@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 from collections import defaultdict
 from typing import Any
+from .trading_rules import MIN_ENTRY_RISK_REWARD
 
 RISK_PROFILES = {
     "LOW": {
@@ -477,7 +478,6 @@ def projected_risk(account_rows: list[dict], cash: float, candidate: dict, sizin
 
 
 RANK_VERSION = "rank-v2-lanes"
-MIN_ENTRY_RISK_REWARD = 2.0
 INVESTABLE_ENTRY_ACTIONS = {"STRONG BUY", "BUY", "STARTER BUY"}
 
 

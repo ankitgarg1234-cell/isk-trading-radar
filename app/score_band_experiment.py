@@ -16,6 +16,7 @@ from .portfolio_engine import (
     suggested_position_size,
 )
 from .analysis_engine import position_action, position_action_plan
+from .trading_rules import MIN_ENTRY_RISK_REWARD
 
 VERSION = "score-bands-paper-v1"
 BANDS = ((90, 40), (85, 30), (80, 20), (75, 15), (70, 10))
@@ -83,7 +84,7 @@ def entry_check(a, price=None):
     if stop is None or target is None or not 0 < stop < price < target:
         return False, "target_stop_invalid", None
     rr = (target - price) / (price - stop)
-    if rr + 1e-12 < 0.4:
+    if rr + 1e-12 < MIN_ENTRY_RISK_REWARD:
         return False, "rr_below_0_4", rr
     chase = number(lv.get("do_not_chase"))
     if chase is None or price > chase:
@@ -105,7 +106,7 @@ def experiment_spec(profile="MEDIUM"):
     return {
         "version": VERSION, "starting_cash": 10000.0, "profile": profile, "active_accounts": 1,
         "risk_per_trade_pct": RISK_PROFILES[profile]["risk_per_trade_pct"],
-        "bands": list(BANDS), "min_deterministic": 70, "min_analyst": 75, "min_rr": 0.4,
+        "bands": list(BANDS), "min_deterministic": 70, "min_analyst": 75, "min_rr": MIN_ENTRY_RISK_REWARD,
         "fee_bps": 10.0, "slippage_bps": 5.0, "fresh_seconds": 600,
         "initial_exit": "complete strategy: entry-time modeled stop; next fresh observation fill",
         "strong_momentum": "price >= EMA20 and RSI14 >= 50",

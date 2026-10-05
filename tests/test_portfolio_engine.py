@@ -109,25 +109,25 @@ def test_whole_share_rounding_never_breaks_15pct_position_cap(monkeypatch):
     assert s["capital"] <= 1500
 
 
-def test_entry_attention_requires_minimum_2x_rr():
+def test_entry_attention_requires_minimum_0_4x_rr():
     a=sample_analysis()
     a["action"]="CONSIDER BUYING NOW"
     a["deterministic_score"]=80
-    a["risk_reward"]=1.99
+    a["risk_reward"]=0.399
     assert entry_attention_signal(a) is None
-    a["risk_reward"]=2.0
+    a["risk_reward"]=0.4
     assert entry_attention_signal(a) == "BUY"
 
 
-def test_optimizer_filters_sub_2x_rr_and_backfills_better_match():
+def test_optimizer_filters_sub_0_4x_rr_and_backfills_better_match():
     low=sample_analysis()
     low["symbol"]="LOWRR"
-    low["risk_reward"]=1.8
+    low["risk_reward"]=0.39
     low["deterministic_score"]=95
 
     good=sample_analysis()
     good["symbol"]="GOODRR"
-    good["risk_reward"]=2.4
+    good["risk_reward"]=0.4
     good["deterministic_score"]=82
 
     plan=build_optimizer_plan(
@@ -140,4 +140,4 @@ def test_optimizer_filters_sub_2x_rr_and_backfills_better_match():
     symbols=[r["symbol"] for r in plan["visible"]]
     assert "LOWRR" not in symbols
     assert "GOODRR" in symbols
-    assert plan["min_entry_risk_reward"] == 2.0
+    assert plan["min_entry_risk_reward"] == 0.4
