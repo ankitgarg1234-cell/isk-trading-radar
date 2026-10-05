@@ -4,6 +4,7 @@ import asyncio
 import gc
 import hashlib
 import json
+import logging
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -14,6 +15,7 @@ from .config import settings
 from .db import SessionLocal, Position, AnalysisRequest, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, PortfolioPreference, PaperPosition
 from .market import YahooMarketProvider
 from .analysis_engine import score_bundle, position_action, position_action_plan, SCORING_VERSION
+from . import article_news
 from .portfolio_engine import candidate_rank_score, build_optimizer_plan, normalise_profile, INVESTABLE_ENTRY_ACTIONS, MIN_ENTRY_RISK_REWARD
 from .paper_engine import run_paper_cycle
 from .score_band_capture import run_experiment_cycle, experiment_holding_symbols, compact_observation
@@ -105,7 +107,7 @@ def _compact_payload(full: dict) -> dict:
         news = dict(news)
         items = news.get("items")
         if isinstance(items, list):
-            news["items"] = items[:15] if news.get("version") == "headline-context-v2" else items[:5]
+            news["items"] = items[:15] if news.get("version") in {"headline-context-v2", "article-context-v3"} else items[:5]
         compact["news"] = news
     strategic = compact.get("strategic_capital")
     if isinstance(strategic, dict):
@@ -192,6 +194,12 @@ class RadarService:
     def analyze_symbol(self, symbol: str, persist: bool = True, strategic_refresh: bool = False):
         symbol = symbol.upper().strip()
         bundle = self.provider.bundle(symbol)
+        try:
+            bundle["news"] = article_news.attach(bundle.get("news") or [], symbol,
+                (bundle.get("fundamentals") or {}).get("companyName") or bundle.get("company_name") or symbol)
+        except Exception:
+            # News queue outage must not block price analysis or exits.
+            logging.getLogger(__name__).exception("Article cache unavailable for %s", symbol)
         result = score_bundle(bundle)
         prior_payload = {}
         with SessionLocal() as db:
@@ -744,7 +752,9 @@ class RadarService:
                     stale.append(row.symbol)
                     if len(stale) >= limit:
                         break
-        return stale
+        if len(stale) < limit:
+            stale.extend(s for s in article_news.dirty_symbols(limit) if s not in stale)
+        return stale[:limit]
 
     def candidate_symbols(self):
         """Return the deep-analysis queue with holdings and stale scores first."""

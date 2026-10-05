@@ -1,7 +1,7 @@
-"""Conservative headline event rules, with auditable exclusions.
+"""Headline events and bounded company-specific article author opinions.
 
-This does not infer article contents or verify company announcements. The
-neutral baseline and publisher weights remain unchanged pending calibration.
+Factual announcements remain headline rules; explicit author recommendations
+are separate opinion signals. Neutral baseline and publisher weights are locked.
 """
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from difflib import SequenceMatcher
 from urllib.parse import urlsplit
 
-VERSION = "headline-context-v2"
+VERSION = "article-context-v3"
 
 # Each rule describes one event, rather than awarding every substring hit.
 RULES = (
@@ -149,8 +149,22 @@ def analyze_news(news, *, symbol, company_name, asof, credibility, priced_in):
             excluded.append(n)
             continue
         signals, assessment = _signals(title, aliases)
+        body = n.pop("article_assessment", None) or {"status": "unassessed", "reason": "article body has not been assessed"}
+        # Body author opinion contributes once to news, never to material events.
+        if body.get("status") == "assessed" and body.get("article_type") == "opinion":
+            direction = body.get("sentiment")
+            if direction in {"positive", "negative", "mixed"}:
+                if direction in {"positive", "mixed"}:
+                    signals.add(("opinion", "positive"))
+                if direction in {"negative", "mixed"}:
+                    signals.add(("opinion", "negative"))
+                assessment += "; company-specific author opinion assessed from body"
         level, weight = credibility(str(n.get("publisher") or ""))
         item = {**n, "signals": sorted(signals), "relevance": reason, "assessment": assessment,
+                "article_status": body.get("status", "unassessed"), "article_sentiment": body.get("sentiment", "unassessed"),
+                "article_type": body.get("article_type"), "article_reason": body.get("reason"),
+                "article_method": body.get("method"), "article_evidence": body.get("evidence") or [],
+                "article_source_url": body.get("source_url"), "article_checked_at": body.get("checked_at"),
                 "credibility": level, "weight": weight, "priced_in": priced_in(n.get("published")),
                 "canonical_url": _canonical_url(n.get("link")),
                 "normal_title": " ".join(re.findall(r"\w+", title.lower()))}
@@ -189,13 +203,17 @@ def analyze_news(news, *, symbol, company_name, asof, credibility, priced_in):
             "matched_events": [{"type": k, "direction": d, "weight": w} for (k, d), w in sorted(evidence.items())],
             "positive_weight": round(positive, 3), "negative_weight": round(negative, 3),
             "points": round(1.5 * (positive-negative), 3), "coverage_count": len(group),
-            "sources": [{"title": x["title"], "publisher": x.get("publisher"), "link": x.get("link"), "published": x.get("published"), "negative_events": [kind for kind, direction in x["signals"] if direction == "negative"]} for x in group]})
+            "sources": [{"title": x["title"], "publisher": x.get("publisher"), "link": x.get("link"), "published": x.get("published"), "negative_events": [kind for kind, direction in x["signals"] if direction == "negative" and kind != "opinion"]} for x in group]})
     raw = pos - neg
+    assessed = sum(i["article_status"] == "assessed" for i in items)
+    pending = sum(i["article_status"] in {"queued", "processing", "deferred"} for i in items)
     return {"version": VERSION, "score": round(max(0, min(15, 7.5 + 1.5 * raw)), 1),
         "baseline_points": 7.5, "label": "Unavailable" if not items else "Bullish" if raw >= 2 else "Bearish" if raw <= -2 else "Neutral",
         "positive": round(pos, 3), "negative": round(neg, 3), "material_events": material,
         "high_negative_events": high_negative, "catalysts": sorted(catalysts), "items": items,
         "input_count": len(news[:15]), "unique_event_count": len(items),
         "duplicate_count": sum(len(g)-1 for g in groups), "excluded_count": len(excluded), "excluded_items": excluded,
-        "coverage": "available" if items else "unavailable", "confidence": "headline-only",
-        "method": "Company relevance, event rules and duplicate grouping; full articles unverified. Neutral baseline, publisher weights and age policy preserved."}
+        "coverage": "available" if items else "unavailable", "confidence": "headline and explicit author stance" if assessed else "headline-only",
+        "body_assessed_count": assessed, "body_pending_count": pending,
+        "body_unassessed_count": len(items)-assessed-pending,
+        "method": "Company relevance, headline event rules, deduplication and bounded article author-stance rules. Only explicit company-specific recommendations in complete bodies affect opinion sentiment; other bodies remain unassessed. Opinions do not create factual catalysts. Neutral baseline, weights and age policy preserved."}

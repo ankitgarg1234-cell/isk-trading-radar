@@ -16,6 +16,21 @@ SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 class Base(DeclarativeBase):
     pass
 
+class NewsArticleAssessment(Base):
+    __tablename__ = "news_article_assessments"
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    symbol: Mapped[str] = mapped_column(String(16), index=True)
+    company_name: Mapped[str] = mapped_column(String(256))
+    url: Mapped[str] = mapped_column(String(2048))
+    status: Mapped[str] = mapped_column(String(32), default="queued", index=True)
+    priority: Mapped[int] = mapped_column(Integer, default=50)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    result_json: Mapped[str] = mapped_column(Text, nullable=True)
+    requested_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    due_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    lease_until: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    checked_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+
 class Position(Base):
     __tablename__ = "positions"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

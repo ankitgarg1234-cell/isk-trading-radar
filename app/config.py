@@ -8,6 +8,11 @@ def _bool(name: str, default: bool = False) -> bool:
 
 @dataclass(frozen=True)
 class Settings:
+    article_news_enabled: bool = _bool("ARTICLE_NEWS_ENABLED", True)
+    article_news_workers: int = max(1, min(2, int(os.getenv("ARTICLE_NEWS_WORKERS", "1"))))
+    article_news_memory_mb: int = int(os.getenv("ARTICLE_NEWS_MEMORY_MB", "350"))
+    article_news_cache_hours: int = int(os.getenv("ARTICLE_NEWS_CACHE_HOURS", "24"))
+    article_news_max_pending: int = int(os.getenv("ARTICLE_NEWS_MAX_PENDING", "3000"))
     database_url: str = os.getenv("DATABASE_URL", "sqlite:///./radar.db")
     session_secret: str = os.getenv("SESSION_SECRET", "dev-only-change-me")
     app_username: str = os.getenv("APP_USERNAME", "admin")
