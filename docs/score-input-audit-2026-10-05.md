@@ -1,6 +1,6 @@
 # Deterministic score input audit — 5 October 2026
 
-Shared scoring version: `2026-10-05-score-input-integrity-v12`.
+Shared scoring version: `2026-10-05-score-input-integrity-v13`.
 
 ## Findings and corrections
 
@@ -38,6 +38,18 @@ Shared scoring version: `2026-10-05-score-input-integrity-v12`.
    market-cap calculation, so they do not require an extra Finnhub profile call.
    Recommendation prefetch, separate compact caches, 45 total/15 optional calls
    per minute and failure cooldowns remain intact.
+6. **Restart/budget failures discarded still-valid market evidence.** Initial
+   v12 deployment verification caught Alphabet losing P/E/cap evidence and
+   Credo/Vicor receiving neutral valuation points instead of their earlier high
+   P/E deduction. Retain validated Finnhub P/E/profile observations across a
+   transient refresh failure for the same existing six-hour TTL. Original
+   observation dates/source remain visible; no timestamp is advanced. The most
+   recent candidate is used first, with at most five recent compact snapshots
+   for restart recovery and failed-history checks limited to once per ten minutes.
+   Definitive unavailable/nonpositive P/E responses supersede older positive
+   observations. Reject expired/future dates, other tickers/currencies and
+   unidentified sources. No price, RVOL, SEC ratio, analyst score or consensus
+   target is carried forward by this recovery.
 
 ## Captured-input replay
 
@@ -74,6 +86,10 @@ and negative headlines, company attribution, request selectivity and shared
 paper gates. Full suite: 467 passed, the identical 27 existing baseline failures.
 Two additional invalid-debt controls follow that full run. Final focused run:
 260 passed, with the known unrelated paper allocator failure deselected.
+
+Follow-up v13 full suite: 482 passed, the same 27 baseline failures.
+Focused ingestion/scoring/paper checks: 215 passed. All 14 evidence-recovery
+controls pass, including a subsequent newer-response supersession check.
 
 Calculation references: [Fidelity's Wilder RSI explanation](https://www.fidelity.com/bin-public/060_www_fidelity_com/documents/learning-center/trading-with-momentum-transcript.pdf)
 and [FASB revenue taxonomy guide](https://xbrl.fasb.org/impdocs/Rev2_TIG/Revenue.htm).

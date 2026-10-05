@@ -563,6 +563,8 @@ class FinnhubAnalystProvider:
             out.update(trailingPE=pe, _valuation_source="Finnhub basic financials (TTM P/E)",
                        _valuation_asof=(metrics or {}).get("_retrieved_at") or observed, _valuation_status="available; provider observation date not supplied" if pe else status if status != "available" else "unavailable (positive TTM P/E not returned)")
         profile, status = self.cache.fetch(self.client, "profile2", symbol, self.token, 21600) if need_profile else (None, "not requested")
+        if need_profile:
+            out.update(_market_cap_source="Finnhub company profile (millions converted to USD)", _market_cap_status=status)
         profile = profile if isinstance(profile, dict) else {}
         if profile.get("ticker") == symbol and profile.get("currency") == "USD":
             cap, shares = positive(profile.get("marketCapitalization")), positive(profile.get("shareOutstanding"))

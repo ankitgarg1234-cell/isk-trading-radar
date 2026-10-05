@@ -17,6 +17,68 @@ def positive(value):
         return None
 
 
+def transient_missing(f, prefix):
+    status = str(f.get(f"_{prefix}_status") or "")
+    return any(reason in status for reason in ("request budget", "enrichment budget", "HTTP 429", "ReadTimeout", "ConnectTimeout", "ReadError", "ConnectError"))
+
+
+def recover_market_evidence(bundle, saved):
+    """Retain validated Finnhub P/E/profile observations for their existing 6h TTL.
+
+    Only transient refresh failures qualify. Never reuse price, volume, SEC
+    ratios, consensus scores or targets; never advance an observation timestamp.
+    """
+    f = bundle.setdefault("fundamentals", {})
+    if bundle.get("currency", "USD") != "USD":
+        return bundle
+    try:
+        now = datetime.fromisoformat(str(bundle["asof"]).replace("Z", "+00:00"))
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=timezone.utc)
+    except (KeyError, ValueError, TypeError):
+        return bundle
+    for prefix, fields in (("valuation", ("trailingPE",)), ("market_cap", ("marketCap", "sharesOutstanding"))):
+        if not transient_missing(f, prefix) or f.get(fields[0]) is not None:
+            continue
+        if prefix == "valuation" and f.get("forwardPE") is not None:
+            continue
+        candidates, superseded_at = [], None
+        for payload in saved:
+            if not isinstance(payload, dict):
+                continue
+            old = payload.get("fundamentals") or {}
+            if payload.get("symbol") != bundle.get("symbol") or payload.get("currency", "USD") != "USD":
+                continue
+            if not str(old.get(f"_{prefix}_source") or "").startswith("Finnhub "):
+                continue
+            try:
+                observed = datetime.fromisoformat(str(old.get(f"_{prefix}_asof") or "").replace("Z", "+00:00"))
+                if observed.tzinfo is None:
+                    observed = observed.replace(tzinfo=timezone.utc)
+                if 0 <= (now-observed).total_seconds() < 21600:
+                    if prefix == "valuation" and "positive TTM P/E not returned" in str(old.get("_valuation_status") or ""):
+                        superseded_at = max(superseded_at, observed) if superseded_at else observed
+                    elif positive(old.get(fields[0])):
+                        candidates.append((observed, old))
+            except (ValueError, TypeError):
+                continue
+        candidates = [item for item in candidates if superseded_at is None or item[0] > superseded_at]
+        if not candidates:
+            continue
+        _, old = max(candidates, key=lambda item: item[0])
+        failed_status = f.get(f"_{prefix}_status")
+        for key in fields:
+            if f.get(key) is None and positive(old.get(key)):
+                f[key] = old[key]
+        for suffix in ("source", "asof"):
+            f[f"_{prefix}_{suffix}"] = old[f"_{prefix}_{suffix}"]
+        f[f"_{prefix}_status"] = f"available (cached validated evidence; refresh {failed_status})"
+        sources = bundle.get("data_sources")
+        if isinstance(sources, dict):
+            sources[prefix] = {"source": f[f"_{prefix}_source"], "status": f[f"_{prefix}_status"], "asof": f[f"_{prefix}_asof"]}
+    return bundle
+
+
 class EndpointCache:
     """Compact per-provider cache with a shared request budget and failure cooldown."""
     def __init__(self):

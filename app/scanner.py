@@ -15,6 +15,7 @@ from .config import settings
 from .db import SessionLocal, Position, AnalysisRequest, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, PortfolioPreference, PaperPosition
 from .market import YahooMarketProvider
 from .analysis_engine import score_bundle, position_action, position_action_plan, SCORING_VERSION
+from .market_evidence import recover_market_evidence, transient_missing, positive
 from . import article_news
 from .portfolio_engine import candidate_rank_score, build_optimizer_plan, normalise_profile, INVESTABLE_ENTRY_ACTIONS, MIN_ENTRY_RISK_REWARD
 from .paper_engine import run_paper_cycle
@@ -197,6 +198,46 @@ class RadarService:
     def analyze_symbol(self, symbol: str, persist: bool = True, strategic_refresh: bool = False):
         symbol = symbol.upper().strip()
         bundle = self.provider.bundle(symbol)
+        prior_payload = {}
+        with SessionLocal() as db:
+            prior = db.query(RadarCandidate).filter(RadarCandidate.symbol == symbol).first()
+            if prior and prior.current_json:
+                try:
+                    prior_payload = json.loads(prior.current_json)
+                except (ValueError, TypeError):
+                    pass
+            recover_market_evidence(bundle, [prior_payload])
+            f = bundle.get("fundamentals") or {}
+            old_f = prior_payload.get("fundamentals") or {}
+            for prefix, field in (("valuation", "trailingPE"), ("market_cap", "marketCap")):
+                if f.get(field) is not None or not transient_missing(f, prefix):
+                    continue
+                # A definitive missing/invalid newer observation supersedes any
+                # older positive history. Only recover after transient failures.
+                if old_f.get(field) is not None and not positive(old_f.get(field)):
+                    continue
+                if "positive TTM P/E not returned" in str(old_f.get(f"_{prefix}_status") or ""):
+                    continue
+                checked_key = f"_{prefix}_history_checked_at"
+                try:
+                    checked = datetime.fromisoformat(str(old_f.get(checked_key)).replace("Z", "+00:00"))
+                    if 0 <= (datetime.now(timezone.utc)-checked).total_seconds() < 600:
+                        f[checked_key] = old_f[checked_key]
+                        continue
+                except (ValueError, TypeError):
+                    pass
+                recent = db.query(AnalysisSnapshot.payload_json).filter(
+                    AnalysisSnapshot.symbol == symbol,
+                    AnalysisSnapshot.created_at >= datetime.now(timezone.utc)-timedelta(hours=6),
+                ).order_by(AnalysisSnapshot.created_at.desc()).limit(5).all()
+                saved = []
+                for (payload_json,) in recent:
+                    try:
+                        saved.append(json.loads(payload_json))
+                    except (ValueError, TypeError):
+                        continue
+                recover_market_evidence(bundle, saved)
+                f[checked_key] = datetime.now(timezone.utc).isoformat()
         try:
             bundle["news"] = article_news.attach(bundle.get("news") or [], symbol,
                 (bundle.get("fundamentals") or {}).get("companyName") or bundle.get("company_name") or symbol)
@@ -204,7 +245,6 @@ class RadarService:
             # News queue outage must not block price analysis or exits.
             logging.getLogger(__name__).exception("Article cache unavailable for %s", symbol)
         result = score_bundle(bundle)
-        prior_payload = {}
         with SessionLocal() as db:
             p = db.query(Position).filter(Position.symbol == symbol).order_by(Position.created_at.desc()).first()
             pp = db.query(PaperPosition).filter(PaperPosition.symbol == symbol).order_by(PaperPosition.opened_at.desc()).first() if not p else None
