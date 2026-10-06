@@ -18,7 +18,7 @@ from .analysis_engine import (SCORING_VERSION, CORE_MIN_AVG_DOLLAR_VOLUME, techn
 from .config import settings
 from .db import SessionLocal, FullScanRun, FullScanResult, RadarCandidate
 from .market_evidence import transient_missing, positive
-from .trading_rules import entry_status, number
+from .trading_rules import entry_status, number, MIN_DETERMINISTIC_SCORE
 
 NY = ZoneInfo("America/New_York")
 ACTIVE = {"prefilter", "analysis", "paused_market_open", "paused_live_priority"}
@@ -68,7 +68,7 @@ def compact_result(full, source="fresh_analysis"):
         "gross_margin_pct": pct(f.get("grossMargins")), "operating_margin_pct": pct(f.get("operatingMargins")),
         "roe_pct": pct(f.get("returnOnEquity")), "debt_to_equity_pct": number(f.get("debtToEquity")),
         "explosive_blockers": full.get("explosive_blockers") or [],
-        "gate_pass": {"deterministic_70": score is not None and 70 <= score <= 100,
+        "gate_pass": {"deterministic_65": score is not None and MIN_DETERMINISTIC_SCORE <= score <= 100,
             "analyst_75": analyst is not None and 75 <= analyst <= 100,
             "risk_reward_0_4": rr is not None and rr + 1e-12 >= .4,
             "fundamentals_14": (points.get("Fundamentals") or 0) >= 14,
@@ -454,7 +454,7 @@ class FullUniverseScan:
                 "finished_at":run.finished_at,"universe_size":total,"processed":done,
                 "progress_pct":round(100*done/total,2) if total else 0,"status_counts":counts,
                 "worker_running":self.active(),"qualified_count":len(qualified),"qualified_stocks":qualified,
-                "execution_enabled":False,"gates":{"deterministic":70,"analyst":75,"risk_reward":.4},
+                "execution_enabled":False,"gates":{"deterministic":MIN_DETERMINISTIC_SCORE,"analyst":75,"risk_reward":.4},
                 "coverage_basis":"Every listed stock checked; exact price/currency/liquidity failures excluded, every survivor fully scored without a top-N limit",
                 "entry_basis":"Readiness at the saved quote; closed-market results are not executable orders",
                 "summary":json.loads(run.summary_json)}
