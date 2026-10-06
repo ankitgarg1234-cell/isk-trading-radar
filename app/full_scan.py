@@ -21,9 +21,12 @@ from .trading_rules import entry_status, number
 NY = ZoneInfo("America/New_York")
 ACTIVE = {"prefilter", "analysis", "paused_market_open"}
 KEY = "latest"
-# v20 changes SEC evidence and diagnostics only. The v19 price/currency/
-# liquidity calculation is identical, so same-session quick checks are reusable.
-REUSABLE_PREFILTER_VERSIONS = {"2026-10-06-score-evidence-integrity-v19"}
+# Scoring-only/evidence changes do not alter the exact price/currency/liquidity
+# preflight. Same-session quick checks may be reused, but old scores/gates never are.
+REUSABLE_PREFILTER_VERSIONS = {
+    "2026-10-06-score-evidence-integrity-v19",
+    "2026-10-06-sec-filing-coverage-v20",
+}
 
 
 def now():
@@ -171,7 +174,7 @@ class FullUniverseScan:
                     # Copy the verified precheck only, never an old score/gate.
                     seed[row.symbol] = {"symbol": row.symbol, "status": "awaiting_analysis", "price": price,
                         "currency": "USD", "avg_dollar_volume_20": liquidity, "quote_asof": old["quote_asof"],
-                        "collected_at": old.get("collected_at"), "qualified": False, "source": "reused_verified_v19_precheck"}
+                        "collected_at": old.get("collected_at"), "qualified": False, "source": "reused_verified_prior_precheck"}
             except (KeyError, ValueError, TypeError):
                 continue
         return seed
