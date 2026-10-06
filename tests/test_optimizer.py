@@ -120,9 +120,9 @@ def test_ai_is_confirmation_not_part_of_portfolio_rank_math():
 
 def test_dashboard_candidate_table_hides_qualified_wait_names_until_actionable():
     buy=payload("ACTNOW",score=72,sector="Technology",expected=20,price=100)
-    wait=payload("WAITING",score=78,sector="Healthcare",expected=20,price=100)
+    wait=payload("WAITING",score=78,sector="Healthcare",expected=20,price=105)
     wait["action"]="WATCH"
-    wait["entry_zone_status"]="WATCH"
+    wait["entry_zone_status"]="APPROACHING_BREAKOUT"
     with SessionLocal() as db:
         for p in (buy,wait):
             db.add(RadarCandidate(
@@ -602,8 +602,8 @@ def test_paper_owned_symbol_is_hold_and_stale_buy_alert_is_hidden():
         db.commit()
 
     html = client.get("/").text
-    idx = html.index('data-symbol="NOW"')
-    row_html = html[idx:idx+3500]
-    assert 'signal-hold' in row_html
-    assert 'HOLD / DON&#39;T ADD' in row_html or "HOLD / DON'T ADD" in row_html
+    # HOLD / DON'T ADD remains managed in Open Positions, but the action-only
+    # radar must not show an owned non-actionable row or its stale BUY alert.
+    assert '<tr class="radar-row" data-symbol="NOW"' not in html
     assert 'NOW: Entry level reached — BUY' not in html
+    assert 'data-symbol="NOW"' in html  # still present in paper-position controls
