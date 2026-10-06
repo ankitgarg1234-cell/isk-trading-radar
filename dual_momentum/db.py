@@ -17,6 +17,7 @@ class DMPosition(Base):
     peak: Mapped[float | None] = mapped_column(Float, nullable=True)
     stop: Mapped[float | None] = mapped_column(Float, nullable=True)
     stop_asof: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    opened_on: Mapped[str | None] = mapped_column(String(16), nullable=True)
     pending_stop_exit: Mapped[bool] = mapped_column(Boolean, default=False)
     last_verified_fund_status: Mapped[str] = mapped_column(String(16), default="UNKNOWN")
     last_verified_fund_at: Mapped[str | None] = mapped_column(String(32), nullable=True)
