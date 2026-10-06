@@ -290,9 +290,9 @@ def test_analyst_score_can_use_recommendation_counts_without_target():
     assert any("Recommendation mix" in r for r in reasons)
 
 
-def test_primary_buy_below_70_cannot_recommend_entry():
+def test_primary_buy_below_65_cannot_recommend_entry():
     result={
-        "deterministic_score":68,
+        "deterministic_score":64.9,
         "news":{"label":"Neutral","material_events":0,"high_negative_events":0},
         "technicals":{"ema20":98,"rsi":54,"relative_volume":1.0,"change20_pct":1.0},
         "levels":{"buy_low":95,"buy_high":100,"better_low":88,"better_high":92,"stop":80,"do_not_chase":120,"breakout":110},
@@ -302,7 +302,26 @@ def test_primary_buy_below_70_cannot_recommend_entry():
     }
     action,reason=position_action(qualified_result(result),97,None)
     assert action == "WATCH — GATE FAILED"
-    assert "70/100" in reason
+    assert "65/100" in reason
+
+
+def test_entry_stop_is_tighter_than_thesis_stop_and_drives_entry_rr():
+    from app.analysis_engine import buy_levels
+    from app.trading_rules import qualification_check
+    t={"atr":10,"ema20":230,"ema50":215,"low20":205,"high20":234}
+    levels=buy_levels(t,238.9)
+    assert levels["entry_stop"] > levels["thesis_stop"]
+    a={
+        "price":238.9,"currency":"USD","deterministic_score":75,"analyst_score":80,
+        "lane":"CORE_QUALITY","lane_qualified":True,"decision_confidence":"high",
+        "levels":levels,"target_plan":{"base_target":252.34},
+        "technicals":{"rsi":55,"ema20":230,"change20_pct":5,"relative_volume":1.6},
+    }
+    ok,_,rr=qualification_check(a)
+    assert ok is True
+    assert rr == pytest.approx((252.34-238.9)/(238.9-levels["entry_stop"]), rel=1e-6)
+    thesis_rr=(252.34-238.9)/(238.9-levels["thesis_stop"])
+    assert rr > thesis_rr
 
 
 def test_value_corridor_waits_for_canonical_entry_trigger():
