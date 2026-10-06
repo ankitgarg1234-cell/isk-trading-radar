@@ -276,7 +276,8 @@ def suggested_position_size(
     profile = normalise_profile(profile)
     p = RISK_PROFILES[profile]
     price = _float(a.get("price"))
-    stop = _float((a.get("levels") or {}).get("stop"))
+    levels = a.get("levels") or {}
+    stop = _float(levels.get("entry_stop", levels.get("stop")))
     if price <= 0 or stop <= 0 or stop >= price or fx_rate_to_base <= 0:
         return {"shares": 0, "reason": "Sizing unavailable until price, stop and FX are valid", "fit": "UNKNOWN"}
 
@@ -510,7 +511,8 @@ def candidate_rank_score(a: dict) -> dict:
         catalyst = _clamp(_float(breakdown.get("Catalyst")), 0, 15) / 15 * 15
         valuation = _clamp(_float(breakdown.get("Valuation")), 0, 10) / 10 * 15
         momentum = _clamp(_float(breakdown.get("Momentum")), 0, 15) / 15 * 15
-        rr = _clamp(_float(breakdown.get("Risk/Reward")), 0, 10)
+        rr = _clamp(_float((a.get("score_contributions") or {}).get(
+            "Risk/Reward", breakdown.get("Risk/Reward"))), 0, 10)
         sector = _clamp(_float(breakdown.get("Sector")), 0, 10)
         evidence = _clamp(_float(a.get("data_quality_pct")), 0, 100) / 100 * 5
         total = fundamentals + catalyst + valuation + momentum + rr + sector + evidence
