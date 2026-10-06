@@ -13,9 +13,10 @@
 <body><div class="shell">
 <header class="topbar">
 <div class="brand"><span class="kicker">S&amp;P 500 • DUAL MOMENTUM • USD BASELINE</span><h1>Dual Momentum Radar</h1><p>Monthly regime + relative momentum + point-in-time fundamentals + buffered ranks + inverse ATR + ratcheted stops.</p></div>
-<div class="toolbar"><form id="scanForm"><select name="variant" id="variant"><option value="baseline" {{ 'selected' if scan.variant == 'baseline' else '' }}>Baseline momentum</option><option value="lagged-21" {{ 'selected' if scan.variant == 'lagged-21' else '' }}>21-session lag variant</option></select><button class="btn primary" type="submit">Run monthly scan</button></form><form method="post" action="/api/stops/refresh"><button class="btn" type="submit">Refresh daily stops</button></form><form method="post" action="/logout"><button class="btn ghost">Log out</button></form></div>
+<div class="toolbar"><form id="scanForm"><select name="variant" id="variant"><option value="baseline" {{ 'selected' if scan.variant == 'baseline' else '' }}>Baseline momentum</option><option value="lagged-21" {{ 'selected' if scan.variant == 'lagged-21' else '' }}>21-session lag variant</option></select><button class="btn primary" type="submit">Run monthly scan</button></form><form id="stopForm"><button class="btn" type="submit">Refresh daily stops</button></form><form method="post" action="/logout"><button class="btn ghost">Log out</button></form></div>
 </header>
 {% if scan.error %}<div class="banner error"><b>Scan error:</b> {{ scan.error }}</div>{% endif %}
+{% if snapshot and snapshot.execution_window_status == 'MISSED' %}<div class="banner error"><b>Monthly execution window missed:</b> this snapshot was decided on {{ snapshot.decision_date }} for execution on {{ snapshot.next_execution_session }}. Do not initiate its monthly rebalance orders now; wait for the next month-end cycle. The snapshot remains visible for audit.</div>{% endif %}
 {% if snapshot and snapshot.membership_note %}<div class="banner"><b>Research boundary:</b> {{ snapshot.membership_note }} Performance remains unvalidated.</div>{% endif %}
 <section class="panel metrics">
 <div class="metric"><span>Market regime</span><b class="{{ 'pos' if snapshot and snapshot.regime.state == 'BULL' else 'neg' if snapshot else '' }}">{{ snapshot.regime.state if snapshot else '—' }}</b><small>{% if snapshot %}SPY TR vs EMA200 {{ '%+.2f%%'|format(snapshot.regime.distance_pct*100) }}{% else %}Run a scan{% endif %}</small></div>
@@ -23,11 +24,11 @@
 <div class="metric"><span>Target equity</span><b>{{ ('%.0f%%'|format(plan.target_equity_exposure*100)) if plan else '—' }}</b><small>N / 20 exposure</small></div>
 <div class="metric"><span>Target cash</span><b>{{ ('%.0f%%'|format(plan.target_cash_weight*100)) if plan else '—' }}</b><small>Before rounding / expenses</small></div>
 <div class="metric"><span>Recorded cash</span><b>USD {{ '%.2f'|format(cash) }}</b><small>Borrowing prohibited</small></div>
-<div class="metric"><span>Scan status</span><b>{{ scan.status }}</b><small>{% if snapshot %}Decision {{ snapshot.decision_date }} • next session {{ snapshot.next_execution_session or 'pending' }}{% else %}{{ scan.variant }}{% endif %}</small></div>
+<div class="metric"><span>Scan status</span><b>{{ scan.status }}</b><small>{% if snapshot %}Decision {{ snapshot.decision_date }} • next {{ snapshot.next_execution_session or 'pending' }} • {{ snapshot.execution_window_status }}{% else %}{{ scan.variant }}{% endif %}</small></div>
 </section>
 <div class="grid" style="margin-top:14px">
 <section class="panel main">
-<div class="section-head"><div><span class="kicker">RANKED ELIGIBLE UNIVERSE</span><h2>Verified Top 35</h2><div class="subtle">Top 20 can fill vacancies. Ranks 21–35 are retention-only. Momentum uses dividend-reinvested adjusted prices; execution uses tradable prices.</div></div>{% if snapshot %}<div class="pill blue">{{ snapshot.positive_momentum_count }} positive / {{ snapshot.universe_size }}</div>{% endif %}</div>
+<div class="section-head"><div><span class="kicker">RAW MOMENTUM RANKING</span><h2>Top 35 + fundamental gate</h2><div class="subtle">Momentum ranks are frozen before fundamentals. A failed or unavailable fundamental check does not promote rank #21 into the Top 20. Ranks 21–35 remain retention-only.</div></div>{% if snapshot %}<div class="pill blue">{{ snapshot.positive_momentum_count }} positive / {{ snapshot.universe_size }}</div>{% endif %}</div>
 <div class="table-wrap"><table><thead><tr><th>Rank / stock</th><th>Price</th><th>Momentum</th><th>63 / 126 / 252</th><th>TTM revenue</th><th>TTM gross margin</th><th>ATR%</th><th>Target</th><th>Zone</th></tr></thead><tbody>
 {% for c in candidates %}<tr>
 <td><b class="ticker">#{{ c.rank }} {{ c.symbol }}</b><div class="muted">{{ c.name }}{% if c.sector %} • {{ c.sector }}{% endif %}</div></td>
@@ -36,14 +37,14 @@
 <td class="num {{ 'pos' if c.revenue_growth_ttm is not none and c.revenue_growth_ttm >= 0 else 'neg' }}">{{ ('%+.1f%%'|format(c.revenue_growth_ttm*100)) if c.revenue_growth_ttm is not none else 'review' }}</td>
 <td class="num">{{ 'EXEMPT' if c.gross_margin_exempt else ('%.1f%%'|format(c.gross_margin_ttm*100)) if c.gross_margin_ttm is not none else 'review' }}</td>
 <td class="num">{{ '%.2f%%'|format(c.atr_pct*100) }}</td><td class="num">{{ ('%.2f%%'|format(c.target_weight*100)) if c.target_weight is not none else '—' }}</td>
-<td>{% if c.rank <= 20 %}<span class="pill green">ENTRY</span>{% else %}<span class="pill blue">BUFFER</span>{% endif %}{% if c.selected %} <span class="pill">SELECTED</span>{% endif %}</td>
+<td>{% if c.rank <= 20 %}<span class="pill blue">TOP 20</span>{% else %}<span class="pill blue">BUFFER</span>{% endif %} <span class="pill {{ 'green' if c.fundamental_status == 'PASS' else 'red' if c.fundamental_status == 'FAIL' else 'amber' }}">{{ c.fundamental_status }}</span>{% if c.selected %} <span class="pill">SELECTED</span>{% endif %}</td>
 </tr>{% else %}<tr><td colspan="9" class="empty">No verified candidate snapshot yet.</td></tr>{% endfor %}
 </tbody></table></div></section>
 <section class="panel main">
 <div class="section-head"><div><span class="kicker">CURRENT POSITIONS</span><h2>Position-aware monthly decisions</h2><div class="subtle">Fundamentals-review incumbents may be retained or trimmed but cannot receive additions. Monthly resizing never resets peak/stop history.</div></div></div>
 <div class="table-wrap"><table><thead><tr><th>Stock</th><th>Shares / avg</th><th>Last / P&amp;L</th><th>Rank / momentum</th><th>Fundamentals</th><th>Peak / stop</th><th>Target</th><th>Proposed action</th><th></th></tr></thead><tbody>
 {% for p in positions %}<tr>
-<td><b class="ticker">{{ p.symbol }}</b>{% if p.pending_stop_exit %}<div class="pill red">STOP EXIT PENDING</div>{% endif %}</td>
+<td><b class="ticker">{{ p.symbol }}</b>{% if p.pending_stop_exit %}<div class="pill red">STOP EXIT PENDING</div>{% endif %}{% if p.pending_rule_exit_reason %}<div class="pill red">RULE EXIT PENDING</div><div class="muted">{{ p.pending_rule_exit_reason }}</div>{% endif %}</td>
 <td class="num">{{ p.shares }} @ USD {{ '%.2f'|format(p.avg_cost) }}</td>
 <td class="num">{% if p.price is not none %}USD {{ '%.2f'|format(p.price) }}{% if p.pnl_pct is not none %}<div class="{{ 'pos' if p.pnl_pct >= 0 else 'neg' }}">{{ '%+.1f%%'|format(p.pnl_pct*100) }}</div>{% endif %}{% else %}—{% endif %}</td>
 <td>{% if p.rank %}<b>#{{ p.rank }}</b>{% else %}—{% endif %}<div class="{{ 'pos' if p.momentum_positive else 'neg' if p.momentum_positive is not none else 'muted' }}">{{ 'positive' if p.momentum_positive else 'non-positive' if p.momentum_positive is not none else 'review' }}</div></td>
@@ -55,7 +56,7 @@
 </tr>{% else %}<tr><td colspan="9" class="empty">No positions recorded.</td></tr>{% endfor %}
 </tbody></table></div></section>
 <section class="panel half">
-<div class="section-head"><div><span class="kicker">EXECUTION QUEUE</span><h2>Next-session proposal</h2><div class="subtle">Exits and trims precede purchases. Quantities use signal-close information only; opening fills are never assumed.</div></div></div>
+<div class="section-head"><div><span class="kicker">EXECUTION QUEUE</span><h2>{{ 'Audit-only proposal' if snapshot and snapshot.execution_window_status == 'MISSED' else 'Next-session proposal' }}</h2><div class="subtle">Exits and trims precede purchases. Quantities use signal-close information only; opening fills are never assumed.{% if plan and plan.reserved_slots %} {{ plan.reserved_slots }} mid-cycle vacancy/vacancies are reserved until a later month-end.{% endif %}</div></div></div>
 {% if plan and plan.orders %}<div class="rule-list">{% for o in plan.orders %}<div class="mini"><span>{{ o.kind or o.side }} • {{ o.symbol }}</span><b class="{{ 'pos' if o.side == 'BUY' else 'neg' }}">{{ o.side }} {{ o.shares }} shares</b><div class="subtle">Signal price {{ ('USD %.2f'|format(o.signal_price)) if o.signal_price else '—' }} • {{ o.reason }}{% if o.funding_adjusted %} • quantity reduced for funding{% endif %}</div></div>{% endfor %}</div>{% else %}<div class="empty">No executable monthly orders in the current snapshot.</div>{% endif %}
 {% if plan and plan.warnings %}<div style="margin-top:10px">{% for w in plan.warnings %}<div class="subtle warn">• {{ w }}</div>{% endfor %}</div>{% endif %}
 </section>
@@ -93,5 +94,6 @@
 <script>
 const form=document.getElementById('scanForm');form.addEventListener('submit',async(e)=>{e.preventDefault();const fd=new FormData(form);const button=form.querySelector('button');button.disabled=true;button.textContent='Queueing…';try{const r=await fetch('/api/scan',{method:'POST',body:fd});if(!r.ok)throw new Error(await r.text());button.textContent='Scanning…';poll();}catch(err){button.disabled=false;button.textContent='Run monthly scan';alert(err.message);}});
 let last="{{ scan.status }}";async function poll(){try{const r=await fetch('/api/state');if(!r.ok)return;const s=await r.json();const status=s.scan.status;if((status==='READY'||status==='ERROR')&&status!==last){location.reload();return;}last=status;if(status==='RUNNING'||status==='QUEUED')setTimeout(poll,5000);else{const b=form.querySelector('button');b.disabled=false;b.textContent='Run monthly scan';}}catch(e){setTimeout(poll,7000)}}if(last==='RUNNING'||last==='QUEUED')poll();
+const stopForm=document.getElementById('stopForm');stopForm.addEventListener('submit',async(e)=>{e.preventDefault();const b=stopForm.querySelector('button');b.disabled=true;b.textContent='Refreshing…';try{const r=await fetch('/api/stops/refresh',{method:'POST'});const d=await r.json();if(!r.ok)throw new Error(JSON.stringify(d));const triggered=(d.results||[]).filter(x=>x.status==='TRIGGERED'||x.status==='PENDING_RULE_EXIT'||x.status==='CORPORATE_ACTION_REVIEW').length;if(triggered)alert(triggered+' position(s) require exit/review action.');location.reload();}catch(err){b.disabled=false;b.textContent='Refresh daily stops';alert(err.message);}});
 </script>
 </body></html>
