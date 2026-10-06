@@ -92,10 +92,10 @@ def test_extreme_unexplained_volume_cannot_enter_explosive_lane():
     assert result["promotion_risk"]["unexplained_extreme_volume"] is True
 
 
-def test_score_allocation_ladder_caps_at_fifteen_percent():
+def test_score_allocation_is_continuous_and_caps_at_forty_percent():
     cases = [
-        (67, 0), (68, 2), (74.9, 2), (75, 4), (80, 6), (85, 8),
-        (90, 10), (95, 12), (97.9, 12), (98, 15), (100, 15),
+        (64.9,0),(65,5),(68,9.2),(70,12),(72,14.8),(75,19),
+        (78,23.2),(80,26),(82,28.8),(85,33),(88,37.2),(90,40),(100,40),
     ]
     for score, expected in cases:
         assert score_target_allocation_pct(score) == expected
@@ -110,8 +110,8 @@ def test_score_sets_target_but_stop_risk_can_only_reduce_it():
         high, cash=100000, reserve_cash=0, portfolio_value=100000,
         profile="MEDIUM", fx_rate_to_base=1,
     )
-    assert sized["target_allocation_pct"] == 15
-    assert sized["capital"] <= 15000
+    assert sized["target_allocation_pct"] == 40
+    assert sized["capital"] <= 40000
 
     wide_stop = dict(high)
     wide_stop["levels"] = dict(high["levels"], stop=80)
@@ -120,7 +120,7 @@ def test_score_sets_target_but_stop_risk_can_only_reduce_it():
         profile="MEDIUM", fx_rate_to_base=1,
     )
     assert risk_capped["capital"] < sized["capital"]
-    assert risk_capped["target_allocation_pct"] == 15
+    assert risk_capped["target_allocation_pct"] == 40
 
 
 def test_paper_allocator_preserves_score_weighting_when_cash_constrained():
