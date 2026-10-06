@@ -152,11 +152,22 @@ def canonical_paper_status(db):
     positions = []
     for symbol, p in book['positions'].items():
         price = book['marks'].get(symbol, p['avg_cost'])
-        cost = p['shares'] * p['avg_cost']
-        marked = p['shares'] * price
+        shares = float(p.get('shares') or 0)
+        fill_price = float(p.get('avg_cost') or 0)
+        entry_fee = shares * float(number(p.get('entry_fee_per_share')) or 0)
+        fill_cost = shares * fill_price
+        # Use economic cost basis (fill + allocated entry commission) for the
+        # dashboard P&L. Account equity already includes these commissions, so
+        # excluding them here made the sum of open-position P&Ls look materially
+        # higher than Absolute Return.
+        cost = fill_cost + entry_fee
+        net_avg_cost = (cost / shares) if shares else fill_price
+        marked = shares * price
+        pnl = marked - cost
         entry = next((t for t in book['trades'] if t['symbol'] == symbol and t['side'] == 'BUY' and t['observed_at'] == p['opened_at']), {})
         positions.append({**p, 'symbol': symbol, 'price': price, 'value': marked,
-            'cost_basis': cost, 'pnl': marked-cost, 'pnl_pct': (marked/cost-1)*100 if cost else 0,
+            'fill_price': fill_price, 'avg_cost': net_avg_cost, 'entry_fee': entry_fee,
+            'cost_basis': cost, 'pnl': pnl, 'pnl_pct': (pnl/cost)*100 if cost else 0,
             'weight_pct': marked/value*100 if value else 0, 'day_change_pct': None,
             'entry_rank_score': entry.get('deterministic_score', 0),
             'lane': 'SCORE_QUALIFIED', 'lane_label': 'Score qualified',
@@ -166,10 +177,16 @@ def canonical_paper_status(db):
     base = prior['equity'] if prior else state['spec']['starting_cash']
     daily = value-base
     benchmark = report['benchmark_return_pct']
+    absolute_return = value-state['spec']['starting_cash']
+    open_pnl = sum(float(p.get('pnl') or 0) for p in positions)
+    realized_pnl = float(metrics.get('realized_profit') or 0)
+    pnl_reconciliation_delta = absolute_return - open_pnl - realized_pnl
     return {'canonical_strategy': True, 'enabled': True, 'started': bool(state['started_at']),
         'starting_cash': state['spec']['starting_cash'], 'cash': metrics['cash'],
         'equity': value, 'invested': round(value-metrics['cash'], 2),
-        'return_pct': metrics['return_pct'], 'absolute_return': value-state['spec']['starting_cash'],
+        'return_pct': metrics['return_pct'], 'absolute_return': absolute_return,
+        'open_pnl': round(open_pnl, 2), 'realized_pnl': round(realized_pnl, 2),
+        'pnl_reconciliation_delta': round(pnl_reconciliation_delta, 6),
         'daily_pnl': daily, 'daily_pnl_pct': daily/base*100 if base else 0,
         'benchmark_label': 'S&P 500 Total Return', 'benchmark_return_pct': benchmark,
         'excess_return_pct': metrics['excess_return_pct'], 'drawdown_pct': metrics['max_drawdown_pct'],
