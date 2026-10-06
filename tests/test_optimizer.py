@@ -118,6 +118,26 @@ def test_ai_is_confirmation_not_part_of_portfolio_rank_math():
     assert candidate_rank_score(a)["ai_confirmation"] != candidate_rank_score(b)["ai_confirmation"]
 
 
+def test_dashboard_candidate_table_hides_qualified_wait_names_until_actionable():
+    buy=payload("ACTNOW",score=72,sector="Technology",expected=20,price=100)
+    wait=payload("WAITING",score=78,sector="Healthcare",expected=20,price=100)
+    wait["action"]="WATCH"
+    wait["entry_zone_status"]="WATCH"
+    with SessionLocal() as db:
+        for p in (buy,wait):
+            db.add(RadarCandidate(
+                symbol=p["symbol"],category="Core",action=p["action"],
+                score=p["deterministic_score"],ai_score=p["ai_score"],price=p["price"],
+                portfolio_rank_score=candidate_rank_score(p)["score"],
+                lane="CORE_QUALITY",lane_qualified=True,current_json=json.dumps(p),
+            ))
+        db.commit()
+    d=client.get('/api/live').json()
+    symbols={row["symbol"] for row in d["candidates"]}
+    assert "ACTNOW" in symbols
+    assert "WAITING" not in symbols
+
+
 def test_dashboard_never_returns_more_than_twenty_radar_rows():
     with SessionLocal() as db:
         for i in range(30):
