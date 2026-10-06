@@ -83,7 +83,7 @@ def test_stale_scoring_candidates_are_prioritized_for_refresh():
     r=RadarService(provider=FakeProvider(),ai=FakeAI())
     assert r.stale_scoring_symbols(limit=5)[0] == "STALE"
     syms=r.candidate_symbols()
-    assert syms.index("STALE") < syms.index("DISC")
+    assert syms.index("STALE") < next(i for i,s in enumerate(syms) if s.startswith("U"))
 
 
 def test_stale_candidates_beyond_current_top_ranks_are_not_starved():
