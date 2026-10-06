@@ -54,6 +54,7 @@ class MomentumSignal:
     atr14: float
     price: float
     atr_pct: float
+    security_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -180,7 +181,7 @@ def latest_atr14(bars: Sequence[PriceBar], *, preceding_session: bool = False) -
     return float(value)
 
 
-def build_momentum_signal(symbol: str, bars: Sequence[PriceBar], *, lagged: bool = False) -> MomentumSignal:
+def build_momentum_signal(symbol: str, bars: Sequence[PriceBar], *, lagged: bool = False, security_id: str | None = None) -> MomentumSignal:
     tr = [b.total_return_close for b in bars]
     score, parts = momentum_score(tr, lagged=lagged)
     atr = latest_atr14(bars)
@@ -200,6 +201,7 @@ def build_momentum_signal(symbol: str, bars: Sequence[PriceBar], *, lagged: bool
         atr14=atr,
         price=price,
         atr_pct=atr_pct,
+        security_id=security_id,
     )
 
 
@@ -238,7 +240,7 @@ def evaluate_fundamentals(
 
 def rank_signals(signals: Iterable[MomentumSignal]) -> list[MomentumSignal]:
     """Rank by momentum, then higher ADV63, then stable security identifier."""
-    return sorted(signals, key=lambda s: (-s.score, -s.adv63, s.symbol))
+    return sorted(signals, key=lambda s: (-s.score, -s.adv63, s.security_id or s.symbol))
 
 
 def target_weights(signals: Sequence[MomentumSignal]) -> tuple[dict[str, float], float]:
