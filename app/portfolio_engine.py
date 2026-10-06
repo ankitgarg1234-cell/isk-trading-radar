@@ -276,7 +276,8 @@ def suggested_position_size(
     profile = normalise_profile(profile)
     p = RISK_PROFILES[profile]
     price = _float(a.get("price"))
-    stop = _float((a.get("levels") or {}).get("stop"))
+    levels = a.get("levels") or {}
+    stop = _float(levels.get("entry_stop") or levels.get("stop"))
     if price <= 0 or stop <= 0 or stop >= price or fx_rate_to_base <= 0:
         return {"shares": 0, "reason": "Sizing unavailable until price, stop and FX are valid", "fit": "UNKNOWN"}
 
