@@ -158,6 +158,35 @@ def test_score_band_owned_symbol_is_excluded_from_new_candidate_dashboard(monkey
     assert "FRESH" in visible
 
 
+def test_active_paper_projection_is_ownership_truth_and_next_candidate_surfaces(monkeypatch):
+    import app.main as main_mod
+
+    held=payload("HELD",score=95,sector="Technology",expected=35,price=100)
+    next_pick=payload("NEXT",score=90,sector="Healthcare",expected=30,price=100)
+    with SessionLocal() as db:
+        for p in (held,next_pick):
+            db.add(RadarCandidate(
+                symbol=p["symbol"],category="Core",action="BUY NOW",
+                score=p["deterministic_score"],ai_score=p["ai_score"],price=p["price"],
+                portfolio_rank_score=candidate_rank_score(p)["score"],current_json=json.dumps(p),
+                lane="CORE_QUALITY",lane_qualified=True,
+            ))
+        db.commit()
+        # Simulate the active canonical paper ledger already owning HELD even if
+        # the auxiliary holding-symbol helper is momentarily stale.
+        monkeypatch.setattr(main_mod,"experiment_holding_symbols",lambda:[])
+        monkeypatch.setattr(main_mod,"paper_status",lambda _db:{
+            "canonical_strategy":True,
+            "positions":[{"symbol":"HELD","shares":5,"avg_cost":100}],
+        })
+        state=main_mod._dashboard_state(db)
+
+    assert [r["symbol"] for r in state["candidates"]]==["NEXT"]
+    assert state["summary"]["buy_now"]==1
+    assert state["optimizer"]["invest_now"]==1
+    assert state["optimizer"]["owned"]>=1
+
+
 def test_dashboard_never_returns_more_than_twenty_radar_rows():
     with SessionLocal() as db:
         for i in range(30):
