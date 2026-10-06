@@ -559,7 +559,9 @@ class RadarService:
         with SessionLocal() as db:
             position_rows = db.query(Position).all()
             paper_rows = db.query(PaperPosition).all()
-            owned = {p.symbol for p in position_rows} | {p.symbol for p in paper_rows}
+            owned = ({p.symbol for p in position_rows}
+                     | {p.symbol for p in paper_rows}
+                     | set(experiment_holding_symbols()))
             pref = db.query(PortfolioPreference).filter(PortfolioPreference.account == "Main").first()
             profile = normalise_profile(pref.risk_profile if pref else "MEDIUM")
             rows = db.query(RadarCandidate).order_by(

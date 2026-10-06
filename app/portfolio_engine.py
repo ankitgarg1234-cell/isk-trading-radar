@@ -679,8 +679,14 @@ def build_optimizer_plan(
         r["optimizer_action"] = "PASS"
         r["decision_reason"] = f"PASS — outside the current Top-{max(1, visible_limit)} allocation universe"
 
-    visible = rows[:max(1, visible_limit)]
-    shortlist = visible[:max(1, min(shortlist_limit, len(visible)))]
+    # Existing positions are managed separately and must never consume the
+    # ranked capacity reserved for new opportunities. Keep owned rows available
+    # for HOLD/REDUCE/EXIT management, then append the Top-N unowned candidates.
+    owned_rows = [r for r in rows if r["owned"]]
+    new_rows = [r for r in rows if not r["owned"]]
+    visible_new = new_rows[:max(1, visible_limit)]
+    visible = owned_rows + visible_new
+    shortlist = visible_new[:max(1, min(shortlist_limit, len(visible_new)))]
     shortlist_symbols = {r["symbol"] for r in shortlist}
 
     selected_new = []
@@ -746,5 +752,5 @@ def build_optimizer_plan(
         "owned_count": len(owned),
         "visible_limit": visible_limit,
         "shortlist_limit": shortlist_limit,
-        "allocation_policy": "TOP20_ALL_QUALIFIED",
+        "allocation_policy": "TOP20_UNOWNED_QUALIFIED",
     }
