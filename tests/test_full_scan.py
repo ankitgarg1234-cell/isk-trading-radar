@@ -153,6 +153,25 @@ def test_scoring_version_change_stops_audit_instead_of_mixing_results(monkeypatc
     assert scan.status()["status"] == "scoring_version_changed"
 
 
+def test_resume_after_model_change_starts_clean_current_version_run(monkeypatch):
+    scan, _, _ = service(monkeypatch, ["A", "B"])
+    monkeypatch.setattr(scan, "_launch", lambda run_id:None)
+    old_id = scan.start()["run_id"]
+    with SessionLocal() as db:
+        run = db.get(FullScanRun, "latest")
+        run.scoring_version = "old"
+        run.status = "analysis"
+        db.commit()
+
+    fresh, analyzed, _ = service(monkeypatch, ["A", "B"])
+    result = fresh.resume()
+
+    assert result["run_id"] != old_id
+    assert result["scoring_version"] == SCORING_VERSION
+    assert result["processed"] == 2
+    assert [s for s, _ in analyzed] == ["A", "B"]
+
+
 def test_start_after_model_change_creates_clean_current_version_run(monkeypatch):
     scan, _, _ = service(monkeypatch, ["A", "B"])
     monkeypatch.setattr(scan, "_launch", lambda run_id:None)
