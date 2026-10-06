@@ -37,6 +37,7 @@ REVENUE_TAGS = (
 GROSS_PROFIT_TAGS = ("GrossProfit",)
 FINANCIAL_FORMS = {"10-Q", "10-Q/A", "10-K", "10-K/A", "20-F", "20-F/A", "40-F", "40-F/A"}
 ANNUAL_FORMS = {"10-K", "10-K/A", "20-F", "20-F/A", "40-F", "40-F/A"}
+GROSS_MARGIN_EXEMPT_GICS = {"Financials", "Real Estate"}
 
 
 def _safe_float(value: Any) -> float | None:
@@ -458,7 +459,12 @@ class LiveDataSource:
         chosen = max(qualifying or choices, key=lambda x: (x[0], x[1]))
         return chosen[2], chosen[3]
 
-    def ttm_fundamentals(self, symbol: str, decision_date: date) -> dict:
+    def ttm_fundamentals(
+        self,
+        symbol: str,
+        decision_date: date,
+        gross_margin_exempt: bool | None = None,
+    ) -> dict:
         ref = self.sec.resolve(symbol)
         if not ref:
             return {
@@ -497,7 +503,8 @@ class LiveDataSource:
             sic = int(sic_raw)
         except Exception:
             sic = None
-        gross_margin_exempt = bool(sic is not None and 6000 <= sic <= 6799)
+        if gross_margin_exempt is None:
+            gross_margin_exempt = bool(sic is not None and 6000 <= sic <= 6799)
 
         check = evaluate_fundamentals(
             revenue_values_clean,
@@ -573,7 +580,14 @@ class LiveDataSource:
                 for start_idx in range(0, len(symbols_to_check), 8):
                     batch_symbols = symbols_to_check[start_idx : start_idx + 8]
                     futures = {
-                        pool.submit(self.ttm_fundamentals, symbol, decision_date): symbol
+                        pool.submit(
+                            self.ttm_fundamentals,
+                            symbol,
+                            decision_date,
+                            (member_by_symbol.get(symbol) or {}).get("sector") in GROSS_MARGIN_EXEMPT_GICS
+                            if (member_by_symbol.get(symbol) or {}).get("sector")
+                            else None,
+                        ): symbol
                         for symbol in batch_symbols
                     }
                     batch_rows: dict[str, dict] = {}
