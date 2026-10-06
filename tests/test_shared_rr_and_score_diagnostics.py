@@ -4,7 +4,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.analysis_engine import score_bundle, calibrated_score_components, risk_reward_score, DETERMINISTIC_WEIGHTS
+from app.analysis_engine import (score_bundle, calibrated_score_components, risk_reward_score,
+                                 DETERMINISTIC_WEIGHTS, recalibrate_snapshot, SCORING_VERSION)
 from app.portfolio_engine import MIN_ENTRY_RISK_REWARD, entry_attention_signal, build_optimizer_plan
 from app.scanner import _attention_buy_signal
 from app.score_band_experiment import entry_check, experiment_spec
@@ -95,6 +96,19 @@ def test_v21_recalibrates_known_high_quality_neutral_setup_to_70_without_relaxin
     }
     weighted = calibrated_score_components(raw, 0.33)
     assert sum(weighted.values()) >= 70
+
+
+def test_v20_completed_snapshot_recalibrates_locally_to_same_v21_score_and_lane():
+    b=bundle()
+    current=score_bundle(b)
+    old={**b,**current,"scoring_version":"2026-10-06-sec-filing-coverage-v20"}
+    migrated=recalibrate_snapshot(old)
+    assert migrated is not None
+    assert migrated["scoring_version"] == SCORING_VERSION
+    assert migrated["recalibrated_from_scoring_version"] == "2026-10-06-sec-filing-coverage-v20"
+    assert migrated["deterministic_score"] == pytest.approx(current["deterministic_score"], abs=0.1)
+    assert migrated["lane"] == current["lane"]
+    assert migrated["lane_qualified"] == current["lane_qualified"]
 
 
 def test_v21_does_not_promote_merely_minimum_quality_neutral_setup():

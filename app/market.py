@@ -1281,16 +1281,17 @@ class YahooMarketProvider:
             pass
         raise MarketDataError(f"Could not resolve company or symbol: {raw}")
 
-    def quick_scan(self, symbol: str) -> dict:
+    def quick_scan(self, symbol: str, range_: str = "1mo") -> dict:
         """Low-cost first-pass market scan used across the whole U.S. universe."""
-        chart = self.chart(symbol, "1mo", "1d")
+        chart = self.chart(symbol, range_, "1d")
         rows, current, previous, currency, exchange = self._rows_from_chart(chart)
         closes = [float(r["close"]) for r in rows if r.get("close") is not None]
         vols = [float(r.get("volume") or 0) for r in rows if r.get("close") is not None]
         if not current or len(closes) < 3:
             raise MarketDataError(f"Insufficient quick-scan history for {symbol}")
         change_5 = ((current / closes[-6]) - 1) * 100 if len(closes) >= 6 and closes[-6] else 0.0
-        change_20 = ((current / closes[0]) - 1) * 100 if closes and closes[0] else 0.0
+        change_20 = ((current / closes[-21]) - 1) * 100 if len(closes) >= 21 and closes[-21] else (
+            ((current / closes[0]) - 1) * 100 if closes and closes[0] else 0.0)
         baseline_vols = [v for v in vols[-21:-1] if v > 0]
         avg_vol = sum(baseline_vols) / len(baseline_vols) if baseline_vols else 0.0
         rel_vol = (vols[-1] / avg_vol) if vols and avg_vol else 0.0
@@ -1314,6 +1315,13 @@ class YahooMarketProvider:
             and avg_dollar_volume >= 20_000_000
             and (change_5 >= 3.0 or change_20 >= 7.0 or rel_vol >= 1.5 or near_high >= 0.985)
         )
+        quote_asof = None
+        try:
+            quote_ts = (chart.get("meta") or {}).get("regularMarketTime")
+            if quote_ts:
+                quote_asof = datetime.fromtimestamp(float(quote_ts), timezone.utc).isoformat()
+        except (TypeError, ValueError, OverflowError):
+            pass
         return {
             "symbol": symbol, "price": current, "previous_close": previous,
             "currency": currency, "exchange": exchange,
@@ -1321,6 +1329,7 @@ class YahooMarketProvider:
             "relative_volume": rel_vol, "dollar_volume": dollar_volume,
             "avg_dollar_volume_20": avg_dollar_volume,
             "near_20d_high": near_high, "scan_score": scan_score, "qualifies": qualifies,
+            "quote_asof": quote_asof,
         }
 
 
