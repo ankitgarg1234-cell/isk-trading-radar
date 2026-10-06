@@ -397,7 +397,9 @@ class FullUniverseScan:
                 "news_points":"News", "momentum_points":"Momentum", "sector_points":"Sector",
                 "valuation_points":"Valuation", "analyst_confirmation_points":"Analyst confirmation",
                 "risk_reward_points":"Risk/Reward"}
-            fields += list(component_columns) + ["scoring_version","sector","fundamental_confidence",
+            contribution_columns = {column.replace("_points", "_contribution"): label
+                                    for column, label in component_columns.items()}
+            fields += list(component_columns) + list(contribution_columns) + ["scoring_version","score_calibration","sector","fundamental_confidence",
                 "fundamental_missing_inputs","fundamental_model_limitation","fundamental_reasons",
                 "fundamental_floor_status","fundamental_score_min","fundamental_score_max","fundamental_missing_bonus_inputs",
                 "fundamental_period","net_income_tag","equity_tag","revenue_growth_pct","earnings_growth_pct",
@@ -407,6 +409,8 @@ class FullUniverseScan:
                 data = {"symbol":row.symbol,"status":row.status,**json.loads(row.payload_json)}
                 data.update({column:(data.get("breakdown") or {}).get(component)
                              for column,component in component_columns.items()})
+                data.update({column:(data.get("score_contributions") or {}).get(component)
+                             for column,component in contribution_columns.items()})
                 for key in ("fundamental_missing_inputs", "fundamental_reasons", "fundamental_missing_bonus_inputs"):
                     data[key] = "; ".join(data.get(key) or [])
                 writer.writerow(data)
