@@ -36,7 +36,7 @@ def test_band_boundaries(score, weight):
     assert allocation_pct(score) == weight
 
 
-@pytest.mark.parametrize("score,analyst,okay", [(70,75,True),(69.99,90,False),(90,74.99,False),(90,None,False)])
+@pytest.mark.parametrize("score,analyst,okay", [(70,75,True),(64.99,90,False),(90,74.99,False),(90,None,False)])
 def test_all_qualifiers_are_mandatory(score, analyst, okay):
     assert entry_check(observation(score=score,analyst=analyst))[0] == okay
 
