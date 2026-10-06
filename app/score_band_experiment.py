@@ -16,10 +16,11 @@ from .portfolio_engine import (
     suggested_position_size,
 )
 from .analysis_engine import position_action, position_action_plan
-from .trading_rules import MIN_ENTRY_RISK_REWARD, entry_check
+from .trading_rules import (MIN_DETERMINISTIC_SCORE, MIN_ENTRY_RISK_REWARD,
+                            entry_check, qualification_check, signal_geometry)
 
 VERSION = "score-bands-paper-v1"
-BANDS = ((90, 40), (85, 30), (80, 20), (75, 15), (70, 10))
+BANDS = ((90, 40), (85, 30), (80, 20), (75, 15), (70, 10), (65, 5))
 VARIANTS = ("complete_strategy",)
 
 
@@ -62,7 +63,7 @@ def experiment_spec(profile="MEDIUM"):
     return {
         "version": VERSION, "starting_cash": 10000.0, "profile": profile, "active_accounts": 1,
         "risk_per_trade_pct": RISK_PROFILES[profile]["risk_per_trade_pct"],
-        "bands": list(BANDS), "min_deterministic": 70, "min_analyst": 75, "min_rr": MIN_ENTRY_RISK_REWARD,
+        "bands": list(BANDS), "min_deterministic": MIN_DETERMINISTIC_SCORE, "min_analyst": 75, "min_rr": MIN_ENTRY_RISK_REWARD,
         "fee_bps": 10.0, "slippage_bps": 5.0, "fresh_seconds": 600,
         "initial_exit": "complete strategy: entry-time modeled stop; next fresh observation fill",
         "strong_momentum": "price >= EMA20 and RSI14 >= 50",
@@ -222,7 +223,16 @@ def _fill(book, mode, spec, a, observed):
         okay = entry_attention_signal(fresh) is not None
         reason = "control_entry_failed_at_fill"
     else:
-        okay, reason, _ = entry_check(fresh, price)
+        # The trigger was already validated on the prior fresh observation.
+        # At the next quote we re-check all hard qualification gates and the
+        # do-not-chase boundary, but do not require price to remain inside the
+        # exact same narrow trigger band for a second consecutive observation.
+        okay, reason, _ = qualification_check(fresh, price)
+        if okay:
+            levels, _ = signal_geometry(fresh)
+            chase = number(levels.get("do_not_chase"))
+            if chase is None or price > chase:
+                okay, reason = False, "do_not_chase"
     if not okay:
         block(book, reason)
         return
