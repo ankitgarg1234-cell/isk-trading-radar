@@ -13,14 +13,13 @@ from datetime import datetime, timezone
 
 from .portfolio_engine import (
     RISK_PROFILES, candidate_rank_score, entry_attention_signal,
-    suggested_position_size,
+    suggested_position_size, score_target_allocation_pct, CONTINUOUS_SCORE_SIZING,
 )
 from .analysis_engine import position_action, position_action_plan
 from .trading_rules import (MIN_DETERMINISTIC_SCORE, MIN_ENTRY_RISK_REWARD,
                             entry_check, qualification_check, signal_geometry)
 
 VERSION = "continuous-score-sizing-v2"
-CONTINUOUS_SIZING = {"floor_score": 65.0, "floor_pct": 5.0, "slope_per_score": 1.4, "cap_pct": 40.0}
 VARIANTS = ("complete_strategy",)
 
 
@@ -45,20 +44,8 @@ def number(value):
 
 
 def allocation_pct(score):
-    """Continuous target allocation for brand-new positions only.
-
-    65 -> 5%, then +1.4 percentage points of target allocation per
-    deterministic-score point, capped at 40%. Scores below the canonical
-    qualification floor receive no allocation.
-    """
-    score = number(score)
-    if score is None or not 0 <= score <= 100:
-        return 0
-    floor_score = CONTINUOUS_SIZING["floor_score"]
-    if score < floor_score:
-        return 0
-    target = CONTINUOUS_SIZING["floor_pct"] + CONTINUOUS_SIZING["slope_per_score"] * (score - floor_score)
-    return round(min(CONTINUOUS_SIZING["cap_pct"], max(CONTINUOUS_SIZING["floor_pct"], target)), 2)
+    """Shared continuous target allocation for brand-new positions only."""
+    return score_target_allocation_pct(score)
 
 
 def timestamp(value):
@@ -73,7 +60,7 @@ def experiment_spec(profile="MEDIUM"):
     return {
         "version": VERSION, "starting_cash": 10000.0, "profile": profile, "active_accounts": 1,
         "risk_per_trade_pct": RISK_PROFILES[profile]["risk_per_trade_pct"],
-        "sizing_policy": "continuous_new_positions_only", "continuous_sizing": dict(CONTINUOUS_SIZING),
+        "sizing_policy": "continuous_new_positions_only", "continuous_sizing": dict(CONTINUOUS_SCORE_SIZING),
         "min_deterministic": MIN_DETERMINISTIC_SCORE, "min_analyst": 75, "min_rr": MIN_ENTRY_RISK_REWARD,
         "fee_bps": 10.0, "slippage_bps": 5.0, "fresh_seconds": 600,
         "initial_exit": "complete strategy: entry-time modeled stop; next fresh observation fill",
