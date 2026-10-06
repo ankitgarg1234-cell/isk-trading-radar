@@ -431,10 +431,11 @@ def record_trade(
         else:
             if position is None or shares > int(position.shares or 0):
                 raise HTTPException(status_code=400, detail="Sell quantity exceeds the recorded position")
-            if position.pending_stop_exit:
+            full_exit = shares == int(position.shares or 0)
+            if full_exit and position.pending_stop_exit:
                 system_reason = "STOP_EXIT"
                 reference_date = position.stop_asof
-            elif position.pending_rule_exit_reason:
+            elif full_exit and position.pending_rule_exit_reason:
                 system_reason = "RULE_EXIT"
                 reference_date = position.pending_rule_exit_date
             credit = price * shares - fees
