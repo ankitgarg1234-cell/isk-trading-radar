@@ -142,13 +142,11 @@ RECALIBRATABLE_SCORING_VERSIONS = {
 
 
 def recalibrate_snapshot(snapshot: dict) -> dict | None:
-    """Locally migrate a completed v20 analysis onto the v21 score scale.
+    """Locally migrate completed v20/v21 evidence onto v22 entry semantics.
 
-    v21 changed deterministic weighting/R-R normalization only. Completed-session
-    v20 targets, fundamentals, news, analyst evidence and technical inputs remain
-    valid, so the audit can re-score them without another provider round-trip.
-    BUY/WATCH actions are intentionally not trusted; current shared gates are run
-    by the audit after recalibration.
+    The underlying completed-session evidence remains valid. v22 lowers the Core
+    deterministic entry floor to 65 and separates setup entry-stop geometry from
+    the deeper thesis stop, so old BUY/WATCH labels are never trusted.
     """
     if snapshot.get("scoring_version") not in RECALIBRATABLE_SCORING_VERSIONS:
         return None
@@ -158,10 +156,14 @@ def recalibrate_snapshot(snapshot: dict) -> dict | None:
         return None
     price = number(snapshot.get("price"))
     target = number((snapshot.get("target_plan") or {}).get("base_target"))
-    stop = number((snapshot.get("levels") or {}).get("stop"))
-    if price is None or target is None or stop is None or not 0 < stop < price < target:
+    levels = dict(snapshot.get("levels") or {})
+    old_stop = number(levels.get("thesis_stop", levels.get("stop")))
+    if price is None or target is None or old_stop is None or not 0 < old_stop < price < target:
         return None
-    rr = (target - price) / (price - stop)
+    levels["thesis_stop"] = old_stop
+    levels["entry_stop"] = trade_entry_stop(snapshot.get("technicals") or {}, levels, price)
+    levels["stop"] = levels["entry_stop"]
+    rr = (target - price) / (price - levels["entry_stop"])
     contributions = calibrated_score_components(raw, rr)
     total = sum(contributions.values())
     news = snapshot.get("news") or {}
@@ -171,8 +173,10 @@ def recalibrate_snapshot(snapshot: dict) -> dict | None:
     elif int(news.get("high_negative_events") or 0) >= 1 and news.get("label") == "Bearish":
         total = min(total, 74)
     total = round(clamp(total), 1)
+    working = dict(snapshot)
+    working["levels"] = levels
     lane_info = classify_lane(
-        snapshot,
+        working,
         fs=number(raw.get("Fundamentals")) or 0.0,
         fconf=str(snapshot.get("fundamental_confidence") or "low"),
         news=news,
@@ -186,6 +190,7 @@ def recalibrate_snapshot(snapshot: dict) -> dict | None:
         entry_rr=rr,
     )
     out = dict(snapshot)
+    out["levels"] = levels
     out.update(lane_info)
     out.update({
         "scoring_version": SCORING_VERSION,
@@ -1141,7 +1146,7 @@ def score_bundle(bundle: dict) -> dict:
     breakdown = raw_breakdown
     return {
         "scoring_version": SCORING_VERSION,
-        "score_calibration": "quality-balanced-v21",
+        "score_calibration": "quality-balanced-v22-entry65-trade-stop",
         "score_weights": dict(DETERMINISTIC_WEIGHTS),
         "score_contributions": {k: round(v, 1) for k, v in score_contributions.items()},
         "currency": bundle.get("currency") or "USD",
