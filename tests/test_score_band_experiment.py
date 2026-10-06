@@ -368,6 +368,34 @@ def test_existing_database_migrates_to_one_without_reset_or_archive_tracking():
         assert persisted["archived_variants"]["current_rules_control"] == control
 
 
+def test_sizing_policy_migration_keeps_current_position_share_counts_unchanged():
+    import json
+    from app.db import SessionLocal, ScoreBandExperiment
+    from app.score_band_experiment import VERSION
+    from app.score_band_capture import experiment_status
+
+    state = new_state("HIGH")
+    state["spec"].pop("sizing_policy", None)
+    state["spec"].pop("continuous_sizing", None)
+    state["spec"]["bands"] = [[90,40],[85,30],[80,20],[75,15],[70,10],[65,5]]
+    book = state["variants"]["complete_strategy"]
+    book["cash"] = 5014.91
+    book["positions"]["EXISTING"] = {
+        "shares":7,"avg_cost":100,"entry_fee_per_share":0.1,
+        "entry_target":120,"entry_stop":95,"stop":95,"peak":101,
+        "harvested":False,"profit_steps":[]
+    }
+    with SessionLocal() as db:
+        db.add(ScoreBandExperiment(version=VERSION,state_json=json.dumps(state)))
+        db.commit()
+
+    result = experiment_status(True)
+    assert result["variants"]["complete_strategy"]["positions"]["EXISTING"]["shares"] == 7
+    assert result["variants"]["complete_strategy"]["cash"] == 5014.91
+    assert result["spec"]["sizing_policy"] == "continuous_new_positions_only"
+    assert "bands" not in result["spec"]
+
+
 def test_missing_complete_ledger_refuses_to_manufacture_new_balance():
     state = new_state()
     state["variants"].clear()
