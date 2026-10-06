@@ -55,3 +55,20 @@ jobs:
           pip install -r requirements.txt
       - name: Verify production Python startup imports
         run: python -c "import app.db; import app.main; print('PYTHON314_STARTUP_PASS')"
+
+
+  live-sizing-ledger-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verify live paper quantities
+        run: |
+          python - <<'PY'
+          import json, urllib.request
+          d=json.load(urllib.request.urlopen("https://isk-trading-radar.onrender.com/api/live", timeout=30))
+          paper=d.get("paper") or {}
+          print("POLICY", paper.get("sizing_policy"))
+          print("POSITIONS", [(p.get("symbol"),p.get("shares")) for p in paper.get("positions",[])])
+          print("CASH", paper.get("cash"))
+          print("COUNT", paper.get("position_count"))
+          PY
