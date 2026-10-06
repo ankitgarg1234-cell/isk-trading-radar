@@ -33,7 +33,7 @@ def _rank_value(rank: Any) -> int:
     return int(rank) if isinstance(rank, int) else 9999
 
 
-def build_portfolio_plan(snapshot: dict, positions: list[dict], cash_usd: float) -> dict:
+def build_portfolio_plan(snapshot: dict, positions: list[dict], cash_usd: float, reserved_slots: int = 0) -> dict:
     """Create a deterministic month-end order proposal.
 
     Quantities use the signal-date close only. The next-session opening fill is
@@ -45,6 +45,7 @@ def build_portfolio_plan(snapshot: dict, positions: list[dict], cash_usd: float)
     holding_checks = snapshot.get("holding_checks") or {}
     positions_by_symbol = {str(p["symbol"]).upper(): dict(p) for p in positions}
     warnings: list[str] = []
+    reserved_slots = max(0, int(reserved_slots or 0))
 
     if regime == "BEAR":
         exits = []
@@ -140,8 +141,9 @@ def build_portfolio_plan(snapshot: dict, positions: list[dict], cash_usd: float)
 
     selected = list(retained[:MAX_HOLDINGS])
     new_entries: list[str] = []
+    available_slots = max(0, MAX_HOLDINGS - reserved_slots)
     for row in candidate_rows:
-        if len(selected) >= MAX_HOLDINGS:
+        if len(selected) >= available_slots:
             break
         if int(row.get("rank") or 9999) > 20:
             continue
@@ -358,5 +360,6 @@ def build_portfolio_plan(snapshot: dict, positions: list[dict], cash_usd: float)
         "estimated_cash_after": max(0.0, estimated_cash_after),
         "sizing_complete": True,
         "warnings": warnings,
-        "execution_note": "Quantities use signal-date closes; realized exposure must be recomputed from actual next-session fills.",
+        "reserved_slots": reserved_slots,
+        "execution_note": "Quantities use signal-date closes; realized exposure must be recomputed from actual next-session fills. Mid-month system exits reserve their vacancies until a later month-end cycle.",
     }
