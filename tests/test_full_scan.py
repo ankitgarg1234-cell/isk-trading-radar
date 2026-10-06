@@ -80,6 +80,21 @@ def test_preflight_matches_scoring_liquidity_and_only_rejects_hard_floors():
     with pytest.raises(ValueError):preflight(p,"TEST","2026-10-06")
 
 
+def test_preflight_prefers_lightweight_quick_scan_and_preserves_exact_gate_inputs():
+    class QuickProvider:
+        def quick_scan(self, symbol):
+            return {"symbol":symbol,"price":25,"currency":"USD",
+                    "avg_dollar_volume_20":15_000_000,"scan_score":42,
+                    "quote_asof":"2026-10-05T20:00:00+00:00"}
+        def chart(self,*args,**kwargs):
+            pytest.fail("preflight should not fetch a one-year chart when quick_scan exists")
+    row=preflight(QuickProvider(),"FAST","2026-10-05")
+    assert row["status"]=="awaiting_analysis"
+    assert row["avg_dollar_volume_20"]==15_000_000
+    assert row["scan_score"]==42
+    assert row["source"]=="lightweight_exact_20d_preflight"
+
+
 @pytest.mark.parametrize("started", [
     datetime(2026, 10, 6, 7, tzinfo=timezone.utc),
     datetime(2026, 10, 10, 12, tzinfo=timezone.utc),
@@ -337,6 +352,8 @@ def test_cache_reuse_requires_post_close_current_version_and_nontransient_inputs
     assert scan._cached("TEST","2026-10-05")["source"] == "cached_post_close"
     a["asof"]="2026-10-05T19:59:00+00:00";store(a)
     assert scan._cached("TEST","2026-10-05") is None
+    a=payload();a["asof"]="2026-10-06T09:00:00+00:00";store(a)
+    assert scan._cached("TEST","2026-10-05")["source"] == "cached_post_close"
     a=payload();a["scoring_version"]="old";store(a)
     assert scan._cached("TEST","2026-10-05") is None
     a=payload();a["fundamentals"]["trailingPE"]=None
