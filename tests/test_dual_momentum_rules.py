@@ -235,3 +235,18 @@ def test_auth_guard_has_session_middleware_available():
         protected = client.get("/", follow_redirects=False)
         assert protected.status_code in {302, 303, 307}
         assert protected.headers.get("location") == "/login"
+
+
+def test_latest_completed_month_end_uses_observed_spy_transition():
+    from dual_momentum.data import _latest_completed_month_end_session
+    from dual_momentum.rules import PriceBar
+
+    bars = [
+        PriceBar("2026-09-29", 1, 1, 1, 1, 1, 1),
+        PriceBar("2026-09-30", 1, 1, 1, 1, 1, 1),
+        PriceBar("2026-10-01", 1, 1, 1, 1, 1, 1),
+        PriceBar("2026-10-02", 1, 1, 1, 1, 1, 1),
+    ]
+    decision, next_session = _latest_completed_month_end_session(bars)
+    assert decision.isoformat() == "2026-09-30"
+    assert next_session.isoformat() == "2026-10-01"
