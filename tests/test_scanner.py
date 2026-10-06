@@ -50,6 +50,16 @@ def test_market_open_regular_session_and_weekend():
     assert r.market_open(datetime(2026,9,27,12,0,tzinfo=ny)) is False
 
 
+def test_preopen_handoff_is_exactly_the_final_15_minutes_before_regular_open():
+    r=RadarService(provider=FakeProvider(),ai=FakeAI())
+    ny=ZoneInfo("America/New_York")
+    assert r.market_preopen(datetime(2026,9,28,9,14,tzinfo=ny)) is False
+    assert r.market_preopen(datetime(2026,9,28,9,15,tzinfo=ny)) is True
+    assert r.market_preopen(datetime(2026,9,28,9,29,tzinfo=ny)) is True
+    assert r.market_preopen(datetime(2026,9,28,9,30,tzinfo=ny)) is False
+    assert r.market_preopen(datetime(2026,9,27,9,20,tzinfo=ny)) is False
+
+
 def test_existing_positions_and_watchlist_are_prioritized():
     with SessionLocal() as db:
         db.add(Position(symbol="HELD",shares=4,avg_cost=10,account="Test"))
@@ -100,6 +110,24 @@ def test_stale_candidates_beyond_current_top_ranks_are_not_starved():
         db.commit()
     r = RadarService(provider=FakeProvider(), ai=FakeAI())
     assert r.stale_scoring_symbols(limit=20) == ["OLD"]
+
+
+def test_preopen_warmup_owns_budget_even_while_full_audit_thread_is_active(monkeypatch):
+    import app.scanner as scanner_module
+    import pytest
+    r=RadarService(provider=FakeProvider(),ai=FakeAI())
+    r.full_universe_scan=type("Audit", (), {"active": lambda self: True})()
+    monkeypatch.setattr(r,"market_open",lambda now=None: False)
+    monkeypatch.setattr(r,"market_preopen",lambda now=None, lead_minutes=15: True)
+    monkeypatch.setattr(r,"preopen_priority_symbols",lambda limit=20:["WARM1","WARM2"])
+    refreshed=[]
+    monkeypatch.setattr(r,"analyze_symbol",lambda symbol:refreshed.append(symbol))
+    monkeypatch.setattr(scanner_module,"run_paper_cycle",
+        lambda *args,**kwargs:pytest.fail("pre-open warm-up must not execute trades"))
+    result=r.scan_once()
+    assert result["status"]=="preopen_warmup"
+    assert result["execution_enabled"] is False
+    assert refreshed==["WARM1","WARM2"]
 
 
 def test_closed_market_refreshes_stale_analyses_without_paper_trades(monkeypatch):
