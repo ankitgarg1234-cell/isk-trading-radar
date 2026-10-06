@@ -153,6 +153,25 @@ def test_scoring_version_change_stops_audit_instead_of_mixing_results(monkeypatc
     assert scan.status()["status"] == "scoring_version_changed"
 
 
+def test_resume_after_model_change_starts_clean_current_version_run(monkeypatch):
+    scan, _, _ = service(monkeypatch, ["A", "B"])
+    monkeypatch.setattr(scan, "_launch", lambda run_id:None)
+    old_id = scan.start()["run_id"]
+    with SessionLocal() as db:
+        run = db.get(FullScanRun, "latest")
+        run.scoring_version = "old"
+        run.status = "analysis"
+        db.commit()
+
+    fresh, analyzed, _ = service(monkeypatch, ["A", "B"])
+    result = fresh.resume()
+
+    assert result["run_id"] != old_id
+    assert result["scoring_version"] == SCORING_VERSION
+    assert result["processed"] == 2
+    assert [s for s, _ in analyzed] == ["A", "B"]
+
+
 def test_start_after_model_change_creates_clean_current_version_run(monkeypatch):
     scan, _, _ = service(monkeypatch, ["A", "B"])
     monkeypatch.setattr(scan, "_launch", lambda run_id:None)
@@ -193,11 +212,15 @@ def test_fundamental_and_analyst_pass_does_not_imply_deterministic_pass():
     assert counts["qualified"] == 0
 
 
-def test_v19_upgrade_reuses_quick_checks_but_never_old_scores(monkeypatch):
+@pytest.mark.parametrize("old_version", [
+    "2026-10-06-score-evidence-integrity-v19",
+    "2026-10-06-sec-filing-coverage-v20",
+])
+def test_prior_version_upgrade_reuses_quick_checks_but_never_old_scores(monkeypatch, old_version):
     scan,_,_=service(monkeypatch,["A","LOW","ERROR"],{"LOW":(4,1e7)})
     old=scan.start();old_id=old["run_id"]
     with SessionLocal() as db:
-        run=db.get(FullScanRun,"latest");run.scoring_version="2026-10-06-score-evidence-integrity-v19";db.commit()
+        run=db.get(FullScanRun,"latest");run.scoring_version=old_version;db.commit()
         row=db.query(FullScanResult).filter_by(run_id=old_id,symbol="A").one()
         saved=json.loads(row.payload_json);saved["avg_dollar_volume_20"]=20_000_000
         row.payload_json=json.dumps(saved);db.commit()

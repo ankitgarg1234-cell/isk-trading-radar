@@ -21,9 +21,12 @@ from .trading_rules import entry_status, number
 NY = ZoneInfo("America/New_York")
 ACTIVE = {"prefilter", "analysis", "paused_market_open"}
 KEY = "latest"
-# v20 changes SEC evidence and diagnostics only. The v19 price/currency/
-# liquidity calculation is identical, so same-session quick checks are reusable.
-REUSABLE_PREFILTER_VERSIONS = {"2026-10-06-score-evidence-integrity-v19"}
+# Scoring-only/evidence changes do not alter the exact price/currency/liquidity
+# preflight. Same-session quick checks may be reused, but old scores/gates never are.
+REUSABLE_PREFILTER_VERSIONS = {
+    "2026-10-06-score-evidence-integrity-v19",
+    "2026-10-06-sec-filing-coverage-v20",
+}
 
 
 def now():
@@ -171,7 +174,7 @@ class FullUniverseScan:
                     # Copy the verified precheck only, never an old score/gate.
                     seed[row.symbol] = {"symbol": row.symbol, "status": "awaiting_analysis", "price": price,
                         "currency": "USD", "avg_dollar_volume_20": liquidity, "quote_asof": old["quote_asof"],
-                        "collected_at": old.get("collected_at"), "qualified": False, "source": "reused_verified_v19_precheck"}
+                        "collected_at": old.get("collected_at"), "qualified": False, "source": "reused_verified_prior_precheck"}
             except (KeyError, ValueError, TypeError):
                 continue
         return seed
@@ -222,10 +225,25 @@ class FullUniverseScan:
         return self.status()
 
     def resume(self):
+        restart_for_version = False
         with self.lock, SessionLocal() as db:
             run = db.get(FullScanRun, KEY)
             if run and run.status in ACTIVE and not self.active():
-                self._launch(run.run_id)
+                if run.scoring_version == SCORING_VERSION:
+                    self._launch(run.run_id)
+                else:
+                    # A deploy can bump the scoring model while an older audit is
+                    # still active. Do not relaunch that obsolete worker and leave
+                    # the dashboard stuck on stale results; retire it and create a
+                    # clean current-version run after releasing this lock.
+                    run.status = "scoring_version_changed"
+                    run.worker_id, run.lease_until = "", None
+                    run.updated_at = now()
+                    db.commit()
+                    restart_for_version = True
+        if restart_for_version:
+            return self.start()
+        return self.status()
 
     def _launch(self, run_id):
         self.stop_event.clear()
