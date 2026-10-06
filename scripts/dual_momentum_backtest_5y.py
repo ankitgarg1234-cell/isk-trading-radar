@@ -933,7 +933,7 @@ def main():
                 p.shares = newq
             else:
                 pi = ch.prior_index(day)
-                atr = ch.native_atr_index(pi, ch.rows[pi]["date"]) if pi >= 0 else None
+                atr = ch.native_atr_index(pi, day) if pi >= 0 else None
                 if atr is None or atr <= 0:
                     unresolved_orders.append({"date": day.isoformat(), "symbol": o.symbol, "reason": "entry ATR unavailable"})
                     continue
