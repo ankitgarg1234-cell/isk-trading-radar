@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timedelta, timezone
 from html.parser import HTMLParser
 from zoneinfo import ZoneInfo
-from typing import Any
+from typing import Any, Sequence
 
 import httpx
 
