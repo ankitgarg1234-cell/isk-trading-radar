@@ -887,7 +887,7 @@ class RadarService:
         stale = self.stale_scoring_symbols(limit=LIVE_STALE_REFRESH_MAX)
         broad = self._prefilter_universe(self._universe_slice())
         broad_symbols = [q["symbol"] for q in broad]
-        ordered = holdings + persisted + discovery_symbols + priority + stale + broad_symbols
+        ordered = holdings + persisted + priority + discovery_symbols + stale + broad_symbols
         return list(dict.fromkeys(s.upper() for s in ordered if s))
 
     def _deep_analysis_batch(self, symbols: list[str]) -> tuple[list[str], int]:
