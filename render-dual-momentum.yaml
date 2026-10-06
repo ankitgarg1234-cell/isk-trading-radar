@@ -3,7 +3,7 @@ services:
     name: dual-momentum-radar
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r dual_momentum_requirements.txt
     startCommand: uvicorn dual_momentum.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
