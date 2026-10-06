@@ -67,12 +67,18 @@ def test_optimizer_does_not_force_five_positions_when_only_three_qualify():
 
 
 
-def test_primary_buy_69_fails_the_shared_70_entry_floor():
-    a=payload("CELC",score=69,sector="Healthcare",expected=20,ai=76,price=84.79)
-    a["action"]="CONSIDER BUYING NOW"
-    a["entry_zone_status"]="PRIMARY_BUY"
-    plan=build_optimizer_plan({"CELC":a},profile="HIGH",visible_limit=20,shortlist_limit=10)
-    assert not plan["visible"] and not plan["selected_new"]
+def test_shared_deterministic_floor_is_exactly_65():
+    low=payload("LOW",score=64.999,sector="Healthcare",expected=20,ai=76,price=84.79)
+    low["action"]="CONSIDER BUYING NOW"
+    low["entry_zone_status"]="PRIMARY_BUY"
+    assert not build_optimizer_plan({"LOW":low},profile="HIGH")["selected_new"]
+
+    edge=payload("EDGE",score=65,sector="Healthcare",expected=20,ai=76,price=84.79)
+    edge["action"]="CONSIDER BUYING NOW"
+    edge["entry_zone_status"]="PRIMARY_BUY"
+    plan=build_optimizer_plan({"EDGE":edge},profile="HIGH")
+    assert len(plan["selected_new"]) == 1
+    assert plan["selected_new"][0]["symbol"] == "EDGE"
 
 
 def test_risk_fit_does_not_block_qualified_top20_entry():
@@ -110,6 +116,30 @@ def test_ai_is_confirmation_not_part_of_portfolio_rank_math():
     b=payload("B",score=82,ai=98)
     assert candidate_rank_score(a)["score"] == candidate_rank_score(b)["score"]
     assert candidate_rank_score(a)["ai_confirmation"] != candidate_rank_score(b)["ai_confirmation"]
+
+
+def test_dashboard_candidate_table_hides_qualified_wait_names_until_actionable():
+    buy=payload("ACTNOW",score=72,sector="Technology",expected=20,price=100)
+    wait=payload("WAITING",score=78,sector="Healthcare",expected=20,price=105)
+    wait["action"]="WATCH"
+    wait["entry_zone_status"]="APPROACHING_BREAKOUT"
+    wait["levels"].update({
+        "buy_low":95,"buy_high":100,"better_low":90,"better_high":93,
+        "breakout":110,"do_not_chase":115,"entry_stop":92,"stop":92,
+    })
+    with SessionLocal() as db:
+        for p in (buy,wait):
+            db.add(RadarCandidate(
+                symbol=p["symbol"],category="Core",action=p["action"],
+                score=p["deterministic_score"],ai_score=p["ai_score"],price=p["price"],
+                portfolio_rank_score=candidate_rank_score(p)["score"],
+                lane="CORE_QUALITY",lane_qualified=True,current_json=json.dumps(p),
+            ))
+        db.commit()
+    d=client.get('/api/live').json()
+    symbols={row["symbol"] for row in d["candidates"]}
+    assert "ACTNOW" in symbols
+    assert "WAITING" not in symbols
 
 
 def test_dashboard_never_returns_more_than_twenty_radar_rows():
@@ -576,8 +606,8 @@ def test_paper_owned_symbol_is_hold_and_stale_buy_alert_is_hidden():
         db.commit()
 
     html = client.get("/").text
-    idx = html.index('data-symbol="NOW"')
-    row_html = html[idx:idx+3500]
-    assert 'signal-hold' in row_html
-    assert 'HOLD / DON&#39;T ADD' in row_html or "HOLD / DON'T ADD" in row_html
+    # HOLD / DON'T ADD remains managed in Open Positions, but the action-only
+    # radar must not show an owned non-actionable row or its stale BUY alert.
+    assert '<tr class="radar-row" data-symbol="NOW"' not in html
     assert 'NOW: Entry level reached — BUY' not in html
+    assert 'data-symbol="NOW"' in html  # still present in paper-position controls

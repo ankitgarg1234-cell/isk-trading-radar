@@ -236,9 +236,9 @@ def risk_fit(stock_risk: float, profile: str) -> str:
 
 
 def score_target_allocation_pct(score: float) -> float:
-    """Conviction ladder agreed for both Core Quality and Explosive lanes."""
+    """Sizing ladder: qualification gates entry; rank only controls position size."""
     s = _clamp(_float(score))
-    if s < 68:
+    if s <= 0:
         return 0.0
     if s < 75:
         return 2.0
@@ -276,7 +276,8 @@ def suggested_position_size(
     profile = normalise_profile(profile)
     p = RISK_PROFILES[profile]
     price = _float(a.get("price"))
-    stop = _float((a.get("levels") or {}).get("stop"))
+    levels = a.get("levels") or {}
+    stop = _float(levels.get("entry_stop", levels.get("stop")))
     if price <= 0 or stop <= 0 or stop >= price or fx_rate_to_base <= 0:
         return {"shares": 0, "reason": "Sizing unavailable until price, stop and FX are valid", "fit": "UNKNOWN"}
 
@@ -293,7 +294,7 @@ def suggested_position_size(
         return {
             "shares": 0, "capital": 0.0, "fit": fit, "stock_risk": stock_risk,
             "portfolio_rank_score": round(rank_score, 1), "target_allocation_pct": 0.0,
-            "reason": f"Portfolio Priority {rank_score:.1f}/100 is below the 68 sizing threshold",
+            "reason": f"Portfolio Priority {rank_score:.1f}/100 is unavailable for sizing",
         }
 
     price_base = price * fx_rate_to_base
@@ -510,7 +511,8 @@ def candidate_rank_score(a: dict) -> dict:
         catalyst = _clamp(_float(breakdown.get("Catalyst")), 0, 15) / 15 * 15
         valuation = _clamp(_float(breakdown.get("Valuation")), 0, 10) / 10 * 15
         momentum = _clamp(_float(breakdown.get("Momentum")), 0, 15) / 15 * 15
-        rr = _clamp(_float(breakdown.get("Risk/Reward")), 0, 10)
+        rr = _clamp(_float((a.get("score_contributions") or {}).get(
+            "Risk/Reward", breakdown.get("Risk/Reward"))), 0, 10)
         sector = _clamp(_float(breakdown.get("Sector")), 0, 10)
         evidence = _clamp(_float(a.get("data_quality_pct")), 0, 100) / 100 * 5
         total = fundamentals + catalyst + valuation + momentum + rr + sector + evidence

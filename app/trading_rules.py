@@ -2,7 +2,7 @@
 
 import math
 
-MIN_DETERMINISTIC_SCORE = 70
+MIN_DETERMINISTIC_SCORE = 65
 MIN_ANALYST_SCORE = 75
 MIN_ENTRY_RISK_REWARD = 0.4
 
@@ -32,14 +32,14 @@ def signal_geometry(a):
 
 
 def qualification_check(a, price=None):
-    """Shared pre-entry gates; R/R uses unrounded target/stop geometry."""
+    """Shared pre-entry gates; R/R uses the trade-entry stop, not the deeper thesis stop."""
     price = number(a.get("price") if price is None else price)
     score, analyst = number(a.get("deterministic_score")), number(a.get("analyst_score"))
     lv = a.get("levels") or {}
     target = number((a.get("target_plan") or {}).get("base_target"))
-    stop = number(lv.get("stop"))
+    stop = number(lv.get("entry_stop", lv.get("stop")))
     if score is None or not MIN_DETERMINISTIC_SCORE <= score <= 100:
-        return False, "deterministic_below_70_or_invalid", None
+        return False, "deterministic_below_min_or_invalid", None
     if analyst is None:
         return False, "analyst_missing", None
     if not MIN_ANALYST_SCORE <= analyst <= 100:
@@ -88,7 +88,7 @@ def entry_check(a, price=None):
 
 REASONS = {
     "qualified": "Score, analyst, R/R and quality gates passed; waiting for an entry trigger",
-    "deterministic_below_70_or_invalid": "Deterministic score must be at least 70/100",
+    "deterministic_below_min_or_invalid": f"Deterministic score must be at least {MIN_DETERMINISTIC_SCORE}/100",
     "analyst_missing": "Analyst score is unavailable; entry requires at least 75/100",
     "analyst_below_75_or_invalid": "Analyst score must be at least 75/100",
     "price_or_currency_invalid": "Entry requires a USD stock priced at $5 or more",
@@ -114,7 +114,8 @@ def entry_status(a, price=None):
     if rr is None:
         current = number(a.get("price") if price is None else price)
         target = number((a.get("target_plan") or {}).get("base_target"))
-        stop = number((a.get("levels") or {}).get("stop"))
+        levels = a.get("levels") or {}
+        stop = number(levels.get("entry_stop", levels.get("stop")))
         if current is not None and target is not None and stop is not None and 0 < stop < current < target:
             rr = (target-current)/(current-stop)
     return {"qualified": qualified, "ready": ready, "blocker": reason,

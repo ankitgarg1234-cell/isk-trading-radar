@@ -54,7 +54,7 @@ CORE_MIN_AVG_DOLLAR_VOLUME = 10_000_000.0
 EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME = 20_000_000.0
 MIN_FUNDAMENTAL_SCORE = 14.0  # 70/100 normalized fundamental quality
 EXPLOSIVE_MAX_TRADING_SESSIONS = 20
-SCORING_VERSION = "2026-10-06-deterministic-calibration-v21"
+SCORING_VERSION = "2026-10-06-entry65-trade-stop-v22"
 
 # The raw component models remain independently auditable at their historical
 # maxima. Deterministic conviction is now a calibrated 100-point blend that
@@ -135,17 +135,18 @@ def calibrated_score_components(raw: dict[str, float], rr: float | None) -> dict
     return out
 
 
-RECALIBRATABLE_SCORING_VERSIONS = {"2026-10-06-sec-filing-coverage-v20"}
+RECALIBRATABLE_SCORING_VERSIONS = {
+    "2026-10-06-sec-filing-coverage-v20",
+    "2026-10-06-deterministic-calibration-v21",
+}
 
 
 def recalibrate_snapshot(snapshot: dict) -> dict | None:
-    """Locally migrate a completed v20 analysis onto the v21 score scale.
+    """Locally migrate completed v20/v21 evidence onto v22 entry semantics.
 
-    v21 changed deterministic weighting/R-R normalization only. Completed-session
-    v20 targets, fundamentals, news, analyst evidence and technical inputs remain
-    valid, so the audit can re-score them without another provider round-trip.
-    BUY/WATCH actions are intentionally not trusted; current shared gates are run
-    by the audit after recalibration.
+    The underlying completed-session evidence remains valid. v22 lowers the Core
+    deterministic entry floor to 65 and separates setup entry-stop geometry from
+    the deeper thesis stop, so old BUY/WATCH labels are never trusted.
     """
     if snapshot.get("scoring_version") not in RECALIBRATABLE_SCORING_VERSIONS:
         return None
@@ -155,10 +156,14 @@ def recalibrate_snapshot(snapshot: dict) -> dict | None:
         return None
     price = number(snapshot.get("price"))
     target = number((snapshot.get("target_plan") or {}).get("base_target"))
-    stop = number((snapshot.get("levels") or {}).get("stop"))
-    if price is None or target is None or stop is None or not 0 < stop < price < target:
+    levels = dict(snapshot.get("levels") or {})
+    old_stop = number(levels.get("thesis_stop", levels.get("stop")))
+    if price is None or target is None or old_stop is None or not 0 < old_stop < price < target:
         return None
-    rr = (target - price) / (price - stop)
+    levels["thesis_stop"] = old_stop
+    levels["entry_stop"] = trade_entry_stop(snapshot.get("technicals") or {}, levels, price)
+    levels["stop"] = levels["entry_stop"]
+    rr = (target - price) / (price - levels["entry_stop"])
     contributions = calibrated_score_components(raw, rr)
     total = sum(contributions.values())
     news = snapshot.get("news") or {}
@@ -168,8 +173,10 @@ def recalibrate_snapshot(snapshot: dict) -> dict | None:
     elif int(news.get("high_negative_events") or 0) >= 1 and news.get("label") == "Bearish":
         total = min(total, 74)
     total = round(clamp(total), 1)
+    working = dict(snapshot)
+    working["levels"] = levels
     lane_info = classify_lane(
-        snapshot,
+        working,
         fs=number(raw.get("Fundamentals")) or 0.0,
         fconf=str(snapshot.get("fundamental_confidence") or "low"),
         news=news,
@@ -183,10 +190,11 @@ def recalibrate_snapshot(snapshot: dict) -> dict | None:
         entry_rr=rr,
     )
     out = dict(snapshot)
+    out["levels"] = levels
     out.update(lane_info)
     out.update({
         "scoring_version": SCORING_VERSION,
-        "score_calibration": "quality-balanced-v21",
+        "score_calibration": "quality-balanced-v22-entry65-trade-stop",
         "score_weights": dict(DETERMINISTIC_WEIGHTS),
         "score_contributions": {k: round(v, 1) for k, v in contributions.items()},
         "deterministic_score": total,
@@ -514,6 +522,39 @@ def sector_score(bundle: dict) -> tuple[float, list[str]]:
     return round(clamp(points, 0, 10), 1), reasons
 
 
+def trade_entry_stop(t: dict, levels: dict, price: float) -> float:
+    """Setup invalidation stop used for entry R/R and sizing.
+
+    The thesis stop remains the deeper structural level. The entry stop is tied
+    to the active setup/EMA20 with a minimum ~0.8 ATR risk distance so it is
+    neither artificially tight nor distorted by a long-term thesis invalidation.
+    """
+    if price <= 0:
+        return 0.01
+    a = max(float(t.get("atr") or price * 0.03), price * 0.005)
+    thesis = number(levels.get("thesis_stop", levels.get("stop")))
+    thesis = max(0.01, thesis if thesis is not None else price - 2.5 * a)
+    e20 = number(t.get("ema20")) or price
+    candidates = [thesis, e20 - 0.75 * a]
+    breakout = number(levels.get("breakout"))
+    buy_low = number(levels.get("buy_low"))
+    better_low = number(levels.get("better_low"))
+    if breakout is not None and price >= breakout:
+        candidates.append(breakout - 1.0 * a)
+    elif buy_low is not None and price >= buy_low:
+        candidates.append(buy_low - 0.75 * a)
+    elif better_low is not None and price >= better_low:
+        candidates.append(better_low - 0.75 * a)
+    candidate = max(x for x in candidates if x > 0)
+    # Do not manufacture huge R/R with a stop only a few cents away.
+    max_tightness = price - 0.8 * a
+    entry = min(candidate, max_tightness)
+    entry = max(thesis, entry)
+    if entry >= price:
+        entry = max(0.01, price - 0.8 * a)
+    return round(max(0.01, entry), 4)
+
+
 def buy_levels(t: dict, price: float) -> dict:
     a = max(t.get("atr") or price * 0.03, price * 0.005) if price else 1
     e20 = t.get("ema20") or price
@@ -527,19 +568,21 @@ def buy_levels(t: dict, price: float) -> dict:
     better_low = max(0.01, better - 0.35 * a)
     better_high = better + 0.25 * a
     breakout = h20 + 0.10 * a
-    stop = max(0.01, min(low20, e50) - 0.75 * a)
+    thesis_stop = max(0.01, min(low20, e50) - 0.75 * a)
     # Target is filled by forward_target_plan(). Keeping target construction out
     # of entry-level geometry prevents a distant historical 52-week high from
     # automatically becoming the reward assumption.
     do_not_chase = max(breakout + 1.0 * a, price + 2.5 * a)
-    return {
-        k: round(v, 2)
-        for k, v in {
-            "buy_low": buy_low, "buy_high": buy_high, "better_low": better_low,
-            "better_high": better_high, "breakout": breakout, "stop": stop,
-            "do_not_chase": do_not_chase,
-        }.items()
+    levels = {
+        "buy_low": buy_low, "buy_high": buy_high, "better_low": better_low,
+        "better_high": better_high, "breakout": breakout,
+        "thesis_stop": thesis_stop, "do_not_chase": do_not_chase,
     }
+    entry_stop = trade_entry_stop(t, levels, price)
+    levels["entry_stop"] = entry_stop
+    # Backward-compatible alias: generic stop means trade-entry stop from v22.
+    levels["stop"] = entry_stop
+    return {k: round(v, 2) for k, v in levels.items()}
 
 
 def forward_target_plan(t: dict, f: dict, price: float, catalyst_score: float = 5.0, material_events: int = 0) -> dict:
@@ -826,7 +869,7 @@ def classify_lane(
     if fconf == "low":
         core_reasons.append("fundamental evidence confidence is low"); core_blockers.append("fundamental evidence confidence low")
     if total_score < MIN_DETERMINISTIC_SCORE:
-        core_reasons.append(f"system conviction {total_score:.1f}/100 below 70"); core_blockers.append("system conviction < 70")
+        core_reasons.append(f"system conviction {total_score:.1f}/100 below {MIN_DETERMINISTIC_SCORE:.0f}"); core_blockers.append(f"system conviction < {MIN_DETERMINISTIC_SCORE:.0f}")
     if analyst_confirmation is None or not MIN_ANALYST_SCORE <= analyst_confirmation <= 100:
         core_reasons.append("analyst confirmation unavailable or below 75/100"); core_blockers.append("analyst score unavailable or < 75")
     if entry_rr + 1e-12 < MIN_ENTRY_RISK_REWARD:
@@ -1013,6 +1056,8 @@ def score_bundle(bundle: dict) -> dict:
     levels["target"] = target_plan["base_target"]
     levels["stretch_target"] = target_plan["stretch_target"]
     levels, breakout_anchor = signal_geometry({**bundle, "levels": levels, "technicals": t})
+    levels["entry_stop"] = trade_entry_stop(t, levels, price)
+    levels["stop"] = levels["entry_stop"]
     sector, sector_reasons = sector_score(bundle)
     valuation_detail = valuation_calculation(f)
     valuation = valuation_detail["score"]
@@ -1058,7 +1103,7 @@ def score_bundle(bundle: dict) -> dict:
     data_quality_pct = round(quality_points / 8 * 100, 1)
     decision_confidence = "high" if data_quality_pct >= 75 else "medium" if data_quality_pct >= 50 else "low"
     rr_up = (levels["target"] - price) / price if price else 0
-    rr_down = (price - levels["stop"]) / price if price else 1
+    rr_down = (price - levels["entry_stop"]) / price if price else 1
     rr = (rr_up / rr_down) if rr_down > 0 else 0
     analyst_confirmation = a_score / 20 if a_score is not None else 2.5
     scoring_raw = {
@@ -1101,7 +1146,7 @@ def score_bundle(bundle: dict) -> dict:
     breakdown = raw_breakdown
     return {
         "scoring_version": SCORING_VERSION,
-        "score_calibration": "quality-balanced-v21",
+        "score_calibration": "quality-balanced-v22-entry65-trade-stop",
         "score_weights": dict(DETERMINISTIC_WEIGHTS),
         "score_contributions": {k: round(v, 1) for k, v in score_contributions.items()},
         "currency": bundle.get("currency") or "USD",
@@ -1268,7 +1313,8 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
         whole_share_account = "avanza" in str(position.get("account") or "").lower()
         entry_target = float(position.get("entry_target") or lv.get("target") or 0)
         entry_stretch = float(position.get("entry_stretch_target") or (result.get("target_plan") or {}).get("stretch_target") or entry_target)
-        entry_stop = float(position.get("entry_stop") or lv.get("stop") or 0)
+        entry_stop = float(position.get("entry_stop") or lv.get("entry_stop") or lv.get("stop") or 0)
+        thesis_stop = float(lv.get("thesis_stop") or 0)
         horizon_days = int(position.get("entry_horizon_days") or (result.get("holding_horizon") or {}).get("max_days") or 0)
         holding_days = None
         opened_at = position.get("opened_at")
@@ -1287,6 +1333,7 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
             "entry_target": round(entry_target, 2) if entry_target else None,
             "entry_stretch_target": round(entry_stretch, 2) if entry_stretch else None,
             "entry_stop": round(entry_stop, 2) if entry_stop else None,
+            "thesis_stop": round(thesis_stop, 2) if thesis_stop else None,
             "entry_rr": round(entry_rr, 2) if entry_rr is not None else None,
             "forward_rr": result.get("risk_reward"),
             "holding_days": holding_days,
