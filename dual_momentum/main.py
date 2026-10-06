@@ -76,6 +76,8 @@ def _position_dict(row: DMPosition) -> dict:
         "stop_asof": row.stop_asof,
         "opened_on": row.opened_on,
         "pending_stop_exit": bool(row.pending_stop_exit),
+        "pending_rule_exit_reason": row.pending_rule_exit_reason,
+        "pending_rule_exit_date": row.pending_rule_exit_date,
         "last_verified_fund_status": row.last_verified_fund_status,
         "last_verified_fund_at": row.last_verified_fund_at,
     }
@@ -89,7 +91,37 @@ def _dashboard_state() -> dict:
         trades = db.query(DMTrade).order_by(DMTrade.created_at.desc()).limit(40).all()
         snapshot = _load_snapshot(state)
         position_dicts = [_position_dict(p) for p in positions]
-        plan = build_portfolio_plan(snapshot, position_dicts, float(cash.cash_usd or 0)) if snapshot else None
+
+        reserved_exit_rows = (
+            db.query(DMTrade)
+            .filter(DMTrade.system_reason.in_(["STOP_EXIT", "RULE_EXIT"]))
+            .order_by(DMTrade.created_at.desc())
+            .limit(100)
+            .all()
+        )
+        decision_date = str((snapshot or {}).get("decision_date") or "")
+        reserved_exits = []
+        if decision_date:
+            for trade in reserved_exit_rows:
+                executed_on = str(trade.executed_on or "")
+                reference_date = str(trade.reference_date or "")
+                # A stop triggered on the decision close belongs to that monthly
+                # execution cycle. Later mid-cycle exits reserve a vacancy.
+                if executed_on > decision_date and reference_date != decision_date:
+                    reserved_exits.append(
+                        {
+                            "symbol": trade.symbol,
+                            "system_reason": trade.system_reason,
+                            "executed_on": executed_on,
+                            "reference_date": reference_date or None,
+                        }
+                    )
+        plan = build_portfolio_plan(
+            snapshot,
+            position_dicts,
+            float(cash.cash_usd or 0),
+            reserved_slots=len(reserved_exits),
+        ) if snapshot else None
 
         target_weights = (plan or {}).get("target_weights") or {}
         order_map: dict[str, list[dict]] = {}
@@ -148,6 +180,7 @@ def _dashboard_state() -> dict:
             "positions": position_views,
             "candidates": candidate_views,
             "trades": trades,
+            "reserved_exits": reserved_exits,
         }
 
 
@@ -227,6 +260,9 @@ def api_state():
             "price": t.price,
             "fees": t.fees,
             "reason": t.reason,
+            "system_reason": t.system_reason,
+            "reference_date": t.reference_date,
+            "executed_on": t.executed_on,
             "created_at": t.created_at.isoformat() if t.created_at else None,
         }
         for t in state["trades"]
