@@ -236,11 +236,11 @@ def test_attention_buy_ladder_only_surfaces_agreed_entry_scores():
           "core_quality_qualified":True,"explosive_qualified":False,"promotion_risk":{"hard_reject":False}}
     cases=[
         (53,"PRIMARY_BUY",None),
-        (67,"BETTER_BUY",None),
-        (68,"PRIMARY_BUY",None),
-        (68,"BETTER_BUY",None),
-        (70,"PRIMARY_BUY","STARTER BUY"),
-        (70,"BETTER_BUY","STARTER BUY"),
+        (64.9,"BETTER_BUY",None),
+        (65,"PRIMARY_BUY","STARTER BUY"),
+        (65,"BETTER_BUY","STARTER BUY"),
+        (68,"PRIMARY_BUY","STARTER BUY"),
+        (68,"BETTER_BUY","STARTER BUY"),
         (74,"BETTER_BUY","STARTER BUY"),
         (75,"PRIMARY_BUY","BUY"),
         (84,"BETTER_BUY","BUY"),
