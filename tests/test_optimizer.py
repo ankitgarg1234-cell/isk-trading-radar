@@ -67,12 +67,18 @@ def test_optimizer_does_not_force_five_positions_when_only_three_qualify():
 
 
 
-def test_primary_buy_69_fails_the_shared_70_entry_floor():
-    a=payload("CELC",score=69,sector="Healthcare",expected=20,ai=76,price=84.79)
-    a["action"]="CONSIDER BUYING NOW"
-    a["entry_zone_status"]="PRIMARY_BUY"
-    plan=build_optimizer_plan({"CELC":a},profile="HIGH",visible_limit=20,shortlist_limit=10)
-    assert not plan["visible"] and not plan["selected_new"]
+def test_shared_deterministic_floor_is_exactly_65():
+    low=payload("LOW",score=64.999,sector="Healthcare",expected=20,ai=76,price=84.79)
+    low["action"]="CONSIDER BUYING NOW"
+    low["entry_zone_status"]="PRIMARY_BUY"
+    assert not build_optimizer_plan({"LOW":low},profile="HIGH")["selected_new"]
+
+    edge=payload("EDGE",score=65,sector="Healthcare",expected=20,ai=76,price=84.79)
+    edge["action"]="CONSIDER BUYING NOW"
+    edge["entry_zone_status"]="PRIMARY_BUY"
+    plan=build_optimizer_plan({"EDGE":edge},profile="HIGH")
+    assert len(plan["selected_new"]) == 1
+    assert plan["selected_new"][0]["symbol"] == "EDGE"
 
 
 def test_risk_fit_does_not_block_qualified_top20_entry():
