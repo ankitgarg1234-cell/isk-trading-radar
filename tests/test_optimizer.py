@@ -42,6 +42,30 @@ def test_optimizer_buys_every_qualified_name_inside_top20():
 
 
 
+def test_owned_positions_do_not_consume_top20_new_opportunity_slots():
+    analyses = {}
+    owned = set()
+    # Existing holdings deliberately outrank every new name.
+    for i in range(6):
+        sym=f"OWN{i:02d}"
+        analyses[sym]=payload(sym,score=99-i,expected=40-i)
+        owned.add(sym)
+    for i in range(25):
+        sym=f"NEW{i:02d}"
+        analyses[sym]=payload(sym,score=90-(i*0.5),expected=30-i*0.2)
+
+    plan=build_optimizer_plan(
+        analyses,owned,profile="HIGH",visible_limit=20,shortlist_limit=10
+    )
+
+    selected={r["symbol"] for r in plan["selected_new"]}
+    assert len(selected)==20
+    assert all(sym.startswith("NEW") for sym in selected)
+    # Holdings remain available to management but do not consume new-entry slots.
+    assert owned.issubset({r["symbol"] for r in plan["visible"]})
+    assert plan["allocation_policy"]=="TOP20_UNOWNED_QUALIFIED"
+
+
 def test_optimizer_has_no_sector_position_cap():
     # Sector is evidence about each stock, not a portfolio-level exclusion.
     # If the strongest candidates all come from one sector, they may all be selected.
@@ -110,6 +134,28 @@ def test_ai_is_confirmation_not_part_of_portfolio_rank_math():
     b=payload("B",score=82,ai=98)
     assert candidate_rank_score(a)["score"] == candidate_rank_score(b)["score"]
     assert candidate_rank_score(a)["ai_confirmation"] != candidate_rank_score(b)["ai_confirmation"]
+
+
+def test_score_band_owned_symbol_is_excluded_from_new_candidate_dashboard(monkeypatch):
+    import app.main as main_mod
+
+    held=payload("HELD",score=82,sector="Healthcare",expected=25,price=100)
+    fresh=payload("FRESH",score=80,sector="Industrials",expected=24,price=100)
+    with SessionLocal() as db:
+        for p in (held,fresh):
+            db.add(RadarCandidate(
+                symbol=p["symbol"],category="Core",action="BUY NOW",
+                score=p["deterministic_score"],ai_score=p["ai_score"],price=p["price"],
+                portfolio_rank_score=candidate_rank_score(p)["score"],current_json=json.dumps(p),
+                lane="CORE_QUALITY",lane_qualified=True,
+            ))
+        db.commit()
+        monkeypatch.setattr(main_mod,"experiment_holding_symbols",lambda:["HELD"])
+        state=main_mod._dashboard_state(db)
+
+    visible={r["symbol"] for r in state["candidates"]}
+    assert "HELD" not in visible
+    assert "FRESH" in visible
 
 
 def test_dashboard_never_returns_more_than_twenty_radar_rows():
