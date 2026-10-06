@@ -56,8 +56,8 @@ def service(monkeypatch, symbols, quotes=None):
 
 
 @pytest.mark.parametrize("score,analyst,target,expected",[
-    (69.999,90,110,False),(70,74.999,110,False),(70,None,110,False),
-    (70,75,103.999,False),(70,75,104,True),(70,75,110,True)])
+    (64.999,90,110,False),(65,74.999,110,False),(65,None,110,False),
+    (65,75,103.999,False),(65,75,104,True),(65,75,110,True)])
 def test_full_scan_uses_exact_shared_gates(score,analyst,target,expected):
     a=payload(score=score,analyst=analyst,target=target,stop=90)
     a["risk_reward"]=10; a["action"]="BUY"
@@ -209,9 +209,9 @@ def test_independent_gate_counts_and_temporary_gaps_are_not_qualification():
     b["fundamentals"]["_analyst_status"]="unavailable (request budget)"
     rows=[compact_result(a),compact_result(b),compact_result(payload())]
     s=summarize(rows)
-    assert s["independent_gate_pass_counts"]["deterministic_70"] == 2
+    assert s["independent_gate_pass_counts"]["deterministic_65"] == 3
     assert s["independent_gate_pass_counts"]["analyst_75"] == 2
-    assert s["independent_gate_pass_counts"]["qualified"] == 1
+    assert s["independent_gate_pass_counts"]["qualified"] == 2
     assert s["missing_data"]["analyst_score"] == 1
     assert s["missing_data"]["transient_data_gap"] == 1
     accumulate(s,rows[1],-1);accumulate(s,compact_result(payload()),1)
@@ -223,7 +223,7 @@ def test_fundamental_and_analyst_pass_does_not_imply_deterministic_pass():
     row=compact_result(payload(score=61.8))
     counts=summarize([row])["independent_gate_pass_counts"]
     assert counts["fundamentals_14"] == counts["analyst_75"] == counts["fundamentals_and_analyst"] == 1
-    assert counts["deterministic_70"] == 0
+    assert counts["deterministic_65"] == 0
     assert counts["qualified"] == 0
 
 
@@ -335,7 +335,7 @@ def test_api_progress_page_and_export(monkeypatch):
     monkeypatch.setattr(main,"full_scan",scan)
     client=TestClient(app)
     assert client.post('/api/full-scan').json()["qualified_count"] == 1
-    assert client.get('/api/full-scan').json()["gates"] == {"deterministic":70,"analyst":75,"risk_reward":.4}
+    assert client.get('/api/full-scan').json()["gates"] == {"deterministic":65,"analyst":75,"risk_reward":.4}
     assert "A,scored," in client.get('/api/full-scan/results.csv').text
     page=client.get('/scan-audit')
     assert page.status_code == 200 and "No top-candidate quota" in page.text
@@ -369,7 +369,7 @@ def test_completed_resume_does_not_duplicate_score_aggregates(monkeypatch):
     monkeypatch.setattr(scan,"_launch",lambda run_id:None)
     run_id=scan.start()["run_id"];scan._claim(run_id)
     scan._record(run_id,[compact_result(payload("A"))],"analysis")
-    scan._record(run_id,[compact_result(payload("A",score=69))],"analysis")
+    scan._record(run_id,[compact_result(payload("A",score=64))],"analysis")
     d=scan.status()
     assert d["qualified_count"] == 0 and d["summary"]["counts"]["scored"] == 1
     assert d["summary"]["independent_gate_pass_counts"]["qualified"] == 0

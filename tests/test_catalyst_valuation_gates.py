@@ -106,7 +106,7 @@ def test_source_valuation_cases_are_explained_without_inventing_forward_estimate
 
 
 @pytest.mark.parametrize('score,analyst,target,okay', [
-    (69.999,90,110,False), (70,74.999,110,False), (70,None,110,False),
+    (64.999,90,110,False), (70,74.999,110,False), (70,None,110,False),
     (70,75,103.999,False), (70,75,104,True), (101,90,110,False),
     (90,101,110,False), (float('nan'),90,110,False),
 ])
@@ -137,7 +137,7 @@ def test_qualified_waiting_name_is_never_a_buy_and_owned_exit_is_preserved():
 
 @pytest.mark.parametrize('action',['BUY NOW','BREAKOUT BUY','CONSIDER BUYING NOW','CONSIDER STARTER BUY','STRONG BUY','BUY','STARTER BUY'])
 def test_raw_buy_language_cannot_bypass_failed_gate(action):
-    a=observation(score=69.9);a['action']=action
+    a=observation(score=64.9);a['action']=action
     assert system_signal(a) == 'WATCH'
     a['action']='ADD'
     assert system_signal(a,owned=True) == 'HOLD'
@@ -152,10 +152,10 @@ def test_completed_session_breakout_is_identical_for_dashboard_and_paper():
     assert compact['levels']['breakout'] == 109.2
 
 
-def test_lane_classification_no_longer_grants_core_at_69_or_without_analyst_rr_gates():
+def test_lane_classification_no_longer_grants_core_at_64_or_without_analyst_rr_gates():
     b = bundle()
     kwargs = dict(fs=20,fconf='high',news={'items':[]},t={'avg_dollar_volume_20':20e6},
-        catalyst_score=5,total_score=69.2,expected_upside_pct=5,negative_override=None,
+        catalyst_score=5,total_score=64.9,expected_upside_pct=5,negative_override=None,
         analyst_confirmation=84.5,entry_rr=.43)
     assert not classify_lane(b,**kwargs)['lane_qualified']
     kwargs['total_score']=70

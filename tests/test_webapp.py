@@ -42,7 +42,7 @@ def test_dashboard_renders_compact_shell_and_retained_tools():
     r=client.get('/')
     assert r.status_code == 200
     body=r.text
-    assert "CONTINUOUS CROSS-SECTOR RADAR" in body
+    assert "ACTIONABLE CROSS-SECTOR RADAR" in body
     assert "SCREENSHOT / OCR POSITION IMPORT" in body
     assert "TRADE LEDGER" not in body
     assert "Deployable cash" not in body
@@ -144,6 +144,29 @@ def test_invalid_trade_side_rejected():
 def test_screenshot_rejects_non_image_file():
     r=client.post('/api/import/screenshot',files={"file":("x.txt",b"abc","text/plain")})
     assert r.status_code == 415
+
+
+def test_dashboard_candidate_surface_excludes_qualified_but_not_actionable_waits():
+    from app.db import RadarCandidate
+    actionable=full_payload("NOWBUY")
+    actionable["target_plan"]={"base_target":130}
+    actionable["levels"].update({"entry_stop":94,"thesis_stop":88})
+    waiting=full_payload("WAITLATER")
+    waiting["price"]=103
+    waiting["target_plan"]={"base_target":130}
+    waiting["levels"].update({"buy_low":95,"buy_high":100,"better_low":90,"better_high":93,
+                              "breakout":105,"entry_stop":96,"thesis_stop":88})
+    with SessionLocal() as db:
+        for p in (actionable,waiting):
+            db.add(RadarCandidate(
+                symbol=p["symbol"],category="Core",action=p["action"],score=p["deterministic_score"],
+                ai_score=p["ai_score"],price=p["price"],portfolio_rank_score=90,
+                lane="CORE_QUALITY",lane_qualified=True,current_json=json.dumps(p)))
+        db.commit()
+    rows=client.get('/api/live').json()["candidates"]
+    symbols={r["symbol"] for r in rows}
+    assert "NOWBUY" in symbols
+    assert "WAITLATER" not in symbols
 
 
 def test_live_api_returns_candidates_and_alerts():

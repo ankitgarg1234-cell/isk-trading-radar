@@ -27,10 +27,10 @@ def test_dashboard_alerts_and_paper_share_rr_boundary(rr, okay):
     assert plan["min_entry_risk_reward"] == experiment_spec()["min_rr"] == MIN_ENTRY_RISK_REWARD == 0.4
 
 
-def test_lower_rr_floor_does_not_change_scores_or_allow_sub_70_paper_entries():
-    a = observation(score=69.9, target=104, stop=90)
+def test_rr_floor_does_not_allow_sub_65_paper_entries():
+    a = observation(score=64.9, target=104, stop=90)
     before = copy.deepcopy(a)
-    assert entry_check(a)[1] == "deterministic_below_70_or_invalid"
+    assert entry_check(a)[1] == "deterministic_below_65_or_invalid"
     assert a == before
 
 
@@ -48,6 +48,7 @@ def test_diagnostics_keep_only_five_best_and_count_inputs_without_mutation():
     before = copy.deepcopy(rows)
     d = scan_score_diagnostics(rows)
     assert d["maximum_score"] == 100
+    assert d["score_at_least_65"] == 4
     assert d["score_at_least_70"] == 4
     assert sum(d["score_bins"].values()) == 7
     assert len(d["top_candidates"]) == 5
@@ -62,6 +63,7 @@ def test_diagnostics_distinguish_invalid_scores_and_empty_cycle():
     d = scan_score_diagnostics(rows)
     assert d["invalid_scores"] == 6
     assert d["maximum_score"] is None
+    assert d["score_at_least_65"] == 0
     assert d["score_at_least_70"] == 0
     assert scan_score_diagnostics([])["analyzed"] == 0
 

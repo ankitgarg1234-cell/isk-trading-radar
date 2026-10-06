@@ -39,7 +39,7 @@ def test_dashboard_renders_compact_shell_and_import_features():
     r=client.get('/')
     assert r.status_code == 200
     body=r.text
-    assert "CONTINUOUS CROSS-SECTOR RADAR" in body
+    assert "ACTIONABLE CROSS-SECTOR RADAR" in body
     assert "SCREENSHOT / OCR POSITION IMPORT" in body
     assert "TRADE LEDGER" not in body
     assert "Deployable cash" not in body
@@ -260,9 +260,11 @@ def test_dashboard_has_filters_for_every_radar_decision_column(monkeypatch):
     from app.db import RadarCandidate, AnalysisSnapshot
     p=full_payload("COLFLT")
     p["currency"]="USD";p["entry_zone_status"]="PRIMARY_BUY";p["fundamentals"]={"companyName":"Column Filter Inc","sector":"Technology"}
+    p["target_plan"]={"base_target":130};p["levels"]["entry_stop"]=94
     monkeypatch.setattr(mainmod.radar.provider,"fx_rate",lambda a,b:1.0)
     with SessionLocal() as db:
-        db.add(RadarCandidate(symbol="COLFLT",category="Core",action="BUY NOW",score=88,ai_score=92,price=100))
+        db.add(RadarCandidate(symbol="COLFLT",category="Core",action="BUY NOW",score=88,ai_score=92,price=100,
+                              lane="CORE_QUALITY",lane_qualified=True,current_json=json.dumps(p)))
         db.add(AnalysisSnapshot(symbol="COLFLT",price=100,deterministic_score=88,analyst_score=80,ai_score=92,expected_yield_pct=25,ai_expected_yield_pct=30,category="Core",action="BUY NOW",payload_json=json.dumps(p)))
         db.commit()
     r=client.get('/')
