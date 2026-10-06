@@ -501,14 +501,21 @@ def _dashboard_state(db):
         for label, count in sorted(blocker_counts.items(), key=lambda kv: (-kv[1], kv[0]))[:4]
     ]
 
+    # Candidate dashboard is an action surface, not a watchlist. Existing
+    # holdings stay in Open Positions; new names appear here only when the shared
+    # entry trigger is actionable right now.
+    actionable_radar_views = [
+        v for v in radar_views
+        if not v.get("owned") and v.get("optimizer_bucket") in {"INVEST NOW", "ROTATE IN"}
+    ]
     summary={
         "buy_now":len(optimizer["selected_new"]),
         "portfolio_actions":sum(v["system_signal"] in {"SELL","STRONG SELL","TAKE PROFIT"} and v["owned"] for v in radar_views),
         "deployable_cash":max(0,cash-reserve),
-        "best_candidate":next((v for v in radar_views if v.get("optimizer_bucket")=="INVEST NOW"),None),
-        "visible_candidates":len(radar_views),"shortlist_count":len(optimizer["shortlist"]),"position_cap_enabled":optimizer.get("position_cap_enabled",False),
-        "core_quality_count":sum(1 for v in radar_views if v.get("lane")=="CORE_QUALITY"),
-        "explosive_count":sum(1 for v in radar_views if v.get("lane")=="EXPLOSIVE"),
+        "best_candidate":next(iter(actionable_radar_views),None),
+        "visible_candidates":len(actionable_radar_views),"shortlist_count":len(actionable_radar_views),"position_cap_enabled":optimizer.get("position_cap_enabled",False),
+        "core_quality_count":sum(1 for v in actionable_radar_views if v.get("lane")=="CORE_QUALITY"),
+        "explosive_count":sum(1 for v in actionable_radar_views if v.get("lane")=="EXPLOSIVE"),
     }
     lane_counts=optimizer.get("lane_counts") or {}
     optimizer_summary={
@@ -525,7 +532,7 @@ def _dashboard_state(db):
         "explosive_top_blockers":explosive_top_blockers,
     }
     display_radar_views=sorted(
-        radar_views,
+        actionable_radar_views,
         key=lambda v: (0 if v.get("lane")=="CORE_QUALITY" else 1, int(v.get("market_rank") or 999)),
     )
     return {"positions":pos_views,"trades":trades,"analyses":analyses_req,"alerts":alerts,"candidates":display_radar_views,"cash":cash,"reserve":reserve,"risk_profile":risk_profile,"risk_profiles":RISK_PROFILES,"account_risk":account,"base_currency":base_currency,"summary":summary,"optimizer":optimizer_summary,"paper":paper}
