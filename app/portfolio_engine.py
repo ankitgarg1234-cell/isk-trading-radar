@@ -295,12 +295,15 @@ def suggested_position_size(
 
     rank = candidate_rank_score(a)
     rank_score = _float(rank.get("score"))
-    target_pct = score_target_allocation_pct(rank_score)
+    deterministic_score = _float(a.get("deterministic_score"), -1)
+    target_pct = score_target_allocation_pct(deterministic_score)
     if target_pct <= 0:
         return {
             "shares": 0, "capital": 0.0, "fit": fit, "stock_risk": stock_risk,
-            "portfolio_rank_score": round(rank_score, 1), "target_allocation_pct": 0.0,
-            "reason": f"Portfolio Priority {rank_score:.1f}/100 is below the 65 sizing threshold",
+            "portfolio_rank_score": round(rank_score, 1),
+            "deterministic_sizing_score": round(deterministic_score, 1),
+            "target_allocation_pct": 0.0,
+            "reason": f"Deterministic score {deterministic_score:.1f}/100 is below the 65 sizing threshold",
         }
 
     price_base = price * fx_rate_to_base
@@ -366,6 +369,7 @@ def suggested_position_size(
         "stock_risk": stock_risk,
         "profile": profile,
         "portfolio_rank_score": round(rank_score, 1),
+        "deterministic_sizing_score": round(deterministic_score, 1),
         "target_allocation_pct": target_pct,
         "target_capital": round(remaining_target_room, 2),
         "score_target_shares_raw": round(by_score, 4),
@@ -375,7 +379,7 @@ def suggested_position_size(
         "existing_risk_amount": round(existing_risk_amount, 2),
         "remaining_risk_budget": round(remaining_risk_budget, 2),
         "reason": (
-            f"Priority {rank_score:.1f}/100 targets {target_pct:.1f}% allocation; "
+            f"Deterministic {deterministic_score:.1f}/100 targets {target_pct:.1f}% allocation; "
             f"final whole-share size limited by {limiter}"
         ),
     }
