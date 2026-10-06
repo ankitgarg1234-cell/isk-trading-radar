@@ -674,19 +674,66 @@ def main():
     print("DM5_STAGE prices symbols={}".format(len(symbols)), flush=True)
     charts = {}
     price_failed = {}
+    alias_recoveries = {}
+
+    # Same-CIK ticker aliases are legitimate identity bridges for ticker changes.
+    # They are accepted only when the alternate ticker's chart overlaps the
+    # original symbol's actual S&P membership interval in this test window.
+    aliases_by_symbol = {}
+    cik_symbols = defaultdict(set)
+    for x in intervals:
+        if x.cik:
+            cik_symbols[x.cik].add(x.symbol)
+    for sym in symbols:
+        rows = by_symbol_intervals.get(sym) or []
+        ciks = {x.cik for x in rows if x.cik}
+        aliases = set()
+        for cik in ciks:
+            aliases.update(cik_symbols.get(cik) or set())
+        aliases.discard(sym)
+        aliases_by_symbol[sym] = sorted(aliases)
+
+    def chart_overlaps_symbol(ch, sym):
+        intervals_for_symbol = [x for x in (by_symbol_intervals.get(sym) or []) if x.overlaps(START, END)]
+        if not intervals_for_symbol or not ch.rows:
+            return False
+        first = ch.rows[0]["date"]
+        last = ch.rows[-1]["date"]
+        for x in intervals_for_symbol:
+            lo = max(START, x.added)
+            hi = min(END, (x.removed - timedelta(days=1)) if x.removed else END)
+            if first <= hi and last >= lo:
+                # Require at least one actual row while the original ticker was active.
+                if any(lo <= r["date"] <= hi for r in ch.rows):
+                    return True
+        return False
+
+    def rekey_chart(ch, sym, alias):
+        return Chart(sym, ch.rows, ch.splits, ch.dividends, ch.source + ":same-cik-alias:" + alias)
 
     def price_task(sym):
+        primary_error = None
         try:
-            return sym, fetch_chart(sym, PRICE_START, END + timedelta(days=3), staged=staged), None
+            return sym, fetch_chart(sym, PRICE_START, END + timedelta(days=3), staged=staged), None, None
         except Exception as exc:
-            return sym, None, "{}: {}".format(type(exc).__name__, exc)
+            primary_error = "{}: {}".format(type(exc).__name__, exc)
+        for alias in aliases_by_symbol.get(sym) or []:
+            try:
+                ach = fetch_chart(alias, PRICE_START, END + timedelta(days=3), staged=staged)
+                if chart_overlaps_symbol(ach, sym):
+                    return sym, rekey_chart(ach, sym, alias), None, alias
+            except Exception:
+                pass
+        return sym, None, primary_error, None
 
     with ThreadPoolExecutor(max_workers=6) as pool:
         futs = [pool.submit(price_task, s) for s in symbols]
         for n, fut in enumerate(as_completed(futs), 1):
-            sym, ch, err = fut.result()
+            sym, ch, err, alias = fut.result()
             if ch:
                 charts[sym] = ch
+                if alias:
+                    alias_recoveries[sym] = alias
             else:
                 price_failed[sym] = err
             if n % 75 == 0 or n == len(futs):
@@ -1223,6 +1270,8 @@ def main():
             "price_symbols_ok": len(charts),
             "price_symbols_failed": len(price_failed),
             "price_symbol_coverage": len(charts) / len(symbols) if symbols else 0.0,
+            "ticker_alias_recoveries": alias_recoveries,
+            "ticker_alias_recovery_count": len(alias_recoveries),
             "member_month_signal_coverage": coverage,
             "top35_union": len(top35_union),
             "valuein_symbols": len(valuein),
