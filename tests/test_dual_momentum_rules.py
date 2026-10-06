@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 
+from dual_momentum.portfolio import build_portfolio_plan
 from dual_momentum.rules import (
     FundamentalStatus,
     MomentumSignal,
@@ -95,3 +96,105 @@ def test_stop_ratchets_and_never_loosens():
     breached = advance_stop(state2, 92, 5)
     assert breached.breached
     assert breached.stop == 92
+
+
+def _candidate(rank: int, symbol: str, status: str = "PASS", atr_pct: float = 0.02) -> dict:
+    return {
+        "rank": rank,
+        "symbol": symbol,
+        "price": 100.0,
+        "score": 0.25,
+        "atr14": atr_pct * 100.0,
+        "atr_pct": atr_pct,
+        "fundamental_status": status,
+        "sector": "Technology",
+        "security_id": symbol,
+    }
+
+
+def test_fundamental_failures_do_not_compress_raw_momentum_ranks():
+    snapshot = {
+        "regime": {"state": "BULL"},
+        "candidates": [
+            _candidate(1, "FAIL", "FAIL"),
+            _candidate(2, "PASS2", "PASS"),
+            _candidate(20, "PASS20", "PASS"),
+            _candidate(21, "PASS21", "PASS"),
+        ],
+        "holding_checks": {},
+    }
+    plan = build_portfolio_plan(snapshot, [], 100_000.0)
+    assert plan["selected"] == ["PASS2", "PASS20"]
+    assert "PASS21" not in plan["selected"]
+    assert math.isclose(plan["target_equity_exposure"], 0.10, rel_tol=1e-12)
+
+
+def test_review_incumbent_is_retained_but_cannot_be_added():
+    snapshot = {
+        "regime": {"state": "BULL"},
+        "candidates": [_candidate(10, "KEEP", "REVIEW")],
+        "holding_checks": {
+            "KEEP": {
+                "rank": 10,
+                "in_index": True,
+                "membership_exit": False,
+                "momentum_positive": True,
+                "score": 0.2,
+                "price": 100.0,
+                "atr14": 2.0,
+                "atr_pct": 0.02,
+                "fundamental_status": "REVIEW",
+                "fundamental_reason": "Required fundamentals unavailable",
+                "sector": "Technology",
+                "security_id": "KEEP",
+            }
+        },
+    }
+    positions = [{"symbol": "KEEP", "shares": 1, "avg_cost": 100.0, "pending_stop_exit": False}]
+    plan = build_portfolio_plan(snapshot, positions, 9_900.0)
+    assert plan["selected"] == ["KEEP"]
+    assert "KEEP" in plan["review_frozen"]
+    assert not any(o["side"] == "BUY" and o["symbol"] == "KEEP" for o in plan["orders"])
+
+
+def test_rank_exit_still_applies_when_fundamentals_are_under_review():
+    snapshot = {
+        "regime": {"state": "BULL"},
+        "candidates": [],
+        "holding_checks": {
+            "OLD": {
+                "rank": 36,
+                "in_index": True,
+                "membership_exit": False,
+                "momentum_positive": True,
+                "price": 100.0,
+                "atr14": 2.0,
+                "atr_pct": 0.02,
+                "fundamental_status": "REVIEW",
+                "fundamental_reason": "Required fundamentals unavailable",
+            }
+        },
+    }
+    positions = [{"symbol": "OLD", "shares": 5, "avg_cost": 90.0, "pending_stop_exit": False}]
+    plan = build_portfolio_plan(snapshot, positions, 0.0)
+    assert any(o["side"] == "SELL" and o["symbol"] == "OLD" and o["shares"] == 5 for o in plan["orders"])
+
+
+def test_membership_exit_overrides_review_retention():
+    snapshot = {
+        "regime": {"state": "BULL"},
+        "candidates": [],
+        "holding_checks": {
+            "REMOVED": {
+                "rank": None,
+                "in_index": False,
+                "membership_exit": True,
+                "momentum_positive": None,
+                "fundamental_status": "REVIEW",
+                "reason": "Security is absent from the S&P 500 membership feed",
+            }
+        },
+    }
+    positions = [{"symbol": "REMOVED", "shares": 3, "avg_cost": 80.0, "pending_stop_exit": False}]
+    plan = build_portfolio_plan(snapshot, positions, 0.0)
+    assert any(o["side"] == "SELL" and o["symbol"] == "REMOVED" for o in plan["orders"])
