@@ -236,9 +236,9 @@ def risk_fit(stock_risk: float, profile: str) -> str:
 
 
 def score_target_allocation_pct(score: float) -> float:
-    """Conviction ladder agreed for both Core Quality and Explosive lanes."""
+    """Sizing ladder: qualification gates entry; rank only controls position size."""
     s = _clamp(_float(score))
-    if s < 68:
+    if s <= 0:
         return 0.0
     if s < 75:
         return 2.0
@@ -294,7 +294,7 @@ def suggested_position_size(
         return {
             "shares": 0, "capital": 0.0, "fit": fit, "stock_risk": stock_risk,
             "portfolio_rank_score": round(rank_score, 1), "target_allocation_pct": 0.0,
-            "reason": f"Portfolio Priority {rank_score:.1f}/100 is below the 68 sizing threshold",
+            "reason": f"Portfolio Priority {rank_score:.1f}/100 is unavailable for sizing",
         }
 
     price_base = price * fx_rate_to_base
