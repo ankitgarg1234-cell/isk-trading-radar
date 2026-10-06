@@ -180,6 +180,10 @@ def test_canonical_bundle_adds_opinion_once_and_retains_other_scores():
     b = bundle(news=[a]); b["fundamentals"]["companyName"] = "Example Research"
     scored = score_bundle(b)
     without = score_bundle({**b, "news": [{k:v for k,v in a.items() if k != "article_assessment"}]})
-    assert scored["deterministic_score"] == without["deterministic_score"]+1.5
+    assert scored["breakdown"]["News"] == without["breakdown"]["News"] + 1.5
+    assert scored["score_contributions"]["News"] == pytest.approx(
+        without["score_contributions"]["News"] + 0.8, abs=0.1)
+    assert scored["deterministic_score"] == pytest.approx(
+        without["deterministic_score"] + 0.8, abs=0.1)
     assert scored["breakdown"]["Fundamentals"] == without["breakdown"]["Fundamentals"]
     assert scored["news"]["catalysts"] == without["news"]["catalysts"]

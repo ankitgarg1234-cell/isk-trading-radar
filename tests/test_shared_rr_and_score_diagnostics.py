@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.analysis_engine import score_bundle
+from app.analysis_engine import score_bundle, calibrated_score_components, risk_reward_score, DETERMINISTIC_WEIGHTS
 from app.portfolio_engine import MIN_ENTRY_RISK_REWARD, entry_attention_signal, build_optimizer_plan
 from app.scanner import _attention_buy_signal
 from app.score_band_experiment import entry_check, experiment_spec
@@ -69,5 +69,39 @@ def test_real_scoring_can_exceed_70_with_supported_inputs():
     result = score_bundle(bundle())
     assert result["deterministic_score"] > 70
     assert result["lane_qualified"] is True
-    # Component display rounding can differ from the rounded total by tenths.
-    assert abs(sum(result["breakdown"].values()) - result["deterministic_score"]) <= 0.4
+    # Raw component points stay auditable at their original maxima; calibrated
+    # contributions are what sum to the deterministic 100-point conviction.
+    assert abs(sum(result["score_contributions"].values()) - result["deterministic_score"]) <= 0.4
+
+
+def test_calibration_weights_remain_a_100_point_model():
+    assert sum(DETERMINISTIC_WEIGHTS.values()) == 100
+
+
+@pytest.mark.parametrize("rr,points", [(0,0),(0.2,2),(0.4,4),(1,6),(2,8),(3,10),(5,10)])
+def test_rr_calibration_matches_entry_economics(rr, points):
+    assert risk_reward_score(rr) == pytest.approx(points)
+
+
+def test_v21_recalibrates_known_high_quality_neutral_setup_to_70_without_relaxing_gates():
+    # Replays the documented ANET component vector from the v19 production RCA.
+    # The old linear scale produced ~61.8 despite 20/20 fundamentals and 83.4
+    # analyst support. 0.33x R/R still fails the separate 0.4x entry gate, but
+    # the deterministic quality/setup score is no longer structurally sub-70.
+    raw = {
+        "Fundamentals":20, "Catalyst":5, "News":7.5, "Momentum":12,
+        "Sector":9, "Valuation":3, "Analyst confirmation":4.2,
+        "Risk/Reward":1.1,
+    }
+    weighted = calibrated_score_components(raw, 0.33)
+    assert sum(weighted.values()) >= 70
+
+
+def test_v21_does_not_promote_merely_minimum_quality_neutral_setup():
+    raw = {
+        "Fundamentals":14, "Catalyst":5, "News":7.5, "Momentum":9,
+        "Sector":5, "Valuation":5, "Analyst confirmation":3.75,
+        "Risk/Reward":1.33,
+    }
+    weighted = calibrated_score_components(raw, 0.4)
+    assert sum(weighted.values()) < 70
