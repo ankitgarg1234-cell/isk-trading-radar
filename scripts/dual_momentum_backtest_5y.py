@@ -8,6 +8,7 @@ import json
 import math
 import os
 import statistics
+import sys
 import threading
 import time
 from collections import defaultdict
@@ -17,6 +18,9 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 from dual_momentum.rules import (
     FundamentalStatus,
@@ -28,7 +32,6 @@ from dual_momentum.rules import (
     wilder_atr_series,
 )
 
-ROOT = Path(__file__).resolve().parents[1]
 START = date(2021, 10, 1)
 END = date(2026, 9, 30)
 PRICE_START = date(2020, 6, 1)
