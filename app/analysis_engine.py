@@ -135,6 +135,71 @@ def calibrated_score_components(raw: dict[str, float], rr: float | None) -> dict
     return out
 
 
+RECALIBRATABLE_SCORING_VERSIONS = {"2026-10-06-sec-filing-coverage-v20"}
+
+
+def recalibrate_snapshot(snapshot: dict) -> dict | None:
+    """Locally migrate a completed v20 analysis onto the v21 score scale.
+
+    v21 changed only deterministic weighting/R-R normalization. Targets,
+    fundamentals, news classification, analyst evidence and technical inputs are
+    unchanged from v20, so a completed-session v20 snapshot can be re-scored
+    without another provider round-trip. This function deliberately does not
+    recompute BUY/WATCH actions; callers must run the shared current gates.
+    """
+    if snapshot.get("scoring_version") not in RECALIBRATABLE_SCORING_VERSIONS:
+        return None
+    raw = dict(snapshot.get("breakdown") or {})
+    required = set(DETERMINISTIC_WEIGHTS) - {"Risk/Reward"}
+    if not required.issubset(raw):
+        return None
+    price = number(snapshot.get("price"))
+    target = number((snapshot.get("target_plan") or {}).get("base_target"))
+    stop = number((snapshot.get("levels") or {}).get("stop"))
+    if price is None or target is None or stop is None or not 0 < stop < price < target:
+        return None
+    rr = (target - price) / (price - stop)
+    contributions = calibrated_score_components(raw, rr)
+    total = sum(contributions.values())
+    news = snapshot.get("news") or {}
+    override = snapshot.get("negative_news_override")
+    if int(news.get("high_negative_events") or 0) >= 2:
+        total = min(total, 68)
+    elif int(news.get("high_negative_events") or 0) >= 1 and news.get("label") == "Bearish":
+        total = min(total, 74)
+    total = round(clamp(total), 1)
+    fs = number(raw.get("Fundamentals")) or 0.0
+    catalyst = number(raw.get("Catalyst")) or 0.0
+    t = snapshot.get("technicals") or {}
+    lane_info = classify_lane(
+        snapshot,
+        fs=fs,
+        fconf=str(snapshot.get("fundamental_confidence") or "low"),
+        news=news,
+        t=t,
+        catalyst_score=catalyst,
+        total_score=total,
+        expected_upside_pct=float(snapshot.get("expected_yield_pct") or 0),
+        negative_override=override,
+        explosive_upside_pct=float(snapshot.get("expected_yield_pct") or 0),
+        analyst_confirmation=number(snapshot.get("analyst_score")),
+        entry_rr=rr,
+    )
+    out = dict(snapshot)
+    out.update(lane_info)
+    out.update({
+        "scoring_version": SCORING_VERSION,
+        "score_calibration": "quality-balanced-v21",
+        "score_weights": dict(DETERMINISTIC_WEIGHTS),
+        "score_contributions": {k: round(v, 1) for k, v in contributions.items()},
+        "deterministic_score": total,
+        "risk_reward": round(rr, 2),
+        "category": "Explosive Runner" if lane_info["lane"] == EXPLOSIVE_LANE else "Core" if lane_info["lane"] == CORE_LANE else "Watch",
+        "recalibrated_from_scoring_version": snapshot.get("scoring_version"),
+    })
+    return out
+
+
 def pct(v: Any) -> float | None:
     """Convert a normalized financial ratio to percentage points.
 
