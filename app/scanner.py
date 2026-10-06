@@ -152,6 +152,8 @@ class RadarService:
         # BUY -> BUY (the GWRE missed-entry failure mode).
         self._paper_optimizer_policy_state: str | None = None
         self._last_strategic_enrich_at: datetime | None = None
+        self._preopen_warmup_date: str | None = None
+        self._preopen_warmed_symbols: set[str] = set()
 
     def market_open(self, now=None):
         """Regular-session V1 gate: Mon-Fri, 09:30-16:00 America/New_York.
@@ -819,6 +821,11 @@ class RadarService:
         any pre-open paper execution.
         """
         limit = max(1, limit)
+        session_date = datetime.now(timezone.utc).astimezone(NY).date().isoformat()
+        if self._preopen_warmup_date != session_date:
+            self._preopen_warmup_date = session_date
+            self._preopen_warmed_symbols.clear()
+
         holdings = self.holding_symbols()
         persisted: list[str] = []
         with SessionLocal() as db:
@@ -826,11 +833,11 @@ class RadarService:
                 db.query(RadarCandidate.symbol)
                 .filter(RadarCandidate.lane_qualified == True)
                 .order_by(RadarCandidate.portfolio_rank_score.desc(), RadarCandidate.updated_at.desc())
-                .limit(limit)
+                .limit(max(8, limit // 2))
                 .all()
             )
             persisted = [r.symbol for r in rows]
-        stale = self.stale_scoring_symbols(limit=limit)
+        stale = self.stale_scoring_symbols(limit=max(8, limit // 3))
         priority = self.priority_symbols()[: settings.priority_deep_limit]
         discovered: list[str] = []
         try:
@@ -839,8 +846,19 @@ class RadarService:
             discovered = [d["symbol"] for d in movers[: settings.discovery_deep_candidates]]
         except Exception:
             pass
-        ordered = holdings + persisted + stale + priority + discovered
-        return list(dict.fromkeys(s.upper() for s in ordered if s))[:limit]
+
+        # Holdings are deliberately refreshed every pre-open cycle. Other names
+        # rotate across the 30-minute window instead of repeatedly consuming the
+        # whole batch with the same persisted Top 20.
+        ordered = list(dict.fromkeys(
+            s.upper() for s in holdings + persisted + priority + discovered + stale if s
+        ))
+        holdings_set = {s.upper() for s in holdings}
+        fresh = [
+            s for s in ordered
+            if s in holdings_set or s not in self._preopen_warmed_symbols
+        ]
+        return fresh[:limit]
 
 
     def candidate_symbols(self):
@@ -1000,6 +1018,8 @@ class RadarService:
                 try:
                     self.analyze_symbol(symbol)
                     refreshed_symbols.append(symbol)
+                    if preopen:
+                        self._preopen_warmed_symbols.add(symbol)
                 except Exception as e:
                     errors.append(f"{symbol}: {type(e).__name__}")
             if self.universe_size <= 0:
