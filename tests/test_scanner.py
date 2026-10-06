@@ -62,6 +62,36 @@ def test_existing_positions_and_watchlist_are_prioritized():
     assert "DISC" in syms
 
 
+def test_live_qualified_pool_recheck_promotes_current_buy_zone_names(monkeypatch):
+    import json
+    from app.db import RadarCandidate
+    from app.analysis_engine import SCORING_VERSION
+
+    ready=attention_payload({"symbol":"READY","price":100,"deterministic_score":78})
+    wait=attention_payload({"symbol":"WAIT","price":100,"deterministic_score":78})
+    for payload in (ready,wait):
+        payload["scoring_version"]=SCORING_VERSION
+        payload["lane"]="CORE_QUALITY"
+        payload["lane_qualified"]=True
+
+    with SessionLocal() as db:
+        db.add(RadarCandidate(symbol="READY",portfolio_rank_score=90,lane="CORE_QUALITY",
+                              lane_qualified=True,current_json=json.dumps(ready)))
+        db.add(RadarCandidate(symbol="WAIT",portfolio_rank_score=89,lane="CORE_QUALITY",
+                              lane_qualified=True,current_json=json.dumps(wait)))
+        db.commit()
+
+    r=RadarService(provider=FakeProvider(),ai=FakeAI())
+    def quote(symbol):
+        price=100 if symbol=="READY" else 105
+        return {"symbol":symbol,"price":price,"previous_close":99,
+                "relative_volume":1.6,"scan_score":50}
+    monkeypatch.setattr(r.provider,"quick_scan",quote)
+    assert r.live_ready_qualified_symbols() == ["READY"]
+    assert r.last_live_qualified_rechecked == 2
+    assert r.last_live_ready_count == 1
+
+
 def test_stale_scoring_candidates_are_prioritized_for_refresh():
     import json
     from app.db import RadarCandidate
