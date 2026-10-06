@@ -90,6 +90,9 @@ def build_portfolio_plan(snapshot: dict, positions: list[dict], cash_usd: float,
         if bool(pos.get("pending_stop_exit")):
             exit_reasons[symbol] = "Previously triggered closing-price trailing stop; pending stop exit takes precedence"
             continue
+        if pos.get("pending_rule_exit_reason"):
+            exit_reasons[symbol] = str(pos.get("pending_rule_exit_reason"))
+            continue
 
         check = holding_checks.get(symbol)
         if not check:
