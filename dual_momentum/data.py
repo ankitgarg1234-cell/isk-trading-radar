@@ -385,28 +385,34 @@ class LiveDataSource:
         signal_by_symbol = {s.symbol: s for s in ranked_all}
         ranked = [s for s in ranked_all if s.score > 0]
 
+        raw_rank_by_symbol = {signal.symbol: rank for rank, signal in enumerate(ranked, start=1)}
+
         fundamental_rows: dict[str, dict] = {}
-        eligible: list = []
         checked = 0
         if regime.value == "BULL":
-            # SEC work is done in small batches to keep the scan practical while
-            # preserving momentum order. We may over-fetch a few rows in the last
-            # batch, but the eligible ranking remains strictly deterministic.
+            # Momentum ranks are frozen BEFORE the fundamental screen. A failed
+            # #7 does not promote raw momentum rank #21 into the Top 20.
+            symbols_to_check: list[str] = [s.symbol for s in ranked[:35]]
+            for symbol in sorted(holdings):
+                rank = raw_rank_by_symbol.get(symbol)
+                if rank is not None and rank <= 35 and symbol not in symbols_to_check:
+                    symbols_to_check.append(symbol)
+
             with ThreadPoolExecutor(max_workers=4) as pool:
-                for start in range(0, len(ranked), 8):
-                    batch = ranked[start : start + 8]
+                for start_idx in range(0, len(symbols_to_check), 8):
+                    batch_symbols = symbols_to_check[start_idx : start_idx + 8]
                     futures = {
-                        pool.submit(self.ttm_fundamentals, signal.symbol, decision_date): signal
-                        for signal in batch
+                        pool.submit(self.ttm_fundamentals, symbol, decision_date): symbol
+                        for symbol in batch_symbols
                     }
                     batch_rows: dict[str, dict] = {}
                     for future in as_completed(futures):
-                        signal = futures[future]
+                        symbol = futures[future]
                         try:
-                            batch_rows[signal.symbol] = future.result()
+                            batch_rows[symbol] = future.result()
                         except Exception as exc:
-                            batch_rows[signal.symbol] = {
-                                "symbol": signal.symbol,
+                            batch_rows[symbol] = {
+                                "symbol": symbol,
                                 "check": FundamentalCheck(
                                     FundamentalStatus.REVIEW,
                                     None,
@@ -416,36 +422,24 @@ class LiveDataSource:
                                 ),
                                 "source": "SEC EDGAR/XBRL",
                             }
-                    checked += len(batch)
-                    for signal in batch:
-                        row = batch_rows[signal.symbol]
-                        fundamental_rows[signal.symbol] = row
-                        if row["check"].status == FundamentalStatus.PASS:
-                            eligible.append(signal)
-                            if len(eligible) >= 35:
-                                break
-                    if len(eligible) >= 35:
-                        break
-
-        # Holdings are always checked even when outside the first selection tranche.
-        for symbol in sorted(holdings):
-            if symbol not in fundamental_rows and symbol in signal_by_symbol and regime.value == "BULL":
-                try:
-                    fundamental_rows[symbol] = self.ttm_fundamentals(symbol, decision_date)
-                except Exception as exc:
-                    fundamental_rows[symbol] = {
-                        "symbol": symbol,
-                        "check": FundamentalCheck(FundamentalStatus.REVIEW, None, None, False, f"Fundamentals unavailable: {type(exc).__name__}"),
-                        "source": "SEC EDGAR/XBRL",
-                    }
-
-        eligible = rank_signals([s for s in ranked if (fundamental_rows.get(s.symbol) or {}).get("check") and fundamental_rows[s.symbol]["check"].status == FundamentalStatus.PASS])
-        top35 = eligible[:35]
+                    checked += len(batch_symbols)
+                    fundamental_rows.update(batch_rows)
 
         candidates = []
-        for rank, signal in enumerate(top35, start=1):
-            f = fundamental_rows[signal.symbol]
+        for rank, signal in enumerate(ranked[:35], start=1):
+            f = fundamental_rows.get(signal.symbol) or {
+                "symbol": signal.symbol,
+                "check": FundamentalCheck(
+                    FundamentalStatus.REVIEW,
+                    None,
+                    None,
+                    False,
+                    "Fundamentals not checked because the market regime is BEAR",
+                ),
+                "source": "SEC EDGAR/XBRL",
+            }
             member = member_by_symbol.get(signal.symbol, {})
+            check = f["check"]
             candidates.append(
                 {
                     "rank": rank,
@@ -461,49 +455,71 @@ class LiveDataSource:
                     "adv63": signal.adv63,
                     "atr14": signal.atr14,
                     "atr_pct": signal.atr_pct,
-                    "revenue_growth_ttm": f["check"].revenue_growth_ttm,
-                    "gross_margin_ttm": f["check"].gross_margin_ttm,
-                    "gross_margin_exempt": f["check"].gross_margin_exempt,
-                    "fundamental_status": f["check"].status.value,
-                    "fundamental_reason": f["check"].reason,
+                    "revenue_growth_ttm": check.revenue_growth_ttm,
+                    "gross_margin_ttm": check.gross_margin_ttm,
+                    "gross_margin_exempt": check.gross_margin_exempt,
+                    "fundamental_status": check.status.value,
+                    "fundamental_reason": check.reason,
                     "fundamental_last_filed": f.get("last_filed"),
                     "entry_zone": rank <= 20,
                     "retention_zone": rank <= 35,
+                    "purchase_verified": rank <= 20 and check.status == FundamentalStatus.PASS,
                 }
             )
 
         holding_checks = {}
-        rank_map = {c["symbol"]: c["rank"] for c in candidates}
         for symbol in sorted(holdings):
+            member = member_by_symbol.get(symbol)
+            if member is None:
+                holding_checks[symbol] = {
+                    "symbol": symbol,
+                    "rank": None,
+                    "in_index": False,
+                    "membership_exit": True,
+                    "momentum_positive": None,
+                    "fundamental_status": "REVIEW",
+                    "reason": "Security is absent from the current S&P 500 membership feed",
+                    "sector": None,
+                    "security_id": symbol,
+                }
+                continue
+
             sig = signal_by_symbol.get(symbol)
             f = fundamental_rows.get(symbol)
+            raw_rank = raw_rank_by_symbol.get(symbol)
             if sig is None:
                 holding_checks[symbol] = {
                     "symbol": symbol,
                     "rank": None,
-                    "momentum_positive": False,
+                    "in_index": True,
+                    "membership_exit": False,
+                    "momentum_positive": None,
                     "fundamental_status": "REVIEW",
                     "reason": "Required price history or ATR unavailable",
-                    "sector": (member_by_symbol.get(symbol) or {}).get("sector"),
-                    "security_id": (member_by_symbol.get(symbol) or {}).get("security_id") or symbol,
+                    "sector": member.get("sector"),
+                    "security_id": member.get("security_id") or symbol,
                 }
                 continue
+
             status = f["check"].status.value if f else "REVIEW"
-            rank = rank_map.get(symbol)
-            if rank is None and status == "PASS":
-                rank = "36+"
             holding_checks[symbol] = {
                 "symbol": symbol,
-                "rank": rank,
+                "rank": raw_rank,
+                "in_index": True,
+                "membership_exit": False,
                 "momentum_positive": sig.score > 0,
                 "score": sig.score,
                 "price": sig.price,
                 "atr14": sig.atr14,
                 "atr_pct": sig.atr_pct,
                 "fundamental_status": status,
-                "fundamental_reason": f["check"].reason if f else "Fundamentals unavailable",
-                "sector": (member_by_symbol.get(symbol) or {}).get("sector") or (f or {}).get("sector"),
-                "security_id": (member_by_symbol.get(symbol) or {}).get("security_id") or (f or {}).get("security_id") or sig.security_id or symbol,
+                "fundamental_reason": f["check"].reason if f else (
+                    "Fundamentals not required because a valid momentum/rank exit already applies"
+                    if sig.score <= 0 or (raw_rank is not None and raw_rank > 35)
+                    else "Required fundamentals unavailable"
+                ),
+                "sector": member.get("sector") or (f or {}).get("sector"),
+                "security_id": member.get("security_id") or (f or {}).get("security_id") or sig.security_id or symbol,
             }
 
         return {
@@ -522,7 +538,7 @@ class LiveDataSource:
             "universe_size": len(members),
             "positive_momentum_count": len(ranked),
             "fundamental_checks": checked,
-            "eligible_verified_count": len(eligible),
+            "eligible_verified_count": sum(1 for row in candidates if row["fundamental_status"] == "PASS"),
             "candidates": candidates,
             "holding_checks": holding_checks,
             "price_errors": price_errors,
