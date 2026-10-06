@@ -123,6 +123,10 @@ def test_dashboard_candidate_table_hides_qualified_wait_names_until_actionable()
     wait=payload("WAITING",score=78,sector="Healthcare",expected=20,price=105)
     wait["action"]="WATCH"
     wait["entry_zone_status"]="APPROACHING_BREAKOUT"
+    wait["levels"].update({
+        "buy_low":95,"buy_high":100,"better_low":90,"better_high":93,
+        "breakout":110,"do_not_chase":115,"entry_stop":92,"stop":92,
+    })
     with SessionLocal() as db:
         for p in (buy,wait):
             db.add(RadarCandidate(
