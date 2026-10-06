@@ -13,7 +13,8 @@ from .market import YahooMarketProvider
 from .analysis_engine import SCORING_VERSION
 from .trading_rules import signal_geometry
 from .portfolio_engine import normalise_profile
-from .score_band_experiment import VERSION, advance, new_state, number, timestamp, summary, ensure_single_account, arm_trial
+from .score_band_experiment import (VERSION, advance, new_state, number, timestamp, summary,
+                                    ensure_single_account, arm_trial, experiment_spec)
 
 _LOCK = Lock()
 _BENCHMARK_PROVIDER = YahooMarketProvider()
@@ -36,6 +37,13 @@ def _load(db):
     row = db.query(ScoreBandExperiment).filter_by(version=VERSION).with_for_update().first()
     if row:
         state = ensure_single_account(json.loads(row.state_json))
+        # Migrate strategy parameters in place without resetting cash, positions or
+        # trade history. v23 lowers the deterministic floor to 65 and adds a 5%
+        # starter allocation for the new 65-69 band.
+        profile = str((state.get("spec") or {}).get("profile") or "MEDIUM")
+        current_spec = experiment_spec(profile)
+        for key in ("bands", "min_deterministic", "min_analyst", "min_rr", "risk_per_trade_pct"):
+            state.setdefault("spec", {})[key] = current_spec[key]
         if settings.score_band_trial_armed_at:
             arm_trial(state, settings.score_band_trial_armed_at)
         row.state_json = json.dumps(state, default=str, separators=(",", ":"))
