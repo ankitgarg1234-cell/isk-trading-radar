@@ -97,20 +97,31 @@ def build_portfolio_plan(snapshot: dict, positions: list[dict], cash_usd: float)
             warnings.append(f"{symbol}: signal data unavailable; retained for review with no additions")
             continue
 
+        if bool(check.get("membership_exit")):
+            exit_reasons[symbol] = "S&P 500 membership has ended; exit at the next executable session"
+            continue
+
         fund = str(check.get("fundamental_status") or "REVIEW")
         if fund == "FAIL":
             exit_reasons[symbol] = check.get("fundamental_reason") or "Valid fundamental check failed"
             continue
 
-        data_unavailable = str(check.get("reason") or "").lower().find("unavailable") >= 0
-        if data_unavailable and check.get("rank") is None:
-            retained.append(symbol)
-            frozen_review.add(symbol)
-            warnings.append(f"{symbol}: required market data unavailable; no addition or fabricated rank")
+        momentum_positive = check.get("momentum_positive")
+        if momentum_positive is False:
+            exit_reasons[symbol] = "Momentum score is not positive"
             continue
 
-        if not bool(check.get("momentum_positive")):
-            exit_reasons[symbol] = "Momentum score is not positive"
+        rank = check.get("rank")
+        if isinstance(rank, int) and rank > 35:
+            exit_reasons[symbol] = "Eligible incumbent ranks above the 1–35 retention buffer"
+            continue
+
+        # Missing market data alone is not deterioration. With no valid rank we
+        # retain provisionally, but block additions until data are available.
+        if momentum_positive is None or rank is None:
+            retained.append(symbol)
+            frozen_review.add(symbol)
+            warnings.append(f"{symbol}: required market data unavailable; retained for review with no additions")
             continue
 
         if fund == "REVIEW":
@@ -119,7 +130,6 @@ def build_portfolio_plan(snapshot: dict, positions: list[dict], cash_usd: float)
             warnings.append(f"{symbol}: fundamentals review; last verified status retained provisionally and additions blocked")
             continue
 
-        rank = check.get("rank")
         if isinstance(rank, int) and rank <= 35:
             retained.append(symbol)
         else:
