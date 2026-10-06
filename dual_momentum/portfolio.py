@@ -209,7 +209,7 @@ def build_portfolio_plan(snapshot: dict, positions: list[dict], cash_usd: float)
         row = selected_data[symbol]
         sector = str(row.get("sector") or "Unknown")
         sector_weights[sector] = sector_weights.get(sector, 0.0) + weight
-        issuer_id = str(row.get("security_id") or symbol)
+        issuer_id = str(row.get("issuer_id") or row.get("security_id") or symbol)
         group = issuer_groups.setdefault(issuer_id, {"symbols": [], "weight": 0.0})
         group["symbols"].append(symbol)
         group["weight"] += weight
