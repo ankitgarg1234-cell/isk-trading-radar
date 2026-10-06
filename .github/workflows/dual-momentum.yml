@@ -34,6 +34,7 @@ jobs:
           cache: pip
       - run: python -m pip install --upgrade pip
       - run: pip install -r dual_momentum_requirements.txt
+      - run: pip install pytest
       - run: python -m compileall -q dual_momentum
       - run: pytest -q tests/test_dual_momentum_rules.py
       - name: Import production entry point
