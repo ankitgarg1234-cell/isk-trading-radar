@@ -71,3 +71,39 @@ jobs:
           curl --fail --silent --show-error --max-time 30 https://isk-trading-radar.onrender.com/api/live
           echo
           echo "LIVE_END"
+
+
+  audit-rr-distribution:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Analyze scored candidate distribution
+        run: |
+          curl --fail --silent --show-error --max-time 30 https://isk-trading-radar.onrender.com/api/full-scan/results.csv -o /tmp/results.csv
+          python - <<'PY'
+          import csv, math
+          rows=list(csv.DictReader(open('/tmp/results.csv')))
+          def n(v):
+              try:
+                  x=float(v)
+                  return x if math.isfinite(x) else None
+              except: return None
+          scored=[r for r in rows if r.get('status')=='scored']
+          print('ROWS',len(rows),'SCORED',len(scored))
+          for cutoff in [.4,.6,.8,1.0,1.5,2.0]:
+              print('RR_GE',cutoff,sum(1 for r in scored if (n(r.get('risk_reward')) or -1)>=cutoff))
+          quality=[]
+          for r in scored:
+              det=n(r.get('deterministic_score')); an=n(r.get('analyst_score')); rr=n(r.get('risk_reward')); fs=n(r.get('fundamentals_points'))
+              if None not in (det,an,rr,fs) and fs>=14 and an>=75 and rr>=.4:
+                  quality.append((det,rr,fs,an,r.get('symbol'),r.get('lane'),r.get('blocker')))
+          print('QUALITY_FS14_ANALYST75_RR04',len(quality))
+          print('TOP_QUALITY_BY_DET')
+          for x in sorted(quality,reverse=True)[:25]: print(x)
+          print('TOP_QUALITY_BY_RR')
+          for x in sorted(quality,key=lambda z:(z[1],z[0]),reverse=True)[:25]: print(x)
+          near=[x for x in quality if 60<=x[0]<70]
+          print('NEAR_60_70',len(near))
+          print('NEAR_HIGH_RR')
+          for x in sorted(near,key=lambda z:(z[1],z[0]),reverse=True)[:25]: print(x)
+          PY
