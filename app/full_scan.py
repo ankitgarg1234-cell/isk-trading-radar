@@ -14,12 +14,13 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import func
 
 from .analysis_engine import SCORING_VERSION, CORE_MIN_AVG_DOLLAR_VOLUME, technicals, pct, fundamental_input_diagnostics
+from .config import settings
 from .db import SessionLocal, FullScanRun, FullScanResult, RadarCandidate
 from .market_evidence import transient_missing, positive
 from .trading_rules import entry_status, number
 
 NY = ZoneInfo("America/New_York")
-ACTIVE = {"prefilter", "analysis", "paused_market_open"}
+ACTIVE = {"prefilter", "analysis", "paused_preopen", "paused_market_open"}
 KEY = "latest"
 # Scoring-only/evidence changes do not alter the exact price/currency/liquidity
 # preflight. Same-session quick checks may be reused, but old scores/gates never are.
@@ -86,21 +87,41 @@ def compact_result(full, source="fresh_analysis"):
 
 
 def preflight(provider, symbol, session_date):
-    """Use the very same 1y daily input and liquidity calculation as scoring."""
-    chart = provider.chart(symbol, "1y", "1d")
-    rows, price, _, currency, _ = provider._rows_from_chart(chart)
-    quote = datetime.fromtimestamp(float(chart["meta"]["regularMarketTime"]), timezone.utc)
+    """Cheap exact gate pass using only the 1-month data needed for 20d liquidity.
+
+    The scoring engine's liquidity formula is current_price × mean(previous 20
+    daily volumes). quick_scan uses that identical calculation, so fetching a
+    full year for all ~5,700 symbols was pure transport overhead.
+    """
+    if hasattr(provider, "quick_scan"):
+        quick = provider.quick_scan(symbol)
+        price = number(quick.get("price"))
+        currency = str(quick.get("currency") or "USD")
+        liquidity = number(quick.get("avg_dollar_volume_20"))
+        quote_raw = quick.get("quote_asof")
+        if not quote_raw:
+            raise ValueError("quote_timestamp_unavailable")
+        quote = datetime.fromisoformat(str(quote_raw).replace("Z", "+00:00")).astimezone(timezone.utc)
+        scan_score = number(quick.get("scan_score"))
+    else:
+        # Test/custom-provider compatibility. Production Yahoo provider always
+        # supplies quick_scan().
+        chart = provider.chart(symbol, "1mo", "1d")
+        rows, price, _, currency, _ = provider._rows_from_chart(chart)
+        quote = datetime.fromtimestamp(float(chart["meta"]["regularMarketTime"]), timezone.utc)
+        liquidity = technicals(rows, price)["avg_dollar_volume_20"]
+        scan_score = None
     if quote.astimezone(NY).date().isoformat() != session_date:
         raise ValueError("quote_session_mismatch")
-    if not rows or number(price) is None or price <= 0:
+    if price is None or price <= 0 or liquidity is None:
         raise ValueError("price_or_history_unavailable")
-    liquidity = technicals(rows, price)["avg_dollar_volume_20"]
     blocker = ("price_or_currency_invalid" if price < 5 or currency != "USD"
                else "liquidity_below_10m" if liquidity < CORE_MIN_AVG_DOLLAR_VOLUME else None)
     return {"symbol": symbol, "status": "excluded" if blocker else "awaiting_analysis",
         "price": price, "currency": currency, "avg_dollar_volume_20": liquidity,
-        "blocker": blocker, "quote_asof": quote.isoformat(), "collected_at": now().isoformat(),
-        "source": "same_scoring_price_and_liquidity_inputs", "qualified": False}
+        "scan_score": scan_score, "blocker": blocker, "quote_asof": quote.isoformat(),
+        "collected_at": now().isoformat(), "source": "lightweight_exact_20d_preflight",
+        "qualified": False}
 
 
 def summarize(results):
@@ -179,9 +200,17 @@ class FullUniverseScan:
                 continue
         return seed
 
+    def _trading_handoff_active(self):
+        preopen = getattr(self.radar, "market_preopen", None)
+        return self.radar.market_open() or bool(preopen and preopen())
+
+    def _pause_phase(self):
+        return "paused_market_open" if self.radar.market_open() else "paused_preopen"
+
     def start(self):
-        if self.radar.market_open():
-            return {"status": "market_open", "message": "Full audit runs after hours; live scanning continues during the session."}
+        if self._trading_handoff_active():
+            return {"status": self._pause_phase(),
+                    "message": "Full audit is paused for the pre-open/live trading handoff."}
         with self.lock:
             if self.active():
                 return self.status()
@@ -298,8 +327,18 @@ class FullUniverseScan:
             collected = datetime.fromisoformat(full["asof"].replace("Z", "+00:00")).astimezone(NY)
             quote = datetime.fromisoformat(full["data_sources"]["price"]["quote_asof"].replace("Z", "+00:00")).astimezone(NY)
             f = full.get("fundamentals") or {}
-            if (full.get("scoring_version") == SCORING_VERSION and collected.date().isoformat() == session_date
-                    and collected.hour >= 16 and quote.date().isoformat() == session_date
+            session_close = datetime.combine(
+                datetime.fromisoformat(session_date).date(),
+                datetime.min.time(),
+                tzinfo=NY,
+            ).replace(hour=16)
+            # Overnight analyses collected after the session date are still valid
+            # for that completed quote. Requiring collected.date == session_date
+            # caused the audit to download the same fundamentals/news again after
+            # midnight even though quote_asof was unchanged.
+            if (full.get("scoring_version") == SCORING_VERSION
+                    and collected >= session_close
+                    and quote.date().isoformat() == session_date
                     and (quote.hour * 60 + quote.minute) >= 950):
                 result = compact_result(full, "cached_post_close")
                 if not result["transient_data_gap"]:
@@ -327,11 +366,11 @@ class FullUniverseScan:
             if not session_date:
                 return
             # The normal after-hours cycle yields to this audit, preserving its provider budget.
-            with ThreadPoolExecutor(max_workers=4) as pool:
+            with ThreadPoolExecutor(max_workers=max(4, min(settings.quick_scan_workers, 12))) as pool:
                 while not self.stop_event.is_set():
-                    if self.radar.market_open():
-                        self._record(run_id, [], "paused_market_open"); self.stop_event.wait(30); continue
-                    batch = self._pending(run_id, "pending", 32)
+                    if self._trading_handoff_active():
+                        self._record(run_id, [], self._pause_phase()); self.stop_event.wait(15); continue
+                    batch = self._pending(run_id, "pending", 64)
                     if not batch:
                         break
                     def check(symbol):
@@ -342,12 +381,15 @@ class FullUniverseScan:
                     self._record(run_id, list(pool.map(check, batch)), "prefilter")
             for symbol in self._pending(run_id, "retry_prefilter", 10000):
                 if self.stop_event.is_set(): return
+                while self._trading_handoff_active() and not self.stop_event.is_set():
+                    self._record(run_id, [], self._pause_phase()); self.stop_event.wait(15)
+                if self.stop_event.is_set(): return
                 try: result = preflight(self.radar.provider, symbol, session_date)
                 except Exception as exc: result = {"symbol":symbol,"status":"error","error":type(exc).__name__,"stage":"prefilter"}
                 self._record(run_id, [result], "prefilter")
             while not self.stop_event.is_set():
-                if self.radar.market_open():
-                    self._record(run_id, [], "paused_market_open"); self.stop_event.wait(30); continue
+                if self._trading_handoff_active():
+                    self._record(run_id, [], self._pause_phase()); self.stop_event.wait(15); continue
                 symbols = self._pending(run_id, "awaiting_analysis", 1)
                 if not symbols: break
                 symbol = symbols[0]
