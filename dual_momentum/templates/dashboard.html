@@ -23,7 +23,7 @@
 <div class="metric"><span>Target equity</span><b>{{ ('%.0f%%'|format(plan.target_equity_exposure*100)) if plan else '—' }}</b><small>N / 20 exposure</small></div>
 <div class="metric"><span>Target cash</span><b>{{ ('%.0f%%'|format(plan.target_cash_weight*100)) if plan else '—' }}</b><small>Before rounding / expenses</small></div>
 <div class="metric"><span>Recorded cash</span><b>USD {{ '%.2f'|format(cash) }}</b><small>Borrowing prohibited</small></div>
-<div class="metric"><span>Scan status</span><b>{{ scan.status }}</b><small>{{ scan.variant }}{% if scan.finished_at %} • {{ scan.finished_at }}{% endif %}</small></div>
+<div class="metric"><span>Scan status</span><b>{{ scan.status }}</b><small>{% if snapshot %}Decision {{ snapshot.decision_date }} • next session {{ snapshot.next_execution_session or 'pending' }}{% else %}{{ scan.variant }}{% endif %}</small></div>
 </section>
 <div class="grid" style="margin-top:14px">
 <section class="panel main">
@@ -76,7 +76,13 @@
 <div class="rule"><i>5</i><div><b>N / 20 exposure</b><p>{{ plan.selected|length if plan else 0 }} selected positions implies {{ ('%.0f%%'|format(plan.target_equity_exposure*100)) if plan else '—' }} target equity exposure.</p></div></div>
 <div class="rule"><i>6</i><div><b>Inverse percentage ATR</b><p>Selected equity capital is distributed by 1 / (ATR14 ÷ price), with no sector cap.</p></div></div>
 <div class="rule"><i>7</i><div><b>3×ATR ratchet</b><p>Closing-price trigger. Stops never loosen. Additions inherit existing peak and stop history.</p></div></div>
-</div></section>
+</div>
+{% if plan and plan.sector_concentration %}
+<div class="cards" style="margin-top:12px">
+<div class="mini"><span>Largest sector target</span><b>{{ plan.sector_concentration[0].sector }} • {{ '%.1f%%'|format(plan.sector_concentration[0].weight*100) }}</b></div>
+<div class="mini"><span>Multi-class issuer exposure</span><b>{% if plan.combined_share_classes %}{% for g in plan.combined_share_classes %}{{ g.symbols|join(' + ') }} {{ '%.1f%%'|format(g.weight*100) }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% else %}None selected{% endif %}</b></div>
+</div>{% endif %}
+</section>
 <section class="panel third"><span class="kicker">BACKTEST STATUS</span><h2>Not yet validated</h2><div class="cards">
 <div class="mini"><span>Baseline costs</span><b>5 bps + 2 bps / side</b></div><div class="mini"><span>Commission</span><b>max(USD 1, USD 0.005/share)</b></div><div class="mini"><span>Cash yield</span><b>0% unless documented</b></div><div class="mini"><span>Benchmark</span><b>S&amp;P 500 total return</b></div></div>
 <p class="subtle">Historical validation must use point-in-time membership, failed/delisted companies, publication-date fundamentals, corporate actions, whole shares, funding constraints, and matched USD/SEK benchmark dates.</p></section>
