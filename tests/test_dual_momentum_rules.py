@@ -222,3 +222,16 @@ def test_reserved_midcycle_vacancy_is_not_refilled_from_same_snapshot():
     assert len(plan2["selected"]) == 19
     assert "S20" not in plan2["selected"]
     assert plan2["reserved_slots"] == 1
+
+
+def test_auth_guard_has_session_middleware_available():
+    from fastapi.testclient import TestClient
+    from dual_momentum.main import app
+
+    with TestClient(app) as client:
+        login = client.get("/login")
+        assert login.status_code == 200
+
+        protected = client.get("/", follow_redirects=False)
+        assert protected.status_code in {302, 303, 307}
+        assert protected.headers.get("location") == "/login"
