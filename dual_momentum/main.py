@@ -17,7 +17,6 @@ from .portfolio import build_portfolio_plan
 from .rules import StopState, advance_stop, wilder_atr_series
 
 app = FastAPI(title="Dual Momentum Radar", version="1.0.0")
-app.add_middleware(SessionMiddleware, secret_key=settings.session_secret, same_site="lax", https_only=False)
 templates = Jinja2Templates(directory="dual_momentum/templates")
 SCAN_LOCK = threading.Lock()
 
@@ -35,6 +34,11 @@ async def auth_guard(request: Request, call_next):
             return JSONResponse({"detail": "authentication required"}, status_code=401)
         return RedirectResponse("/login", status_code=303)
     return await call_next(request)
+
+
+# Middleware added after the decorator-defined auth middleware becomes the
+# outer wrapper, so request.session is populated before auth_guard runs.
+app.add_middleware(SessionMiddleware, secret_key=settings.session_secret, same_site="lax", https_only=False)
 
 
 @app.get("/login", response_class=HTMLResponse)
