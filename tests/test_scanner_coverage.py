@@ -16,23 +16,26 @@ def service(monkeypatch):
     return radar
 
 
-def test_actual_44_name_queue_is_not_truncated_to_32(monkeypatch):
+def test_live_deep_analysis_is_bounded_and_overflow_is_carried(monkeypatch):
     radar = service(monkeypatch)
     queue = [f"S{i}" for i in range(44)]
     batch, queued = radar._deep_analysis_batch(queue)
-    assert batch == queue and queued == 44
-    assert radar._deferred_analysis_symbols == []
+    assert batch == queue[:12] and queued == 44
+    assert radar._deferred_analysis_symbols == queue[12:]
 
 
-def test_overflow_is_analyzed_before_new_discovery(monkeypatch):
+def test_fresh_live_candidates_preempt_old_overflow(monkeypatch):
     radar = service(monkeypatch)
     first = [f"S{i}" for i in range(60)]
     batch, _ = radar._deep_analysis_batch(first)
-    assert len(batch) == 48
-    deferred = first[48:]
-    next_batch, _ = radar._deep_analysis_batch([f"NEW{i}" for i in range(44)])
-    assert next_batch[:12] == deferred
-    assert set(first) <= set(batch + next_batch)
+    assert len(batch) == 12
+    assert radar._deferred_analysis_symbols == first[12:]
+
+    fresh = [f"NEW{i}" for i in range(6)]
+    next_batch, _ = radar._deep_analysis_batch(fresh)
+    assert next_batch[:6] == fresh
+    assert next_batch[6:] == first[12:18]
+    assert first[18:] == radar._deferred_analysis_symbols[:42]
 
 
 def test_holdings_remain_first_and_queue_is_deduplicated(monkeypatch):
