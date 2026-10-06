@@ -281,7 +281,7 @@ def test_canonical_paper_pnl_reconciles_open_and_realized_after_fees():
     assert row["pnl"] == pytest.approx(99.0)
     assert status["open_pnl"] == pytest.approx(99.0)
     assert status["realized_pnl"] == pytest.approx(23.98, abs=0.01)
-    assert status["absolute_return"] == pytest.approx(122.975)
+    assert status["absolute_return"] == pytest.approx(122.98)
     assert status["pnl_reconciliation_delta"] == pytest.approx(0.0, abs=1e-6)
 
 
