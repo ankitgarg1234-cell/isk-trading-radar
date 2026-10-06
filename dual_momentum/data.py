@@ -117,51 +117,45 @@ def _session_dates(schedule) -> list[date]:
 
 
 def _latest_completed_month_end_session(spy_bars: Sequence[PriceBar]) -> tuple[date, date | None]:
-    """Resolve the latest month-end signal session and its next NYSE session."""
+    """Resolve the latest completed month-end from observed SPY sessions.
+
+    Historical month-ends are identified by the transition between consecutive
+    SPY trading sessions, avoiding calendar/index timezone ambiguities. The final
+    observed bar is accepted only when the NYSE calendar confirms it is the
+    month's last session and the close has passed.
+    """
     now_ny = datetime.now(ZoneInfo("America/New_York"))
-    today = now_ny.date()
-    start = today - timedelta(days=100)
-    end = today + timedelta(days=40)
-    schedule = _nyse_schedule(start, end)
+    bars = sorted({date.fromisoformat(bar.date) for bar in spy_bars})
+    if not bars:
+        raise RuntimeError("No SPY sessions are available")
+
+    month_ends: list[date] = []
+    for idx in range(len(bars) - 1):
+        session = bars[idx]
+        next_session = bars[idx + 1]
+        if (next_session.year, next_session.month) != (session.year, session.month):
+            month_ends.append(session)
+
+    last = bars[-1]
+    schedule = _nyse_schedule(last.replace(day=1), last + timedelta(days=10))
     sessions = _session_dates(schedule)
+    same_month = [s for s in sessions if (s.year, s.month) == (last.year, last.month)]
+    if same_month and last == same_month[-1]:
+        try:
+            close_ts = schedule.loc[str(last)]["market_close"]
+            close_dt = close_ts.to_pydatetime().astimezone(ZoneInfo("America/New_York"))
+            if close_dt <= now_ny:
+                month_ends.append(last)
+        except Exception:
+            pass
 
-    if sessions:
-        bar_dates = {date.fromisoformat(bar.date) for bar in spy_bars}
-        month_ends: list[date] = []
-        for idx, session in enumerate(sessions):
-            next_session = sessions[idx + 1] if idx + 1 < len(sessions) else None
-            if next_session is None or next_session.month != session.month:
-                if session not in bar_dates:
-                    continue
-                if schedule is not None:
-                    try:
-                        close_ts = schedule.loc[str(session)]["market_close"]
-                        close_dt = close_ts.to_pydatetime().astimezone(ZoneInfo("America/New_York"))
-                        if close_dt > now_ny:
-                            continue
-                    except Exception:
-                        if session >= today:
-                            continue
-                month_ends.append(session)
-        if month_ends:
-            decision = max(month_ends)
-            future = [s for s in sessions if s > decision]
-            return decision, future[0] if future else None
-
-    # Conservative fallback when the optional calendar is unavailable: use the
-    # final observed SPY session from the most recently completed calendar month.
-    prior = [
-        date.fromisoformat(bar.date)
-        for bar in spy_bars
-        if (date.fromisoformat(bar.date).year, date.fromisoformat(bar.date).month)
-        < (today.year, today.month)
-    ]
-    if not prior:
+    if not month_ends:
         raise RuntimeError("No completed month-end SPY session is available")
-    decision = prior[-1]
-    later_bars = [date.fromisoformat(bar.date) for bar in spy_bars if date.fromisoformat(bar.date) > decision]
-    return decision, later_bars[0] if later_bars else None
 
+    decision = max(month_ends)
+    later_bars = [session for session in bars if session > decision]
+    next_session = later_bars[0] if later_bars else None
+    return decision, next_session
 
 def _execution_window(next_session: date | None) -> str:
     if next_session is None:
