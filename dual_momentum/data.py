@@ -24,7 +24,11 @@ from .rules import (
 )
 
 SP500_CSV_URL = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv"
-SP500_HISTORY_URLS = (\n    "https://raw.githubusercontent.com/lawcal/sp500-components-history/main/data/components_history.csv",\n    "https://cdn.jsdelivr.net/gh/lawcal/sp500-components-history@main/data/components_history.csv",\n)\nYAHOO_CHART = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+SP500_HISTORY_URLS = (
+    "https://raw.githubusercontent.com/lawcal/sp500-components-history/main/data/components_history.csv",
+    "https://cdn.jsdelivr.net/gh/lawcal/sp500-components-history@main/data/components_history.csv",
+)
+YAHOO_CHART = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
 UA = "Mozilla/5.0 Dual-Momentum-Radar/1.0"
 
 REVENUE_TAGS = (
