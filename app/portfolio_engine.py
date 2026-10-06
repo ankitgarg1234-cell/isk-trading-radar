@@ -251,7 +251,7 @@ def score_target_allocation_pct(score: float) -> float:
     order size but never increase it.
     """
     raw = _float(score, -1.0)
-    if raw < CONTINUOUS_SCORE_SIZING["floor_score"] or raw > 100:
+    if not math.isfinite(raw) or raw < CONTINUOUS_SCORE_SIZING["floor_score"] or raw > 100:
         return 0.0
     target = (
         CONTINUOUS_SCORE_SIZING["floor_pct"]
