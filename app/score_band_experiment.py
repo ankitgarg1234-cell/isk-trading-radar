@@ -131,7 +131,8 @@ def proposed_quantity(a, book, spec, price, existing=None):
     existing = existing or {}
     current_shares = existing.get("shares", 0)
     target_room = max(0, total * allocation_pct(a.get("deterministic_score")) / 100 - current_shares * price)
-    per_share_risk = price - float(a["levels"]["stop"])
+    levels = a["levels"]
+    per_share_risk = price - float(levels.get("entry_stop") or levels["stop"])
     # Include entry friction in the budget. Stops are scenario limits, not guaranteed fills.
     per_share_risk += price * (spec["fee_bps"] + spec["slippage_bps"]) / 10000
     risk_room = max(0, total * spec["risk_per_trade_pct"] / 100 - current_shares * per_share_risk)
@@ -209,11 +210,11 @@ def _fill(book, mode, spec, a, observed):
     fresh["levels"], fresh["target_plan"] = pending["levels"], pending["target_plan"]
     existing = book["positions"].get(symbol)
     if existing:
-        fresh["levels"]["stop"] = existing["entry_stop"]
+        fresh["levels"]["entry_stop"] = existing["entry_stop"]
         fresh["target_plan"]["base_target"] = existing["entry_target"]
     if mode == "current_rules_control":
         fresh["price"] = price
-        stop, target = number(fresh["levels"].get("stop")), number(fresh["target_plan"].get("base_target"))
+        stop, target = number(fresh["levels"].get("entry_stop") or fresh["levels"].get("stop")), number(fresh["target_plan"].get("base_target"))
         if stop is None or target is None or not stop < price < target:
             block(book, "fill_target_stop_invalid")
             return
@@ -250,17 +251,17 @@ def _fill(book, mode, spec, a, observed):
         # Adds retain the original exit plan.
     else:
         book["positions"][symbol] = {"shares": qty, "avg_cost": price,
-            "entry_fee_per_share": fee / qty, "entry_stop": fresh["levels"]["stop"],
+            "entry_fee_per_share": fee / qty, "entry_stop": fresh["levels"].get("entry_stop") or fresh["levels"]["stop"],
             "entry_target": fresh["target_plan"]["base_target"],
             "entry_stretch_target": fresh["target_plan"].get("stretch_target"),
             "entry_horizon_days": (fresh.get("holding_horizon") or {}).get("max_days"),
-            "stop": fresh["levels"]["stop"], "harvested": False,
+            "stop": fresh["levels"].get("entry_stop") or fresh["levels"]["stop"], "harvested": False,
             "peak": market, "opened_at": observed, "profit_steps": []}
     book["trades"].append({"symbol": symbol, "side": "BUY", "shares": qty,
         "price": price, "fees": fee, "observed_at": observed,
         "signal_at": pending["observed_at"], "reason": pending["reason"],
         "deterministic_score": a.get("deterministic_score"), "analyst_score": a.get("analyst_score"),
-        "entry_target": fresh["target_plan"]["base_target"], "entry_stop": fresh["levels"]["stop"]})
+        "entry_target": fresh["target_plan"]["base_target"], "entry_stop": fresh["levels"].get("entry_stop") or fresh["levels"]["stop"]})
     book["fills"] += 1
 
 
