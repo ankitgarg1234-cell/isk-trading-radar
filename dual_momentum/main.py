@@ -53,7 +53,7 @@ def startup() -> None:
             db.commit()
             print("Dual Momentum bootstrap: seeded paper cash $%.2f" % starting_cash, flush=True)
 
-        should_scan = auto_initial_scan and state.scan_status == "NEVER_RUN"
+        should_scan = auto_initial_scan and state.scan_status in {"NEVER_RUN", "ERROR"}
 
     if should_scan:
         print("Dual Momentum bootstrap: starting initial baseline scan", flush=True)
