@@ -12,13 +12,13 @@ from .config import settings
 from .db import engine, SessionLocal, Position, PaperPosition, AnalysisRequest, Trade, PortfolioCash, PortfolioPreference, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, storage_status
 from .analysis_engine import parse_positions_from_text, position_action, position_action_plan, SCORING_VERSION
 from .short_horizon import VERSION as FORECAST_VERSION, forecast_current
-from .portfolio_engine import RISK_PROFILES, ACTION_RANK, normalise_profile, stock_risk_score, system_signal, active_level, analyst_label, suggested_position_size, account_risk, projected_risk, risk_band, build_optimizer_plan, candidate_rank_score
+from .portfolio_engine import RISK_PROFILES, ACTION_RANK, normalise_profile, stock_risk_score, system_signal, active_level, analyst_label, suggested_position_size, account_risk, projected_risk, risk_band, build_optimizer_plan, candidate_rank_score, INVESTABLE_ENTRY_ACTIONS
 from .paper_engine import paper_status, reset_paper, run_paper_cycle, manual_paper_add, manual_paper_close
 from .scanner import radar
 from .ai_engine import AIEngine
 from .score_band_capture import experiment_status
 from . import article_news
-from .trading_rules import MIN_ENTRY_RISK_REWARD
+from .trading_rules import MIN_ENTRY_RISK_REWARD, MIN_DETERMINISTIC_SCORE
 from .full_scan import FullUniverseScan
 
 full_scan = FullUniverseScan(radar)
@@ -394,8 +394,17 @@ def _dashboard_state(db):
         for x in ((radar.last_result or {}).get("paper_blocked_orders") or [])
         if isinstance(x, dict) and x.get("symbol")
     }
+    # Keep research/WAIT names internal. The candidate table is an action surface:
+    # only a live entry/add trigger is allowed to appear there.
+    actionable_rows = [
+        r for r in optimizer["visible"]
+        if (
+            (not r.get("owned") and str(r.get("optimizer_action") or "").upper() in INVESTABLE_ENTRY_ACTIONS)
+            or (r.get("owned") and str(r.get("optimizer_action") or "").upper() == "ADD")
+        )
+    ]
     radar_views=[]
-    for rankrow in optimizer["visible"]:
+    for rankrow in actionable_rows:
         sym=rankrow["symbol"]
         c=candidate_map.get(sym)
         a=payloads.get(sym) or {}
@@ -446,7 +455,11 @@ def _dashboard_state(db):
             "analyst_score":a.get("analyst_score"),"analyst_label":analyst_label(a),"action":a.get("action") or (c.action if c else "WATCH"),"action_reason":a.get("action_reason") or "",
             "system_signal":signal,"owned":is_owned,"owned_shares":owned_row.get("shares"),"owned_avg":owned_row.get("avg_cost"),
             "level_label":level["label"],"level_value":level["value"],"distance":level["distance"],"distance_pct":level["distance_pct"],
-            "target":(a.get("levels") or {}).get("target"),"stop":(a.get("levels") or {}).get("stop"),"risk_reward":a.get("risk_reward"),
+            "target":(a.get("levels") or {}).get("target"),
+            "stop":(a.get("levels") or {}).get("entry_stop",(a.get("levels") or {}).get("stop")),
+            "entry_stop":(a.get("levels") or {}).get("entry_stop",(a.get("levels") or {}).get("stop")),
+            "thesis_stop":(a.get("levels") or {}).get("thesis_stop"),
+            "risk_reward":a.get("risk_reward"),
             "expected_yield_pct":a.get("expected_yield_pct"),
             "stock_risk":sizing.get("stock_risk",stock_risk_score(a)),"risk_band":risk_band(sizing.get("stock_risk",stock_risk_score(a))),"risk_fit":sizing.get("fit",rankrow.get("risk_fit","UNKNOWN")),
             "suggested_shares":sizing.get("shares",0),"suggested_capital":sizing.get("capital",0),"sizing_reason":sizing.get("reason",""),
@@ -503,22 +516,25 @@ def _dashboard_state(db):
 
     summary={
         "buy_now":len(optimizer["selected_new"]),
-        "portfolio_actions":sum(v["system_signal"] in {"SELL","STRONG SELL","TAKE PROFIT"} and v["owned"] for v in radar_views),
+        "portfolio_actions":sum(v.get("system_signal") in {"SELL","STRONG SELL","TAKE PROFIT"} for v in pos_views),
         "deployable_cash":max(0,cash-reserve),
         "best_candidate":next((v for v in radar_views if v.get("optimizer_bucket")=="INVEST NOW"),None),
-        "visible_candidates":len(radar_views),"shortlist_count":len(optimizer["shortlist"]),"position_cap_enabled":optimizer.get("position_cap_enabled",False),
+        "visible_candidates":len(radar_views),"shortlist_count":len(radar_views),"position_cap_enabled":optimizer.get("position_cap_enabled",False),
         "core_quality_count":sum(1 for v in radar_views if v.get("lane")=="CORE_QUALITY"),
         "explosive_count":sum(1 for v in radar_views if v.get("lane")=="EXPLOSIVE"),
     }
     lane_counts=optimizer.get("lane_counts") or {}
     optimizer_summary={
         "version":optimizer["version"],"live_gating":settings.optimizer_live_gating,
-        "visible":len(radar_views),"shortlist":len(optimizer["shortlist"]),
+        "visible":len(radar_views),"shortlist":len(radar_views),
+        "monitored_qualified":len(optimizer["visible"]),
         "invest_now":len(optimizer["selected_new"]),"owned":optimizer["owned_count"],
         "position_cap_enabled":optimizer.get("position_cap_enabled",False),
         "allocation_policy":optimizer.get("allocation_policy"),"rotations":len(optimizer["rotations"]),
+        "min_deterministic_score":MIN_DETERMINISTIC_SCORE,
         "min_entry_risk_reward":optimizer.get("min_entry_risk_reward",MIN_ENTRY_RISK_REWARD),
-        "core_quality":lane_counts.get("core_quality",0),"explosive":lane_counts.get("explosive",0),
+        "core_quality":sum(1 for v in radar_views if v.get("lane")=="CORE_QUALITY"),
+        "explosive":sum(1 for v in radar_views if v.get("lane")=="EXPLOSIVE"),
         "lane_refresh_pending":lane_refresh_pending,
         "explosive_evaluated":explosive_evaluated,
         "explosive_near_misses":explosive_near_misses,
