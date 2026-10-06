@@ -476,42 +476,102 @@ def refresh_stops():
     source = LiveDataSource(price_workers=1)
     results = []
     try:
+        try:
+            current_members = {row["symbol"] for row in source.current_sp500()}
+        except Exception:
+            current_members = None
+
         with SessionLocal() as db:
             positions = db.query(DMPosition).order_by(DMPosition.symbol).all()
+            today = datetime.now(timezone.utc).date().isoformat()
             for position in positions:
+                if current_members is not None and position.symbol not in current_members:
+                    if not position.pending_rule_exit_reason:
+                        position.pending_rule_exit_reason = "S&P 500 membership has ended; sell next executable session"
+                        position.pending_rule_exit_date = today
+                    results.append(
+                        {
+                            "symbol": position.symbol,
+                            "status": "PENDING_RULE_EXIT",
+                            "reason": position.pending_rule_exit_reason,
+                            "reference_date": position.pending_rule_exit_date,
+                        }
+                    )
+                    continue
+
+                if position.pending_rule_exit_reason:
+                    results.append(
+                        {
+                            "symbol": position.symbol,
+                            "status": "PENDING_RULE_EXIT",
+                            "reason": position.pending_rule_exit_reason,
+                            "reference_date": position.pending_rule_exit_date,
+                        }
+                    )
+                    continue
+
                 if position.stop is None or position.peak is None or not position.opened_on:
                     results.append({"symbol": position.symbol, "status": "REVIEW", "reason": "Stop history is incomplete"})
                     continue
                 if position.pending_stop_exit:
                     results.append({"symbol": position.symbol, "status": "PENDING_EXIT", "stop": position.stop})
                     continue
+
                 try:
                     chart = source._chart_json(position.symbol, "2y")
-                    splits = list(((chart.get("events") or {}).get("splits") or {}).values())
-                    split_after_entry = []
-                    for event in splits:
-                        ts = event.get("date")
-                        if not ts:
+                    split_by_date: dict[str, list[float]] = {}
+                    for event in list(((chart.get("events") or {}).get("splits") or {}).values()):
+                        try:
+                            event_ts = float(event.get("date") or 0)
+                            event_date = datetime.fromtimestamp(event_ts, tz=timezone.utc).date().isoformat()
+                            numerator = float(event.get("numerator") or 0)
+                            denominator = float(event.get("denominator") or 0)
+                            ratio = numerator / denominator if numerator > 0 and denominator > 0 else 0.0
+                        except Exception:
                             continue
-                        event_date = datetime.fromtimestamp(float(ts), tz=timezone.utc).date().isoformat()
-                        if event_date >= position.opened_on and (not position.stop_asof or event_date > position.stop_asof):
-                            split_after_entry.append(event)
-                    if split_after_entry:
-                        results.append({
-                            "symbol": position.symbol,
-                            "status": "CORPORATE_ACTION_REVIEW",
-                            "reason": "Split detected after the last processed stop close; transform shares/peak/stop before replay",
-                        })
-                        continue
+                        if ratio <= 0 or event_date < position.opened_on:
+                            continue
+                        if position.stop_asof and event_date <= position.stop_asof:
+                            continue
+                        split_by_date.setdefault(event_date, []).append(ratio)
 
                     bars = _completed_daily_bars(source._bars_from_chart(chart))
                     atrs = wilder_atr_series(bars)
                     processed = 0
+                    corporate_review = False
+
                     for i, bar in enumerate(bars):
                         if bar.date < position.opened_on:
                             continue
                         if position.stop_asof and bar.date <= position.stop_asof:
                             continue
+
+                        for ratio in split_by_date.get(bar.date, []):
+                            transformed_shares = int(position.shares or 0) * ratio
+                            rounded = round(transformed_shares)
+                            if abs(transformed_shares - rounded) > 1e-9:
+                                position.pending_rule_exit_reason = (
+                                    "Corporate action creates fractional shares/cash-in-lieu; reconcile before further stop replay"
+                                )
+                                position.pending_rule_exit_date = bar.date
+                                results.append(
+                                    {
+                                        "symbol": position.symbol,
+                                        "status": "CORPORATE_ACTION_REVIEW",
+                                        "reason": position.pending_rule_exit_reason,
+                                        "reference_date": bar.date,
+                                    }
+                                )
+                                corporate_review = True
+                                break
+                            position.shares = int(rounded)
+                            position.avg_cost = float(position.avg_cost or 0) / ratio
+                            position.peak = float(position.peak) / ratio
+                            position.stop = float(position.stop) / ratio
+
+                        if corporate_review:
+                            break
+
                         atr = atrs[i]
                         if atr is None or atr <= 0:
                             continue
@@ -524,29 +584,34 @@ def refresh_stops():
                         if next_state.breached:
                             position.pending_stop_exit = True
                             position.stop_asof = bar.date
-                            results.append({
-                                "symbol": position.symbol,
-                                "status": "TRIGGERED",
-                                "trigger_close": bar.close,
-                                "stop": position.stop,
-                                "trigger_date": bar.date,
-                            })
+                            results.append(
+                                {
+                                    "symbol": position.symbol,
+                                    "status": "TRIGGERED",
+                                    "trigger_close": bar.close,
+                                    "stop": position.stop,
+                                    "trigger_date": bar.date,
+                                }
+                            )
                             break
                         position.peak = next_state.peak
                         position.stop = next_state.stop
                         position.stop_asof = bar.date
                     else:
-                        results.append({
-                            "symbol": position.symbol,
-                            "status": "UPDATED",
-                            "peak": position.peak,
-                            "stop": position.stop,
-                            "through": position.stop_asof,
-                            "sessions": processed,
-                        })
+                        results.append(
+                            {
+                                "symbol": position.symbol,
+                                "status": "UPDATED",
+                                "peak": position.peak,
+                                "stop": position.stop,
+                                "through": position.stop_asof,
+                                "sessions": processed,
+                            }
+                        )
                 except Exception as exc:
                     results.append({"symbol": position.symbol, "status": "ERROR", "reason": f"{type(exc).__name__}: {exc}"})
             db.commit()
     finally:
         source.close()
     return {"results": results}
+
