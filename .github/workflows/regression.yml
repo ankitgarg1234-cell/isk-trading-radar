@@ -63,6 +63,7 @@ jobs:
     steps:
       - name: Verify restored canonical ledger
         run: |
+          echo "RESTORED_LEDGER_PROBE"
           python - <<'PY'
           import json, urllib.request
           d=json.load(urllib.request.urlopen("https://isk-trading-radar.onrender.com/api/live", timeout=30))
