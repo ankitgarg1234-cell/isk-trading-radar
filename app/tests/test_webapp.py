@@ -262,7 +262,9 @@ def test_dashboard_has_filters_for_every_radar_decision_column(monkeypatch):
     p["currency"]="USD";p["entry_zone_status"]="PRIMARY_BUY";p["fundamentals"]={"companyName":"Column Filter Inc","sector":"Technology"}
     monkeypatch.setattr(mainmod.radar.provider,"fx_rate",lambda a,b:1.0)
     with SessionLocal() as db:
-        db.add(RadarCandidate(symbol="COLFLT",category="Core",action="BUY NOW",score=88,ai_score=92,price=100))
+        db.add(RadarCandidate(
+            symbol="COLFLT",category="Core",action="BUY NOW",score=88,ai_score=92,price=100,
+            portfolio_rank_score=88,lane="CORE_QUALITY",lane_qualified=True,current_json=json.dumps(p)))
         db.add(AnalysisSnapshot(symbol="COLFLT",price=100,deterministic_score=88,analyst_score=80,ai_score=92,expected_yield_pct=25,ai_expected_yield_pct=30,category="Core",action="BUY NOW",payload_json=json.dumps(p)))
         db.commit()
     r=client.get('/')
