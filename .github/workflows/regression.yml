@@ -55,3 +55,19 @@ jobs:
           pip install -r requirements.txt
       - name: Verify production Python startup imports
         run: python -c "import app.db; import app.main; print('PYTHON314_STARTUP_PASS')"
+
+
+  live-v23-paper-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read active v23 paper ledger
+        run: |
+          echo "LIVE_BEGIN"
+          curl --fail --silent --show-error --max-time 30 https://isk-trading-radar.onrender.com/api/live
+          echo
+          echo "LIVE_END"
+          echo "EXPERIMENT_BEGIN"
+          curl --fail --silent --show-error --max-time 30 https://isk-trading-radar.onrender.com/api/experiments/score-bands
+          echo
+          echo "EXPERIMENT_END"
