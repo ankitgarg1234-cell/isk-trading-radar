@@ -164,6 +164,25 @@ class RadarService:
         mins = now.hour * 60 + now.minute
         return 570 <= mins < 960
 
+    def preopen_warmup(self, now=None):
+        """Reserve scanner/provider capacity for the 30 minutes before the U.S. open.
+
+        The overnight full-universe audit yields from 09:00 New York time so the
+        actionable radar can refresh holdings, persisted qualifiers and fresh movers
+        before the opening bell. This window is analysis-only; paper execution still
+        requires market_open().
+        """
+        now = (now or datetime.now(timezone.utc)).astimezone(NY)
+        if now.weekday() >= 5:
+            return False
+        mins = now.hour * 60 + now.minute
+        return 540 <= mins < 570
+
+    def live_priority_window(self, now=None):
+        """True from 09:00 through the regular close in New York."""
+        now = now or datetime.now(timezone.utc)
+        return self.preopen_warmup(now) or self.market_open(now)
+
     def analyze_symbol(self, symbol: str, persist: bool = True, strategic_refresh: bool = False, contextual_ai: bool = True):
         symbol = symbol.upper().strip()
         bundle = self.provider.bundle(symbol)
@@ -790,6 +809,40 @@ class RadarService:
             stale.extend(s for s in article_news.dirty_symbols(limit) if s not in stale)
         return stale[:limit]
 
+    def preopen_warmup_symbols(self, limit: int = 32) -> list[str]:
+        """Highest-value analysis queue for the 30-minute pre-open handoff.
+
+        Do not wait for the exhaustive overnight audit to finish. Refresh existing
+        holdings and persisted qualified names first, then stale-version rows,
+        explicit priority/watchlist names and fresh discovery movers. This gives
+        the first regular-session optimizer cycle current inputs without allowing
+        any pre-open paper execution.
+        """
+        limit = max(1, limit)
+        holdings = self.holding_symbols()
+        persisted: list[str] = []
+        with SessionLocal() as db:
+            rows = (
+                db.query(RadarCandidate.symbol)
+                .filter(RadarCandidate.lane_qualified == True)
+                .order_by(RadarCandidate.portfolio_rank_score.desc(), RadarCandidate.updated_at.desc())
+                .limit(limit)
+                .all()
+            )
+            persisted = [r.symbol for r in rows]
+        stale = self.stale_scoring_symbols(limit=limit)
+        priority = self.priority_symbols()[: settings.priority_deep_limit]
+        discovered: list[str] = []
+        try:
+            movers = self.provider.discover(100)
+            movers.sort(key=lambda x: float(x.get("change_pct") or 0), reverse=True)
+            discovered = [d["symbol"] for d in movers[: settings.discovery_deep_candidates]]
+        except Exception:
+            pass
+        ordered = holdings + persisted + stale + priority + discovered
+        return list(dict.fromkeys(s.upper() for s in ordered if s))[:limit]
+
+
     def candidate_symbols(self):
         """Return the deep-analysis queue with holdings and stale scores first."""
         holdings = self.holding_symbols()
@@ -924,9 +977,14 @@ class RadarService:
 
     def _scan_once_impl(self, force: bool = False):
         audit = getattr(self, "full_universe_scan", None)
-        if not force and not self.market_open() and audit and audit.active():
+        market_open = self.market_open()
+        preopen = self.preopen_warmup()
+        # Overnight audit owns provider capacity only until 09:00 ET. From then
+        # through the close, the actionable radar has priority even if the audit
+        # thread remains alive in a paused state.
+        if not force and not market_open and not preopen and audit and audit.active():
             return {"status": "full_universe_audit_running", "execution_enabled": False}
-        if not force and not self.market_open():
+        if not force and not market_open:
             # Universe metadata is safe to refresh while the market is closed.
             # Without this, a fresh process starts at universe_size=0 and the
             # dashboard misleadingly says "loading" until the next open scan.
@@ -934,7 +992,11 @@ class RadarService:
             # A data/scoring repair must also reach saved tickers outside trading
             # hours. Refresh analyses only; this path never runs the paper cycle.
             refreshed_symbols: list[str] = []
-            for symbol in self.stale_scoring_symbols(limit=20):
+            refresh_symbols = (
+                self.preopen_warmup_symbols(limit=settings.scan_batch_size)
+                if preopen else self.stale_scoring_symbols(limit=20)
+            )
+            for symbol in refresh_symbols:
                 try:
                     self.analyze_symbol(symbol)
                     refreshed_symbols.append(symbol)
@@ -950,17 +1012,24 @@ class RadarService:
             # closed so users do not have to open every stock and click Refresh.
             strategic_changed = False
             strategic_symbols: list[str] = []
-            try:
-                strategic_changed, strategic_symbols = self._enrich_strategic_top_candidates()
-            except Exception as e:
-                errors.append(f"strategic capital: {type(e).__name__}")
+            # Strategic-capital evidence is shadow-only and can be relatively
+            # expensive. During the pre-open handoff, spend the limited window on
+            # price/fundamental/target refreshes that affect opening decisions.
+            if not preopen:
+                try:
+                    strategic_changed, strategic_symbols = self._enrich_strategic_top_candidates()
+                except Exception as e:
+                    errors.append(f"strategic capital: {type(e).__name__}")
             self.last_scan = datetime.now(timezone.utc)
             self.scan_count += 1
             self.last_deep_analyzed = len(refreshed_symbols)
             self.last_error = "; ".join(errors[:5]) if errors else None
             return {
-                "status": "market_closed", "analyzed": len(refreshed_symbols), "refreshed_symbols": refreshed_symbols, "universe_size": self.universe_size,
+                "status": "preopen_warmup" if preopen else "market_closed",
+                "analyzed": len(refreshed_symbols), "refreshed_symbols": refreshed_symbols, "universe_size": self.universe_size,
                 "strategic_enriched": strategic_symbols, "strategic_changed": strategic_changed,
+                "execution_enabled": False,
+                "preopen": preopen,
                 "errors": errors,
             }
         syms = self.candidate_symbols()
