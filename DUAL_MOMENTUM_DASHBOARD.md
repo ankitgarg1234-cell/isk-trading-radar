@@ -13,10 +13,11 @@ Render can use `render-dual-momentum.yaml`.
 ## Implemented baseline
 
 - SPY dividend-reinvested adjusted-price EMA200 regime with arithmetic-mean seed over the first 200 sessions.
-- Month-end decisions pinned to the final SPY session of the most recently completed calendar month.
+- Month-end decisions use the NYSE calendar and can be generated after the actual final trading-session close; the true next NYSE session is recorded separately.
 - Equal-weight 63/126/252-session momentum and the isolated 21-session lag variant.
 - Positive-momentum floor and deterministic tie-break order: momentum, 63-session average dollar volume, symbol.
 - SEC EDGAR/XBRL TTM revenue-growth and gross-margin checks with a conservative publication-date cutoff.
+- Gross-margin exemption is explicit: GICS Financials and Real Estate are exempt from GM only; SEC SIC 6000–6799 is the fallback where historical GICS is unavailable.
 - Missing fundamentals => review; verified failures => exit; review incumbents cannot be increased.
 - Top-20 vacancy entry / Top-35 incumbent retention buffer.
 - N/20 aggregate equity exposure and inverse percentage ATR weighting.
@@ -30,7 +31,7 @@ Render can use `render-dual-momentum.yaml`.
 
 ## Important research boundary
 
-The live dashboard currently uses a current S&P 500 constituent feed for universe discovery and explicitly labels that limitation. It does **not** claim that this is a valid historical membership source for backtesting.
+The live dashboard reconstructs the decision-date S&P 500 membership from the current constituent set plus an effective-dated historical change log. This is suitable for the live month-end operating surface, but it does **not** replace a verified institutional point-in-time constituent/delisting database for a full backtest.
 
 A production backtest must separately supply:
 
