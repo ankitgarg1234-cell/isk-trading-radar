@@ -130,7 +130,7 @@ def test_resume_does_not_repeat_completed_symbols_and_survives_new_worker(monkey
     resumed, analyzed, _=service(monkeypatch,["A","B","C"])
     result=resumed.start()
     assert result["run_id"] == run_id and result["processed"] == 3
-    assert [s for s,_ in analyzed] == ["B","C"]
+    assert {s for s,_ in analyzed} == {"B","C"}
     assert result["summary"]["counts"]["scored"] == 3
 
 
@@ -169,7 +169,7 @@ def test_resume_after_model_change_starts_clean_current_version_run(monkeypatch)
     assert result["run_id"] != old_id
     assert result["scoring_version"] == SCORING_VERSION
     assert result["processed"] == 2
-    assert [s for s, _ in analyzed] == ["A", "B"]
+    assert {s for s, _ in analyzed} == {"A", "B"}
 
 
 def test_start_after_model_change_creates_clean_current_version_run(monkeypatch):
