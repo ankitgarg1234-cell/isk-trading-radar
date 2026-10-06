@@ -1,0 +1,40 @@
+name: dual-momentum
+
+on:
+  pull_request:
+    paths:
+      - "dual_momentum/**"
+      - "tests/test_dual_momentum_rules.py"
+      - "dual_momentum_requirements.txt"
+      - "render-dual-momentum.yaml"
+      - ".github/workflows/dual-momentum.yml"
+  push:
+    branches:
+      - dual-momentum-dashboard
+    paths:
+      - "dual_momentum/**"
+      - "tests/test_dual_momentum_rules.py"
+      - "dual_momentum_requirements.txt"
+      - "render-dual-momentum.yaml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///./dual_momentum_ci.db
+      APP_USERNAME: admin
+      APP_PASSWORD: test-password
+      SESSION_SECRET: ci-session-secret
+      SEC_USER_AGENT: DualMomentumCI test@example.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: pip install -r dual_momentum_requirements.txt
+      - run: python -m compileall -q dual_momentum
+      - run: pytest -q tests/test_dual_momentum_rules.py
+      - name: Import production entry point
+        run: python -c "from dual_momentum.main import app; assert app.title == 'Dual Momentum Radar'"
