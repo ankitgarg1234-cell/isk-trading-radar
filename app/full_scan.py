@@ -467,7 +467,7 @@ class FullUniverseScan:
             run = db.get(FullScanRun, KEY)
             if not run: return ""
             fields = ["symbol","status","price","avg_dollar_volume_20","deterministic_score","analyst_score",
-                      "risk_reward","qualified","ready_at_quote","lane","blocker","analyst_status",
+                      "target","entry_stop","thesis_stop","risk_reward","qualified","ready_at_quote","lane","blocker","analyst_status",
                       "valuation_status","market_cap_status","quote_asof","collected_at","source","error"]
             component_columns = {"fundamentals_points":"Fundamentals", "catalyst_points":"Catalyst",
                 "news_points":"News", "momentum_points":"Momentum", "sector_points":"Sector",
