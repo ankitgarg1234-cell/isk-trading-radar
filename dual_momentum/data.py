@@ -599,7 +599,7 @@ class LiveDataSource:
     ) -> dict:
         holdings = {_normalise_yahoo_symbol(s) for s in (holdings or set())}
 
-        spy_bars_all = self.price_bars("SPY", "5y")
+        spy_bars_all = self.price_bars("SPY", "10y")
         if decision_date is None:
             resolved_decision, next_session_date = _latest_completed_month_end_session(spy_bars_all)
             decision_date = resolved_decision
