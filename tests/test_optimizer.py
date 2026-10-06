@@ -67,8 +67,8 @@ def test_optimizer_does_not_force_five_positions_when_only_three_qualify():
 
 
 
-def test_primary_buy_69_fails_the_shared_70_entry_floor():
-    a=payload("CELC",score=69,sector="Healthcare",expected=20,ai=76,price=84.79)
+def test_primary_buy_64_fails_the_shared_65_entry_floor():
+    a=payload("CELC",score=64.9,sector="Healthcare",expected=20,ai=76,price=84.79)
     a["action"]="CONSIDER BUYING NOW"
     a["entry_zone_status"]="PRIMARY_BUY"
     plan=build_optimizer_plan({"CELC":a},profile="HIGH",visible_limit=20,shortlist_limit=10)
