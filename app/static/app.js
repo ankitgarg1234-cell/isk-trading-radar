@@ -288,7 +288,211 @@ async function refreshLive(){
     if($('#buyNowCount'))$('#buyNowCount').textContent=d.summary?.buy_now??0;if($('#deployableCash'))$('#deployableCash').textContent=Math.round(num(d.summary?.deployable_cash));if($('#accountRiskScore'))$('#accountRiskScore').textContent=Math.round(num(d.account_risk?.score));if($('#accountRiskBand'))$('#accountRiskBand').textContent=`${d.account_risk?.band||'—'} • target ${d.account_risk?.target_label||''}`;
     if($('#optimizerVisible'))$('#optimizerVisible').textContent=d.optimizer?.visible??0;if($('#optimizerCore'))$('#optimizerCore').textContent=d.optimizer?.core_quality??0;if($('#optimizerExplosive'))$('#optimizerExplosive').textContent=d.optimizer?.explosive??0;if($('#optimizerShortlist'))$('#optimizerShortlist').textContent=d.optimizer?.shortlist??0;if($('#optimizerInvest'))$('#optimizerInvest').textContent=d.optimizer?.invest_now??0;
     const laneDiag=$('#laneDiagnostics');if(laneDiag){const o=d.optimizer||{},parts=[];if(num(o.lane_refresh_pending)>0)parts.push('<span><b>'+esc(o.lane_refresh_pending)+'</b> pre-v2/stale records excluded until refreshed.</span>');if(num(o.explosive)===0){const blockers=(o.explosive_top_blockers||[]).map(x=>esc(x.label)+' ('+esc(x.count)+')').join(', ');parts.push('<span><b>Explosive: 0 qualified.</b> '+esc(o.explosive_evaluated??0)+' fresh lane records evaluated; '+esc(o.explosive_near_misses??0)+' Core-quality near-misses.'+(blockers?' Top blockers: '+blockers+'.':'')+(d.market_open?'':' U.S. market is closed; broad discovery resumes next regular session, while “Run scan now” forces an after-hours refresh.')+'</span>')}laneDiag.innerHTML=parts.join('');laneDiag.classList.toggle('hidden',parts.length===0)}
-    const paper=d.paper||{};const startingCash=num(paper.starting_cash,10000);if($('#paperCash'))$('#paperCash').textContent='$'+num(paper.started?paper.cash:startingCash).toFixed(2);if($('#paperInvested'))$('#paperInvested').textContent='$'+num(paper.started?paper.invested:0).toFixed(2);if($('#paperEquity'))$('#paperEquity').textContent='$'+num(paper.started?paper.equity:startingCash).toFixed(2);if($('#paperReturn'))$('#paperReturn').textContent=paper.started?`${num(paper.return_pct)>=0?'+':''}${num(paper.return_pct).toFixed(2)}%`:'—';if($('#paperAbsoluteReturn'))$('#paperAbsoluteReturn').textContent=paper.started?('$'+(num(paper.absolute_return)>=0?'+':'')+num(paper.absolute_return).toFixed(2)):'—';if($('#paperDailyPnl'))$('#paperDailyPnl').textContent=paper.started?('$'+(num(paper.daily_pnl)>=0?'+':'')+num(paper.daily_pnl).toFixed(2)+' / '+(num(paper.daily_pnl_pct)>=0?'+':'')+num(paper.daily_pnl_pct).toFixed(2)+'%'):'—';if($('#paperBenchmark'))$('#paperBenchmark').textContent=paper.started&&paper.benchmark_return_pct!=null?`${num(paper.benchmark_return_pct)>=0?'+':''}${num(paper.benchmark_return_pct).toFixed(2)}%`:'—';if($('#paperExcess'))$('#paperExcess').textContent=paper.started&&paper.excess_return_pct!=null?`${num(paper.excess_return_pct)>=0?'+':''}${num(paper.excess_return_pct).toFixed(2)}%`:'—';if($('#paperPositionCount'))$('#paperPositionCount').textContent=paper.position_count??0;if($('#paperCoreCount'))$('#paperCoreCount').textContent=paper.core_position_count??0;if($('#paperExplosiveCount'))$('#paperExplosiveCount').textContent=paper.explosive_position_count??0;const outside=$('#paperOutsideLaneCount'),outsideWrap=$('#paperOutsideLaneWrap');if(outside)outside.textContent=paper.outside_lane_position_count??0;if(outsideWrap)outsideWrap.classList.toggle('hidden',num(paper.outside_lane_position_count)===0);if($('#paperDrawdown'))$('#paperDrawdown').textContent=paper.started?`${num(paper.drawdown_pct).toFixed(2)}%`:'—';;
+    const paper=d.paper||{};const startingCash=num(paper.starting_cash,10000);if($('#paperCash'))$('#paperCash').textContent='$'+num(paper.started?paper.cash:startingCash).toFixed(2);if($('#paperInvested'))$('#paperInvested').textContent='$'+num(paper.started?paper.invested:0).toFixed(2);if($('#paperEquity'))$('#paperEquity').textContent='$'+num(paper.started?paper.equity:startingCash).toFixed(2);if($('#paperReturn'))$('#paperReturn').textContent=paper.started?`${num(paper.return_pct)>=0?'+':''}${num(paper.return_pct).toFixed(2)}%`:'—';if($('#paperAbsoluteReturn'))$('#paperAbsoluteReturn').textContent=paper.started?('$'+(num(paper.absolute_return)>=0?'+':'')+num(paper.absolute_return).toFixed(2)):'—';if($('#paperOpenPnl'))$('#paperOpenPnl').textContent='paper.started?('$'+(num(paper.daily_pnl)>=0?'+':'')+num(paper.daily_pnl).toFixed(2)+' / '+(num(paper.daily_pnl_pct)>=0?'+':'')+num(paper.daily_pnl_pct).toFixed(2)+'%'):'—';if($('#paperBenchmark'))$('#paperBenchmark').textContent=paper.started&&paper.benchmark_return_pct!=null?`${num(paper.benchmark_return_pct)>=0?'+':''}${num(paper.benchmark_return_pct).toFixed(2)}%`:'—';if($('#paperExcess'))$('#paperExcess').textContent=paper.started&&paper.excess_return_pct!=null?`${num(paper.excess_return_pct)>=0?'+':''}${num(paper.excess_return_pct).toFixed(2)}%`:'—';if($('#paperPositionCount'))$('#paperPositionCount').textContent=paper.position_count??0;if($('#paperCoreCount'))$('#paperCoreCount').textContent=paper.core_position_count??0;if($('#paperExplosiveCount'))$('#paperExplosiveCount').textContent=paper.explosive_position_count??0;const outside=$('#paperOutsideLaneCount'),outsideWrap=$('#paperOutsideLaneWrap');if(outside)outside.textContent=paper.outside_lane_position_count??0;if(outsideWrap)outsideWrap.classList.toggle('hidden',num(paper.outside_lane_position_count)===0);if($('#paperDrawdown'))$('#paperDrawdown').textContent=paper.started?`${num(paper.drawdown_pct).toFixed(2)}%`:'—';;
+    const pp=$('#paperPositionsBody');if(pp&&Array.isArray(paper.positions)){pp.innerHTML=paper.positions.length?paper.positions.map(p=>`<tr class="position-data-row"><td class="ticker"><a href="/analysis/${encodeURIComponent(p.symbol)}">${esc(p.symbol)}</a></td><td><span class="lane-badge lane-${String(p.lane||'OUTSIDE_LANES').toLowerCase().replace(/_/g,'-')}">${esc(p.lane_label||'Outside Current Lanes')}</span>${p.lane==='EXPLOSIVE'?`<small>Day ${esc(p.trading_sessions_held)}/20 • ${esc(p.explosive_sessions_remaining)} sessions left</small>`:p.graduated_from_explosive?'<small>Graduated from Explosive</small>':''}</td><td>${esc(p.shares)}</td><td>${num(p.avg_cost).toFixed(2)}${paper.canonical_strategy&&p.fill_price!=null?`<small>fill ${num(p.fill_price).toFixed(2)} + fee</small>`:''}</td><td>${num(p.price).toFixed(2)}</td><td class="${p.day_change_pct!=null?(num(p.day_change_pct)>=0?'pos':'neg'):''}">${p.day_change_pct!=null?`${num(p.day_change_pct)>=0?'+':''}${num(p.day_change_pct).toFixed(2)}%`:'—'}</td><td>${Math.round(num(p.value))}</td><td class="${num(p.pnl)>=0?'pos':'neg'}">${num(p.pnl)>=0?'+':''}${num(p.pnl).toFixed(2)} / ${num(p.pnl_pct)>=0?'+':''}${num(p.pnl_pct).toFixed(2)}%</td><td>${num(p.weight_pct).toFixed(1)}%</td><td>${num(p.entry_rank_score).toFixed(1)}/100</td><td class="reason-cell">${esc(p.reason||'—')}</td><td>${paper.canonical_strategy?'Automatic strategy':`<div class="paper-row-actions"><button class="btn ghost paper-add-position" type="button" data-symbol="${esc(p.symbol)}">Add</button><button class="btn ghost paper-close-position" type="button" data-symbol="${esc(p.symbol)}" data-shares="${esc(p.shares)}">Close</button></div>`}</td></tr>`).join('') :'<tr class="empty-position-row"><td colspan="12" class="empty">No open paper positions yet.</td></tr>';bindPaperPositionActions(pp)}
+    const mp=$('#manualPositionsBody');if(mp&&Array.isArray(d.positions)){mp.innerHTML=manualPositionRowsHtml(d.positions);bindManualPositionActions(mp);if($('#manualPositionCount'))$('#manualPositionCount').textContent=d.positions.length}
+    bindPositionTableFilters(document);
+  }catch(e){console.debug('live refresh',e)}
+}
+bindAlerts();
+async function runScanNow(){
+  const buttons=$$('.scan-now-trigger');
+  buttons.forEach(b=>{b.disabled=true;b.textContent='Scanning…'});
+  try{
+    const d=await jsonFetch('/api/scan-now',{method:'POST'});
+    if(d.status==='busy')toast('A scan is already running — the Radar will refresh when it completes.');
+    else toast(`Scan finished: ${d.analyzed||0} deep analyses; ${d.universe_prefiltered||0}/${d.universe_size||0} universe names prefiltered this cycle`);
+    await refreshLive();
+  }catch(e){toast('Scan failed: '+e.message)}
+  finally{buttons.forEach(b=>{b.disabled=false;b.textContent='Run scan now'})}
+}
+$$('.scan-now-trigger').forEach(b=>b.onclick=runScanNow);
+
+let importPositions=[];
+function renderImport(rows){importPositions=rows||[];const wrap=$('#importPreview'),body=$('#importRows');if(!wrap||!body)return;wrap.classList.remove('hidden');body.innerHTML=importPositions.length?importPositions.map((r,i)=>`<tr data-i="${i}"><td><input data-k="symbol" value="${esc(r.symbol)}"></td><td><input data-k="shares" type="number" step="any" value="${esc(r.shares)}"></td><td><input data-k="avg_cost" type="number" step="any" value="${esc(r.avg_cost)}"></td><td><input data-k="account" value="${esc(r.account||'Screenshot')}"></td><td><button class="icon-btn remove-import" type="button">×</button></td></tr>`).join(''):'<tr><td colspan="5" class="empty">Nothing confidently extracted. Add/correct the OCR text or use manual entry.</td></tr>';$$('.remove-import').forEach(b=>b.onclick=()=>{b.closest('tr').remove()})}
+function readImportRows(){return $$('#importRows tr[data-i]').map(tr=>{const obj={};tr.querySelectorAll('input[data-k]').forEach(i=>obj[i.dataset.k]=i.dataset.k==='symbol'||i.dataset.k==='account'?i.value:Number(i.value));return obj}).filter(r=>r.symbol&&r.shares>0&&r.avg_cost>0)}
+async function parseOcrText(text){const d=await jsonFetch('/api/import/parse-text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});renderImport(d.positions);return d.positions}
+const parseBtn=$('#parseText');if(parseBtn)parseBtn.onclick=async()=>{try{await parseOcrText($('#ocrText').value);toast('Text parsed — confirm/edit the rows')}catch(e){toast('Could not parse text')}};
+const uploadBtn=$('#uploadScreenshot');if(uploadBtn)uploadBtn.onclick=async()=>{const file=$('#positionScreenshot').files[0];const status=$('#ocrStatus');if(!file){toast('Choose a screenshot first');return}uploadBtn.disabled=true;status.textContent='Uploading and extracting…';try{const fd=new FormData();fd.append('file',file);const r=await fetch('/api/import/screenshot',{method:'POST',body:fd});const d=await r.json();if(d.ok){renderImport(d.positions);status.textContent='Server extraction complete. Confirm/edit before saving.'}else if(d.needs_browser_ocr){if(!window.Tesseract)throw new Error('Browser OCR library is still loading. Try again in a few seconds.');status.textContent='Running free browser OCR locally…';const result=await Tesseract.recognize(file,'eng',{logger:m=>{if(m.status==='recognizing text')status.textContent=`Browser OCR ${Math.round((m.progress||0)*100)}%`}});$('#ocrText').value=result.data.text;await parseOcrText(result.data.text);status.textContent='Browser OCR complete. Confirm/edit extracted positions.'}else throw new Error(d.message||'Extraction failed')}catch(e){status.textContent='Extraction needs manual confirmation.';toast(e.message)}finally{uploadBtn.disabled=false}};
+const confirmBtn=$('#confirmImport');if(confirmBtn)confirmBtn.onclick=async()=>{const rows=readImportRows();if(!rows.length){toast('No valid rows to save');return}try{const d=await jsonFetch('/api/import/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({positions:rows})});toast(`${d.saved} positions saved`);setTimeout(()=>location.reload(),700)}catch(e){toast('Could not save positions')}};
+
+
+function initAnalyzeAutocomplete(){
+  const input=$('#analyzeSymbol'),box=$('#symbolSuggestions');
+  if(!input||!box)return;
+  let timer=null,items=[],active=-1,requestSeq=0;
+  const hide=()=>{box.classList.add('hidden');box.innerHTML='';items=[];active=-1;input.setAttribute('aria-expanded','false')};
+  const setActive=(idx)=>{
+    active=idx;
+    box.querySelectorAll('.symbol-suggestion').forEach((el,i)=>{
+      el.classList.toggle('active',i===active);
+      el.setAttribute('aria-selected',i===active?'true':'false');
+    });
+    box.querySelector('.symbol-suggestion.active')?.scrollIntoView({block:'nearest'});
+  };
+  const choose=(idx)=>{
+    const item=items[idx];
+    if(!item)return;
+    input.value=item.symbol;
+    input.dataset.selectedName=item.name||'';
+    hide();
+    input.focus();
+  };
+  const render=(rows)=>{
+    items=Array.isArray(rows)?rows:[];
+    active=-1;
+    if(!items.length){hide();return}
+    box.innerHTML=items.map((x,i)=>`<button type="button" class="symbol-suggestion" role="option" aria-selected="false" data-i="${i}"><span><b>${esc(x.symbol)}</b><small>${esc(x.name||x.symbol)}</small></span><em>${esc(x.exchange||'US')}</em></button>`).join('');
+    box.classList.remove('hidden');
+    input.setAttribute('aria-expanded','true');
+    box.querySelectorAll('.symbol-suggestion').forEach(btn=>{
+      btn.addEventListener('mousedown',e=>e.preventDefault());
+      btn.addEventListener('click',()=>choose(Number(btn.dataset.i)));
+    });
+  };
+  const load=async()=>{
+    const q=input.value.trim();
+    if(!q){hide();return}
+    const seq=++requestSeq;
+    try{
+      const d=await jsonFetch('/api/symbol-search?q='+encodeURIComponent(q));
+      if(seq!==requestSeq)return;
+      render(d.results||[]);
+    }catch(e){if(seq===requestSeq)hide()}
+  };
+  input.addEventListener('input',()=>{
+    delete input.dataset.selectedName;
+    clearTimeout(timer);
+    timer=setTimeout(load,160);
+  });
+  input.addEventListener('keydown',e=>{
+    if(box.classList.contains('hidden')||!items.length){
+      if(e.key==='ArrowDown'){clearTimeout(timer);load()}
+      return;
+    }
+    if(e.key==='ArrowDown'){e.preventDefault();setActive((active+1)%items.length)}
+    else if(e.key==='ArrowUp'){e.preventDefault();setActive((active-1+items.length)%items.length)}
+    else if(e.key==='Enter'&&active>=0){e.preventDefault();choose(active)}
+    else if(e.key==='Escape'){e.preventDefault();hide()}
+  });
+  input.addEventListener('blur',()=>setTimeout(hide,120));
+}
+initAnalyzeAutocomplete();
+
+bindRadarControls();
+bindPositionTableFilters(document);
+bindPaperPositionActions(document);
+bindManualPositionActions(document);
+const paperManualBuy=$('#paperManualBuy');if(paperManualBuy)paperManualBuy.onclick=async()=>{
+  const symbol=String($('#paperManualSymbol')?.value||'').trim().toUpperCase();
+  const shares=Math.floor(Number($('#paperManualShares')?.value||0));
+  if(!symbol||!Number.isFinite(shares)||shares<1){toast('Enter a ticker and at least 1 whole share');return}
+  paperManualBuy.disabled=true;try{const d=await paperTradeRequest(symbol,'add',shares);toast(`Bought/added ${d.shares} ${symbol} @ $${num(d.price).toFixed(2)}`);$('#paperManualSymbol').value='';$('#paperManualShares').value='';await refreshLive()}catch(err){toast(err.message)}finally{paperManualBuy.disabled=false}
+};
+const poll=Number(document.body.dataset.livePoll||15)*1000;if($('#candidateTable')){setInterval(refreshLive,Math.max(10000,poll));}
++(num(paper.open_pnl)>=0?'+':'')+num(paper.open_pnl).toFixed(2);if($('#paperRealizedPnl'))$('#paperRealizedPnl').textContent='paper.started?('$'+(num(paper.daily_pnl)>=0?'+':'')+num(paper.daily_pnl).toFixed(2)+' / '+(num(paper.daily_pnl_pct)>=0?'+':'')+num(paper.daily_pnl_pct).toFixed(2)+'%'):'—';if($('#paperBenchmark'))$('#paperBenchmark').textContent=paper.started&&paper.benchmark_return_pct!=null?`${num(paper.benchmark_return_pct)>=0?'+':''}${num(paper.benchmark_return_pct).toFixed(2)}%`:'—';if($('#paperExcess'))$('#paperExcess').textContent=paper.started&&paper.excess_return_pct!=null?`${num(paper.excess_return_pct)>=0?'+':''}${num(paper.excess_return_pct).toFixed(2)}%`:'—';if($('#paperPositionCount'))$('#paperPositionCount').textContent=paper.position_count??0;if($('#paperCoreCount'))$('#paperCoreCount').textContent=paper.core_position_count??0;if($('#paperExplosiveCount'))$('#paperExplosiveCount').textContent=paper.explosive_position_count??0;const outside=$('#paperOutsideLaneCount'),outsideWrap=$('#paperOutsideLaneWrap');if(outside)outside.textContent=paper.outside_lane_position_count??0;if(outsideWrap)outsideWrap.classList.toggle('hidden',num(paper.outside_lane_position_count)===0);if($('#paperDrawdown'))$('#paperDrawdown').textContent=paper.started?`${num(paper.drawdown_pct).toFixed(2)}%`:'—';;
+    const pp=$('#paperPositionsBody');if(pp&&Array.isArray(paper.positions)){pp.innerHTML=paper.positions.length?paper.positions.map(p=>`<tr class="position-data-row"><td class="ticker"><a href="/analysis/${encodeURIComponent(p.symbol)}">${esc(p.symbol)}</a></td><td><span class="lane-badge lane-${String(p.lane||'OUTSIDE_LANES').toLowerCase().replace(/_/g,'-')}">${esc(p.lane_label||'Outside Current Lanes')}</span>${p.lane==='EXPLOSIVE'?`<small>Day ${esc(p.trading_sessions_held)}/20 • ${esc(p.explosive_sessions_remaining)} sessions left</small>`:p.graduated_from_explosive?'<small>Graduated from Explosive</small>':''}</td><td>${esc(p.shares)}</td><td>${num(p.avg_cost).toFixed(2)}</td><td>${num(p.price).toFixed(2)}</td><td class="${p.day_change_pct!=null?(num(p.day_change_pct)>=0?'pos':'neg'):''}">${p.day_change_pct!=null?`${num(p.day_change_pct)>=0?'+':''}${num(p.day_change_pct).toFixed(2)}%`:'—'}</td><td>${Math.round(num(p.value))}</td><td class="${num(p.pnl)>=0?'pos':'neg'}">${num(p.pnl)>=0?'+':''}${num(p.pnl).toFixed(2)} / ${num(p.pnl_pct)>=0?'+':''}${num(p.pnl_pct).toFixed(2)}%</td><td>${num(p.weight_pct).toFixed(1)}%</td><td>${num(p.entry_rank_score).toFixed(1)}/100</td><td class="reason-cell">${esc(p.reason||'—')}</td><td>${paper.canonical_strategy?'Automatic strategy':`<div class="paper-row-actions"><button class="btn ghost paper-add-position" type="button" data-symbol="${esc(p.symbol)}">Add</button><button class="btn ghost paper-close-position" type="button" data-symbol="${esc(p.symbol)}" data-shares="${esc(p.shares)}">Close</button></div>`}</td></tr>`).join('') :'<tr class="empty-position-row"><td colspan="12" class="empty">No open paper positions yet.</td></tr>';bindPaperPositionActions(pp)}
+    const mp=$('#manualPositionsBody');if(mp&&Array.isArray(d.positions)){mp.innerHTML=manualPositionRowsHtml(d.positions);bindManualPositionActions(mp);if($('#manualPositionCount'))$('#manualPositionCount').textContent=d.positions.length}
+    bindPositionTableFilters(document);
+  }catch(e){console.debug('live refresh',e)}
+}
+bindAlerts();
+async function runScanNow(){
+  const buttons=$$('.scan-now-trigger');
+  buttons.forEach(b=>{b.disabled=true;b.textContent='Scanning…'});
+  try{
+    const d=await jsonFetch('/api/scan-now',{method:'POST'});
+    if(d.status==='busy')toast('A scan is already running — the Radar will refresh when it completes.');
+    else toast(`Scan finished: ${d.analyzed||0} deep analyses; ${d.universe_prefiltered||0}/${d.universe_size||0} universe names prefiltered this cycle`);
+    await refreshLive();
+  }catch(e){toast('Scan failed: '+e.message)}
+  finally{buttons.forEach(b=>{b.disabled=false;b.textContent='Run scan now'})}
+}
+$$('.scan-now-trigger').forEach(b=>b.onclick=runScanNow);
+
+let importPositions=[];
+function renderImport(rows){importPositions=rows||[];const wrap=$('#importPreview'),body=$('#importRows');if(!wrap||!body)return;wrap.classList.remove('hidden');body.innerHTML=importPositions.length?importPositions.map((r,i)=>`<tr data-i="${i}"><td><input data-k="symbol" value="${esc(r.symbol)}"></td><td><input data-k="shares" type="number" step="any" value="${esc(r.shares)}"></td><td><input data-k="avg_cost" type="number" step="any" value="${esc(r.avg_cost)}"></td><td><input data-k="account" value="${esc(r.account||'Screenshot')}"></td><td><button class="icon-btn remove-import" type="button">×</button></td></tr>`).join(''):'<tr><td colspan="5" class="empty">Nothing confidently extracted. Add/correct the OCR text or use manual entry.</td></tr>';$$('.remove-import').forEach(b=>b.onclick=()=>{b.closest('tr').remove()})}
+function readImportRows(){return $$('#importRows tr[data-i]').map(tr=>{const obj={};tr.querySelectorAll('input[data-k]').forEach(i=>obj[i.dataset.k]=i.dataset.k==='symbol'||i.dataset.k==='account'?i.value:Number(i.value));return obj}).filter(r=>r.symbol&&r.shares>0&&r.avg_cost>0)}
+async function parseOcrText(text){const d=await jsonFetch('/api/import/parse-text',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});renderImport(d.positions);return d.positions}
+const parseBtn=$('#parseText');if(parseBtn)parseBtn.onclick=async()=>{try{await parseOcrText($('#ocrText').value);toast('Text parsed — confirm/edit the rows')}catch(e){toast('Could not parse text')}};
+const uploadBtn=$('#uploadScreenshot');if(uploadBtn)uploadBtn.onclick=async()=>{const file=$('#positionScreenshot').files[0];const status=$('#ocrStatus');if(!file){toast('Choose a screenshot first');return}uploadBtn.disabled=true;status.textContent='Uploading and extracting…';try{const fd=new FormData();fd.append('file',file);const r=await fetch('/api/import/screenshot',{method:'POST',body:fd});const d=await r.json();if(d.ok){renderImport(d.positions);status.textContent='Server extraction complete. Confirm/edit before saving.'}else if(d.needs_browser_ocr){if(!window.Tesseract)throw new Error('Browser OCR library is still loading. Try again in a few seconds.');status.textContent='Running free browser OCR locally…';const result=await Tesseract.recognize(file,'eng',{logger:m=>{if(m.status==='recognizing text')status.textContent=`Browser OCR ${Math.round((m.progress||0)*100)}%`}});$('#ocrText').value=result.data.text;await parseOcrText(result.data.text);status.textContent='Browser OCR complete. Confirm/edit extracted positions.'}else throw new Error(d.message||'Extraction failed')}catch(e){status.textContent='Extraction needs manual confirmation.';toast(e.message)}finally{uploadBtn.disabled=false}};
+const confirmBtn=$('#confirmImport');if(confirmBtn)confirmBtn.onclick=async()=>{const rows=readImportRows();if(!rows.length){toast('No valid rows to save');return}try{const d=await jsonFetch('/api/import/confirm',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({positions:rows})});toast(`${d.saved} positions saved`);setTimeout(()=>location.reload(),700)}catch(e){toast('Could not save positions')}};
+
+
+function initAnalyzeAutocomplete(){
+  const input=$('#analyzeSymbol'),box=$('#symbolSuggestions');
+  if(!input||!box)return;
+  let timer=null,items=[],active=-1,requestSeq=0;
+  const hide=()=>{box.classList.add('hidden');box.innerHTML='';items=[];active=-1;input.setAttribute('aria-expanded','false')};
+  const setActive=(idx)=>{
+    active=idx;
+    box.querySelectorAll('.symbol-suggestion').forEach((el,i)=>{
+      el.classList.toggle('active',i===active);
+      el.setAttribute('aria-selected',i===active?'true':'false');
+    });
+    box.querySelector('.symbol-suggestion.active')?.scrollIntoView({block:'nearest'});
+  };
+  const choose=(idx)=>{
+    const item=items[idx];
+    if(!item)return;
+    input.value=item.symbol;
+    input.dataset.selectedName=item.name||'';
+    hide();
+    input.focus();
+  };
+  const render=(rows)=>{
+    items=Array.isArray(rows)?rows:[];
+    active=-1;
+    if(!items.length){hide();return}
+    box.innerHTML=items.map((x,i)=>`<button type="button" class="symbol-suggestion" role="option" aria-selected="false" data-i="${i}"><span><b>${esc(x.symbol)}</b><small>${esc(x.name||x.symbol)}</small></span><em>${esc(x.exchange||'US')}</em></button>`).join('');
+    box.classList.remove('hidden');
+    input.setAttribute('aria-expanded','true');
+    box.querySelectorAll('.symbol-suggestion').forEach(btn=>{
+      btn.addEventListener('mousedown',e=>e.preventDefault());
+      btn.addEventListener('click',()=>choose(Number(btn.dataset.i)));
+    });
+  };
+  const load=async()=>{
+    const q=input.value.trim();
+    if(!q){hide();return}
+    const seq=++requestSeq;
+    try{
+      const d=await jsonFetch('/api/symbol-search?q='+encodeURIComponent(q));
+      if(seq!==requestSeq)return;
+      render(d.results||[]);
+    }catch(e){if(seq===requestSeq)hide()}
+  };
+  input.addEventListener('input',()=>{
+    delete input.dataset.selectedName;
+    clearTimeout(timer);
+    timer=setTimeout(load,160);
+  });
+  input.addEventListener('keydown',e=>{
+    if(box.classList.contains('hidden')||!items.length){
+      if(e.key==='ArrowDown'){clearTimeout(timer);load()}
+      return;
+    }
+    if(e.key==='ArrowDown'){e.preventDefault();setActive((active+1)%items.length)}
+    else if(e.key==='ArrowUp'){e.preventDefault();setActive((active-1+items.length)%items.length)}
+    else if(e.key==='Enter'&&active>=0){e.preventDefault();choose(active)}
+    else if(e.key==='Escape'){e.preventDefault();hide()}
+  });
+  input.addEventListener('blur',()=>setTimeout(hide,120));
+}
+initAnalyzeAutocomplete();
+
+bindRadarControls();
+bindPositionTableFilters(document);
+bindPaperPositionActions(document);
+bindManualPositionActions(document);
+const paperManualBuy=$('#paperManualBuy');if(paperManualBuy)paperManualBuy.onclick=async()=>{
+  const symbol=String($('#paperManualSymbol')?.value||'').trim().toUpperCase();
+  const shares=Math.floor(Number($('#paperManualShares')?.value||0));
+  if(!symbol||!Number.isFinite(shares)||shares<1){toast('Enter a ticker and at least 1 whole share');return}
+  paperManualBuy.disabled=true;try{const d=await paperTradeRequest(symbol,'add',shares);toast(`Bought/added ${d.shares} ${symbol} @ $${num(d.price).toFixed(2)}`);$('#paperManualSymbol').value='';$('#paperManualShares').value='';await refreshLive()}catch(err){toast(err.message)}finally{paperManualBuy.disabled=false}
+};
+const poll=Number(document.body.dataset.livePoll||15)*1000;if($('#candidateTable')){setInterval(refreshLive,Math.max(10000,poll));}
++(num(paper.realized_pnl)>=0?'+':'')+num(paper.realized_pnl).toFixed(2);if($('#paperDailyPnl'))$('#paperDailyPnl').textContent=paper.started?('$'+(num(paper.daily_pnl)>=0?'+':'')+num(paper.daily_pnl).toFixed(2)+' / '+(num(paper.daily_pnl_pct)>=0?'+':'')+num(paper.daily_pnl_pct).toFixed(2)+'%'):'—';if($('#paperBenchmark'))$('#paperBenchmark').textContent=paper.started&&paper.benchmark_return_pct!=null?`${num(paper.benchmark_return_pct)>=0?'+':''}${num(paper.benchmark_return_pct).toFixed(2)}%`:'—';if($('#paperExcess'))$('#paperExcess').textContent=paper.started&&paper.excess_return_pct!=null?`${num(paper.excess_return_pct)>=0?'+':''}${num(paper.excess_return_pct).toFixed(2)}%`:'—';if($('#paperPositionCount'))$('#paperPositionCount').textContent=paper.position_count??0;if($('#paperCoreCount'))$('#paperCoreCount').textContent=paper.core_position_count??0;if($('#paperExplosiveCount'))$('#paperExplosiveCount').textContent=paper.explosive_position_count??0;const outside=$('#paperOutsideLaneCount'),outsideWrap=$('#paperOutsideLaneWrap');if(outside)outside.textContent=paper.outside_lane_position_count??0;if(outsideWrap)outsideWrap.classList.toggle('hidden',num(paper.outside_lane_position_count)===0);if($('#paperDrawdown'))$('#paperDrawdown').textContent=paper.started?`${num(paper.drawdown_pct).toFixed(2)}%`:'—';;
     const pp=$('#paperPositionsBody');if(pp&&Array.isArray(paper.positions)){pp.innerHTML=paper.positions.length?paper.positions.map(p=>`<tr class="position-data-row"><td class="ticker"><a href="/analysis/${encodeURIComponent(p.symbol)}">${esc(p.symbol)}</a></td><td><span class="lane-badge lane-${String(p.lane||'OUTSIDE_LANES').toLowerCase().replace(/_/g,'-')}">${esc(p.lane_label||'Outside Current Lanes')}</span>${p.lane==='EXPLOSIVE'?`<small>Day ${esc(p.trading_sessions_held)}/20 • ${esc(p.explosive_sessions_remaining)} sessions left</small>`:p.graduated_from_explosive?'<small>Graduated from Explosive</small>':''}</td><td>${esc(p.shares)}</td><td>${num(p.avg_cost).toFixed(2)}</td><td>${num(p.price).toFixed(2)}</td><td class="${p.day_change_pct!=null?(num(p.day_change_pct)>=0?'pos':'neg'):''}">${p.day_change_pct!=null?`${num(p.day_change_pct)>=0?'+':''}${num(p.day_change_pct).toFixed(2)}%`:'—'}</td><td>${Math.round(num(p.value))}</td><td class="${num(p.pnl)>=0?'pos':'neg'}">${num(p.pnl)>=0?'+':''}${num(p.pnl).toFixed(2)} / ${num(p.pnl_pct)>=0?'+':''}${num(p.pnl_pct).toFixed(2)}%</td><td>${num(p.weight_pct).toFixed(1)}%</td><td>${num(p.entry_rank_score).toFixed(1)}/100</td><td class="reason-cell">${esc(p.reason||'—')}</td><td>${paper.canonical_strategy?'Automatic strategy':`<div class="paper-row-actions"><button class="btn ghost paper-add-position" type="button" data-symbol="${esc(p.symbol)}">Add</button><button class="btn ghost paper-close-position" type="button" data-symbol="${esc(p.symbol)}" data-shares="${esc(p.shares)}">Close</button></div>`}</td></tr>`).join('') :'<tr class="empty-position-row"><td colspan="12" class="empty">No open paper positions yet.</td></tr>';bindPaperPositionActions(pp)}
     const mp=$('#manualPositionsBody');if(mp&&Array.isArray(d.positions)){mp.innerHTML=manualPositionRowsHtml(d.positions);bindManualPositionActions(mp);if($('#manualPositionCount'))$('#manualPositionCount').textContent=d.positions.length}
     bindPositionTableFilters(document);
