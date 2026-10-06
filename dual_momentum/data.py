@@ -5,6 +5,7 @@ import io
 import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timezone
+from html.parser import HTMLParser
 from typing import Any
 
 import httpx
@@ -22,6 +23,7 @@ from .rules import (
 )
 
 SP500_CSV_URL = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv"
+SP500_HISTORY_URL = "https://en.wikipedia.org/wiki/Historical_components_of_the_S%26P_500"
 YAHOO_CHART = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
 UA = "Mozilla/5.0 Dual-Momentum-Radar/1.0"
 
@@ -55,6 +57,42 @@ def _days(start: str | None, end: str | None) -> int | None:
 
 def _normalise_yahoo_symbol(symbol: str) -> str:
     return symbol.strip().upper().replace(".", "-")
+
+
+class _HTMLTables(HTMLParser):
+    """Small dependency-free HTML table reader for the S&P change log."""
+
+    def __init__(self):
+        super().__init__()
+        self.tables: list[list[list[str]]] = []
+        self._table: list[list[str]] | None = None
+        self._row: list[str] | None = None
+        self._cell: list[str] | None = None
+
+    def handle_starttag(self, tag: str, attrs):
+        if tag == "table":
+            self._table = []
+        elif tag == "tr" and self._table is not None:
+            self._row = []
+        elif tag in {"td", "th"} and self._row is not None:
+            self._cell = []
+
+    def handle_data(self, data: str):
+        if self._cell is not None:
+            self._cell.append(data)
+
+    def handle_endtag(self, tag: str):
+        if tag in {"td", "th"} and self._cell is not None and self._row is not None:
+            self._row.append(" ".join("".join(self._cell).split()))
+            self._cell = None
+        elif tag == "tr" and self._row is not None and self._table is not None:
+            if self._row:
+                self._table.append(self._row)
+            self._row = None
+        elif tag == "table" and self._table is not None:
+            if self._table:
+                self.tables.append(self._table)
+            self._table = None
 
 
 class LiveDataSource:
@@ -105,6 +143,64 @@ class LiveDataSource:
         if len(rows) < 400:
             raise RuntimeError("S&P 500 constituent source returned an incomplete universe")
         return rows
+
+    def sp500_changes(self) -> list[dict]:
+        response = self.client.get(SP500_HISTORY_URL)
+        response.raise_for_status()
+        parser = _HTMLTables()
+        parser.feed(response.text)
+        changes: list[dict] = []
+        for table in parser.tables:
+            for row in table:
+                if len(row) < 5:
+                    continue
+                try:
+                    effective = datetime.strptime(row[0].strip(), "%B %d, %Y").date()
+                except Exception:
+                    continue
+                added = _normalise_yahoo_symbol(row[1]) if len(row) > 1 and row[1].strip() else ""
+                added_name = row[2].strip() if len(row) > 2 else ""
+                removed = _normalise_yahoo_symbol(row[3]) if len(row) > 3 and row[3].strip() else ""
+                removed_name = row[4].strip() if len(row) > 4 else ""
+                changes.append(
+                    {
+                        "effective_date": effective,
+                        "added": added,
+                        "added_name": added_name,
+                        "removed": removed,
+                        "removed_name": removed_name,
+                    }
+                )
+        if not changes:
+            raise RuntimeError("S&P 500 historical change source returned no effective-date rows")
+        changes.sort(key=lambda row: row["effective_date"], reverse=True)
+        return changes
+
+    def sp500_at(self, decision_date: date) -> tuple[list[dict[str, str]], list[dict]]:
+        """Reconstruct membership on decision_date from current members + effective changes."""
+        current = self.current_sp500()
+        members = {row["symbol"]: dict(row) for row in current}
+        reversed_changes: list[dict] = []
+        for change in self.sp500_changes():
+            if change["effective_date"] <= decision_date:
+                continue
+            added = change.get("added") or ""
+            removed = change.get("removed") or ""
+            if added:
+                members.pop(added, None)
+            if removed:
+                members[removed] = {
+                    "symbol": removed,
+                    "name": change.get("removed_name") or removed,
+                    "sector": "",
+                    "issuer_id": removed,
+                    "security_id": removed,
+                }
+            reversed_changes.append(change)
+        rows = sorted(members.values(), key=lambda row: row["symbol"])
+        if len(rows) < 490:
+            raise RuntimeError(f"Reconstructed S&P 500 universe is implausibly small ({len(rows)})")
+        return rows, reversed_changes
 
     def _chart_json(self, symbol: str, range_: str = "2y") -> dict:
         response = self.client.get(
@@ -358,8 +454,6 @@ class LiveDataSource:
         max_fundamental_checks: int = 160,
     ) -> dict:
         holdings = {_normalise_yahoo_symbol(s) for s in (holdings or set())}
-        members = self.current_sp500()
-        member_by_symbol = {m["symbol"]: m for m in members}
 
         spy_bars_all = self.price_bars("SPY", "max")
         today_utc = datetime.now(timezone.utc).date()
@@ -380,6 +474,9 @@ class LiveDataSource:
                 raise RuntimeError("No SPY session is available at or before the requested decision date")
             decision_session = eligible_spy[-1].date
             decision_date = date.fromisoformat(decision_session)
+
+        members, membership_changes_reversed = self.sp500_at(decision_date)
+        member_by_symbol = {m["symbol"]: m for m in members}
 
         spy_bars = [bar for bar in spy_bars_all if bar.date <= decision_session]
         regime, spy_tr, spy_ema = market_regime([b.total_return_close for b in spy_bars])
@@ -534,8 +631,9 @@ class LiveDataSource:
             "decision_date": decision_date.isoformat(),
             "next_execution_session": next((bar.date for bar in spy_bars_all if bar.date > decision_session), None),
             "variant": "lagged-21" if lagged else "baseline",
-            "membership_source": SP500_CSV_URL,
-            "membership_note": "Current-universe source for live dashboard only; historical backtests require point-in-time S&P 500 membership.",
+            "membership_source": f"{SP500_CSV_URL} + {SP500_HISTORY_URL}",
+            "membership_note": "Live month-end membership is reconstructed from current constituents plus effective-dated historical changes. Full backtests still require a verified point-in-time constituent/delisting dataset.",
+            "membership_changes_reversed": len(membership_changes_reversed),
             "regime": {
                 "state": regime.value,
                 "spy_total_return_index": spy_tr,
