@@ -230,10 +230,20 @@ def _manual_reallocation_suggestion(position: dict, selected_new: list[dict]) ->
 def _dashboard_state(db):
     positions=db.query(Position).order_by(Position.symbol).all()
     paper_positions=db.query(PaperPosition).filter(PaperPosition.account=="Optimizer Paper").order_by(PaperPosition.symbol).all()
-    # The canonical score-band paper ledger is persisted separately from the
-    # legacy PaperPosition table. Treat its open and pending symbols as owned so
-    # they cannot reappear as new-entry candidates while already in-flight/held.
-    score_band_owned=set(experiment_holding_symbols())
+    # Read the active paper projection before ranking candidates. The canonical
+    # score-band ledger is separate from legacy PaperPosition rows, so the
+    # dashboard must use both sources as ownership truth. Otherwise a symbol
+    # already bought by the active paper strategy can incorrectly reappear as a
+    # fresh "Actionable now" entry and crowd out the next qualified stock.
+    paper=paper_status(db)
+    active_paper_owned={
+        str(row.get("symbol") or "").upper()
+        for row in (paper.get("positions") or [])
+        if isinstance(row,dict) and row.get("symbol")
+    }
+    # Pending score-band BUYs count as owned/in-flight too. Normalize symbols so
+    # harmless case differences cannot create duplicate entry opportunities.
+    score_band_owned={str(s).upper() for s in experiment_holding_symbols() if s}
     trades=db.query(Trade).order_by(Trade.created_at.desc()).limit(20).all()
     recent_analysis_rows=db.query(AnalysisRequest).order_by(AnalysisRequest.created_at.desc()).limit(100).all()
     analyses_req=[];seen_analysis_symbols=set()
@@ -264,7 +274,7 @@ def _dashboard_state(db):
         .order_by(RadarCandidate.portfolio_rank_score.desc(),RadarCandidate.updated_at.desc())
         .limit(200).all())
     have={c.symbol for c in candidates}
-    tracked_symbols={p.symbol for p in positions} | {p.symbol for p in paper_positions} | score_band_owned
+    tracked_symbols={str(p.symbol).upper() for p in positions} | {str(p.symbol).upper() for p in paper_positions} | score_band_owned | active_paper_owned
     missing=[sym for sym in tracked_symbols if sym not in have]
     if missing:
         candidates += db.query(RadarCandidate).filter(RadarCandidate.symbol.in_(missing)).all()
@@ -376,7 +386,7 @@ def _dashboard_state(db):
             "symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost,
             "value_base":(price*p.shares*rate) if price and rate else 0.0,
         }
-    owned_symbols=set(owned) | set(paper_owned) | score_band_owned
+    owned_symbols={str(s).upper() for s in set(owned) | set(paper_owned)} | score_band_owned | active_paper_owned
 
     account=account_risk(risk_rows,cash,target_profile=risk_profile)
     portfolio_value=float(account.get("total") or cash)
@@ -468,7 +478,10 @@ def _dashboard_state(db):
         }
         radar_views.append(view)
 
-    approved_buy_symbols={r["symbol"] for r in optimizer["selected_new"]}
+    approved_buy_symbols={
+        r["symbol"] for r in optimizer["selected_new"]
+        if str(r.get("symbol") or "").upper() not in owned_symbols
+    }
     paper_owned_symbols=set(paper_owned) | score_band_owned
     alerts=[]
     for a in raw_alerts:
@@ -485,8 +498,6 @@ def _dashboard_state(db):
         if a.alert_type=="buy_level" and a.symbol not in approved_buy_symbols:continue
         alerts.append(a)
     alerts=sorted(alerts,key=_alert_priority)[:20]
-
-    paper=paper_status(db)
 
     lane_refresh_pending = 0
     explosive_evaluated = 0
@@ -517,7 +528,7 @@ def _dashboard_state(db):
         if not v.get("owned") and v.get("optimizer_bucket") in {"INVEST NOW", "ROTATE IN"}
     ]
     summary={
-        "buy_now":len(optimizer["selected_new"]),
+        "buy_now":len(actionable_radar_views),
         "portfolio_actions":sum(v["system_signal"] in {"SELL","STRONG SELL","TAKE PROFIT"} and v["owned"] for v in radar_views),
         "deployable_cash":max(0,cash-reserve),
         "best_candidate":next(iter(actionable_radar_views),None),
@@ -529,7 +540,7 @@ def _dashboard_state(db):
     optimizer_summary={
         "version":optimizer["version"],"live_gating":settings.optimizer_live_gating,
         "visible":len(actionable_radar_views),"shortlist":len(actionable_radar_views),
-        "invest_now":len(optimizer["selected_new"]),"owned":optimizer["owned_count"],
+        "invest_now":len(actionable_radar_views),"owned":optimizer["owned_count"],
         "position_cap_enabled":optimizer.get("position_cap_enabled",False),
         "allocation_policy":optimizer.get("allocation_policy"),"rotations":len(optimizer["rotations"]),
         "min_entry_risk_reward":optimizer.get("min_entry_risk_reward",MIN_ENTRY_RISK_REWARD),
