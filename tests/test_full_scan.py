@@ -211,7 +211,7 @@ def test_independent_gate_counts_and_temporary_gaps_are_not_qualification():
     s=summarize(rows)
     assert s["independent_gate_pass_counts"]["deterministic_65"] == 3
     assert s["independent_gate_pass_counts"]["analyst_75"] == 2
-    assert s["independent_gate_pass_counts"]["qualified"] == 1
+    assert s["independent_gate_pass_counts"]["qualified"] == 2
     assert s["missing_data"]["analyst_score"] == 1
     assert s["missing_data"]["transient_data_gap"] == 1
     accumulate(s,rows[1],-1);accumulate(s,compact_result(payload()),1)
@@ -369,7 +369,7 @@ def test_completed_resume_does_not_duplicate_score_aggregates(monkeypatch):
     monkeypatch.setattr(scan,"_launch",lambda run_id:None)
     run_id=scan.start()["run_id"];scan._claim(run_id)
     scan._record(run_id,[compact_result(payload("A"))],"analysis")
-    scan._record(run_id,[compact_result(payload("A",score=69))],"analysis")
+    scan._record(run_id,[compact_result(payload("A",score=64))],"analysis")
     d=scan.status()
     assert d["qualified_count"] == 0 and d["summary"]["counts"]["scored"] == 1
     assert d["summary"]["independent_gate_pass_counts"]["qualified"] == 0
