@@ -193,6 +193,29 @@ def build_portfolio_plan(snapshot: dict, positions: list[dict], cash_usd: float)
         for symbol, value in inverse.items()
     }
 
+    sector_weights: dict[str, float] = {}
+    issuer_groups: dict[str, dict] = {}
+    for symbol, weight in target_weights.items():
+        row = selected_data[symbol]
+        sector = str(row.get("sector") or "Unknown")
+        sector_weights[sector] = sector_weights.get(sector, 0.0) + weight
+        issuer_id = str(row.get("security_id") or symbol)
+        group = issuer_groups.setdefault(issuer_id, {"symbols": [], "weight": 0.0})
+        group["symbols"].append(symbol)
+        group["weight"] += weight
+    sector_concentration = sorted(
+        ({"sector": sector, "weight": weight} for sector, weight in sector_weights.items()),
+        key=lambda x: (-x["weight"], x["sector"]),
+    )
+    combined_share_classes = sorted(
+        (
+            {"security_id": issuer_id, "symbols": sorted(group["symbols"]), "weight": group["weight"]}
+            for issuer_id, group in issuer_groups.items()
+            if len(group["symbols"]) > 1
+        ),
+        key=lambda x: (-x["weight"], x["security_id"]),
+    )
+
     # NAV is marked at signal-date closes; future opening fills are not used.
     nav = max(0.0, float(cash_usd))
     for symbol, pos in positions_by_symbol.items():
@@ -324,6 +347,8 @@ def build_portfolio_plan(snapshot: dict, positions: list[dict], cash_usd: float)
         "target_equity_exposure": target_equity_exposure,
         "target_cash_weight": target_cash_weight,
         "target_weights": target_weights,
+        "sector_concentration": sector_concentration,
+        "combined_share_classes": combined_share_classes,
         "target_nav": nav,
         "desired_shares": desired_shares,
         "estimated_cash_after": max(0.0, estimated_cash_after),
