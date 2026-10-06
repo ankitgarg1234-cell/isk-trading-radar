@@ -524,12 +524,13 @@ def _dashboard_state(db):
     lane_counts=optimizer.get("lane_counts") or {}
     optimizer_summary={
         "version":optimizer["version"],"live_gating":settings.optimizer_live_gating,
-        "visible":len(radar_views),"shortlist":len(optimizer["shortlist"]),
+        "visible":len(actionable_radar_views),"shortlist":len(actionable_radar_views),
         "invest_now":len(optimizer["selected_new"]),"owned":optimizer["owned_count"],
         "position_cap_enabled":optimizer.get("position_cap_enabled",False),
         "allocation_policy":optimizer.get("allocation_policy"),"rotations":len(optimizer["rotations"]),
         "min_entry_risk_reward":optimizer.get("min_entry_risk_reward",MIN_ENTRY_RISK_REWARD),
-        "core_quality":lane_counts.get("core_quality",0),"explosive":lane_counts.get("explosive",0),
+        "core_quality":sum(1 for v in actionable_radar_views if v.get("lane")=="CORE_QUALITY"),
+        "explosive":sum(1 for v in actionable_radar_views if v.get("lane")=="EXPLOSIVE"),
         "lane_refresh_pending":lane_refresh_pending,
         "explosive_evaluated":explosive_evaluated,
         "explosive_near_misses":explosive_near_misses,
