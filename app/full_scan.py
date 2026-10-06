@@ -13,7 +13,8 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import func
 
-from .analysis_engine import SCORING_VERSION, CORE_MIN_AVG_DOLLAR_VOLUME, technicals, pct, fundamental_input_diagnostics
+from .analysis_engine import (SCORING_VERSION, CORE_MIN_AVG_DOLLAR_VOLUME, technicals, pct,
+                              fundamental_input_diagnostics, recalibrate_snapshot)
 from .config import settings
 from .db import SessionLocal, FullScanRun, FullScanResult, RadarCandidate
 from .market_evidence import transient_missing, positive
@@ -336,11 +337,17 @@ class FullUniverseScan:
             # for that completed quote. Requiring collected.date == session_date
             # caused the audit to download the same fundamentals/news again after
             # midnight even though quote_asof was unchanged.
-            if (full.get("scoring_version") == SCORING_VERSION
-                    and collected >= session_close
+            if (collected >= session_close
                     and quote.date().isoformat() == session_date
                     and (quote.hour * 60 + quote.minute) >= 950):
-                result = compact_result(full, "cached_post_close")
+                source = "cached_post_close"
+                if full.get("scoring_version") != SCORING_VERSION:
+                    migrated = recalibrate_snapshot(full)
+                    if migrated is None:
+                        return None
+                    full = migrated
+                    source = "cached_recalibrated_v20"
+                result = compact_result(full, source)
                 if not result["transient_data_gap"]:
                     return result
         except (KeyError, ValueError, TypeError):
