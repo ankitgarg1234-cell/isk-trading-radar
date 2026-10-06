@@ -94,8 +94,8 @@ def test_extreme_unexplained_volume_cannot_enter_explosive_lane():
 
 def test_score_allocation_ladder_caps_at_fifteen_percent():
     cases = [
-        (67, 0), (68, 2), (74.9, 2), (75, 4), (80, 6), (85, 8),
-        (90, 10), (95, 12), (97.9, 12), (98, 15), (100, 15),
+        (0, 0), (65, 2), (67, 2), (68, 2), (74.9, 2), (75, 4),
+        (80, 6), (85, 8), (90, 10), (95, 12), (97.9, 12), (98, 15), (100, 15),
     ]
     for score, expected in cases:
         assert score_target_allocation_pct(score) == expected
