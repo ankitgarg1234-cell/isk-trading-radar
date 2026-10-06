@@ -24,8 +24,7 @@ from .rules import (
 )
 
 SP500_CSV_URL = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv"
-SP500_HISTORY_URL = "https://en.wikipedia.org/wiki/Historical_components_of_the_S%26P_500"
-YAHOO_CHART = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+SP500_HISTORY_URLS = (\n    "https://raw.githubusercontent.com/lawcal/sp500-components-history/main/data/components_history.csv",\n    "https://cdn.jsdelivr.net/gh/lawcal/sp500-components-history@main/data/components_history.csv",\n)\nYAHOO_CHART = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
 UA = "Mozilla/5.0 Dual-Momentum-Radar/1.0"
 
 REVENUE_TAGS = (
@@ -221,63 +220,121 @@ class LiveDataSource:
             raise RuntimeError("S&P 500 constituent source returned an incomplete universe")
         return rows
 
+    @staticmethod
+    def _history_date(value: str | None) -> date | None:
+        raw = str(value or "").strip().rstrip("*")
+        if not raw:
+            return None
+        try:
+            return date.fromisoformat(raw[:10])
+        except Exception:
+            return None
+
+    @staticmethod
+    def _sector_display(value: str | None) -> str:
+        return str(value or "").strip().replace("_", " ").title()
+
+    def sp500_history(self) -> list[dict]:
+        """Load effective-dated S&P membership without hitting Wikipedia at runtime."""
+        last_error: Exception | None = None
+        response = None
+        source = None
+        for url in SP500_HISTORY_URLS:
+            try:
+                candidate = self.client.get(url)
+                candidate.raise_for_status()
+                response = candidate
+                source = url
+                break
+            except Exception as exc:
+                last_error = exc
+        if response is None:
+            raise RuntimeError(
+                f"S&P 500 effective-dated membership sources unavailable: {type(last_error).__name__ if last_error else 'unknown error'}"
+            )
+
+        rows: list[dict] = []
+        for row in csv.DictReader(io.StringIO(response.text)):
+            symbol = _normalise_yahoo_symbol(row.get("symbol") or "")
+            added = self._history_date(row.get("date_added"))
+            if not symbol or added is None:
+                continue
+            cik = str(row.get("cik") or symbol).strip()
+            rows.append(
+                {
+                    "symbol": symbol,
+                    "name": str(row.get("name") or symbol).strip(),
+                    "sector": self._sector_display(row.get("sector")),
+                    "issuer_id": cik,
+                    "security_id": f"{cik}:{symbol}",
+                    "date_added": added,
+                    "date_removed": self._history_date(row.get("date_removed")),
+                    "created_at": self._history_date(row.get("created_at")),
+                }
+            )
+        if len(rows) < 600:
+            raise RuntimeError(f"S&P 500 effective-dated membership source is incomplete ({len(rows)} rows)")
+        self._membership_history_source = source
+        return rows
+
     def sp500_changes(self) -> list[dict]:
-        response = self.client.get(SP500_HISTORY_URL)
-        response.raise_for_status()
-        parser = _HTMLTables()
-        parser.feed(response.text)
+        """Return effective additions/removals for live removal monitoring."""
         changes: list[dict] = []
-        for table in parser.tables:
-            for row in table:
-                if len(row) < 5:
-                    continue
-                try:
-                    effective = datetime.strptime(row[0].strip(), "%B %d, %Y").date()
-                except Exception:
-                    continue
-                added = _normalise_yahoo_symbol(row[1]) if len(row) > 1 and row[1].strip() else ""
-                added_name = row[2].strip() if len(row) > 2 else ""
-                removed = _normalise_yahoo_symbol(row[3]) if len(row) > 3 and row[3].strip() else ""
-                removed_name = row[4].strip() if len(row) > 4 else ""
+        for row in self.sp500_history():
+            if row.get("date_added"):
                 changes.append(
                     {
-                        "effective_date": effective,
-                        "added": added,
-                        "added_name": added_name,
-                        "removed": removed,
-                        "removed_name": removed_name,
+                        "effective_date": row["date_added"],
+                        "added": row["symbol"],
+                        "added_name": row["name"],
+                        "removed": "",
+                        "removed_name": "",
                     }
                 )
-        if not changes:
-            raise RuntimeError("S&P 500 historical change source returned no effective-date rows")
+            if row.get("date_removed"):
+                changes.append(
+                    {
+                        "effective_date": row["date_removed"],
+                        "added": "",
+                        "added_name": "",
+                        "removed": row["symbol"],
+                        "removed_name": row["name"],
+                    }
+                )
         changes.sort(key=lambda row: row["effective_date"], reverse=True)
         return changes
 
     def sp500_at(self, decision_date: date) -> tuple[list[dict[str, str]], list[dict]]:
-        """Reconstruct membership on decision_date from current members + effective changes."""
-        current = self.current_sp500()
-        members = {row["symbol"]: dict(row) for row in current}
-        reversed_changes: list[dict] = []
-        for change in self.sp500_changes():
-            if change["effective_date"] <= decision_date:
+        """Build point-in-time membership directly from effective date ranges."""
+        members: dict[str, dict[str, str]] = {}
+        future_changes: list[dict] = []
+        for row in self.sp500_history():
+            added = row["date_added"]
+            removed = row.get("date_removed")
+            created = row.get("created_at")
+
+            if added > decision_date or (created is not None and created > decision_date):
+                if added > decision_date:
+                    future_changes.append({"effective_date": added, "added": row["symbol"], "removed": ""})
                 continue
-            added = change.get("added") or ""
-            removed = change.get("removed") or ""
-            if added:
-                members.pop(added, None)
-            if removed:
-                members[removed] = {
-                    "symbol": removed,
-                    "name": change.get("removed_name") or removed,
-                    "sector": "",
-                    "issuer_id": removed,
-                    "security_id": removed,
-                }
-            reversed_changes.append(change)
+            if removed is not None and removed <= decision_date:
+                continue
+
+            members[row["symbol"]] = {
+                "symbol": row["symbol"],
+                "name": row["name"],
+                "sector": row["sector"],
+                "issuer_id": row["issuer_id"],
+                "security_id": row["security_id"],
+            }
+            if removed is not None and removed > decision_date:
+                future_changes.append({"effective_date": removed, "added": "", "removed": row["symbol"]})
+
         rows = sorted(members.values(), key=lambda row: row["symbol"])
-        if len(rows) < 490:
-            raise RuntimeError(f"Reconstructed S&P 500 universe is implausibly small ({len(rows)})")
-        return rows, reversed_changes
+        if not 490 <= len(rows) <= 520:
+            raise RuntimeError(f"Reconstructed S&P 500 universe is implausible ({len(rows)})")
+        future_changes.sort(key=lambda row: row["effective_date"], reverse=True)
+        return rows, future_changes
 
     def _chart_json(self, symbol: str, range_: str = "2y") -> dict:
         response = self.client.get(
@@ -717,8 +774,8 @@ class LiveDataSource:
             "next_execution_session": next_session_date.isoformat() if next_session_date else next((bar.date for bar in spy_bars_all if bar.date > decision_session), None),
             "execution_window_status": _execution_window(next_session_date),
             "variant": "lagged-21" if lagged else "baseline",
-            "membership_source": f"{SP500_CSV_URL} + {SP500_HISTORY_URL}",
-            "membership_note": "Live month-end membership is reconstructed from current constituents plus effective-dated historical changes. Full backtests still require a verified point-in-time constituent/delisting dataset.",
+            "membership_source": getattr(self, "_membership_history_source", SP500_HISTORY_URLS[0]),
+            "membership_note": "Live month-end membership is reconstructed directly from effective date ranges (date_added/date_removed) in a daily-maintained public history dataset. Full institutional backtests should still use independently verified constituent and delisting data.",
             "membership_changes_reversed": len(membership_changes_reversed),
             "regime": {
                 "state": regime.value,
