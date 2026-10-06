@@ -21,6 +21,9 @@ from .trading_rules import entry_status, number
 NY = ZoneInfo("America/New_York")
 ACTIVE = {"prefilter", "analysis", "paused_market_open"}
 KEY = "latest"
+# v20 changes SEC evidence and diagnostics only. The v19 price/currency/
+# liquidity calculation is identical, so same-session quick checks are reusable.
+REUSABLE_PREFILTER_VERSIONS = {"2026-10-06-score-evidence-integrity-v19"}
 
 
 def now():
@@ -61,6 +64,7 @@ def compact_result(full, source="fresh_analysis"):
             "analyst_75": analyst is not None and 75 <= analyst <= 100,
             "risk_reward_0_4": rr is not None and rr + 1e-12 >= .4,
             "fundamentals_14": (points.get("Fundamentals") or 0) >= 14,
+            "fundamentals_and_analyst": (points.get("Fundamentals") or 0) >= 14 and analyst is not None and 75 <= analyst <= 100,
             "lane": full.get("lane_qualified") is True,
             "qualified": status["qualified"], "ready_at_quote": status["ready"]},
         "analyst_status": f.get("_analyst_status") or full.get("analyst_data_status"),
@@ -120,6 +124,9 @@ def accumulate(summary, row, delta=1):
             add(missing, "transient_data_gap", int(row.get("transient_data_gap", False)))
             add(missing, "incomplete_fundamental_inputs", int(bool(row.get("fundamental_missing_inputs"))))
             add(missing, "financial_sector_model_limit", int(bool(row.get("fundamental_model_limitation"))))
+            add(missing, "fundamental_floor_data_review", int(row.get("fundamental_floor_status") == "data_review"))
+            for key in row.get("fundamental_missing_inputs") or []:
+                add(missing, "fundamental_input:" + key)
             for k, v in (row.get("breakdown") or {}).items():
                 if v is not None:
                     add(points, k, v); add(point_count, k)
@@ -136,6 +143,35 @@ class FullUniverseScan:
 
     def active(self):
         return bool(self.thread and self.thread.is_alive())
+
+    def _reusable_prechecks(self, db, previous, session_date):
+        if not previous or previous.scoring_version not in REUSABLE_PREFILTER_VERSIONS or previous.session_date != session_date:
+            return {}
+        seed = {}
+        for row in db.query(FullScanResult).filter_by(run_id=previous.run_id).yield_per(128):
+            old = json.loads(row.payload_json or "{}")
+            try:
+                quote = datetime.fromisoformat(old["quote_asof"].replace("Z", "+00:00")).astimezone(NY)
+                if quote.date().isoformat() != session_date:
+                    continue
+                price, liquidity = number(old.get("price")), number(old.get("avg_dollar_volume_20"))
+                if price is None or price <= 0 or liquidity is None or liquidity < 0:
+                    continue
+                if row.status == "excluded" and old.get("source") == "same_scoring_price_and_liquidity_inputs":
+                    blocker = ("price_or_currency_invalid" if price < 5 or old.get("currency") != "USD"
+                               else "liquidity_below_10m" if liquidity < CORE_MIN_AVG_DOLLAR_VOLUME else None)
+                    if blocker == old.get("blocker"):
+                        seed[row.symbol] = old
+                elif row.status in {"scored", "awaiting_analysis"} and price >= 5 and liquidity >= CORE_MIN_AVG_DOLLAR_VOLUME:
+                    if row.status == "awaiting_analysis" and old.get("currency") != "USD":
+                        continue
+                    # Copy the verified precheck only, never an old score/gate.
+                    seed[row.symbol] = {"symbol": row.symbol, "status": "awaiting_analysis", "price": price,
+                        "currency": "USD", "avg_dollar_volume_20": liquidity, "quote_asof": old["quote_asof"],
+                        "collected_at": old.get("collected_at"), "qualified": False, "source": "reused_verified_v19_precheck"}
+            except (KeyError, ValueError, TypeError):
+                continue
+        return seed
 
     def start(self):
         if self.radar.market_open():
@@ -164,15 +200,19 @@ class FullUniverseScan:
                         session_date = quote.astimezone(NY).date().isoformat()
                     except Exception:
                         return {"status": "error", "message": "Latest market session unavailable; no audit started"}
+                    symbol_set = set(symbols)
+                    seed = {s: row for s, row in self._reusable_prechecks(db, run, session_date).items() if s in symbol_set}
                     run_id = uuid.uuid4().hex
                     run = run or FullScanRun(key=KEY)
                     run.run_id, run.status, run.scoring_version = run_id, "prefilter", SCORING_VERSION
                     run.session_date = session_date
-                    run.universe_json, run.summary_json = dumps(symbols), "{}"
+                    run.universe_json, run.summary_json = dumps(symbols), dumps(summarize(seed.values()))
                     run.worker_id, run.lease_until = "", None
                     run.started_at = run.updated_at = now(); run.finished_at = None
                     db.add(run)
-                    db.add_all([FullScanResult(run_id=run_id, symbol=s, ordinal=i, status="pending")
+                    db.add_all([FullScanResult(run_id=run_id, symbol=s, ordinal=i,
+                                              status=seed.get(s, {}).get("status", "pending"),
+                                              payload_json=dumps(seed[s]) if s in seed else "{}")
                                 for i, s in enumerate(symbols)])
                     db.commit()
             self._launch(run_id)
@@ -359,6 +399,7 @@ class FullUniverseScan:
                 "risk_reward_points":"Risk/Reward"}
             fields += list(component_columns) + ["scoring_version","sector","fundamental_confidence",
                 "fundamental_missing_inputs","fundamental_model_limitation","fundamental_reasons",
+                "fundamental_floor_status","fundamental_score_min","fundamental_score_max","fundamental_missing_bonus_inputs",
                 "fundamental_period","net_income_tag","equity_tag","revenue_growth_pct","earnings_growth_pct",
                 "gross_margin_pct","operating_margin_pct","roe_pct","debt_to_equity_pct"]
             out = io.StringIO(); writer = csv.DictWriter(out, fields, extrasaction="ignore"); writer.writeheader()
@@ -366,7 +407,7 @@ class FullUniverseScan:
                 data = {"symbol":row.symbol,"status":row.status,**json.loads(row.payload_json)}
                 data.update({column:(data.get("breakdown") or {}).get(component)
                              for column,component in component_columns.items()})
-                for key in ("fundamental_missing_inputs", "fundamental_reasons"):
+                for key in ("fundamental_missing_inputs", "fundamental_reasons", "fundamental_missing_bonus_inputs"):
                     data[key] = "; ".join(data.get(key) or [])
                 writer.writerow(data)
             return out.getvalue()

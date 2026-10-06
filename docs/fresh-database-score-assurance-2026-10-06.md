@@ -1,5 +1,64 @@
 # Fresh database and deterministic-score assurance — 6 October 2026
 
+## Fundamental-gate RCA and filing coverage (v20)
+
+An observed v19 audit snapshot had 403 fully scored stocks: 231 met Analyst
+75, 42 met Fundamentals 14/20, and 31 met both. None met the overall 70-point
+deterministic threshold. The 404-row CSV collected immediately afterwards
+confirmed the same 31-stock intersection. Substituting the maximum 20/20
+Fundamentals for every stock in that intersection still produced no score of
+70. Missing fundamental credit therefore cannot explain zero qualification
+alone. ANET already had 20/20 Fundamentals and Analyst 83.4, but totaled 61.8:
+20 + 5 Catalyst + 7.5 News + 12 Momentum + 9 Sector + 3 Valuation + 4.2 Analyst
+confirmation + 1.1 R/R. APH had 18/20 Fundamentals and Analyst 81.3, yet totaled
+64.0. The existing model rewards a trade setup, not company quality alone.
+Changing those weights requires calibration; v20 does not invent points or
+relax the 70/75/0.4 gates to manufacture candidates.
+
+The same snapshot disclosed 351 stocks with at least one missing exact
+fundamental input. Those include genuine loss/zero-base comparisons, missing
+standard concepts, conservative debt bounds and financial-sector model limits;
+they are not all feed failures. Source checks reproduced two actual failures:
+
+- AEM used US-GAAP facts/balance data ending in 2012, ignoring modern IFRS and
+  Form 40-F. It showed Fundamentals 2/20 and 172,006,593 historical shares.
+  Current USD IFRS revenue, profit, average equity and matched liabilities are
+  now selected together without splicing US-GAAP history. The captured 2025
+  replay gives revenue growth `11907851000/8285753000-1`, earnings growth
+  `4461461000/1895581000-1`, ROE
+  `4461461000/((20832900000+24742464000)/2)`, 500,046,600 shares and 12/20.
+  Gross margin and operating margin remain unknown because current comparable
+  standard facts are missing; production-cost figures are not silently treated
+  as complete cost of sales. The unresolved 14/20 floor is data review.
+- ABT's companyfacts feed omitted June-quarter revenue and balance facts that
+  exist in its actual July 28 filing. A bounded inline-XBRL fallback reads only
+  consolidated USD/share facts with the correct filer, context dates, scale
+  and sign. The captured quarter proves `12593000000/11142000000-1` revenue
+  growth and 1,730,383,296 reported shares; Fundamentals improves 9 to 10 from
+  its verified quarterly bonus. Missing short-term borrowing is still unknown.
+
+The inline fallback rejects segment facts, foreign currency, custom concepts,
+unsupported formats, nil/empty values and conflicting duplicates. It caps
+each document at 6 MiB, caches 64 filings, and preserves annual evidence on
+failure with a five-minute retry cooldown. Captured numeric filing evidence
+and adversarial controls verify the parser. IFRS support remains limited to
+mapped equivalent standard USD measures; this does not establish a separate
+financial-services scoring model.
+
+The audit now shows the intersection of Fundamental and Analyst passes,
+explicit combined trade eligibility, per-input missing counts, and a financial
+floor status distinguishing passed, data review, model review and observed
+below-floor values. Score bounds are diagnostic possibilities, not added
+points or predictions. Same-session v19 price/currency/liquidity checks can be
+reused because v20 leaves that calculation unchanged; every previous full
+score is discarded and recalculated. No old score or paper trade is carried
+into the new audit.
+
+The final v20 affected suite passed 415 regression checks. The inline audit-page
+JavaScript also passed Node's syntax check. The exact old v19 audit fixture
+remains in the RCA workspace for comparison; all trade thresholds and weights
+are unchanged.
+
 ## Final integration controls (v19)
 
 Optional analyst fields are validated across the entire score result, not only

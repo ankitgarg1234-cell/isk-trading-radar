@@ -5,12 +5,12 @@
 <main class="container"><section class="panel">
 <p>Checks every listed stock against the same price and liquidity gates, then fully scores every survivor. No top-candidate quota.</p>
 <p>The deterministic score combines company fundamentals with the current trade setup. Missing financial inputs can remove credit; a low score alone does not prove the company is weak. The download includes all eight component scores and financial-input gaps.</p>
-<p><b>Deterministic ≥70 · Analyst ≥75 · R/R ≥0.4× · Core or Explosive quality</b></p>
+<p><b>Fundamentals ≥14/20 · Deterministic ≥70 · Analyst ≥75 · R/R ≥0.4× · Core or Explosive trade eligibility</b></p>
 <p>After-hours analysis only. A ready entry at the saved quote still requires a fresh market-open check before paper execution.</p>
 <button class="btn primary" id="start">Start / resume full scan</button>
 <a class="btn secondary" href="/api/full-scan/results.csv">Download all stock results</a>
 <p id="progress" aria-live="polite">Loading scan progress…</p><progress id="bar" max="100" value="0" style="width:100%"></progress>
-<p id="coverage"></p><p id="gaps"></p><p id="fundamentalGaps"></p><p id="time" class="subtle"></p>
+<p id="coverage"></p><p id="gaps"></p><p id="fundamentalGaps"></p><p id="gateExplanation"></p><p id="time" class="subtle"></p>
 </section><section class="panel"><h2>How many pass?</h2>
 <p>Each gate count is independent and applies to fully scored stocks. All requirements must pass together to qualify.</p>
 <div class="table-wrap"><table><thead><tr><th>Gate</th><th>Stocks passing</th></tr></thead><tbody id="gates"></tbody></table></div>
@@ -20,9 +20,11 @@
 <div class="table-wrap"><table><thead><tr><th>First blocker</th><th>Stocks</th></tr></thead><tbody id="blockers"></tbody></table></div>
 </section><section class="panel"><h2>Average points by component</h2><p>Fully scored stocks only. Missing fundamental inputs are listed separately above and in the download.</p>
 <div class="table-wrap"><table><thead><tr><th>Component</th><th>Average points</th><th>Maximum</th></tr></thead><tbody id="components"></tbody></table></div>
+</section><section class="panel"><h2>Missing financial inputs</h2><p>These counts describe evidence gaps, including values that cannot be calculated from a loss or zero comparison base. They are not counts of economically weak companies. Stocks awaiting data review do not receive invented points.</p>
+<div class="table-wrap"><table><thead><tr><th>Input</th><th>Stocks missing it</th></tr></thead><tbody id="inputs"></tbody></table></div>
 </section></main>
 <script>
-const labels={deterministic_70:'Deterministic ≥70',analyst_75:'Analyst ≥75',risk_reward_0_4:'R/R ≥0.4×',fundamentals_14:'Fundamentals ≥14/20',lane:'Core / Explosive lane',qualified:'All qualification gates',ready_at_quote:'Entry trigger ready at saved quote'};
+const labels={fundamentals_14:'Fundamentals ≥14/20',analyst_75:'Analyst ≥75',fundamentals_and_analyst:'Both Fundamentals and Analyst pass',deterministic_70:'Overall deterministic ≥70',risk_reward_0_4:'R/R ≥0.4×',lane:'Combined Core / Explosive trade eligibility',qualified:'All qualification gates',ready_at_quote:'Entry trigger ready at saved quote'};
 const componentMax={'Fundamentals':20,'Catalyst':15,'News':15,'Momentum':15,'Sector':10,'Valuation':10,'Analyst confirmation':5,'Risk/Reward':10};
 const text=(id,value)=>document.getElementById(id).textContent=value;
 const numeric=(v,d=1)=>typeof v==='number'?v.toFixed(d):'Unavailable';
@@ -31,7 +33,11 @@ async function refresh(){try{const response=await fetch('/api/full-scan',{cache:
 const c=d.status_counts||{},s=d.summary||{},m=s.missing_data||{};text('progress',`${d.status.replaceAll('_',' ')} · ${d.processed} / ${d.universe_size} checked (${d.progress_pct}%)`);document.getElementById('bar').value=d.progress_pct;
 text('coverage',`${c.scored||0} fully scored · ${c.excluded||0} excluded by exact price/currency/liquidity gates · ${c.awaiting_analysis||0} awaiting full scoring · ${c.pending||0} awaiting initial check.`);
 text('gaps',`${c.error||0} data-fetch errors · ${m.analyst_score||0} scored stocks without analyst coverage · ${m.transient_data_gap||0} scored stocks with temporary data gaps. These are unresolved data limits, not proof that a stock fails economically.`);
-text('fundamentalGaps',`${m.incomplete_fundamental_inputs||0} scored stocks missing at least one exact fundamental input · ${m.financial_sector_model_limit||0} financial-services stocks subject to the industrial-company scoring limitation. Missing exact debt may still earn conservative liabilities-bound credit.`);
+text('fundamentalGaps',`${m.incomplete_fundamental_inputs||0} scored stocks missing at least one exact fundamental input · ${m.fundamental_floor_data_review||0} need financial data to resolve the 14/20 floor · ${m.financial_sector_model_limit||0} financial-services stocks subject to the industrial-company scoring limitation. Missing exact debt may still earn conservative liabilities-bound credit.`);
+const g=s.independent_gate_pass_counts||{};
+text('gateExplanation',`${g.fundamentals_14||0} pass the fundamental floor; ${g.fundamentals_and_analyst||0} pass both Fundamentals and Analyst. Combined trade eligibility also requires the overall deterministic score, R/R, size/liquidity and risk checks. Zero combined eligibility does not mean zero fundamental passes.`);
+const inputLabels={revenueGrowth:'Annual revenue growth',earningsGrowth:'Annual earnings growth',grossMargins:'Gross margin',operatingMargins:'Operating margin',returnOnEquity:'Return on equity',debtToEquity:'Exact debt / equity'};
+table('inputs',Object.entries(inputLabels).map(([k,label])=>[label,m['fundamental_input:'+k]||0]));
 table('components',Object.entries(componentMax).map(([k,max])=>[k,numeric((s.mean_score_components||{})[k],2),max]));
 text('time',`Session: ${d.session_date} · Updated: ${d.updated_at} · Scoring: ${d.scoring_version}${d.worker_running?' · Scan running':' · Worker idle'}`);
 table('gates',Object.entries(labels).map(([k,label])=>[label,(s.independent_gate_pass_counts||{})[k]||0]));

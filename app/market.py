@@ -14,6 +14,7 @@ import httpx
 
 from .config import settings
 from .strategic_capital import StrategicCapitalProvider
+from .sec_evidence import ANNUAL_FORMS, FINANCIAL_FORMS, accounting_facts, inline_facts, merge_inline
 
 UA = "Mozilla/5.0 ISK-Trading-Radar/1.0"
 
@@ -112,6 +113,7 @@ class SECFundamentalsProvider:
     _ticker_cache_at: float = 0.0
 
     def __init__(self, timeout: float = 12.0, user_agent: str | None = None):
+        self._inline_cache, self._inline_lock = OrderedDict(), Lock()
         self.client = httpx.Client(
             timeout=timeout,
             headers={
@@ -126,6 +128,68 @@ class SECFundamentalsProvider:
         r = self.client.get(url)
         r.raise_for_status()
         return r.json()
+
+    def _filing_evidence(self, facts, submissions, cik):
+        """Recover standard facts omitted by companyfacts from the latest filing."""
+        recent = (submissions.get("filings") or {}).get("recent") or {}
+        indices = [i for i, form in enumerate(recent.get("form") or [])
+                   if form in ANNUAL_FORMS | {"10-Q", "10-Q/A"}
+                   and i < len(recent.get("reportDate") or [])
+                   and _iso_days(recent["reportDate"][i], recent["reportDate"][i]) == 0]
+        if not indices:
+            return facts, "latest financial filing unavailable"
+        filed_dates = recent.get("filingDate") or []
+        i = max(indices, key=lambda n: (recent["reportDate"][n], filed_dates[n] if n < len(filed_dates) else ""))
+        end = recent["reportDate"][i]
+        canonical, basis = accounting_facts(facts, self._annual_values)
+        if basis == "IFRS":
+            return facts, "IFRS companyfacts selected; no cross-taxonomy fallback"
+        revenues = [self._fact(canonical, (tag,)) for tag in (
+            "RevenueFromContractWithCustomerExcludingAssessedTax", "RevenueFromContractWithCustomerIncludingAssessedTax",
+            "Revenues", "SalesRevenueNet")]
+        revenue_current = any(r.get("end") == end for fact in revenues
+                              for r in self._annual_values(fact) + self._quarter_values(fact))
+        equity_current = any(self._instant_at(self._fact(canonical, (tag,)), end) is not None for tag in (
+            "StockholdersEquity", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"))
+        if revenue_current and equity_current and self._debt_at(canonical, end)[0] is not None:
+            return facts, "companyfacts current; filing fallback not needed"
+        key = None
+        try:
+            accn, document = recent["accessionNumber"][i], recent["primaryDocument"][i]
+            if not re.fullmatch(r"[\d-]+", accn) or not re.fullmatch(r"[\w.-]+", document):
+                raise ValueError("invalid_filing_identity")
+            key = (str(cik), accn)
+            with self._inline_lock:
+                cached = self._inline_cache.get(key)
+                if cached and cached[0] <= time.monotonic():
+                    cached = None
+            if cached is None:
+                url = f"https://www.sec.gov/Archives/edgar/data/{int(cik)}/{accn.replace('-', '')}/{document}"
+                parts, size = [], 0
+                with self.client.stream("GET", url) as response:
+                    response.raise_for_status()
+                    for chunk in response.iter_bytes():
+                        size += len(chunk)
+                        if size > 6 * 1024 * 1024:
+                            raise ValueError("filing_size_limit")
+                        parts.append(chunk)
+                rows = inline_facts(b"".join(parts).decode("utf-8", errors="replace"), cik=cik,
+                                    form=recent["form"][i], filed=recent["filingDate"][i], accn=accn, report_date=end)
+                status = f"latest filing checked; {len(rows)} validated standard facts"
+                cached = (time.monotonic() + 86400, rows, status)
+                with self._inline_lock:
+                    self._inline_cache[key] = cached
+                    while len(self._inline_cache) > 64:
+                        self._inline_cache.popitem(last=False)
+            return merge_inline(facts, cached[1]), cached[2]
+        except Exception as exc:
+            status = f"latest filing fallback unavailable ({type(exc).__name__})"
+            if key:
+                with self._inline_lock:
+                    self._inline_cache[key] = (time.monotonic() + 300, [], status)
+                    while len(self._inline_cache) > 64:
+                        self._inline_cache.popitem(last=False)
+            return facts, status
 
     def _ticker_map(self) -> dict[str, dict]:
         now = time.time()
@@ -183,7 +247,7 @@ class SECFundamentalsProvider:
         for priority, tag in enumerate(tags):
             fact = cls._fact(facts, (tag,))
             rows = [r for r in cls._entries(fact, ("USD",))
-                    if r.get("form") in {"10-K", "10-K/A", "10-Q", "10-Q/A", "20-F", "20-F/A"}
+                    if r.get("form") in FINANCIAL_FORMS
                     and not r.get("start")
                     and r.get("end") and str(r["end"]) <= str(end or "")
                     and _safe_float(r.get("val")) is not None]
@@ -210,7 +274,7 @@ class SECFundamentalsProvider:
         rows = cls._entries(fact, units)
         keep: dict[str, dict] = {}
         for r in rows:
-            if r.get("form") not in {"10-K", "10-K/A", "20-F", "20-F/A"}:
+            if r.get("form") not in ANNUAL_FORMS:
                 continue
             days = _iso_days(r.get("start"), r.get("end"))
             if days is None or not 300 <= days <= 430:
@@ -228,7 +292,7 @@ class SECFundamentalsProvider:
         rows = cls._entries(fact, units)
         keep: dict[str, dict] = {}
         for r in rows:
-            if r.get("form") not in {"10-Q", "10-Q/A", "10-K", "10-K/A", "20-F", "20-F/A"}:
+            if r.get("form") not in FINANCIAL_FORMS:
                 continue
             days = _iso_days(r.get("start"), r.get("end"))
             # Filing labels describe the filing, not the comparative fact. Require
@@ -250,7 +314,7 @@ class SECFundamentalsProvider:
             annual_revised = any(
                 r.get("start") == annual.get("start") and r.get("end") == end
                 and r.get("val") != annual.get("val")
-                for r in rows if r.get("form") in {"10-K", "10-K/A", "20-F", "20-F/A"}
+                for r in rows if r.get("form") in ANNUAL_FORMS
             )
             if end in keep:
                 if not annual_revised or str(keep[end].get("filed") or "") >= str(annual.get("filed") or ""):
@@ -258,7 +322,7 @@ class SECFundamentalsProvider:
                 # An old standalone Q4 does not establish the revised quarter.
                 del keep[end]
             ytd_rows = [r for r in rows
-                        if r.get("form") in {"10-Q", "10-Q/A", "10-K", "10-K/A", "20-F", "20-F/A"}
+                        if r.get("form") in FINANCIAL_FORMS
                         and r.get("start") == annual.get("start")
                         and 240 <= (_iso_days(r.get("start"), r.get("end")) or 0) <= 310
                         and 65 <= (_iso_days(r.get("end"), end) or 0) <= 120
@@ -287,7 +351,7 @@ class SECFundamentalsProvider:
     @classmethod
     def _latest_instant(cls, fact: dict | None, units: tuple[str, ...] = ("USD",)) -> float | None:
         rows = cls._entries(fact, units)
-        candidates = [r for r in rows if r.get("form") in {"10-K", "10-K/A", "10-Q", "10-Q/A", "20-F", "20-F/A"} and r.get("end") and r.get("val") is not None]
+        candidates = [r for r in rows if r.get("form") in FINANCIAL_FORMS and r.get("end") and r.get("val") is not None]
         if not candidates:
             return None
         candidates.sort(key=lambda r: (str(r.get("end") or ""), str(r.get("filed") or "")))
@@ -330,7 +394,7 @@ class SECFundamentalsProvider:
     def _instant_row_at(cls, fact: dict | None, end: str) -> dict:
         candidates = [r for r in cls._entries(fact, ("USD",))
                       if r.get("end") == end and not r.get("start")
-                      and r.get("form") in {"10-K", "10-K/A", "10-Q", "10-Q/A", "20-F", "20-F/A"}]
+                      and r.get("form") in FINANCIAL_FORMS]
         return max(candidates, key=lambda r: str(r.get("filed") or ""), default={})
 
     @classmethod
@@ -344,7 +408,7 @@ class SECFundamentalsProvider:
             # facts at the requested balance-sheet date, never an obsolete tag.
             rows = [r for tag in tags for r in cls._entries(cls._fact(facts, (tag,)), ("USD",))
                     if r.get("end") == end and not r.get("start")
-                    and r.get("form") in {"10-K", "10-K/A", "10-Q", "10-Q/A", "20-F", "20-F/A"}]
+                    and r.get("form") in FINANCIAL_FORMS]
             latest = max(rows, key=lambda r: str(r.get("filed") or ""), default={})
             return _safe_float(latest.get("val"))
         short = value(("ShortTermBorrowings", "ShortTermBorrowingsCurrent"))
@@ -407,6 +471,8 @@ class SECFundamentalsProvider:
         cik10 = ref["cik10"]
         submissions = self._json(f"https://data.sec.gov/submissions/CIK{cik10}.json")
         facts = self._json(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik10}.json")
+        facts, filing_status = self._filing_evidence(facts, submissions, ref["cik"])
+        facts, accounting_basis = accounting_facts(facts, self._annual_values)
 
         # Issuers can switch revenue tags. Do not let a populated but obsolete
         # preferred tag hide a newer series; never splice different tags together.
@@ -436,7 +502,7 @@ class SECFundamentalsProvider:
         recent = (submissions.get("filings") or {}).get("recent") or {}
         report_dates = recent.get("reportDate") or []
         latest_report = max((report_dates[i] for i, form in enumerate(recent.get("form") or [])
-                             if form in {"10-Q", "10-Q/A", "10-K", "10-K/A", "20-F", "20-F/A"}
+                             if form in ANNUAL_FORMS | {"10-Q", "10-Q/A"}
                              and i < len(report_dates) and _iso_days(report_dates[i], report_dates[i]) == 0), default="")
         latest_period = max(str(latest_quarter.get("end") or ""), str(revenue[-1].get("end") or "") if revenue else "", latest_report)
         quarter_current = latest_quarter.get("end") == latest_period
@@ -450,7 +516,7 @@ class SECFundamentalsProvider:
             facts, ("StockholdersEquity", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"), latest_period)
         net_income = self._annual_values(net_income_fact)
         annual_reports = [report_dates[i] for i, form in enumerate(recent.get("form") or [])
-                          if form in {"10-K", "10-K/A", "20-F", "20-F/A"}
+                          if form in ANNUAL_FORMS
                           and i < len(report_dates) and _iso_days(report_dates[i], report_dates[i]) == 0]
         latest_annual_report = max(annual_reports, default="")
         annual_current = bool(annual_end and (not latest_annual_report or annual_end == latest_annual_report))
@@ -529,8 +595,10 @@ class SECFundamentalsProvider:
             "_equity_tag": equity_tag,
             "_annual_status": "available" if annual_current else "latest annual revenue unavailable",
             "_earnings_change": earnings_change,
-            "_earnings_basis": "annual GAAP total net income; includes discontinued operations where reported",
-            "_roe_method": "annual GAAP net income / average opening and closing fiscal-year equity",
+            "_earnings_basis": f"annual {accounting_basis} net income; includes discontinued operations where reported",
+            "_accounting_basis": accounting_basis,
+            "_filing_evidence_status": filing_status,
+            "_roe_method": f"annual {accounting_basis} net income / average opening and closing fiscal-year equity",
             "_roe_status": "available" if average_equity is not None and latest_ni is not None else "missing matched income/equity or nonpositive equity",
             "_balance_period": latest_period or None,
             "_debt_status": debt_status if balance_equity is not None and balance_equity > 0 else "missing or nonpositive balance-sheet equity",

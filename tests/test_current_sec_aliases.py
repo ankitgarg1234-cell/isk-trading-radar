@@ -114,7 +114,9 @@ def test_input_diagnostics_preserve_zero_negative_values_and_score():
              operatingMargins=-.05, returnOnEquity=-.1, debtToEquity=0)
     before = copy.deepcopy(f)
     assert fundamental_input_diagnostics(f) == {
-        "fundamental_missing_inputs": [], "fundamental_model_limitation": None}
+        "fundamental_missing_inputs": [], "fundamental_model_limitation": None,
+        "fundamental_floor_status": "below_floor", "fundamental_score_min": 3,
+        "fundamental_score_max": 5, "fundamental_missing_bonus_inputs": ["quarterlyRevenueGrowth"]}
     assert f == before and fundamental_score(f) == fundamental_score(before)
 
 

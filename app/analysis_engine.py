@@ -54,7 +54,7 @@ CORE_MIN_AVG_DOLLAR_VOLUME = 10_000_000.0
 EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME = 20_000_000.0
 MIN_FUNDAMENTAL_SCORE = 14.0  # 70/100 normalized fundamental quality
 EXPLOSIVE_MAX_TRADING_SESSIONS = 20
-SCORING_VERSION = "2026-10-06-score-evidence-integrity-v19"
+SCORING_VERSION = "2026-10-06-sec-filing-coverage-v20"
 
 PROMOTION_SEVERE_TERMS = {
     "reverse split", "going concern", "minimum bid", "nasdaq compliance",
@@ -179,7 +179,25 @@ def fundamental_input_diagnostics(f: dict) -> dict:
     limitation = ("Financial-services margin and debt ratios are not directly comparable to industrial companies; "
                   "the current fundamental bands have no separate financial-services model."
                   if f.get("sector") == "Financial Services" else None)
-    return {"fundamental_missing_inputs": missing, "fundamental_model_limitation": limitation}
+    score, _, confidence = fundamental_score(f)
+    cap = {"revenueGrowth":4, "earningsGrowth":4, "grossMargins":4,
+           "operatingMargins":3, "returnOnEquity":3, "debtToEquity":2}
+    bound_credit = 0
+    if (f.get("debtToEquity") is None and f.get("_fundamental_integrity") and f.get("_balance_period")
+            and f.get("_debt_bound_period") == f["_balance_period"]):
+        bound = number(f.get("_debt_to_equity_upper_bound"))
+        if bound is not None and 0 <= bound < 150:
+            bound_credit = 2 if bound < 75 else 1
+    bonus_missing = pct(f.get("quarterlyRevenueGrowth")) is None
+    all_unknown = len(missing) == 6 and not bound_credit and bonus_missing
+    minimum = 0 if all_unknown else score
+    maximum = min(20, minimum + sum(cap[key] for key in missing) - bound_credit + (2 if bonus_missing else 0))
+    status = ("passed" if score >= MIN_FUNDAMENTAL_SCORE and confidence in {"medium", "high"}
+              else "model_review" if limitation else "data_review" if maximum >= MIN_FUNDAMENTAL_SCORE else "below_floor")
+    return {"fundamental_missing_inputs": missing, "fundamental_model_limitation": limitation,
+            "fundamental_floor_status": status, "fundamental_score_min": minimum,
+            "fundamental_score_max": maximum,
+            "fundamental_missing_bonus_inputs": ["quarterlyRevenueGrowth"] if bonus_missing else []}
 
 
 def fundamental_score(f: dict) -> tuple[float, list[str], str]:
@@ -668,8 +686,16 @@ def classify_lane(
         and market_cap >= MIN_MARKET_CAP
     )
     if fs < MIN_FUNDAMENTAL_SCORE:
-        msg=f"fundamentals {fs:.1f}/20 below {MIN_FUNDAMENTAL_SCORE:.0f}/20 floor"
-        core_reasons.append(msg); core_blockers.append("fundamental score < 14/20")
+        evidence = fundamental_input_diagnostics(f)
+        if evidence["fundamental_floor_status"] == "data_review":
+            core_reasons.append(f"Verified fundamental points {fs:.1f}/20; missing inputs can change whether the 14/20 floor passes")
+            core_blockers.append("fundamental data review")
+        elif evidence["fundamental_floor_status"] == "model_review":
+            core_reasons.append("Financial-services quality requires a sector-specific fundamental model")
+            core_blockers.append("financial-services model review")
+        else:
+            msg=f"fundamentals {fs:.1f}/20 below {MIN_FUNDAMENTAL_SCORE:.0f}/20 floor"
+            core_reasons.append(msg); core_blockers.append("fundamental score < 14/20")
     if fconf == "low":
         core_reasons.append("fundamental evidence confidence is low"); core_blockers.append("fundamental evidence confidence low")
     if total_score < MIN_DETERMINISTIC_SCORE:

@@ -185,6 +185,43 @@ def test_independent_gate_counts_and_temporary_gaps_are_not_qualification():
     assert s["mean_score_components"]["Fundamentals"] == 18
 
 
+def test_fundamental_and_analyst_pass_does_not_imply_deterministic_pass():
+    row=compact_result(payload(score=61.8))
+    counts=summarize([row])["independent_gate_pass_counts"]
+    assert counts["fundamentals_14"] == counts["analyst_75"] == counts["fundamentals_and_analyst"] == 1
+    assert counts["deterministic_70"] == 0
+    assert counts["qualified"] == 0
+
+
+def test_v19_upgrade_reuses_quick_checks_but_never_old_scores(monkeypatch):
+    scan,_,_=service(monkeypatch,["A","LOW","ERROR"],{"LOW":(4,1e7)})
+    old=scan.start();old_id=old["run_id"]
+    with SessionLocal() as db:
+        run=db.get(FullScanRun,"latest");run.scoring_version="2026-10-06-score-evidence-integrity-v19";db.commit()
+        row=db.query(FullScanResult).filter_by(run_id=old_id,symbol="A").one()
+        saved=json.loads(row.payload_json);saved["avg_dollar_volume_20"]=20_000_000
+        row.payload_json=json.dumps(saved);db.commit()
+    fresh,analyzed,_=service(monkeypatch,["A","LOW","ERROR"])
+    real_chart=fresh.radar.provider.chart
+    checked=[]
+    def chart(symbol,*args):
+        checked.append(symbol)
+        return real_chart(symbol,*args)
+    fresh.radar.provider.chart=chart
+    result=fresh.start()
+    assert result["run_id"] != old_id and result["status_counts"] == {"scored":1,"excluded":1,"error":1}
+    assert "LOW" not in checked and "A" not in checked
+    assert [s for s,_ in analyzed] == ["A"]  # old score must be recalculated
+
+
+def test_changed_session_does_not_reuse_previous_quick_checks(monkeypatch):
+    scan,_,_=service(monkeypatch,["A"]);scan.start()
+    with SessionLocal() as db:
+        run=db.get(FullScanRun,"latest");run.scoring_version="2026-10-06-score-evidence-integrity-v19"
+        run.session_date="2026-10-02";db.commit()
+        assert scan._reusable_prechecks(db,run,"2026-10-05") == {}
+
+
 def test_does_not_start_during_open_market_or_mutate_paper_ledger(monkeypatch):
     from app.db import ScoreBandExperiment, PaperAccount, PaperPosition, PaperTrade
     scan,analyzed,_=service(monkeypatch,["A"])
