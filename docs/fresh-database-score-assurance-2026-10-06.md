@@ -1,5 +1,31 @@
 # Fresh database and deterministic-score assurance — 6 October 2026
 
+## Additional score-input corrections (v17)
+
+Two defects reproduced on the deployed v16 code. When verified SEC evidence
+replaced the annual fundamental fields, a pre-existing Yahoo quarterly-growth
+value could survive the merge. Its source metadata then described SEC evidence
+while the scorer used the other provider's value. SEC integrity now controls
+quarterly growth and its metadata together, including explicit unavailability.
+A captured WDC SEC replay independently computes `3747/2605 - 1`; with a
+contradictory 5% upstream quarter, the old merge withheld the existing two-point
+quarterly bonus (17/20 instead of 19/20). This is a source replay, not a claim
+that the current live Yahoo feed returned that conflicting value.
+
+Analyst scoring also accepted nonfinite targets/means and invalid count mixes.
+A malformed but truthy recommendation mean suppressed valid count evidence;
+`recommendationMean='bad', strongBuy=10` incorrectly yielded unavailable, while
+a NaN mean could produce 100. Finite positive targets, means in [1,5], and
+nonnegative integer count buckets now control eligibility. Valid counts remain
+usable when the mean is invalid. Invalid price cannot create target upside.
+Valid observations retain their existing weights.
+
+The new regression file has 24 cases; 16 of its initial 23 cases failed against
+the exact deployed v16 commit and all now pass. The relevant combined suite
+passed 375 checks before the final captured-source case was added; that final
+case also passes. Version v17 invalidates saved v16 scoring decisions. The
+70 deterministic / 75 analyst / 0.4x R/R gates and component weights are unchanged.
+
 The user approved a fresh free-plan database after the old Neon project stopped
 accepting reads. Old project metadata shows about 120 MB of logical storage,
 20,577 compute seconds (5.72 CU-hours) and 5,582,512,313 bytes of public network

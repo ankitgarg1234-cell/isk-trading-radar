@@ -54,7 +54,7 @@ CORE_MIN_AVG_DOLLAR_VOLUME = 10_000_000.0
 EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME = 20_000_000.0
 MIN_FUNDAMENTAL_SCORE = 14.0  # 70/100 normalized fundamental quality
 EXPLOSIVE_MAX_TRADING_SESSIONS = 20
-SCORING_VERSION = "2026-10-06-completed-session-volume-v16"
+SCORING_VERSION = "2026-10-06-validated-score-inputs-v17"
 
 PROMOTION_SEVERE_TERMS = {
     "reverse split", "going concern", "minimum bid", "nasdaq compliance",
@@ -258,8 +258,12 @@ def fundamental_score(f: dict) -> tuple[float, list[str], str]:
 
 
 def analyst_score(f: dict, price: float) -> tuple[float | None, list[str], float | None]:
-    target = f.get("targetMeanPrice")
-    rec = f.get("recommendationMean")
+    price = number(price)
+    price = price if price is not None and price > 0 else None
+    target = number(f.get("targetMeanPrice"))
+    target = target if target is not None and target > 0 else None
+    rec = number(f.get("recommendationMean"))
+    rec = rec if rec is not None and 1 <= rec <= 5 else None
     raw_points = 0.0
     available_weight = 0.0
     parts: list[str] = []
@@ -281,11 +285,12 @@ def analyst_score(f: dict, price: float) -> tuple[float | None, list[str], float
         except Exception:
             pass
     # Some feeds return recommendation counts even when recommendationMean is absent.
-    counts = {k: f.get(k) for k in ("strongBuy", "buy", "hold", "sell", "strongSell")}
-    try:
-        total = sum(float(v or 0) for v in counts.values())
-    except Exception:
-        total = 0
+    counts = {k: number(f.get(k, 0) if f.get(k) is not None else 0)
+              for k in ("strongBuy", "buy", "hold", "sell", "strongSell")}
+    # Missing count buckets mean zero; malformed/negative/fractional counts
+    # invalidate the mix rather than fabricating a consensus from part of it.
+    valid_counts = all(v is not None and v >= 0 and v.is_integer() for v in counts.values())
+    total = sum(counts.values()) if valid_counts else 0
     if total > 0 and not rec:
         weighted = (
             float(counts.get("strongBuy") or 0) * 100

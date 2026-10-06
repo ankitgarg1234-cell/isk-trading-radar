@@ -787,7 +787,7 @@ class YahooMarketProvider:
                 merged[key] = value
 
         if sec.get("_fundamental_integrity"):
-            for key in ("revenueGrowth", "earningsGrowth", "grossMargins", "operatingMargins",
+            for key in ("revenueGrowth", "quarterlyRevenueGrowth", "earningsGrowth", "grossMargins", "operatingMargins",
                         "returnOnEquity", "debtToEquity", "totalRevenue", "currentRatio", "operatingCashConversion"):
                 merged[key] = sec.get(key)
             for key, value in sec.items():
@@ -812,7 +812,7 @@ class YahooMarketProvider:
         if sec.get("_fundamental_integrity"):
             merged["_fundamental_source"] = "SEC EDGAR/XBRL"
         merged["_fundamental_period"] = sec.get("_fundamental_period") if sec.get("_fundamental_integrity") else (sec.get("_fundamental_period") or merged.get("_fundamental_period"))
-        if yahoo.get("quarterlyRevenueGrowth") is None:
+        if sec.get("_fundamental_integrity") or yahoo.get("quarterlyRevenueGrowth") is None:
             for key in ("_quarterly_period", "_quarterly_source", "_quarterly_method", "_quarterly_status"):
                 merged[key] = sec.get(key)
         merged["_sec_status"] = sec.get("_status") if sec else "not needed / not attempted"
