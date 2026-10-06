@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo
 
@@ -177,21 +178,58 @@ def _dashboard_state() -> dict:
                     }
                 )
 
+        # Mark actual holdings to the latest completed daily close. Monthly
+        # snapshot prices remain signal prices for portfolio planning only.
+        live_marks: dict[str, dict] = {}
+        if positions:
+            source = LiveDataSource(price_workers=min(8, max(1, len(positions))))
+            try:
+                def _mark(symbol: str):
+                    bars = _completed_daily_bars(source.price_bars(symbol, "1mo"))
+                    if not bars:
+                        raise RuntimeError("No completed daily mark")
+                    bar = bars[-1]
+                    return symbol, {"price": float(bar.close), "asof": bar.date}
+
+                with ThreadPoolExecutor(max_workers=min(8, len(positions))) as pool:
+                    futures = {pool.submit(_mark, p.symbol): p.symbol for p in positions}
+                    for future in as_completed(futures):
+                        symbol = futures[future]
+                        try:
+                            _, mark = future.result()
+                            live_marks[symbol] = mark
+                        except Exception:
+                            pass
+            finally:
+                source.close()
+
         position_views = []
         holding_checks = (snapshot or {}).get("holding_checks") or {}
         for p in positions:
             check = holding_checks.get(p.symbol) or {}
-            price = check.get("price")
+            mark = live_marks.get(p.symbol) or {}
+            price = mark.get("price")
+            mark_asof = mark.get("asof")
+            if price is None:
+                price = check.get("price")
+                mark_asof = (snapshot or {}).get("decision_date") if price is not None else None
             pnl_pct = None
+            pnl_usd = None
             market_value = None
-            if price is not None and p.avg_cost:
-                pnl_pct = float(price) / float(p.avg_cost) - 1.0
+            cost_basis = float(p.avg_cost or 0) * int(p.shares or 0)
+            if price is not None:
                 market_value = float(price) * int(p.shares or 0)
+                pnl_usd = market_value - cost_basis
+                if p.avg_cost:
+                    pnl_pct = float(price) / float(p.avg_cost) - 1.0
             position_views.append(
                 {
                     **_position_dict(p),
                     "price": price,
+                    "mark_asof": mark_asof,
                     "market_value": market_value,
+                    "cost_basis": cost_basis,
+                    "pnl_usd": pnl_usd,
                     "pnl_pct": pnl_pct,
                     "rank": check.get("rank"),
                     "momentum_positive": check.get("momentum_positive"),
@@ -204,7 +242,28 @@ def _dashboard_state() -> dict:
                 }
             )
 
+        priced_positions = [p for p in position_views if p.get("market_value") is not None]
+        invested_equity = sum(float(p["market_value"]) for p in priced_positions)
+        priced_cost_basis = sum(float(p["cost_basis"]) for p in priced_positions)
+        total_cost_basis = sum(float(p["cost_basis"]) for p in position_views)
+        unrealized_pnl = invested_equity - priced_cost_basis
+        unrealized_pct = (unrealized_pnl / priced_cost_basis) if priced_cost_basis > 0 else 0.0
+        cash_usd = float(cash.cash_usd or 0)
+        account_value = cash_usd + invested_equity
+        account = {
+            "account_value": account_value,
+            "invested_equity": invested_equity,
+            "cash": cash_usd,
+            "cost_basis": total_cost_basis,
+            "unrealized_pnl": unrealized_pnl,
+            "unrealized_pct": unrealized_pct,
+            "equity_weight": (invested_equity / account_value) if account_value > 0 else 0.0,
+            "holdings_count": len(position_views),
+            "unpriced_count": len(position_views) - len(priced_positions),
+        }
+
         return {
+            "account": account,
             "scan": {
                 "status": state.scan_status,
                 "variant": state.variant,
