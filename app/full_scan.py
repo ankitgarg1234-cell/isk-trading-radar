@@ -95,7 +95,10 @@ def preflight(provider, symbol, session_date):
     full year for every listed name did not change these gates.
     """
     if hasattr(provider, "quick_scan"):
-        quick = provider.quick_scan(symbol)
+        try:
+            quick = provider.quick_scan(symbol, range_="3mo")
+        except TypeError:
+            quick = provider.quick_scan(symbol)
         price = number(quick.get("price"))
         currency = str(quick.get("currency") or "USD")
         liquidity = number(quick.get("avg_dollar_volume_20"))
