@@ -1281,16 +1281,17 @@ class YahooMarketProvider:
             pass
         raise MarketDataError(f"Could not resolve company or symbol: {raw}")
 
-    def quick_scan(self, symbol: str) -> dict:
+    def quick_scan(self, symbol: str, range_: str = "1mo") -> dict:
         """Low-cost first-pass market scan used across the whole U.S. universe."""
-        chart = self.chart(symbol, "1mo", "1d")
+        chart = self.chart(symbol, range_, "1d")
         rows, current, previous, currency, exchange = self._rows_from_chart(chart)
         closes = [float(r["close"]) for r in rows if r.get("close") is not None]
         vols = [float(r.get("volume") or 0) for r in rows if r.get("close") is not None]
         if not current or len(closes) < 3:
             raise MarketDataError(f"Insufficient quick-scan history for {symbol}")
         change_5 = ((current / closes[-6]) - 1) * 100 if len(closes) >= 6 and closes[-6] else 0.0
-        change_20 = ((current / closes[0]) - 1) * 100 if closes and closes[0] else 0.0
+        change_20 = ((current / closes[-21]) - 1) * 100 if len(closes) >= 21 and closes[-21] else (
+            ((current / closes[0]) - 1) * 100 if closes and closes[0] else 0.0)
         baseline_vols = [v for v in vols[-21:-1] if v > 0]
         avg_vol = sum(baseline_vols) / len(baseline_vols) if baseline_vols else 0.0
         rel_vol = (vols[-1] / avg_vol) if vols and avg_vol else 0.0
