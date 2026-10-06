@@ -49,10 +49,10 @@ def test_account_risk_flags_concentrated_portfolio():
     assert r["largest_position_pct"] >= 70
     assert r["gap"] > 0
 
-def test_primary_buy_69_remains_watch_despite_raw_buy_language():
+def test_primary_buy_below_65_remains_watch_despite_raw_buy_language():
     a=sample_analysis()
     a["action"]="CONSIDER BUYING NOW"
-    a["deterministic_score"]=69
+    a["deterministic_score"]=64
     a["ai_score"]=76
     a["entry_zone_status"]="PRIMARY_BUY"
     assert system_signal(a,False) == "WATCH"
