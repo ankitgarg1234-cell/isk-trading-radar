@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import threading
 from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo
@@ -24,6 +25,39 @@ SCAN_LOCK = threading.Lock()
 @app.on_event("startup")
 def startup() -> None:
     init_db()
+
+    starting_cash_raw = os.getenv("DM_STARTING_CASH_USD", "0").strip()
+    auto_initial_scan = os.getenv("DM_AUTO_INITIAL_SCAN", "").strip().lower() in {"1", "true", "yes", "on"}
+    should_scan = False
+
+    try:
+        starting_cash = float(starting_cash_raw or 0)
+    except ValueError:
+        starting_cash = 0.0
+
+    with SessionLocal() as db:
+        cash = get_or_create_cash(db)
+        state = get_or_create_state(db)
+        has_positions = db.query(DMPosition).first() is not None
+        has_trades = db.query(DMTrade).first() is not None
+
+        # Seed only a pristine paper account. Never overwrite an existing ledger.
+        if (
+            starting_cash > 0
+            and not has_positions
+            and not has_trades
+            and abs(float(cash.cash_usd or 0)) < 1e-9
+        ):
+            cash.cash_usd = starting_cash
+            cash.updated_at = datetime.now(timezone.utc)
+            db.commit()
+            print("Dual Momentum bootstrap: seeded paper cash $%.2f" % starting_cash, flush=True)
+
+        should_scan = auto_initial_scan and state.scan_status == "NEVER_RUN"
+
+    if should_scan:
+        print("Dual Momentum bootstrap: starting initial baseline scan", flush=True)
+        threading.Thread(target=_scan_job, args=("baseline",), daemon=True).start()
 
 
 @app.middleware("http")
