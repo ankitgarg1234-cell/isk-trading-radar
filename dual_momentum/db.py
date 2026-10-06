@@ -19,6 +19,8 @@ class DMPosition(Base):
     stop_asof: Mapped[str | None] = mapped_column(String(16), nullable=True)
     opened_on: Mapped[str | None] = mapped_column(String(16), nullable=True)
     pending_stop_exit: Mapped[bool] = mapped_column(Boolean, default=False)
+    pending_rule_exit_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    pending_rule_exit_date: Mapped[str | None] = mapped_column(String(16), nullable=True)
     last_verified_fund_status: Mapped[str] = mapped_column(String(16), default="UNKNOWN")
     last_verified_fund_at: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -55,6 +57,9 @@ class DMTrade(Base):
     price: Mapped[float] = mapped_column(Float)
     fees: Mapped[float] = mapped_column(Float, default=0.0)
     reason: Mapped[str] = mapped_column(String(255), default="")
+    system_reason: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    reference_date: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    executed_on: Mapped[str | None] = mapped_column(String(16), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
