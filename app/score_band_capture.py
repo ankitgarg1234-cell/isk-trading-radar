@@ -34,6 +34,9 @@ def fresh_benchmark(now):
 
 
 def _load(db):
+    # VERSION is the stable persistence/account key, not the sizing-policy
+    # version. Strategy parameters migrate inside state["spec"] so deployments
+    # never fork or reset the existing canonical paper ledger.
     row = db.query(ScoreBandExperiment).filter_by(version=VERSION).with_for_update().first()
     if row:
         state = ensure_single_account(json.loads(row.state_json))
