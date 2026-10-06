@@ -19,7 +19,7 @@ from .market_evidence import transient_missing, positive
 from .trading_rules import entry_status, number
 
 NY = ZoneInfo("America/New_York")
-ACTIVE = {"prefilter", "analysis", "paused_market_open"}
+ACTIVE = {"prefilter", "analysis", "paused_market_open", "paused_live_priority"}
 KEY = "latest"
 # Scoring-only/evidence changes do not alter the exact price/currency/liquidity
 # preflight. Same-session quick checks may be reused, but old scores/gates never are.
@@ -180,8 +180,8 @@ class FullUniverseScan:
         return seed
 
     def start(self):
-        if self.radar.market_open():
-            return {"status": "market_open", "message": "Full audit runs after hours; live scanning continues during the session."}
+        if getattr(self.radar, "live_priority_window", self.radar.market_open)():
+            return {"status": "live_priority_window", "message": "Full audit yields from 09:00 ET through the regular close so pre-open/live scanning has priority."}
         with self.lock:
             if self.active():
                 return self.status()
@@ -329,8 +329,8 @@ class FullUniverseScan:
             # The normal after-hours cycle yields to this audit, preserving its provider budget.
             with ThreadPoolExecutor(max_workers=4) as pool:
                 while not self.stop_event.is_set():
-                    if self.radar.market_open():
-                        self._record(run_id, [], "paused_market_open"); self.stop_event.wait(30); continue
+                    if getattr(self.radar, "live_priority_window", self.radar.market_open)():
+                        self._record(run_id, [], "paused_live_priority"); self.stop_event.wait(30); continue
                     batch = self._pending(run_id, "pending", 32)
                     if not batch:
                         break
@@ -346,8 +346,8 @@ class FullUniverseScan:
                 except Exception as exc: result = {"symbol":symbol,"status":"error","error":type(exc).__name__,"stage":"prefilter"}
                 self._record(run_id, [result], "prefilter")
             while not self.stop_event.is_set():
-                if self.radar.market_open():
-                    self._record(run_id, [], "paused_market_open"); self.stop_event.wait(30); continue
+                if getattr(self.radar, "live_priority_window", self.radar.market_open)():
+                    self._record(run_id, [], "paused_live_priority"); self.stop_event.wait(30); continue
                 symbols = self._pending(run_id, "awaiting_analysis", 1)
                 if not symbols: break
                 symbol = symbols[0]
