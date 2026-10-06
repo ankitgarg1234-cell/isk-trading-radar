@@ -478,8 +478,16 @@ def refresh_stops():
     try:
         try:
             current_members = {row["symbol"] for row in source.current_sp500()}
+            change_rows = source.sp500_changes()
+            removal_dates: dict[str, str] = {}
+            for row in change_rows:
+                removed = str(row.get("removed") or "")
+                effective = row.get("effective_date")
+                if removed and effective is not None and removed not in removal_dates:
+                    removal_dates[removed] = effective.isoformat()
         except Exception:
             current_members = None
+            removal_dates = {}
 
         with SessionLocal() as db:
             positions = db.query(DMPosition).order_by(DMPosition.symbol).all()
@@ -488,7 +496,7 @@ def refresh_stops():
                 if current_members is not None and position.symbol not in current_members:
                     if not position.pending_rule_exit_reason:
                         position.pending_rule_exit_reason = "S&P 500 membership has ended; sell next executable session"
-                        position.pending_rule_exit_date = today
+                        position.pending_rule_exit_date = removal_dates.get(position.symbol) or today
                     results.append(
                         {
                             "symbol": position.symbol,
