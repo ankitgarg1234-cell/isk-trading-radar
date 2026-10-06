@@ -152,6 +152,8 @@ class RadarService:
         # BUY -> BUY (the GWRE missed-entry failure mode).
         self._paper_optimizer_policy_state: str | None = None
         self._last_strategic_enrich_at: datetime | None = None
+        self._preopen_warmed_date: str | None = None
+        self._preopen_warmed_symbols: set[str] = set()
 
     def market_open(self, now=None):
         """Regular-session V1 gate: Mon-Fri, 09:30-16:00 America/New_York.
@@ -811,7 +813,7 @@ class RadarService:
         names and the strongest public-screen discoveries are enough to make the
         opening scanner warm without recreating the overnight audit.
         """
-        limit = max(1, min(32, int(limit)))
+        limit = max(1, min(64, int(limit)))
         holdings = self.holding_symbols()
         stale = self.stale_scoring_symbols(limit=limit)
         priority = self.priority_symbols()[: settings.priority_deep_limit]
@@ -836,7 +838,22 @@ class RadarService:
 
     def _preopen_warmup(self) -> dict:
         """Refresh the opening decision set without executing paper/live trades."""
-        symbols = self.preopen_priority_symbols(limit=max(12, min(24, settings.scan_batch_size)))
+        session = datetime.now(timezone.utc).astimezone(NY).date().isoformat()
+        if self._preopen_warmed_date != session:
+            self._preopen_warmed_date = session
+            self._preopen_warmed_symbols.clear()
+        budget = max(12, min(24, settings.scan_batch_size))
+        queue = self.preopen_priority_symbols(limit=max(32, budget * 2))
+        symbols = [s for s in queue if s not in self._preopen_warmed_symbols][:budget]
+        if not symbols:
+            return {
+                "status": "preopen_ready",
+                "execution_enabled": False,
+                "analyzed": 0,
+                "refreshed_symbols": [],
+                "errors": [],
+                "handoff": "priority opening set already warmed",
+            }
         analyst_provider = getattr(self.provider, "analyst", None)
         if hasattr(analyst_provider, "prefetch_recommendations"):
             analyst_provider.prefetch_recommendations(symbols)
@@ -846,6 +863,7 @@ class RadarService:
             try:
                 self.analyze_symbol(symbol)
                 refreshed.append(symbol)
+                self._preopen_warmed_symbols.add(symbol)
             except Exception as exc:
                 errors.append(f"{symbol}: {type(exc).__name__}")
         self.last_scan = datetime.now(timezone.utc)
