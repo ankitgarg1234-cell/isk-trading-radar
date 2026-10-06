@@ -86,6 +86,28 @@ def test_stale_scoring_candidates_are_prioritized_for_refresh():
     assert syms.index("STALE") < next(i for i,s in enumerate(syms) if s.startswith("U"))
 
 
+def test_high_quality_60_64_names_stay_in_internal_near_qualified_queue():
+    import json
+    from app.db import RadarCandidate
+    from app.analysis_engine import SCORING_VERSION
+    with SessionLocal() as db:
+        payload={
+            "symbol":"NEAR","scoring_version":SCORING_VERSION,
+            "deterministic_score":63.5,"analyst_score":82,
+            "breakdown":{"Fundamentals":16},
+            "fundamental_confidence":"high",
+            "negative_news_override":None,
+            "promotion_risk":{"hard_reject":False},
+        }
+        db.add(RadarCandidate(
+            symbol="NEAR",score=63.5,portfolio_rank_score=80,
+            lane_qualified=False,current_json=json.dumps(payload),
+        ))
+        db.commit()
+    r=RadarService(provider=FakeProvider(),ai=FakeAI())
+    assert r.persisted_near_qualified_symbols(limit=8) == ["NEAR"]
+
+
 def test_stale_candidates_beyond_current_top_ranks_are_not_starved():
     import json
     from app.db import RadarCandidate
