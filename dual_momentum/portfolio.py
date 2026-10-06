@@ -157,6 +157,27 @@ def build_portfolio_plan(snapshot: dict, positions: list[dict], cash_usd: float)
     target_equity_exposure = n / MAX_HOLDINGS if n else 0.0
     target_cash_weight = 1.0 - target_equity_exposure
 
+    def forced_exit_orders() -> list[dict]:
+        out: list[dict] = []
+        for symbol, reason in exit_reasons.items():
+            pos = positions_by_symbol[symbol]
+            shares = int(pos.get("shares") or 0)
+            if shares <= 0:
+                continue
+            price = float((holding_checks.get(symbol) or {}).get("price") or 0)
+            out.append(
+                {
+                    "symbol": symbol,
+                    "side": "SELL",
+                    "shares": shares,
+                    "priority": 1,
+                    "reason": reason,
+                    "signal_price": price or None,
+                    "kind": "EXIT",
+                }
+            )
+        return out
+
     selected_data: dict[str, dict] = {}
     for symbol in selected:
         row = candidates.get(symbol)
@@ -176,18 +197,8 @@ def build_portfolio_plan(snapshot: dict, positions: list[dict], cash_usd: float)
                 "selected": selected,
                 "retained": retained,
                 "new_entries": new_entries,
-                "exits": [
-                    {
-                        "symbol": s,
-                        "side": "SELL",
-                        "shares": int(positions_by_symbol[s].get("shares") or 0),
-                        "priority": 1,
-                        "reason": reason,
-                        "signal_price": (holding_checks.get(s) or {}).get("price"),
-                    }
-                    for s, reason in exit_reasons.items()
-                ],
-                "orders": [],
+                "exits": forced_exit_orders(),
+                "orders": forced_exit_orders(),
                 "target_equity_exposure": target_equity_exposure,
                 "target_cash_weight": target_cash_weight,
                 "target_weights": {},
@@ -238,8 +249,8 @@ def build_portfolio_plan(snapshot: dict, positions: list[dict], cash_usd: float)
                 "selected": selected,
                 "retained": retained,
                 "new_entries": new_entries,
-                "exits": [],
-                "orders": [],
+                "exits": forced_exit_orders(),
+                "orders": forced_exit_orders(),
                 "target_equity_exposure": target_equity_exposure,
                 "target_cash_weight": target_cash_weight,
                 "target_weights": target_weights,
@@ -259,24 +270,7 @@ def build_portfolio_plan(snapshot: dict, positions: list[dict], cash_usd: float)
             desired = min(current, desired)
         desired_shares[symbol] = desired
 
-    sell_orders: list[dict] = []
-    for symbol, reason in exit_reasons.items():
-        pos = positions_by_symbol[symbol]
-        shares = int(pos.get("shares") or 0)
-        if shares <= 0:
-            continue
-        price = float((holding_checks.get(symbol) or {}).get("price") or 0)
-        sell_orders.append(
-            {
-                "symbol": symbol,
-                "side": "SELL",
-                "shares": shares,
-                "priority": 1,
-                "reason": reason,
-                "signal_price": price or None,
-                "kind": "EXIT",
-            }
-        )
+    sell_orders: list[dict] = forced_exit_orders()
 
     buy_orders: list[dict] = []
     for symbol in selected:
