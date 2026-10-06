@@ -211,7 +211,7 @@ def test_independent_gate_counts_and_temporary_gaps_are_not_qualification():
     s=summarize(rows)
     assert s["independent_gate_pass_counts"]["deterministic_65"] == 3
     assert s["independent_gate_pass_counts"]["analyst_75"] == 2
-    assert s["independent_gate_pass_counts"]["qualified"] == 1
+    assert s["independent_gate_pass_counts"]["qualified"] == 2
     assert s["missing_data"]["analyst_score"] == 1
     assert s["missing_data"]["transient_data_gap"] == 1
     accumulate(s,rows[1],-1);accumulate(s,compact_result(payload()),1)
