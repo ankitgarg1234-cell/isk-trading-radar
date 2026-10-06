@@ -249,10 +249,30 @@ def test_does_not_start_during_open_market_or_mutate_paper_ledger(monkeypatch):
     from app.db import ScoreBandExperiment, PaperAccount, PaperPosition, PaperTrade
     scan,analyzed,_=service(monkeypatch,["A"])
     scan.radar.market_open=lambda:True
-    assert scan.start()["status"] == "market_open" and not analyzed
+    assert scan.start()["status"] == "paused_market_open" and not analyzed
     scan.radar.market_open=lambda:False;scan.start()
     with SessionLocal() as db:
         assert all(db.query(model).count()==0 for model in [ScoreBandExperiment,PaperAccount,PaperPosition,PaperTrade])
+
+
+def test_full_audit_does_not_start_during_preopen_handoff(monkeypatch):
+    scan, analyzed, _ = service(monkeypatch, ["A"])
+    scan.radar.market_preopen = lambda: True
+    assert scan.start()["status"] == "paused_preopen"
+    assert not analyzed
+
+
+def test_preflight_uses_lightweight_quick_scan_not_one_year_history():
+    class QuickProvider:
+        def quick_scan(self, symbol):
+            return {"symbol":symbol,"price":25,"currency":"USD","avg_dollar_volume_20":15_000_000,
+                    "scan_score":42,"quote_asof":"2026-10-05T20:00:00+00:00"}
+        def chart(self,*args,**kwargs):
+            pytest.fail("production preflight should use quick_scan")
+    row=preflight(QuickProvider(),"FAST","2026-10-05")
+    assert row["status"]=="awaiting_analysis"
+    assert row["scan_score"]==42
+    assert row["source"]=="lightweight_exact_20d_preflight"
 
 
 def test_normal_after_hours_cycle_yields_but_open_market_keeps_running(monkeypatch):
@@ -288,6 +308,10 @@ def test_cache_reuse_requires_post_close_current_version_and_nontransient_inputs
     assert scan._cached("TEST","2026-10-05")["source"] == "cached_post_close"
     a["asof"]="2026-10-05T19:59:00+00:00";store(a)
     assert scan._cached("TEST","2026-10-05") is None
+    # An overnight refresh after midnight New York still belongs to the same
+    # completed quote session and should be reused instead of downloaded again.
+    a=payload();a["asof"]="2026-10-06T09:00:00+00:00";store(a)
+    assert scan._cached("TEST","2026-10-05") is not None
     a=payload();a["scoring_version"]="old";store(a)
     assert scan._cached("TEST","2026-10-05") is None
     a=payload();a["fundamentals"]["trailingPE"]=None
