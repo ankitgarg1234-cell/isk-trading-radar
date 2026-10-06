@@ -999,17 +999,18 @@ def score_bundle(bundle: dict) -> dict:
     rr_down = (price - levels["stop"]) / price if price else 1
     rr = (rr_up / rr_down) if rr_down > 0 else 0
     analyst_confirmation = a_score / 20 if a_score is not None else 2.5
-    raw_breakdown = {
-        "Fundamentals": round(fs, 1),
-        "Catalyst": round(catalyst, 1),
-        "News": round(news["score"], 1),
-        "Momentum": round(mom, 1),
-        "Sector": round(sector, 1),
-        "Valuation": round(valuation, 1),
-        "Analyst confirmation": round(analyst_confirmation, 1),
-        "Risk/Reward": round(clamp(rr / 3 * 10, 0, 10), 1),
+    scoring_raw = {
+        "Fundamentals": fs,
+        "Catalyst": catalyst,
+        "News": news["score"],
+        "Momentum": mom,
+        "Sector": sector,
+        "Valuation": valuation,
+        "Analyst confirmation": analyst_confirmation,
+        "Risk/Reward": clamp(rr / 3 * 10, 0, 10),
     }
-    score_contributions = calibrated_score_components(raw_breakdown, rr)
+    raw_breakdown = {k: round(v, 1) for k, v in scoring_raw.items()}
+    score_contributions = calibrated_score_components(scoring_raw, rr)
     total = sum(score_contributions.values())
 
     # Material negative news can override an otherwise strong numerical setup.
