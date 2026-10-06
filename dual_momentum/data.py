@@ -4,8 +4,9 @@ import csv
 import io
 import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from html.parser import HTMLParser
+from zoneinfo import ZoneInfo
 from typing import Any
 
 import httpx
@@ -93,6 +94,81 @@ class _HTMLTables(HTMLParser):
             if self._table:
                 self.tables.append(self._table)
             self._table = None
+
+
+def _nyse_schedule(start_date: date, end_date: date):
+    """Return the NYSE schedule when the optional live-service calendar is installed."""
+    try:
+        import pandas_market_calendars as mcal
+    except Exception:
+        return None
+    calendar = mcal.get_calendar("NYSE")
+    return calendar.schedule(start_date=start_date.isoformat(), end_date=end_date.isoformat())
+
+
+def _session_dates(schedule) -> list[date]:
+    if schedule is None:
+        return []
+    return [timestamp.date() for timestamp in schedule.index]
+
+
+def _latest_completed_month_end_session(spy_bars: Sequence[PriceBar]) -> tuple[date, date | None]:
+    """Resolve the latest month-end signal session and its next NYSE session."""
+    now_ny = datetime.now(ZoneInfo("America/New_York"))
+    today = now_ny.date()
+    start = today - timedelta(days=100)
+    end = today + timedelta(days=40)
+    schedule = _nyse_schedule(start, end)
+    sessions = _session_dates(schedule)
+
+    if sessions:
+        bar_dates = {date.fromisoformat(bar.date) for bar in spy_bars}
+        month_ends: list[date] = []
+        for idx, session in enumerate(sessions):
+            next_session = sessions[idx + 1] if idx + 1 < len(sessions) else None
+            if next_session is None or next_session.month != session.month:
+                if session not in bar_dates:
+                    continue
+                if schedule is not None:
+                    try:
+                        close_ts = schedule.loc[str(session)]["market_close"]
+                        close_dt = close_ts.to_pydatetime().astimezone(ZoneInfo("America/New_York"))
+                        if close_dt > now_ny:
+                            continue
+                    except Exception:
+                        if session >= today:
+                            continue
+                month_ends.append(session)
+        if month_ends:
+            decision = max(month_ends)
+            future = [s for s in sessions if s > decision]
+            return decision, future[0] if future else None
+
+    # Conservative fallback when the optional calendar is unavailable: use the
+    # final observed SPY session from the most recently completed calendar month.
+    prior = [
+        date.fromisoformat(bar.date)
+        for bar in spy_bars
+        if (date.fromisoformat(bar.date).year, date.fromisoformat(bar.date).month)
+        < (today.year, today.month)
+    ]
+    if not prior:
+        raise RuntimeError("No completed month-end SPY session is available")
+    decision = prior[-1]
+    later_bars = [date.fromisoformat(bar.date) for bar in spy_bars if date.fromisoformat(bar.date) > decision]
+    return decision, later_bars[0] if later_bars else None
+
+
+def _execution_window(next_session: date | None) -> str:
+    if next_session is None:
+        return "UNKNOWN"
+    now_ny = datetime.now(ZoneInfo("America/New_York"))
+    if next_session > now_ny.date():
+        return "PENDING"
+    if next_session < now_ny.date():
+        return "MISSED"
+    open_time = now_ny.replace(hour=9, minute=30, second=0, microsecond=0)
+    return "PENDING" if now_ny < open_time else "MISSED"
 
 
 class LiveDataSource:
@@ -456,24 +532,19 @@ class LiveDataSource:
         holdings = {_normalise_yahoo_symbol(s) for s in (holdings or set())}
 
         spy_bars_all = self.price_bars("SPY", "max")
-        today_utc = datetime.now(timezone.utc).date()
         if decision_date is None:
-            # Use the final SPY session of the most recently completed calendar month.
-            prior_month_bars = [
-                bar for bar in spy_bars_all
-                if (date.fromisoformat(bar.date).year, date.fromisoformat(bar.date).month)
-                < (today_utc.year, today_utc.month)
-            ]
-            if not prior_month_bars:
-                raise RuntimeError("No completed prior-month SPY session is available")
-            decision_session = prior_month_bars[-1].date
-            decision_date = date.fromisoformat(decision_session)
+            resolved_decision, next_session_date = _latest_completed_month_end_session(spy_bars_all)
+            decision_date = resolved_decision
+            decision_session = resolved_decision.isoformat()
         else:
             eligible_spy = [bar for bar in spy_bars_all if bar.date <= decision_date.isoformat()]
             if not eligible_spy:
                 raise RuntimeError("No SPY session is available at or before the requested decision date")
             decision_session = eligible_spy[-1].date
             decision_date = date.fromisoformat(decision_session)
+            schedule = _nyse_schedule(decision_date, decision_date + timedelta(days=10))
+            future_sessions = [session for session in _session_dates(schedule) if session > decision_date]
+            next_session_date = future_sessions[0] if future_sessions else None
 
         members, membership_changes_reversed = self.sp500_at(decision_date)
         member_by_symbol = {m["symbol"]: m for m in members}
@@ -629,7 +700,8 @@ class LiveDataSource:
         return {
             "asof": datetime.now(timezone.utc).isoformat(),
             "decision_date": decision_date.isoformat(),
-            "next_execution_session": next((bar.date for bar in spy_bars_all if bar.date > decision_session), None),
+            "next_execution_session": next_session_date.isoformat() if next_session_date else next((bar.date for bar in spy_bars_all if bar.date > decision_session), None),
+            "execution_window_status": _execution_window(next_session_date),
             "variant": "lagged-21" if lagged else "baseline",
             "membership_source": f"{SP500_CSV_URL} + {SP500_HISTORY_URL}",
             "membership_note": "Live month-end membership is reconstructed from current constituents plus effective-dated historical changes. Full backtests still require a verified point-in-time constituent/delisting dataset.",
