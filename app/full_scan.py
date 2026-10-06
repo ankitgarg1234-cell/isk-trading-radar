@@ -222,10 +222,25 @@ class FullUniverseScan:
         return self.status()
 
     def resume(self):
+        restart_for_version = False
         with self.lock, SessionLocal() as db:
             run = db.get(FullScanRun, KEY)
             if run and run.status in ACTIVE and not self.active():
-                self._launch(run.run_id)
+                if run.scoring_version == SCORING_VERSION:
+                    self._launch(run.run_id)
+                else:
+                    # A deploy can bump the scoring model while an older audit is
+                    # still active. Do not relaunch that obsolete worker and leave
+                    # the dashboard stuck on stale results; retire it and create a
+                    # clean current-version run after releasing this lock.
+                    run.status = "scoring_version_changed"
+                    run.worker_id, run.lease_until = "", None
+                    run.updated_at = now()
+                    db.commit()
+                    restart_for_version = True
+        if restart_for_version:
+            return self.start()
+        return self.status()
 
     def _launch(self, run_id):
         self.stop_event.clear()
