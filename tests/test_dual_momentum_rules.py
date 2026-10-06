@@ -198,3 +198,27 @@ def test_membership_exit_overrides_review_retention():
     positions = [{"symbol": "REMOVED", "shares": 3, "avg_cost": 80.0, "pending_stop_exit": False}]
     plan = build_portfolio_plan(snapshot, positions, 0.0)
     assert any(o["side"] == "SELL" and o["symbol"] == "REMOVED" for o in plan["orders"])
+
+
+def test_reserved_midcycle_vacancy_is_not_refilled_from_same_snapshot():
+    snapshot = {
+        "regime": {"state": "BULL"},
+        "candidates": [
+            _candidate(1, "AAA", "PASS"),
+            _candidate(2, "BBB", "PASS"),
+        ],
+        "holding_checks": {},
+    }
+    plan = build_portfolio_plan(snapshot, [], 100_000.0, reserved_slots=1)
+    assert len(plan["selected"]) == 2  # 19 slots remain available; both can be selected
+
+    many = [_candidate(i, f"S{i:02d}", "PASS") for i in range(1, 21)]
+    plan2 = build_portfolio_plan(
+        {"regime": {"state": "BULL"}, "candidates": many, "holding_checks": {}},
+        [],
+        100_000.0,
+        reserved_slots=1,
+    )
+    assert len(plan2["selected"]) == 19
+    assert "S20" not in plan2["selected"]
+    assert plan2["reserved_slots"] == 1
