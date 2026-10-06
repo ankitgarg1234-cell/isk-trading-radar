@@ -306,6 +306,16 @@ def test_primary_buy_below_65_cannot_recommend_entry():
     assert "65/100" in reason
 
 
+def test_entry_stop_never_collapses_to_penny_risk_when_ema_is_above_price():
+    from app.analysis_engine import buy_levels
+    price=100.0
+    levels=buy_levels({"atr":2.0,"ema20":110.0,"ema50":95.0,"low20":92.0,"high20":104.0},price)
+    # Minimum entry risk is max(0.75 ATR, 1.5% of price) = 1.5.
+    assert price-levels["entry_stop"] >= 1.49
+    assert levels["entry_stop"] <= 98.5
+    assert levels["entry_stop"] > levels["thesis_stop"]
+
+
 def test_entry_stop_is_tighter_than_thesis_stop_and_drives_entry_rr():
     from app.analysis_engine import buy_levels
     from app.trading_rules import qualification_check
