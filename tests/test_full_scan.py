@@ -209,7 +209,7 @@ def test_independent_gate_counts_and_temporary_gaps_are_not_qualification():
     b["fundamentals"]["_analyst_status"]="unavailable (request budget)"
     rows=[compact_result(a),compact_result(b),compact_result(payload())]
     s=summarize(rows)
-    assert s["independent_gate_pass_counts"]["deterministic_65"] == 2
+    assert s["independent_gate_pass_counts"]["deterministic_65"] == 3
     assert s["independent_gate_pass_counts"]["analyst_75"] == 2
     assert s["independent_gate_pass_counts"]["qualified"] == 1
     assert s["missing_data"]["analyst_score"] == 1
@@ -223,7 +223,7 @@ def test_fundamental_and_analyst_pass_does_not_imply_deterministic_pass():
     row=compact_result(payload(score=61.8))
     counts=summarize([row])["independent_gate_pass_counts"]
     assert counts["fundamentals_14"] == counts["analyst_75"] == counts["fundamentals_and_analyst"] == 1
-    assert counts["deterministic_70"] == 0
+    assert counts["deterministic_65"] == 0
     assert counts["qualified"] == 0
 
 
@@ -369,7 +369,7 @@ def test_completed_resume_does_not_duplicate_score_aggregates(monkeypatch):
     monkeypatch.setattr(scan,"_launch",lambda run_id:None)
     run_id=scan.start()["run_id"];scan._claim(run_id)
     scan._record(run_id,[compact_result(payload("A"))],"analysis")
-    scan._record(run_id,[compact_result(payload("A",score=69))],"analysis")
+    scan._record(run_id,[compact_result(payload("A",score=64))],"analysis")
     d=scan.status()
     assert d["qualified_count"] == 0 and d["summary"]["counts"]["scored"] == 1
     assert d["summary"]["independent_gate_pass_counts"]["qualified"] == 0
