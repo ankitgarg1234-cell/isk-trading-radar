@@ -120,6 +120,12 @@ def request_json(url, params=None, attempts=5, headers=None):
                 raise RuntimeError("HTTP {}".format(r.status_code))
             r.raise_for_status()
             return r.json()
+        except requests.HTTPError as exc:
+            err = exc
+            status = exc.response.status_code if exc.response is not None else None
+            if status is not None and 400 <= status < 500 and status != 429:
+                raise
+            time.sleep(min(10.0, 1.0 * (n + 1) ** 2))
         except Exception as exc:
             err = exc
             time.sleep(min(10.0, 1.0 * (n + 1) ** 2))
