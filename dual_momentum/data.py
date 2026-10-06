@@ -389,14 +389,41 @@ class LiveDataSource:
         eligible: list = []
         checked = 0
         if regime.value == "BULL":
-            for signal in ranked:
-                if len(eligible) >= 35:
-                    break
-                row = self.ttm_fundamentals(signal.symbol, decision_date)
-                checked += 1
-                fundamental_rows[signal.symbol] = row
-                if row["check"].status == FundamentalStatus.PASS:
-                    eligible.append(signal)
+            # SEC work is done in small batches to keep the scan practical while
+            # preserving momentum order. We may over-fetch a few rows in the last
+            # batch, but the eligible ranking remains strictly deterministic.
+            with ThreadPoolExecutor(max_workers=4) as pool:
+                for start in range(0, len(ranked), 8):
+                    batch = ranked[start : start + 8]
+                    futures = {
+                        pool.submit(self.ttm_fundamentals, signal.symbol, decision_date): signal
+                        for signal in batch
+                    }
+                    batch_rows: dict[str, dict] = {}
+                    for future in as_completed(futures):
+                        signal = futures[future]
+                        try:
+                            batch_rows[signal.symbol] = future.result()
+                        except Exception as exc:
+                            batch_rows[signal.symbol] = {
+                                "symbol": signal.symbol,
+                                "check": FundamentalCheck(
+                                    FundamentalStatus.REVIEW,
+                                    None,
+                                    None,
+                                    False,
+                                    f"Fundamentals unavailable: {type(exc).__name__}",
+                                ),
+                                "source": "SEC EDGAR/XBRL",
+                            }
+                    checked += len(batch)
+                    for signal in batch:
+                        row = batch_rows[signal.symbol]
+                        fundamental_rows[signal.symbol] = row
+                        if row["check"].status == FundamentalStatus.PASS:
+                            eligible.append(signal)
+                            if len(eligible) >= 35:
+                                break
                     if len(eligible) >= 35:
                         break
 
