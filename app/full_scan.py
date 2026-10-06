@@ -19,7 +19,7 @@ from .market_evidence import transient_missing, positive
 from .trading_rules import entry_status, number
 
 NY = ZoneInfo("America/New_York")
-ACTIVE = {"prefilter", "analysis", "paused_market_open"}
+ACTIVE = {"prefilter", "analysis", "paused_market_open", "paused_live_priority"}
 KEY = "latest"
 # Scoring-only/evidence changes do not alter the exact price/currency/liquidity
 # preflight. Same-session quick checks may be reused, but old scores/gates never are.
@@ -180,8 +180,8 @@ class FullUniverseScan:
         return seed
 
     def start(self):
-        if self.radar.market_open():
-            return {"status": "market_open", "message": "Full audit runs after hours; live scanning continues during the session."}
+        if getattr(self.radar, "live_priority_window", self.radar.market_open)():
+            return {"status": "live_priority_window", "message": "Full audit yields from 09:00 ET through the regular close so pre-open/live scanning has priority."}
         with self.lock:
             if self.active():
                 return self.status()
@@ -329,8 +329,8 @@ class FullUniverseScan:
             # The normal after-hours cycle yields to this audit, preserving its provider budget.
             with ThreadPoolExecutor(max_workers=4) as pool:
                 while not self.stop_event.is_set():
-                    if self.radar.market_open():
-                        self._record(run_id, [], "paused_market_open"); self.stop_event.wait(30); continue
+                    if getattr(self.radar, "live_priority_window", self.radar.market_open)():
+                        self._record(run_id, [], "paused_live_priority"); self.stop_event.wait(30); continue
                     batch = self._pending(run_id, "pending", 32)
                     if not batch:
                         break
@@ -345,28 +345,39 @@ class FullUniverseScan:
                 try: result = preflight(self.radar.provider, symbol, session_date)
                 except Exception as exc: result = {"symbol":symbol,"status":"error","error":type(exc).__name__,"stage":"prefilter"}
                 self._record(run_id, [result], "prefilter")
-            while not self.stop_event.is_set():
-                if self.radar.market_open():
-                    self._record(run_id, [], "paused_market_open"); self.stop_event.wait(30); continue
-                symbols = self._pending(run_id, "awaiting_analysis", 1)
-                if not symbols: break
-                symbol = symbols[0]
-                self._budget_wait()
-                if self.stop_event.is_set(): return
-                # One expensive analysis at a time on the existing 512MB service.
-                with self.radar._scan_lock:
-                    result = self._cached(symbol, session_date)
-                    if result is None:
+            # Two after-hours workers keep the exhaustive audit moving without
+            # turning the 512MB web service into a high-concurrency batch engine.
+            # The normal scanner yields while the audit is active, and the shared
+            # scan lock prevents a manual/live scanner cycle from overlapping this
+            # two-symbol batch.
+            with ThreadPoolExecutor(max_workers=2) as analysis_pool:
+                while not self.stop_event.is_set():
+                    if getattr(self.radar, "live_priority_window", self.radar.market_open)():
+                        self._record(run_id, [], "paused_live_priority"); self.stop_event.wait(30); continue
+                    symbols = self._pending(run_id, "awaiting_analysis", 2)
+                    if not symbols:
+                        break
+                    self._budget_wait()
+                    if self.stop_event.is_set():
+                        return
+
+                    def analyze(symbol):
+                        result = self._cached(symbol, session_date)
+                        if result is not None:
+                            return result
                         try:
                             full = self.radar.analyze_symbol(symbol, persist=False, contextual_ai=False)
                             result = compact_result(full)
                             if not str(result.get("quote_asof") or "").startswith(session_date):
                                 raise ValueError("quote_session_mismatch")
-                            # Refresh existing dashboard analyses without running paper orders.
                             self.radar.persist(full)
+                            return result
                         except Exception as exc:
-                            result = {"symbol":symbol,"status":"error","error":type(exc).__name__,"stage":"analysis"}
-                    self._record(run_id, [result], "analysis")
+                            return {"symbol":symbol,"status":"error","error":type(exc).__name__,"stage":"analysis"}
+
+                    with self.radar._scan_lock:
+                        results = list(analysis_pool.map(analyze, symbols))
+                    self._record(run_id, results, "analysis")
             if self.stop_event.is_set(): return
             with SessionLocal() as db:
                 run = db.get(FullScanRun, KEY)

@@ -48,7 +48,7 @@ def service(monkeypatch, symbols, quotes=None):
     def analyze(symbol, **kwargs):
         analyzed.append((symbol,kwargs))
         return payload(symbol)
-    radar = SimpleNamespace(provider=provider,market_open=lambda:False,
+    radar = SimpleNamespace(provider=provider,market_open=lambda:False,live_priority_window=lambda:False,
         _scan_lock=Lock(),analyze_symbol=analyze,persist=lambda full:persisted.append(full["symbol"]))
     scan = FullUniverseScan(radar)
     monkeypatch.setattr(scan,"_launch",lambda run_id:scan._run(run_id))
@@ -130,7 +130,7 @@ def test_resume_does_not_repeat_completed_symbols_and_survives_new_worker(monkey
     resumed, analyzed, _=service(monkeypatch,["A","B","C"])
     result=resumed.start()
     assert result["run_id"] == run_id and result["processed"] == 3
-    assert [s for s,_ in analyzed] == ["B","C"]
+    assert {s for s,_ in analyzed} == {"B","C"}
     assert result["summary"]["counts"]["scored"] == 3
 
 
@@ -169,7 +169,7 @@ def test_resume_after_model_change_starts_clean_current_version_run(monkeypatch)
     assert result["run_id"] != old_id
     assert result["scoring_version"] == SCORING_VERSION
     assert result["processed"] == 2
-    assert [s for s, _ in analyzed] == ["A", "B"]
+    assert {s for s, _ in analyzed} == {"A", "B"}
 
 
 def test_start_after_model_change_creates_clean_current_version_run(monkeypatch):
@@ -249,17 +249,66 @@ def test_does_not_start_during_open_market_or_mutate_paper_ledger(monkeypatch):
     from app.db import ScoreBandExperiment, PaperAccount, PaperPosition, PaperTrade
     scan,analyzed,_=service(monkeypatch,["A"])
     scan.radar.market_open=lambda:True
-    assert scan.start()["status"] == "market_open" and not analyzed
-    scan.radar.market_open=lambda:False;scan.start()
+    scan.radar.live_priority_window=lambda:True
+    assert scan.start()["status"] == "live_priority_window" and not analyzed
+    scan.radar.market_open=lambda:False
+    scan.radar.live_priority_window=lambda:False
+    scan.start()
     with SessionLocal() as db:
         assert all(db.query(model).count()==0 for model in [ScoreBandExperiment,PaperAccount,PaperPosition,PaperTrade])
+
+
+def test_full_audit_yields_during_preopen_live_priority_window(monkeypatch):
+    scan, analyzed, _ = service(monkeypatch, ["A"])
+    scan.radar.market_open = lambda: False
+    scan.radar.live_priority_window = lambda: True
+    result = scan.start()
+    assert result["status"] == "live_priority_window"
+    assert not analyzed
+
+
+def test_preopen_window_refreshes_actionable_radar_without_paper_execution(monkeypatch):
+    import app.scanner as scanner_module
+    from app.scanner import RadarService
+
+    radar = RadarService(provider=Provider(["A"]))
+    radar.full_universe_scan = SimpleNamespace(active=lambda:True)
+    monkeypatch.setattr(radar, "market_open", lambda *args, **kwargs:False)
+    monkeypatch.setattr(radar, "preopen_warmup", lambda *args, **kwargs:True)
+    monkeypatch.setattr(radar, "preopen_warmup_symbols", lambda limit=32:["A"])
+    monkeypatch.setattr(radar, "_refresh_universe_size", lambda:1)
+    monkeypatch.setattr(radar, "_enrich_strategic_top_candidates",
+                        lambda:pytest.fail("shadow enrichment must not consume pre-open window"))
+    analyzed=[]
+    monkeypatch.setattr(radar, "analyze_symbol", lambda symbol: analyzed.append(symbol) or payload(symbol))
+    monkeypatch.setattr(scanner_module, "run_paper_cycle",
+                        lambda *args, **kwargs:pytest.fail("paper execution must stay off pre-open"))
+
+    result = radar._scan_once_impl()
+
+    assert result["status"] == "preopen_warmup"
+    assert result["execution_enabled"] is False
+    assert result["preopen"] is True
+    assert analyzed == ["A"]
+
+
+def test_preopen_boundary_is_0900_to_0930_new_york():
+    from app.scanner import RadarService
+
+    radar = RadarService(provider=Provider(["A"]))
+    assert radar.preopen_warmup(datetime(2026,10,6,12,59,tzinfo=timezone.utc)) is False  # 08:59 ET
+    assert radar.preopen_warmup(datetime(2026,10,6,13,0,tzinfo=timezone.utc)) is True    # 09:00 ET
+    assert radar.preopen_warmup(datetime(2026,10,6,13,29,tzinfo=timezone.utc)) is True   # 09:29 ET
+    assert radar.preopen_warmup(datetime(2026,10,6,13,30,tzinfo=timezone.utc)) is False  # 09:30 ET
+    assert radar.market_open(datetime(2026,10,6,13,30,tzinfo=timezone.utc)) is True
 
 
 def test_normal_after_hours_cycle_yields_but_open_market_keeps_running(monkeypatch):
     from app.scanner import RadarService
     radar=RadarService(provider=Provider(["A"]))
     radar.full_universe_scan=SimpleNamespace(active=lambda:True)
-    monkeypatch.setattr(radar,"market_open",lambda:False)
+    monkeypatch.setattr(radar,"market_open",lambda *args, **kwargs:False)
+    monkeypatch.setattr(radar,"preopen_warmup",lambda *args, **kwargs:False)
     monkeypatch.setattr(radar,"stale_scoring_symbols",lambda **kw:pytest.fail("should yield provider budget"))
     assert radar._scan_once_impl()["status"] == "full_universe_audit_running"
 
