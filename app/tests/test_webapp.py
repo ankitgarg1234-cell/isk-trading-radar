@@ -39,7 +39,7 @@ def test_dashboard_renders_compact_shell_and_import_features():
     r=client.get('/')
     assert r.status_code == 200
     body=r.text
-    assert "CONTINUOUS CROSS-SECTOR RADAR" in body
+    assert "ACTIONABLE CROSS-SECTOR RADAR" in body
     assert "SCREENSHOT / OCR POSITION IMPORT" in body
     assert "TRADE LEDGER" not in body
     assert "Deployable cash" not in body
