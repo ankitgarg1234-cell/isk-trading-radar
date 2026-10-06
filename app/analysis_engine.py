@@ -1313,7 +1313,8 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
         whole_share_account = "avanza" in str(position.get("account") or "").lower()
         entry_target = float(position.get("entry_target") or lv.get("target") or 0)
         entry_stretch = float(position.get("entry_stretch_target") or (result.get("target_plan") or {}).get("stretch_target") or entry_target)
-        entry_stop = float(position.get("entry_stop") or lv.get("stop") or 0)
+        entry_stop = float(position.get("entry_stop") or lv.get("entry_stop") or lv.get("stop") or 0)
+        thesis_stop = float(lv.get("thesis_stop") or 0)
         horizon_days = int(position.get("entry_horizon_days") or (result.get("holding_horizon") or {}).get("max_days") or 0)
         holding_days = None
         opened_at = position.get("opened_at")
@@ -1332,6 +1333,7 @@ def position_action(result: dict, price: float, position: dict | None) -> tuple[
             "entry_target": round(entry_target, 2) if entry_target else None,
             "entry_stretch_target": round(entry_stretch, 2) if entry_stretch else None,
             "entry_stop": round(entry_stop, 2) if entry_stop else None,
+            "thesis_stop": round(thesis_stop, 2) if thesis_stop else None,
             "entry_rr": round(entry_rr, 2) if entry_rr is not None else None,
             "forward_rr": result.get("risk_reward"),
             "holding_days": holding_days,
