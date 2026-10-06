@@ -30,7 +30,7 @@ def tick(state, *rows, market_open=True):
     return advance(state, list(rows), now, market_open, benchmark=100)
 
 
-@pytest.mark.parametrize("score,weight", [(69.99,0),(70,10),(74.99,10),(75,15),(79.99,15),
+@pytest.mark.parametrize("score,weight", [(64.99,0),(65,5),(69.99,5),(70,10),(74.99,10),(75,15),(79.99,15),
     (80,20),(84.99,20),(85,30),(89.99,30),(90,40),(100,40),(101,0),(None,0),(float("nan"),0)])
 def test_band_boundaries(score, weight):
     assert allocation_pct(score) == weight
@@ -94,6 +94,19 @@ def test_next_observation_fill_duplicates_closed_session_and_restart():
     assert len(book["trades"]) == 1
     assert book["trades"][0]["signal_at"] < book["trades"][0]["observed_at"]
     assert book["cash"] + book["positions"]["TEST"]["shares"]*100 < 10000
+
+
+def test_pending_buy_fills_next_fresh_quote_even_if_price_leaves_exact_zone_but_remains_valid():
+    state = new_state("AGGRESSIVE")
+    tick(state, observation(price=100, target=120, stop=95))
+    book = state["variants"]["complete_strategy"]
+    assert "TEST" in book["pending"]
+    # 103 is just above the original 98-102 buy zone, but still below the
+    # do-not-chase level and the frozen setup retains healthy R/R.
+    tick(state, observation(price=103, target=120, stop=95, minute=2))
+    assert len(book["trades"]) == 1
+    assert book["trades"][0]["side"] == "BUY"
+    assert "TEST" in book["positions"]
 
 
 def test_fill_gap_rechecks_frozen_target_without_raising_it():
