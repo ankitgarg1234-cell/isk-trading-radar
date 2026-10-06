@@ -55,3 +55,26 @@ jobs:
           pip install -r requirements.txt
       - name: Verify production Python startup imports
         run: python -c "import app.db; import app.main; print('PYTHON314_STARTUP_PASS')"
+
+
+  live-owned-opportunity-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Read live candidate ownership state
+        run: |
+          curl --fail --silent --show-error --max-time 30 https://isk-trading-radar.onrender.com/api/live > /tmp/live.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/live.json'))
+          candidates=d.get('candidates') or []
+          paper=(d.get('paper') or {})
+          held={p.get('symbol') for p in paper.get('positions') or []}
+          shown={c.get('symbol') for c in candidates}
+          print('HELD',sorted(held))
+          print('CANDIDATES',[(c.get('symbol'),c.get('optimizer_action'),c.get('owned')) for c in candidates])
+          print('OVERLAP',sorted(held & shown))
+          print('VISIBLE',len(candidates))
+          print('BUY_NOW', (d.get('summary') or {}).get('buy_now'))
+          print('ALLOCATION_POLICY',(d.get('optimizer') or {}).get('allocation_policy'))
+          PY
