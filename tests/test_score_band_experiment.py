@@ -1,4 +1,5 @@
 import copy
+import json
 from datetime import datetime, timezone
 
 import pytest
@@ -225,6 +226,63 @@ def test_persistence_is_separate_and_observations_are_deduplicated():
         assert db.query(PaperAccount).one().cash == 5851.26
         assert db.query(PaperPosition).one().shares == 10
         assert db.query(Position).one().shares == 2
+
+
+def test_canonical_paper_pnl_reconciles_open_and_realized_after_fees():
+    from app.db import SessionLocal, ScoreBandExperiment
+    from app.score_band_capture import canonical_paper_status
+    from app.score_band_experiment import VERSION
+
+    state = new_state()
+    state["started_at"] = "2026-10-05T14:00:00+00:00"
+    state["last_cycle"] = "2026-10-06T14:00:00+00:00"
+    book = state["variants"]["complete_strategy"]
+    book["positions"] = {
+        "OPEN": {
+            "shares": 10, "avg_cost": 100.0, "entry_fee_per_share": 0.1,
+            "entry_stop": 95.0, "entry_target": 120.0, "entry_stretch_target": 130.0,
+            "entry_horizon_days": 30, "stop": 95.0, "harvested": False,
+            "peak": 110.0, "opened_at": "2026-10-05T14:00:00+00:00", "profit_steps": [],
+        }
+    }
+    book["marks"] = {"OPEN": 110.0}
+    book["trades"] = [
+        {
+            "symbol": "OPEN", "side": "BUY", "shares": 10, "price": 100.0,
+            "fees": 1.0, "observed_at": "2026-10-05T14:00:00+00:00",
+            "reason": "pullback", "deterministic_score": 80,
+        },
+        {
+            "symbol": "CLOSED", "side": "BUY", "shares": 5, "price": 100.0,
+            "fees": 0.5, "observed_at": "2026-10-05T14:02:00+00:00",
+            "reason": "pullback", "deterministic_score": 75,
+        },
+        {
+            "symbol": "CLOSED", "side": "SELL", "shares": 5, "price": 105.0,
+            "fees": 0.525, "realized_profit": 23.975,
+            "observed_at": "2026-10-06T14:00:00+00:00", "reason": "PROFIT_CASH_WITHDRAWAL",
+        },
+    ]
+    # 10,000 - OPEN buy 1,001 - CLOSED buy 500.5 + CLOSED sale 524.475
+    book["cash"] = 9022.975
+    book["peak_equity"] = 10122.975
+    book["curve"] = []
+
+    with SessionLocal() as db:
+        db.add(ScoreBandExperiment(version=VERSION, state_json=json.dumps(state)))
+        db.commit()
+        status = canonical_paper_status(db)
+
+    row = status["positions"][0]
+    assert row["fill_price"] == pytest.approx(100.0)
+    assert row["entry_fee"] == pytest.approx(1.0)
+    assert row["avg_cost"] == pytest.approx(100.1)
+    assert row["cost_basis"] == pytest.approx(1001.0)
+    assert row["pnl"] == pytest.approx(99.0)
+    assert status["open_pnl"] == pytest.approx(99.0)
+    assert status["realized_pnl"] == pytest.approx(23.98, abs=0.01)
+    assert status["absolute_return"] == pytest.approx(122.98)
+    assert status["pnl_reconciliation_delta"] == pytest.approx(0.0, abs=1e-6)
 
 
 def test_report_waiting_state_and_api():
