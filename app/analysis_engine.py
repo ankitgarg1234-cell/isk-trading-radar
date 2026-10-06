@@ -54,7 +54,7 @@ CORE_MIN_AVG_DOLLAR_VOLUME = 10_000_000.0
 EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME = 20_000_000.0
 MIN_FUNDAMENTAL_SCORE = 14.0  # 70/100 normalized fundamental quality
 EXPLOSIVE_MAX_TRADING_SESSIONS = 20
-SCORING_VERSION = "2026-10-06-sector-benchmark-integrity-v18"
+SCORING_VERSION = "2026-10-06-score-evidence-integrity-v19"
 
 PROMOTION_SEVERE_TERMS = {
     "reverse split", "going concern", "minimum bid", "nasdaq compliance",
@@ -439,9 +439,9 @@ def forward_target_plan(t: dict, f: dict, price: float, catalyst_score: float = 
     analyst_target = None
     analyst_raw = None
     try:
-        raw = f.get("targetMeanPrice")
-        if raw not in (None, "") and float(raw) > price:
-            analyst_raw = float(raw)
+        raw = number(f.get("targetMeanPrice"))
+        if raw is not None and raw > price:
+            analyst_raw = raw
             # Consensus is useful confirmation but is capped to avoid one stale or
             # extreme target dominating the deterministic horizon.
             analyst_target = min(analyst_raw, price + 4.0 * a, price * 1.40)
@@ -822,7 +822,16 @@ def catalyst_calculation(news: dict) -> dict:
 def score_bundle(bundle: dict) -> dict:
     price = float(bundle.get("price") or 0)
     rows = bundle.get("history") or []
-    f = bundle.get("fundamentals") or {}
+    f = dict(bundle.get("fundamentals") or {})
+    # Validate optional analyst display/target inputs too: rejecting a bad
+    # value in analyst_score must not leave it influencing targets or crashing
+    # output serialization. Preserve raw provider evidence in the input bundle.
+    for key in ("targetMeanPrice", "targetHighPrice", "targetLowPrice"):
+        value = number(f.get(key))
+        f[key] = value if value is not None and value > 0 else None
+    opinions = number(f.get("numberOfAnalystOpinions"))
+    f["numberOfAnalystOpinions"] = (int(opinions) if opinions is not None and opinions >= 0
+                                   and opinions.is_integer() else None)
     news = news_analysis(
         bundle.get("news") or [], symbol=bundle.get("symbol", ""),
         company_name=f.get("companyName") or bundle.get("company_name") or "",

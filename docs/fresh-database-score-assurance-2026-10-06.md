@@ -1,5 +1,20 @@
 # Fresh database and deterministic-score assurance — 6 October 2026
 
+## Final integration controls (v19)
+
+Optional analyst fields are validated across the entire score result, not only
+the analyst subtotal. Malformed target/opinion-count strings previously could
+crash the output conversions. An infinite mean target could also confirm a
+technical target despite being invalid analyst evidence. Finite positive target
+values and nonnegative integer opinion counts now control target calculation,
+display fields and missing-input disclosure. Raw provider evidence is preserved
+in the input bundle. Six integration controls compare malformed observations
+with genuinely unavailable values and verify unchanged valid recommendation
+weights. The final affected suite passed **394 tests**, including source
+replays, arithmetic, news/catalyst/valuation rules, scanner, full-universe audit,
+paper/trial gates and short-horizon forecasts. This is the relevant regression
+suite, not a claim that the unrelated legacy allocator failure was resolved.
+
 ## Production sector-benchmark omission (v18)
 
 The live v17 AAON response reported SIC 3585 and industry

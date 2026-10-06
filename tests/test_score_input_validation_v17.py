@@ -3,7 +3,8 @@ import pytest
 import json
 from pathlib import Path
 
-from app.analysis_engine import analyst_score, fundamental_score
+from app.analysis_engine import analyst_score, fundamental_score, score_bundle, forward_target_plan
+from tests.helpers import bundle, strong_fundamentals
 from app.market import YahooMarketProvider, SECFundamentalsProvider, sic_to_sector, SECTOR_ETF
 
 
@@ -99,3 +100,27 @@ def test_captured_wdc_sec_quarter_survives_provider_merge(monkeypatch):
 def test_sector_range_gaps_and_specific_codes_choose_existing_benchmarks(code, description, sector, benchmark):
     assert sic_to_sector(code, description) == sector
     assert SECTOR_ETF[sic_to_sector(code, description)] == benchmark
+
+
+@pytest.mark.parametrize("bad", ["oops", float("nan"), float("inf"), -1, 0])
+def test_invalid_optional_analyst_values_do_not_crash_or_affect_full_score(bad):
+    f = strong_fundamentals()
+    keys = ("targetMeanPrice", "targetHighPrice", "targetLowPrice", "numberOfAnalystOpinions")
+    f.update({key: bad for key in keys})
+    actual = score_bundle(bundle(fundamentals=f))
+    unknown = score_bundle(bundle(fundamentals={**f, **{key: None for key in keys}}))
+    assert actual["deterministic_score"] == unknown["deterministic_score"]
+    assert actual["levels"] == unknown["levels"]
+    assert actual["analyst_target_mean_price"] is None
+    assert actual["analyst_target_high_price"] is None
+    assert actual["analyst_target_low_price"] is None
+    assert actual["analyst_opinion_count"] in (None, 0)
+    assert actual["analyst_score"] == 82.5
+    assert "consensus price target" in actual["optional_missing_inputs"]
+    assert f["targetMeanPrice"] is bad  # raw evidence remains inspectable
+
+
+def test_infinite_target_cannot_confirm_technical_projection():
+    t = {"atr": 3, "ema20": 99, "ema50": 98, "rsi": 60,
+         "change20_pct": 4, "relative_volume": 1.3, "high20": 103, "high52": 110}
+    assert forward_target_plan(t, {"targetMeanPrice": float("inf")}, 100) == forward_target_plan(t, {}, 100)
