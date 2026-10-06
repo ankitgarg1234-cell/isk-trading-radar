@@ -74,40 +74,40 @@ def test_owned_buy_zone_does_not_imply_second_purchase_without_explicit_add():
     assert system_signal(a,True) == "BUY"
 
 
-def test_whole_share_rounding_uses_nearest_score_target(monkeypatch):
+def test_whole_share_rounding_uses_nearest_continuous_score_target():
     import app.portfolio_engine as pe
     a=sample_analysis()
-    a["price"]=450
-    a["levels"]["stop"]=390
-    monkeypatch.setattr(pe,"candidate_rank_score",lambda _a:{"score":78})
+    a["deterministic_score"]=65
+    a["price"]=600
+    a["levels"]["stop"]=590
     s=pe.suggested_position_size(a,cash=7000,reserve_cash=0,portfolio_value=10000,profile="MEDIUM",fx_rate_to_base=1,whole_shares=True)
-    assert s["target_allocation_pct"] == 4.0
+    assert s["target_allocation_pct"] == 5.0
     assert s["score_target_shares_raw"] < 1
     assert s["shares"] == 1
 
 
-def test_whole_share_rounding_repairs_near_two_share_target(monkeypatch):
+def test_whole_share_rounding_repairs_near_two_share_continuous_target():
     import app.portfolio_engine as pe
     a=sample_analysis()
-    a["price"]=108
-    a["levels"]["stop"]=100
-    monkeypatch.setattr(pe,"candidate_rank_score",lambda _a:{"score":72.5})
+    a["deterministic_score"]=65
+    a["price"]=300
+    a["levels"]["stop"]=290
     s=pe.suggested_position_size(a,cash=7000,reserve_cash=0,portfolio_value=10000,profile="MEDIUM",fx_rate_to_base=1,whole_shares=True)
-    assert s["target_allocation_pct"] == 2.0
+    assert s["target_allocation_pct"] == 5.0
     assert 1.5 < s["score_target_shares_raw"] < 2.0
     assert s["shares"] == 2
 
 
-def test_whole_share_rounding_never_breaks_15pct_position_cap(monkeypatch):
+def test_whole_share_rounding_never_breaks_40pct_safety_cap():
     import app.portfolio_engine as pe
     a=sample_analysis()
+    a["deterministic_score"]=100
     a["price"]=800
-    a["levels"]["stop"]=760
-    monkeypatch.setattr(pe,"candidate_rank_score",lambda _a:{"score":99})
+    a["levels"]["stop"]=790
     s=pe.suggested_position_size(a,cash=10000,reserve_cash=0,portfolio_value=10000,profile="HIGH",fx_rate_to_base=1,whole_shares=True)
-    assert s["target_allocation_pct"] == 15.0
-    assert s["shares"] == 1
-    assert s["capital"] <= 1500
+    assert s["target_allocation_pct"] == 40.0
+    assert s["shares"] == 5
+    assert s["capital"] <= 4000
 
 
 def test_entry_attention_requires_minimum_0_4x_rr():
