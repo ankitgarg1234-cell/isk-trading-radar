@@ -249,7 +249,7 @@ class RadarService:
                 horizon = result.get("holding_horizon") or {}
                 pos_obj.entry_target = target_plan.get("base_target")
                 pos_obj.entry_stretch_target = target_plan.get("stretch_target")
-                pos_obj.entry_stop = (result.get("levels") or {}).get("stop")
+                pos_obj.entry_stop = (result.get("levels") or {}).get("entry_stop", (result.get("levels") or {}).get("stop"))
                 pos_obj.entry_horizon_days = horizon.get("max_days")
                 pos_obj.entry_plan_version = result.get("scoring_version")
                 db.commit()
