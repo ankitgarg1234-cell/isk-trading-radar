@@ -1,3 +1,4 @@
+import pytest
 from app.analysis_engine import score_bundle, fundamental_score, forward_target_plan, holding_horizon_plan, position_action, position_action_plan, analyst_score, parse_positions_from_text, portfolio_proposals
 from .helpers import bundle, strong_fundamentals, positive_news, negative_news
 
