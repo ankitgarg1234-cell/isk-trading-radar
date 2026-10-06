@@ -13,7 +13,9 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import func
 
-from .analysis_engine import SCORING_VERSION, CORE_MIN_AVG_DOLLAR_VOLUME, technicals, pct, fundamental_input_diagnostics
+from .analysis_engine import (SCORING_VERSION, CORE_MIN_AVG_DOLLAR_VOLUME, technicals, pct,
+                              fundamental_input_diagnostics, recalibrate_snapshot)
+from .config import settings
 from .db import SessionLocal, FullScanRun, FullScanResult, RadarCandidate
 from .market_evidence import transient_missing, positive
 from .trading_rules import entry_status, number
@@ -86,21 +88,39 @@ def compact_result(full, source="fresh_analysis"):
 
 
 def preflight(provider, symbol, session_date):
-    """Use the very same 1y daily input and liquidity calculation as scoring."""
-    chart = provider.chart(symbol, "1y", "1d")
-    rows, price, _, currency, _ = provider._rows_from_chart(chart)
-    quote = datetime.fromtimestamp(float(chart["meta"]["regularMarketTime"]), timezone.utc)
+    """Run the exact price/USD/20d-liquidity gates with a lightweight 1mo fetch.
+
+    The full scorer and quick scan both define 20d dollar liquidity as current
+    price multiplied by mean volume over the previous 20 daily bars. Fetching a
+    full year for every listed name did not change these gates.
+    """
+    if hasattr(provider, "quick_scan"):
+        quick = provider.quick_scan(symbol)
+        price = number(quick.get("price"))
+        currency = str(quick.get("currency") or "USD")
+        liquidity = number(quick.get("avg_dollar_volume_20"))
+        quote_raw = quick.get("quote_asof")
+        if not quote_raw:
+            raise ValueError("quote_timestamp_unavailable")
+        quote = datetime.fromisoformat(str(quote_raw).replace("Z", "+00:00")).astimezone(timezone.utc)
+        scan_score = number(quick.get("scan_score"))
+    else:
+        chart = provider.chart(symbol, "1mo", "1d")
+        rows, price, _, currency, _ = provider._rows_from_chart(chart)
+        quote = datetime.fromtimestamp(float(chart["meta"]["regularMarketTime"]), timezone.utc)
+        liquidity = technicals(rows, price)["avg_dollar_volume_20"]
+        scan_score = None
     if quote.astimezone(NY).date().isoformat() != session_date:
         raise ValueError("quote_session_mismatch")
-    if not rows or number(price) is None or price <= 0:
+    if price is None or price <= 0 or liquidity is None:
         raise ValueError("price_or_history_unavailable")
-    liquidity = technicals(rows, price)["avg_dollar_volume_20"]
     blocker = ("price_or_currency_invalid" if price < 5 or currency != "USD"
                else "liquidity_below_10m" if liquidity < CORE_MIN_AVG_DOLLAR_VOLUME else None)
     return {"symbol": symbol, "status": "excluded" if blocker else "awaiting_analysis",
         "price": price, "currency": currency, "avg_dollar_volume_20": liquidity,
-        "blocker": blocker, "quote_asof": quote.isoformat(), "collected_at": now().isoformat(),
-        "source": "same_scoring_price_and_liquidity_inputs", "qualified": False}
+        "scan_score": scan_score, "blocker": blocker, "quote_asof": quote.isoformat(),
+        "collected_at": now().isoformat(), "source": "lightweight_exact_20d_preflight",
+        "qualified": False}
 
 
 def summarize(results):
@@ -125,7 +145,7 @@ def accumulate(summary, row, delta=1):
         for gate, passed in (row.get("gate_pass") or {}).items():
             add(gates, gate, int(passed))
         if row["status"] == "scored":
-            add(counters, "cached_post_close", int(row.get("source") == "cached_post_close"))
+            add(counters, "cached_post_close", int(row.get("source") in {"cached_post_close", "cached_recalibrated_v20"}))
             add(missing, "analyst_score", int(row.get("missing_analyst", False)))
             add(missing, "transient_data_gap", int(row.get("transient_data_gap", False)))
             add(missing, "incomplete_fundamental_inputs", int(bool(row.get("fundamental_missing_inputs"))))
@@ -163,7 +183,8 @@ class FullUniverseScan:
                 price, liquidity = number(old.get("price")), number(old.get("avg_dollar_volume_20"))
                 if price is None or price <= 0 or liquidity is None or liquidity < 0:
                     continue
-                if row.status == "excluded" and old.get("source") == "same_scoring_price_and_liquidity_inputs":
+                if row.status == "excluded" and old.get("source") in {
+                        "same_scoring_price_and_liquidity_inputs", "lightweight_exact_20d_preflight"}:
                     blocker = ("price_or_currency_invalid" if price < 5 or old.get("currency") != "USD"
                                else "liquidity_below_10m" if liquidity < CORE_MIN_AVG_DOLLAR_VOLUME else None)
                     if blocker == old.get("blocker"):
@@ -298,10 +319,22 @@ class FullUniverseScan:
             collected = datetime.fromisoformat(full["asof"].replace("Z", "+00:00")).astimezone(NY)
             quote = datetime.fromisoformat(full["data_sources"]["price"]["quote_asof"].replace("Z", "+00:00")).astimezone(NY)
             f = full.get("fundamentals") or {}
-            if (full.get("scoring_version") == SCORING_VERSION and collected.date().isoformat() == session_date
-                    and collected.hour >= 16 and quote.date().isoformat() == session_date
+            session_close = datetime.combine(
+                datetime.fromisoformat(session_date).date(),
+                datetime.min.time(),
+                tzinfo=NY,
+            ).replace(hour=16)
+            if (collected >= session_close
+                    and quote.date().isoformat() == session_date
                     and (quote.hour * 60 + quote.minute) >= 950):
-                result = compact_result(full, "cached_post_close")
+                source = "cached_post_close"
+                if full.get("scoring_version") != SCORING_VERSION:
+                    migrated = recalibrate_snapshot(full)
+                    if migrated is None:
+                        return None
+                    full = migrated
+                    source = "cached_recalibrated_v20"
+                result = compact_result(full, source)
                 if not result["transient_data_gap"]:
                     return result
         except (KeyError, ValueError, TypeError):
@@ -327,11 +360,11 @@ class FullUniverseScan:
             if not session_date:
                 return
             # The normal after-hours cycle yields to this audit, preserving its provider budget.
-            with ThreadPoolExecutor(max_workers=4) as pool:
+            with ThreadPoolExecutor(max_workers=max(4, min(settings.quick_scan_workers, 12))) as pool:
                 while not self.stop_event.is_set():
                     if getattr(self.radar, "live_priority_window", self.radar.market_open)():
                         self._record(run_id, [], "paused_live_priority"); self.stop_event.wait(30); continue
-                    batch = self._pending(run_id, "pending", 32)
+                    batch = self._pending(run_id, "pending", 64)
                     if not batch:
                         break
                     def check(symbol):
@@ -341,6 +374,11 @@ class FullUniverseScan:
                             return {"symbol":symbol, "status":"retry_prefilter", "error":type(exc).__name__}
                     self._record(run_id, list(pool.map(check, batch)), "prefilter")
             for symbol in self._pending(run_id, "retry_prefilter", 10000):
+                if self.stop_event.is_set(): return
+                while (getattr(self.radar, "live_priority_window", self.radar.market_open)()
+                       and not self.stop_event.is_set()):
+                    self._record(run_id, [], "paused_live_priority")
+                    self.stop_event.wait(15)
                 if self.stop_event.is_set(): return
                 try: result = preflight(self.radar.provider, symbol, session_date)
                 except Exception as exc: result = {"symbol":symbol,"status":"error","error":type(exc).__name__,"stage":"prefilter"}
