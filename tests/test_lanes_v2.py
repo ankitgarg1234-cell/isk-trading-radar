@@ -259,12 +259,10 @@ def test_existing_position_risk_is_subtracted_before_add_sizing():
     assert sized["capital"] <= 5_000.01
 
 
-def test_paper_engine_executes_only_explicit_add_toward_score_target():
+def test_paper_engine_does_not_resize_existing_position_after_sizing_policy_change():
     now = datetime.now(timezone.utc)
     a = _core_payload("ADDME", score=100, price=100)
     a["levels"]["stop"] = 95
-    # Persisted global state can still look like a new-entry BUY. The paper
-    # cycle must re-evaluate it with the actual position and derive ADD.
     a["action"] = "BUY NOW"
     rank = candidate_rank_score(a)["score"]
     with SessionLocal() as db:
@@ -275,7 +273,7 @@ def test_paper_engine_executes_only_explicit_add_toward_score_target():
         ))
         db.add(PaperPosition(
             account="Optimizer Paper", symbol="ADDME", shares=10, avg_cost=100,
-            rank_score_at_entry=rank, reason="Core Quality Lane • Top-20 #1 BUY",
+            rank_score_at_entry=rank, reason="Core Quality Lane • existing position",
             opened_at=now,
         ))
         db.add(RadarCandidate(
@@ -287,10 +285,9 @@ def test_paper_engine_executes_only_explicit_add_toward_score_target():
     run_paper_cycle(BenchProvider(), entry_event=True)
     with SessionLocal() as db:
         pos = db.query(PaperPosition).filter(PaperPosition.symbol == "ADDME").one()
-        assert 10 < pos.shares <= 15
+        assert pos.shares == 10
         buys = db.query(PaperTrade).filter(PaperTrade.symbol == "ADDME", PaperTrade.side == "BUY").all()
-        assert len(buys) == 1
-        assert "ADD" in buys[0].reason
+        assert buys == []
 
 
 def test_core_lane_requires_market_cap_evidence():
