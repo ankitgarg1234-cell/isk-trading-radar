@@ -1124,7 +1124,7 @@ def score_bundle(bundle: dict) -> dict:
     breakdown = raw_breakdown
     return {
         "scoring_version": SCORING_VERSION,
-        "score_calibration": "quality-balanced-v21",
+        "score_calibration": "quality-balanced-v22-entry-stop",
         "score_weights": dict(DETERMINISTIC_WEIGHTS),
         "score_contributions": {k: round(v, 1) for k, v in score_contributions.items()},
         "currency": bundle.get("currency") or "USD",
