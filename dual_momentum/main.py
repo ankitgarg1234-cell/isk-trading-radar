@@ -14,7 +14,7 @@ from app.config import settings
 from .data import LiveDataSource
 from .db import DMCash, DMPosition, DMStrategyState, DMTrade, SessionLocal, get_or_create_cash, get_or_create_state, init_db
 from .portfolio import build_portfolio_plan
-from .rules import advance_stop, wilder_atr_series
+from .rules import StopState, advance_stop, wilder_atr_series
 
 app = FastAPI(title="Dual Momentum Radar", version="1.0.0")
 app.add_middleware(SessionMiddleware, secret_key=settings.session_secret, same_site="lax", https_only=False)
@@ -351,7 +351,23 @@ def record_trade(
             if debit > float(cash.cash_usd or 0) + 1e-9:
                 raise HTTPException(status_code=400, detail="Insufficient cash; borrowing and negative cash are prohibited")
             if position is None:
-                atr = float((signal or {}).get("atr14") or 0)
+                # Initial stop ATR must be from the session immediately preceding
+                # the actual opening fill, not merely the month-end snapshot.
+                source = LiveDataSource(price_workers=1)
+                try:
+                    prior_bars = [
+                        bar for bar in source.price_bars(symbol, "2y")
+                        if bar.date < effective_date
+                    ]
+                    atr_series = wilder_atr_series(prior_bars)
+                    atr = next(
+                        (float(value) for value in reversed(atr_series) if value is not None and float(value) > 0),
+                        0.0,
+                    )
+                except Exception:
+                    atr = 0.0
+                finally:
+                    source.close()
                 if atr <= 0:
                     raise HTTPException(status_code=400, detail="Preceding-session ATR14 unavailable; cannot establish the required initial stop")
                 position = DMPosition(
@@ -444,7 +460,7 @@ def refresh_stops():
                         if atr is None or atr <= 0:
                             continue
                         next_state = advance_stop(
-                            type("Stop", (), {"peak": float(position.peak), "stop": float(position.stop)})(),
+                            StopState(peak=float(position.peak), stop=float(position.stop), breached=False),
                             float(bar.close),
                             float(atr),
                         )
