@@ -527,7 +527,21 @@ def buy_levels(t: dict, price: float) -> dict:
     better_low = max(0.01, better - 0.35 * a)
     better_high = better + 0.25 * a
     breakout = h20 + 0.10 * a
-    stop = max(0.01, min(low20, e50) - 0.75 * a)
+    # Thesis stop: deep structural invalidation used for existing-position
+    # management. Do not use this wide stop to judge a new trade's R/R.
+    thesis_stop = max(0.01, min(low20, e50) - 0.75 * a)
+
+    # Entry stop: setup invalidation. It is intentionally tighter and tied to
+    # current volatility / EMA20 / breakout support. This is the denominator for
+    # entry R/R and new-position sizing.
+    entry_candidates = [
+        thesis_stop,
+        price - 1.25 * a,
+        min(price - 0.01, e20 - 0.35 * a),
+    ]
+    if price >= breakout:
+        entry_candidates.append(h20 - 0.50 * a)
+    entry_stop = max(0.01, min(price - 0.01, max(entry_candidates)))
     # Target is filled by forward_target_plan(). Keeping target construction out
     # of entry-level geometry prevents a distant historical 52-week high from
     # automatically becoming the reward assumption.
@@ -536,7 +550,8 @@ def buy_levels(t: dict, price: float) -> dict:
         k: round(v, 2)
         for k, v in {
             "buy_low": buy_low, "buy_high": buy_high, "better_low": better_low,
-            "better_high": better_high, "breakout": breakout, "stop": stop,
+            "better_high": better_high, "breakout": breakout,
+            "entry_stop": entry_stop, "thesis_stop": thesis_stop, "stop": thesis_stop,
             "do_not_chase": do_not_chase,
         }.items()
     }
@@ -1058,7 +1073,7 @@ def score_bundle(bundle: dict) -> dict:
     data_quality_pct = round(quality_points / 8 * 100, 1)
     decision_confidence = "high" if data_quality_pct >= 75 else "medium" if data_quality_pct >= 50 else "low"
     rr_up = (levels["target"] - price) / price if price else 0
-    rr_down = (price - levels["stop"]) / price if price else 1
+    rr_down = (price - (levels.get("entry_stop") or levels["stop"])) / price if price else 1
     rr = (rr_up / rr_down) if rr_down > 0 else 0
     analyst_confirmation = a_score / 20 if a_score is not None else 2.5
     scoring_raw = {
@@ -1170,7 +1185,7 @@ def entry_zone_state(levels: dict, price: float) -> str:
     corridor down to the better-buy zone remains entry-relevant until the stop
     / invalidation level is threatened.
     """
-    if price <= levels["stop"]:
+    if price <= (levels.get("thesis_stop") or levels["stop"]):
         return "INVALIDATED"
     if price > levels["do_not_chase"]:
         return "DO_NOT_CHASE"
