@@ -92,10 +92,10 @@ def test_extreme_unexplained_volume_cannot_enter_explosive_lane():
     assert result["promotion_risk"]["unexplained_extreme_volume"] is True
 
 
-def test_score_allocation_ladder_caps_at_fifteen_percent():
+def test_score_allocation_is_continuous_and_caps_at_forty_percent():
     cases = [
-        (67, 0), (68, 2), (74.9, 2), (75, 4), (80, 6), (85, 8),
-        (90, 10), (95, 12), (97.9, 12), (98, 15), (100, 15),
+        (64.9,0),(65,5),(68,9.2),(70,12),(72,14.8),(75,19),
+        (78,23.2),(80,26),(82,28.8),(85,33),(88,37.2),(90,40),(100,40),
     ]
     for score, expected in cases:
         assert score_target_allocation_pct(score) == expected
@@ -110,8 +110,8 @@ def test_score_sets_target_but_stop_risk_can_only_reduce_it():
         high, cash=100000, reserve_cash=0, portfolio_value=100000,
         profile="MEDIUM", fx_rate_to_base=1,
     )
-    assert sized["target_allocation_pct"] == 15
-    assert sized["capital"] <= 15000
+    assert sized["target_allocation_pct"] == 40
+    assert sized["capital"] <= 40000
 
     wide_stop = dict(high)
     wide_stop["levels"] = dict(high["levels"], stop=80)
@@ -120,7 +120,7 @@ def test_score_sets_target_but_stop_risk_can_only_reduce_it():
         profile="MEDIUM", fx_rate_to_base=1,
     )
     assert risk_capped["capital"] < sized["capital"]
-    assert risk_capped["target_allocation_pct"] == 15
+    assert risk_capped["target_allocation_pct"] == 40
 
 
 def test_paper_allocator_preserves_score_weighting_when_cash_constrained():
@@ -253,18 +253,16 @@ def test_existing_position_risk_is_subtracted_before_add_sizing():
         profile="MEDIUM", fx_rate_to_base=1, existing_value=10_000,
         whole_shares=False,
     )
-    assert sized["target_allocation_pct"] == 15
+    assert sized["target_allocation_pct"] == 40
     assert round(sized["existing_risk_amount"], 2) == 500.00
     assert round(sized["remaining_risk_budget"], 2) == 250.00
     assert sized["capital"] <= 5_000.01
 
 
-def test_paper_engine_executes_only_explicit_add_toward_score_target():
+def test_paper_engine_does_not_resize_existing_position_after_sizing_policy_change():
     now = datetime.now(timezone.utc)
     a = _core_payload("ADDME", score=100, price=100)
     a["levels"]["stop"] = 95
-    # Persisted global state can still look like a new-entry BUY. The paper
-    # cycle must re-evaluate it with the actual position and derive ADD.
     a["action"] = "BUY NOW"
     rank = candidate_rank_score(a)["score"]
     with SessionLocal() as db:
@@ -275,7 +273,7 @@ def test_paper_engine_executes_only_explicit_add_toward_score_target():
         ))
         db.add(PaperPosition(
             account="Optimizer Paper", symbol="ADDME", shares=10, avg_cost=100,
-            rank_score_at_entry=rank, reason="Core Quality Lane • Top-20 #1 BUY",
+            rank_score_at_entry=rank, reason="Core Quality Lane • existing position",
             opened_at=now,
         ))
         db.add(RadarCandidate(
@@ -287,10 +285,9 @@ def test_paper_engine_executes_only_explicit_add_toward_score_target():
     run_paper_cycle(BenchProvider(), entry_event=True)
     with SessionLocal() as db:
         pos = db.query(PaperPosition).filter(PaperPosition.symbol == "ADDME").one()
-        assert 10 < pos.shares <= 15
+        assert pos.shares == 10
         buys = db.query(PaperTrade).filter(PaperTrade.symbol == "ADDME", PaperTrade.side == "BUY").all()
-        assert len(buys) == 1
-        assert "ADD" in buys[0].reason
+        assert buys == []
 
 
 def test_core_lane_requires_market_cap_evidence():

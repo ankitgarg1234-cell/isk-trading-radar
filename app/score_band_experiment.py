@@ -13,14 +13,13 @@ from datetime import datetime, timezone
 
 from .portfolio_engine import (
     RISK_PROFILES, candidate_rank_score, entry_attention_signal,
-    suggested_position_size,
+    suggested_position_size, score_target_allocation_pct, CONTINUOUS_SCORE_SIZING,
 )
 from .analysis_engine import position_action, position_action_plan
 from .trading_rules import (MIN_DETERMINISTIC_SCORE, MIN_ENTRY_RISK_REWARD,
                             entry_check, qualification_check, signal_geometry)
 
-VERSION = "score-bands-paper-v1"
-BANDS = ((90, 40), (85, 30), (80, 20), (75, 15), (70, 10), (65, 5))
+VERSION = "continuous-score-sizing-v2"
 VARIANTS = ("complete_strategy",)
 
 
@@ -45,10 +44,8 @@ def number(value):
 
 
 def allocation_pct(score):
-    score = number(score)
-    if score is None or not 0 <= score <= 100:
-        return 0
-    return next((weight for minimum, weight in BANDS if score >= minimum), 0)
+    """Shared continuous target allocation for brand-new positions only."""
+    return score_target_allocation_pct(score)
 
 
 def timestamp(value):
@@ -63,7 +60,8 @@ def experiment_spec(profile="MEDIUM"):
     return {
         "version": VERSION, "starting_cash": 10000.0, "profile": profile, "active_accounts": 1,
         "risk_per_trade_pct": RISK_PROFILES[profile]["risk_per_trade_pct"],
-        "bands": list(BANDS), "min_deterministic": MIN_DETERMINISTIC_SCORE, "min_analyst": 75, "min_rr": MIN_ENTRY_RISK_REWARD,
+        "sizing_policy": "continuous_new_positions_only", "continuous_sizing": dict(CONTINUOUS_SCORE_SIZING),
+        "min_deterministic": MIN_DETERMINISTIC_SCORE, "min_analyst": 75, "min_rr": MIN_ENTRY_RISK_REWARD,
         "fee_bps": 10.0, "slippage_bps": 5.0, "fresh_seconds": 600,
         "initial_exit": "complete strategy: entry-time modeled stop; next fresh observation fill",
         "strong_momentum": "price >= EMA20 and RSI14 >= 50",
@@ -237,15 +235,18 @@ def _fill(book, mode, spec, a, observed):
         block(book, reason)
         return
     p = book["positions"].get(symbol)
-    if p and (p.get("harvested") or mode != "complete_strategy"):
-        block(book, "existing_position_no_add")
+    if p:
+        # Quantity policy changes apply only to positions opened after the
+        # change. Existing paper positions keep their current share count;
+        # profit-taking and exit logic remain active elsewhere.
+        block(book, "existing_position_qty_frozen")
         return
     if mode == "complete_strategy":
-        qty = proposed_quantity(fresh, book, spec, price, p)
+        qty = proposed_quantity(fresh, book, spec, price, None)
     else:
         sizing = suggested_position_size(fresh, cash=book["cash"], reserve_cash=0,
             portfolio_value=equity(book), profile=spec["profile"],
-            existing_value=(p["shares"] * price if p else 0), whole_shares=True)
+            existing_value=0, whole_shares=True)
         qty = int(sizing.get("shares") or 0)
     qty = min(qty, math.floor(book["cash"] / (price * (1 + spec["fee_bps"] / 10000))))
     if qty <= 0:

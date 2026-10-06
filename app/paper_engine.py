@@ -588,39 +588,20 @@ def run_paper_cycle(provider, *, force_rebalance: bool = False, entry_event: boo
                 shortlist_limit=settings.optimizer_shortlist_limit,
             )
 
-            # Allocate newly qualified names, explicit ADD signals, and qualified
-            # holdings that remain actionable but were undersized by old whole-share
-            # floor rounding. Score/risk/cash limits still determine the target.
+            # Continuous sizing applies only when a brand-new symbol is opened.
+            # Existing paper holdings keep their current quantity; no automatic
+            # ADD or target-repair resizing is performed after entry.
             current_by_symbol = {p.symbol: p for p in current}
             new_rows = [
                 r for r in plan["selected_new"]
                 if r["symbol"] not in current_by_symbol
             ]
-            add_rows = [
-                r for r in plan["visible"]
-                if r.get("owned") and r.get("optimizer_action") == "ADD"
-                and r["symbol"] in current_by_symbol
-            ]
-            # Keep existing qualified holdings aligned with their score-led whole-
-            # share target when the underlying entry signal is still actionable.
-            # This also repairs positions previously undersized by floor rounding.
-            repair_rows = [
-                r for r in plan["visible"]
-                if r.get("owned")
-                and r["symbol"] in current_by_symbol
-                and r.get("optimizer_action") != "ADD"
-                and r.get("entry_signal") in INVESTABLE_ENTRY_ACTIONS
-            ]
-            allocation_rows = (
-                [(r, False, "NEW") for r in new_rows]
-                + [(r, True, "ADD") for r in add_rows]
-                + [(r, True, "TARGET REPAIR") for r in repair_rows]
-            )
+            allocation_rows = [(r, False, "NEW") for r in new_rows]
 
             if allocation_rows:
                 # One sizing engine for dashboard and paper execution:
-                # Portfolio Priority score sets the target allocation; stop risk and
-                # cash can only reduce it. If aggregate desired capital exceeds cash,
+                # Deterministic score sets the initial target allocation; stop risk
+                # and cash can only reduce it. If aggregate desired capital exceeds cash,
                 # scale every target proportionally before whole-share rounding.
                 equity_now, _, _ = _equity(db, account, analyses)
                 fee_rate = max(0.0, settings.paper_trade_cost_bps) / 10000.0

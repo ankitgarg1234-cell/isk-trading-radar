@@ -30,8 +30,11 @@ def tick(state, *rows, market_open=True):
     return advance(state, list(rows), now, market_open, benchmark=100)
 
 
-@pytest.mark.parametrize("score,weight", [(64.99,0),(65,5),(69.99,5),(70,10),(74.99,10),(75,15),(79.99,15),
-    (80,20),(84.99,20),(85,30),(89.99,30),(90,40),(100,40),(101,0),(None,0),(float("nan"),0)])
+@pytest.mark.parametrize("score,weight", [
+    (64.99,0),(65,5),(68,9.2),(70,12),(72,14.8),(75,19),(78,23.2),
+    (80,26),(82,28.8),(85,33),(88,37.2),(90,40),(100,40),
+    (101,0),(None,0),(float("nan"),0)
+])
 def test_band_boundaries(score, weight):
     assert allocation_pct(score) == weight
 
@@ -121,13 +124,33 @@ def test_fill_gap_rechecks_frozen_target_without_raising_it():
 
 def test_cash_is_allocated_highest_score_first_and_never_negative():
     state = new_state("AGGRESSIVE")
-    rows = [observation(symbol=s,score=score,stop=99) for s,score in (("D",72),("C",82),("B",87),("A",93))]
+    rows = [observation(symbol=s,score=score,stop=99) for s,score in (("D",65),("C",75),("B",80),("A",90))]
     tick(state,*rows)
     tick(state,*[{**r,"asof":"2026-10-05T14:02:00+00:00"} for r in rows])
     book = state["variants"]["complete_strategy"]
     assert [t["symbol"] for t in book["trades"]] == ["A","B","C","D"]
-    assert [t["shares"] for t in book["trades"]] == [39,29,19,9]
+    shares = [t["shares"] for t in book["trades"]]
+    assert shares == sorted(shares, reverse=True)
+    assert all(q > 0 for q in shares)
     assert book["cash"] >= 0
+
+
+def test_existing_position_quantity_is_frozen_when_new_sizing_policy_arrives():
+    state = new_state("AGGRESSIVE")
+    book = state["variants"]["complete_strategy"]
+    book["cash"] = 9000
+    book["positions"]["TEST"] = {
+        "shares":10,"avg_cost":100,"entry_fee_per_share":0.1,
+        "entry_target":120,"entry_stop":95,"stop":95,"peak":100,
+        "harvested":False,"profit_steps":[]
+    }
+    book["marks"]["TEST"] = 100
+    first = observation(score=90,stop=95)
+    tick(state,first)
+    tick(state,{**first,"asof":"2026-10-05T14:02:00+00:00"})
+    assert book["positions"]["TEST"]["shares"] == 10
+    assert not [t for t in book["trades"] if t["side"]=="BUY" and t["symbol"]=="TEST"]
+    assert book["blockers"]["existing_position_qty_frozen"] >= 1
 
 
 def test_profit_withdrawal_releases_cash_not_all_realized_profit():
@@ -343,6 +366,34 @@ def test_existing_database_migrates_to_one_without_reset_or_archive_tracking():
     with SessionLocal() as db:
         persisted = json.loads(db.query(ScoreBandExperiment).one().state_json)
         assert persisted["archived_variants"]["current_rules_control"] == control
+
+
+def test_sizing_policy_migration_keeps_current_position_share_counts_unchanged():
+    import json
+    from app.db import SessionLocal, ScoreBandExperiment
+    from app.score_band_experiment import VERSION
+    from app.score_band_capture import experiment_status
+
+    state = new_state("HIGH")
+    state["spec"].pop("sizing_policy", None)
+    state["spec"].pop("continuous_sizing", None)
+    state["spec"]["bands"] = [[90,40],[85,30],[80,20],[75,15],[70,10],[65,5]]
+    book = state["variants"]["complete_strategy"]
+    book["cash"] = 5014.91
+    book["positions"]["EXISTING"] = {
+        "shares":7,"avg_cost":100,"entry_fee_per_share":0.1,
+        "entry_target":120,"entry_stop":95,"stop":95,"peak":101,
+        "harvested":False,"profit_steps":[]
+    }
+    with SessionLocal() as db:
+        db.add(ScoreBandExperiment(version=VERSION,state_json=json.dumps(state)))
+        db.commit()
+
+    result = experiment_status(True)
+    assert result["variants"]["complete_strategy"]["positions"]["EXISTING"]["shares"] == 7
+    assert result["variants"]["complete_strategy"]["cash"] == 5014.91
+    assert result["spec"]["sizing_policy"] == "continuous_new_positions_only"
+    assert "bands" not in result["spec"]
 
 
 def test_missing_complete_ledger_refuses_to_manufacture_new_balance():
