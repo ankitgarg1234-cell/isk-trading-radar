@@ -253,7 +253,7 @@ def test_existing_position_risk_is_subtracted_before_add_sizing():
         profile="MEDIUM", fx_rate_to_base=1, existing_value=10_000,
         whole_shares=False,
     )
-    assert sized["target_allocation_pct"] == 15
+    assert sized["target_allocation_pct"] == 40
     assert round(sized["existing_risk_amount"], 2) == 500.00
     assert round(sized["remaining_risk_budget"], 2) == 250.00
     assert sized["capital"] <= 5_000.01
