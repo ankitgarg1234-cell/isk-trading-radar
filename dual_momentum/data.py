@@ -300,10 +300,21 @@ class LiveDataSource:
         _, revenue_rows = self._best_fact_with_history(facts, REVENUE_TAGS, decision_date, 8)
         _, gross_rows = self._best_fact_with_history(facts, GROSS_PROFIT_TAGS, decision_date, 4)
 
-        revenue_values = [_safe_float(r.get("val")) for r in revenue_rows[-8:]]
-        revenue_values_clean = None if any(v is None for v in revenue_values) else [float(v) for v in revenue_values if v is not None]
-        gross_values = [_safe_float(r.get("val")) for r in gross_rows[-4:]]
-        gross_values_clean = None if any(v is None for v in gross_values) else [float(v) for v in gross_values if v is not None]
+        revenue_rows_8 = revenue_rows[-8:]
+        revenue_values = [_safe_float(r.get("val")) for r in revenue_rows_8]
+        revenue_values_clean = None if len(revenue_rows_8) < 8 or any(v is None for v in revenue_values) else [float(v) for v in revenue_values if v is not None]
+
+        # Gross profit must match the exact latest four revenue quarter-ends.
+        # A stale but otherwise valid gross-profit series is not silently mixed
+        # with a newer revenue TTM window.
+        gross_by_end = {str(r.get("end") or ""): r for r in gross_rows}
+        latest_revenue_rows = revenue_rows_8[-4:]
+        aligned_gross_rows = [gross_by_end.get(str(r.get("end") or "")) for r in latest_revenue_rows]
+        gross_values = [
+            _safe_float(r.get("val")) if r is not None else None
+            for r in aligned_gross_rows
+        ]
+        gross_values_clean = None if len(latest_revenue_rows) < 4 or any(v is None for v in gross_values) else [float(v) for v in gross_values if v is not None]
 
         sic_raw = submissions.get("sic")
         try:
@@ -317,7 +328,7 @@ class LiveDataSource:
             gross_values_clean,
             gross_margin_exempt=gross_margin_exempt,
         )
-        used_rows = (revenue_rows[-8:] if revenue_rows else []) + (gross_rows[-4:] if gross_rows else [])
+        used_rows = (revenue_rows_8 if revenue_rows_8 else []) + [r for r in aligned_gross_rows if r is not None]
         filed_dates = sorted({str(r.get("filed")) for r in used_rows if r.get("filed")})
         periods = sorted({str(r.get("end")) for r in used_rows if r.get("end")})
 
