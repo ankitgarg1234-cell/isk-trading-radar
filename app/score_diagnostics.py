@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import math
 
+from .trading_rules import MIN_DETERMINISTIC_SCORE
+
 
 def _number(value):
     try:
@@ -61,6 +63,7 @@ def scan_score_diagnostics(analyses):
         "analyzed": len(analyses), "valid_scores": len(scores),
         "invalid_scores": len(analyses) - len(scores),
         "maximum_score": scores[0]["deterministic_score"] if scores else None,
+        "score_at_least_65": sum(row["deterministic_score"] >= MIN_DETERMINISTIC_SCORE for row in scores),
         "score_at_least_70": sum(row["deterministic_score"] >= 70 for row in scores),
         "score_bins": bins, "missing_inputs": missing,
         "yahoo_fundamentals_unavailable": yahoo_unavailable,
