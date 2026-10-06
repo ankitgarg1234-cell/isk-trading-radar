@@ -17,7 +17,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from .config import settings
 from .db import SessionLocal, Position, AnalysisRequest, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, PortfolioPreference, PaperPosition
 from .market import YahooMarketProvider
-from .analysis_engine import score_bundle, position_action, position_action_plan, SCORING_VERSION
+from .analysis_engine import score_bundle, position_action, position_action_plan, SCORING_VERSION, recalibrate_snapshot
 from .market_evidence import recover_market_evidence, transient_missing, positive
 from .trading_rules import entry_status
 from .news_scoring import VERSION as NEWS_VERSION
@@ -859,8 +859,12 @@ class RadarService:
                     payload = json.loads(row.current_json or "{}")
                 except Exception:
                     continue
-                if not isinstance(payload, dict) or payload.get("scoring_version") != SCORING_VERSION:
+                if not isinstance(payload, dict):
                     continue
+                if payload.get("scoring_version") != SCORING_VERSION:
+                    payload = recalibrate_snapshot(payload)
+                    if payload is None:
+                        continue
                 rows_payloads.append((row.symbol, float(row.portfolio_rank_score or 0), payload))
 
         if not rows_payloads:
