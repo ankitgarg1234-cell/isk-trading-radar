@@ -18,7 +18,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: pip install -r dual_momentum_requirements.txt
+        run: pip install -r dual_momentum_requirements.txt requests
       - name: Run five-year dual momentum backtest
         run: python scripts/dual_momentum_backtest_5y.py
       - name: Upload result
