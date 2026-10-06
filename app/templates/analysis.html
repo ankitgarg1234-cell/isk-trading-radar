@@ -78,7 +78,7 @@
       <div><span>Average entry</span><b>${{ '%.2f'|format(d.get('position_plan').get('avg_cost') or 0) }}</b></div>
       <div><span>Anchored base target</span><b>${{ '%.2f'|format(d.get('position_plan').get('entry_target') or 0) }}</b></div>
       <div><span>Anchored stretch target</span><b>${{ '%.2f'|format(d.get('position_plan').get('entry_stretch_target') or 0) }}</b></div>
-      <div><span>Anchored invalidation</span><b>${{ '%.2f'|format(d.get('position_plan').get('entry_stop') or 0) }}</b></div>
+      <div><span>Anchored entry stop</span><b>${{ '%.2f'|format(d.get('position_plan').get('entry_stop') or 0) }}</b></div><div><span>Current thesis stop</span><b>${{ '%.2f'|format(d.get('position_plan').get('thesis_stop') or 0) }}</b></div>
       <div><span>Entry-plan R/R</span><b>{% if d.get('position_plan').get('entry_rr') is not none %}{{ '%.2f'|format(d.get('position_plan').get('entry_rr')) }}×{% else %}—{% endif %}</b></div>
       <div><span>Forward R/R</span><b>{{ '%.2f'|format(d.get('position_plan').get('forward_rr') or 0) }}×</b></div>
       <div><span>Days held</span><b>{{ d.get('position_plan').get('holding_days') if d.get('position_plan').get('holding_days') is not none else '—' }}</b></div>
