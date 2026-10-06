@@ -1,5 +1,26 @@
 # Fresh database and deterministic-score assurance — 6 October 2026
 
+## Production sector-benchmark omission (v18)
+
+The live v17 AAON response reported SIC 3585 and industry
+`Air-Cond & Warm Air Heatg Equip & Comm & Indl Refrig Equip`, but sector and
+benchmark were both absent. Sector therefore defaulted to 5/10. The SIC mapper
+covered industrial machinery through 3569 and resumed at 3600, leaving the
+3580–3599 refrigeration/service and miscellaneous machinery ranges unmapped.
+These now select the existing Industrials/XLI benchmark; no fixed points are
+added. The actual XLI observations still determine the sector component.
+
+The generic 6000–6799 finance branch also shadowed the explicit 6500–6599
+real-estate branch, while code 6798 lacked a code-only REIT fallback. Specific
+real-estate codes now precede the broad finance range. These numeric finance
+codes also precede keyword overrides, so health insurers and medical service
+plans choose Financial Services/XLF rather than healthcare-provider XLV.
+Twelve regression controls cover repaired gaps, insurers versus hospitals,
+and adjacent computer and financial codes. Definitions
+were checked against the official SEC SIC list:
+https://www.sec.gov/search-filings/standard-industrial-classification-sic-code-list
+SIC remains a broad fallback rather than a full GICS classification.
+
 ## Additional score-input corrections (v17)
 
 Two defects reproduced on the deployed v16 code. When verified SEC evidence

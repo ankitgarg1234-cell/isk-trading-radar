@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from app.analysis_engine import analyst_score, fundamental_score
-from app.market import YahooMarketProvider, SECFundamentalsProvider
+from app.market import YahooMarketProvider, SECFundamentalsProvider, sic_to_sector, SECTOR_ETF
 
 
 @pytest.mark.parametrize("quarter", [.3, .05, None])
@@ -79,3 +79,23 @@ def test_captured_wdc_sec_quarter_survives_provider_merge(monkeypatch):
     merged = provider.fundamentals("WDC")
     assert merged["quarterlyRevenueGrowth"] == pytest.approx(3747 / 2605 - 1)
     assert fundamental_score(merged)[0] == 19
+
+
+@pytest.mark.parametrize("code,description,sector,benchmark", [
+    # SEC SIC code-list classifications; AAON's description captured live.
+    (3585, "Air-Cond & Warm Air Heatg Equip & Comm & Indl Refrig Equip", "Industrials", "XLI"),
+    (3580, "REFRIGERATION & SERVICE INDUSTRY MACHINERY", "Industrials", "XLI"),
+    (3590, "MISC INDUSTRIAL & COMMERCIAL MACHINERY & EQUIPMENT", "Industrials", "XLI"),
+    (6500, "", "Real Estate", "XLRE"),
+    (6512, "OPERATORS OF NONRESIDENTIAL BUILDINGS", "Real Estate", "XLRE"),
+    (6798, "", "Real Estate", "XLRE"),
+    (6022, "", "Financial Services", "XLF"),
+    (6321, "ACCIDENT & HEALTH INSURANCE", "Financial Services", "XLF"),
+    (6324, "HOSPITAL & MEDICAL SERVICE PLANS", "Financial Services", "XLF"),
+    (6799, "INVESTORS, NEC", "Financial Services", "XLF"),
+    (3571, "", "Technology", "XLK"),
+    (8062, "GENERAL MEDICAL & SURGICAL HOSPITALS", "Healthcare", "XLV"),
+])
+def test_sector_range_gaps_and_specific_codes_choose_existing_benchmarks(code, description, sector, benchmark):
+    assert sic_to_sector(code, description) == sector
+    assert SECTOR_ETF[sic_to_sector(code, description)] == benchmark

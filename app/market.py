@@ -61,6 +61,13 @@ def sic_to_sector(sic: int | str | None, description: str = "") -> str | None:
         code = 0
     d = (description or "").lower()
 
+    # Finance/real-estate codes are unambiguous. A health insurer's
+    # description must not select the healthcare-provider benchmark.
+    if 6500 <= code <= 6599 or code == 6798:
+        return "Real Estate"
+    if 6000 <= code <= 6799:
+        return "Financial Services"
+
     # Strong keyword overrides for ambiguous manufacturing/service ranges.
     if any(x in d for x in ("pharmaceutical", "biological", "medical", "hospital", "health")):
         return "Healthcare"
@@ -77,10 +84,6 @@ def sic_to_sector(sic: int | str | None, description: str = "") -> str | None:
     if any(x in d for x in ("oil", "gas extraction", "petroleum", "coal")):
         return "Energy"
 
-    if 6000 <= code <= 6799:
-        return "Financial Services"
-    if 6500 <= code <= 6599:
-        return "Real Estate"
     if 4900 <= code <= 4999:
         return "Utilities"
     if 4800 <= code <= 4899 or 7800 <= code <= 7841:
@@ -97,7 +100,7 @@ def sic_to_sector(sic: int | str | None, description: str = "") -> str | None:
         return "Consumer Defensive"
     if 2300 <= code <= 2599 or 3100 <= code <= 3199 or 5200 <= code <= 5399 or 5500 <= code <= 5999 or 7000 <= code <= 7299:
         return "Consumer Cyclical"
-    if 1500 <= code <= 1799 or 3400 <= code <= 3569 or 3600 <= code <= 3649 or 3700 <= code <= 3799 or 4000 <= code <= 4799:
+    if 1500 <= code <= 1799 or 3400 <= code <= 3569 or 3580 <= code <= 3649 or 3700 <= code <= 3799 or 4000 <= code <= 4799:
         return "Industrials"
     return None
 
