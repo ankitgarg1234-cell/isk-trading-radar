@@ -10,7 +10,7 @@ history; it does not reconstruct inaccessible holdings or trades.
 
 ## What the score audit establishes
 
-The engine remains `2026-10-06-current-sec-aliases-v15`. Component caps are
+The final engine is `2026-10-06-completed-session-volume-v16`. Component caps are
 Fundamentals 20, Catalyst 15, News 15, Momentum 15, Sector 10, Valuation 10,
 Analyst confirmation 5 and Risk/Reward 10. Their total is 100. The shared
 qualification gates remain deterministic 70, Analyst 75 and unrounded entry
@@ -65,6 +65,34 @@ rejecting valid previous-session stock closes. Unavailable, stale or future
 index timestamps block starting the audit rather than create misleading errors
 across the universe. No trading-calendar date is guessed.
 
+## Production canary: completed-session volume omission
+
+After the fresh database was live, source and component checks passed on NVDA,
+MSFT and AVGO. They exposed another concrete input omission: the normalized
+volume calculation returned `quote is not from the current trading date` for
+all three previous-session closing quotes, simply because the calendar had
+rolled over. MSFT's full-session daily ratio was about 1.25, while normalized
+volume remained unknown; the scorer therefore withheld the existing three
+volume points and the target plan could not recognize its stronger trend.
+
+The provider now permits the latest completed session for closed-market
+research. It still uses actual five-minute regular-session volume buckets and
+requires complete current intervals, at least ten matched historical sessions,
+an observed closing quote within seven days, matching latest chart metadata and
+no later observed regular session. Incomplete, superseded and invalid observations
+remain unavailable. The original exchange observation date is preserved.
+Previous-session quotes remain rejected during the live regular-session clock;
+paper entries retain their independent ten-minute exchange-quote freshness check.
+The v16 version invalidates cached v15 decisions so older suppressed values are
+refreshed instead of mixed into the new scan. No volume multiplier or bonus point
+is invented to force a stock through 70.
+
+A fresh independent Yahoo intraday capture confirms MSFT's valid close-session
+volume is 19,628,576 versus 280,015,328/19 = 14,737,648.84 for the matched prior
+sessions: **1.331866x**. The original rule discarded this observation; v16 retains
+the exact source calculation. The captured timestamp/volume fixture and arithmetic
+control are committed with the fix.
+
 ## Validation
 
 - 270 focused scoring, filing, catalyst/valuation, shared gate, market-evidence,
@@ -76,7 +104,15 @@ across the universe. No trading-calendar date is guessed.
 - After the session-date change, all 28 full-scan and transfer checks passed,
   including six new pre-open and invalid-index controls.
 - Python compilation, dashboard JavaScript syntax and whitespace checks passed.
+- After the production-volume discovery, 238 affected market-input, scoring,
+  shared gate, scanner, full-scan, short-horizon, canonical strategy and trial
+  checks passed. Nine new controls cover pre-open/weekend complete sessions,
+  unchanged observation dates and rejection of stale/live/unfinished/missing/
+  superseded inputs.
+- The added real-source MSFT volume capture also passes its independent sum/mean
+  control; all 30 market-evidence tests pass with this final fixture.
 
 The legacy allocator failure is not represented as passing. Production uses the
-armed canonical complete-strategy account. No score weights, financial thresholds
-or model targets change in this recovery release.
+armed canonical complete-strategy account. Score weights, financial thresholds
+and target formulas are preserved; supplying correctly observed volume can change
+the target and R/R through those existing formulas.

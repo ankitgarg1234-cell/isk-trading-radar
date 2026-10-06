@@ -719,7 +719,7 @@ class YahooMarketProvider:
                     body.extend(chunk)
             payload = json.loads(body)
             chart = ((payload.get("chart") or {}).get("result") or [{}])[0]
-            evidence = matched_relative_volume(chart, quote_ts)
+            evidence = matched_relative_volume(chart, quote_ts, allow_completed_session=True)
         except Exception as exc:
             evidence = {"relative_volume": None, "status": f"unavailable ({type(exc).__name__})",
                         "source": "Yahoo Finance 5-minute chart", "basis": "same-time completed regular-session volume"}

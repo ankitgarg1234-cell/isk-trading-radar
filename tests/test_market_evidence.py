@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta, timezone
+import json
+from pathlib import Path
 import httpx
 import pytest
 from app.market_evidence import matched_relative_volume, NY, EndpointCache
@@ -29,6 +31,58 @@ def test_partial_bucket_and_extended_hours_are_excluded():
     assert result['relative_volume'] == 2
     assert result['current_volume'] == 8 * 200
     assert result['historical_sessions'] == 20
+
+
+@pytest.mark.parametrize('days_later', [1, 5])
+def test_closed_session_volume_survives_midnight_without_advancing_observation(days_later):
+    chart, day = intraday(datetime(2026, 10, 5, 16, 0, 1, tzinfo=NY))
+    chart['meta'] = {'regularMarketTime': day.timestamp()}
+    next_morning = (day + timedelta(days=days_later)).replace(hour=8, minute=0)
+    result = matched_relative_volume(chart, day.timestamp(), next_morning, allow_completed_session=True)
+    assert result['relative_volume'] == 2
+    assert result['current_volume'] == 78 * 200
+    assert result['historical_average_volume'] == 78 * 100
+    assert result['historical_sessions'] == 20
+    assert result['asof'] == day.isoformat()
+    assert 'latest completed' in result['basis']
+
+
+def test_previous_close_never_bypasses_live_quote_freshness():
+    chart, day = intraday(datetime(2026, 10, 5, 16, 0, 1, tzinfo=NY))
+    chart['meta'] = {'regularMarketTime': day.timestamp()}
+    opened = (day + timedelta(days=1)).replace(hour=10, minute=0)
+    assert matched_relative_volume(chart, day.timestamp(), opened, allow_completed_session=True)['relative_volume'] is None
+
+
+def test_captured_msft_close_uses_real_matching_full_session_volume():
+    captured = json.loads((Path(__file__).parent / 'fixtures/closed_session_volume_msft_2026_10_06.json').read_text())
+    quote = datetime.fromisoformat(captured['daily_quote_asof'])
+    result = matched_relative_volume(captured['chart'], quote.timestamp(),
+        datetime(2026, 10, 6, 8, tzinfo=NY), allow_completed_session=True)
+    assert result['historical_sessions'] == 19
+    assert result['current_volume'] == 19_628_576
+    assert result['historical_average_volume'] == pytest.approx(280_015_328 / 19)
+    assert result['relative_volume'] == pytest.approx(19_628_576 / (280_015_328 / 19))
+    assert result['asof'] == quote.astimezone(NY).isoformat()
+
+
+@pytest.mark.parametrize('change', ['unfinished', 'old', 'missing_meta', 'newer_meta', 'newer_bars', 'missing_bucket'])
+def test_closed_session_permission_does_not_fabricate_or_use_superseded_volume(change):
+    chart, day = intraday(datetime(2026, 10, 5, 16, 0, 1, tzinfo=NY))
+    chart['meta'] = {'regularMarketTime': day.timestamp()}
+    clock = (day + timedelta(days=1)).replace(hour=8, minute=0)
+    quote = day
+    if change == 'unfinished': quote = day.replace(hour=15, minute=59)
+    if change == 'old': clock += timedelta(days=8)
+    if change == 'missing_meta': chart.pop('meta')
+    if change == 'newer_meta': chart['meta']['regularMarketTime'] = clock.timestamp()
+    if change == 'newer_bars':
+        clock += timedelta(days=1)
+        chart['timestamp'].append(int((day+timedelta(days=1)).replace(hour=9,minute=30,second=0).timestamp()))
+        chart['indicators']['quote'][0]['volume'].append(100)
+    if change == 'missing_bucket': chart['indicators']['quote'][0]['volume'][-1] = None
+    result = matched_relative_volume(chart, quote.timestamp(), clock, allow_completed_session=True)
+    assert result['relative_volume'] is None
 
 
 @pytest.mark.parametrize('bad', [None, -1, float('nan'), float('inf')])

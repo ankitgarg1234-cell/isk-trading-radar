@@ -153,7 +153,7 @@ class EndpointCache:
         return data, status
 
 
-def matched_relative_volume(chart, quote_ts, now=None):
+def matched_relative_volume(chart, quote_ts, now=None, *, allow_completed_session=False):
     """Compare only completed regular-session five-minute buckets at the same time."""
     result = {"relative_volume": None, "status": "unavailable", "source": "Yahoo Finance 5-minute chart",
               "basis": "same-time completed regular-session volume / mean of up to 20 prior sessions",
@@ -161,9 +161,23 @@ def matched_relative_volume(chart, quote_ts, now=None):
     try:
         quote = datetime.fromtimestamp(float(quote_ts), timezone.utc).astimezone(NY)
         now = (now or datetime.now(timezone.utc)).astimezone(NY)
-        if quote.date() != now.date() or quote.weekday() >= 5:
-            raise ValueError("quote is not from the current trading date")
-        if 570 <= now.hour * 60 + now.minute < 960 and not 0 <= (now - quote).total_seconds() <= 600:
+        live_clock = now.weekday() < 5 and 570 <= now.hour * 60 + now.minute < 960
+        previous_close = quote.date() < now.date()
+        if quote.weekday() >= 5 or quote > now:
+            raise ValueError("invalid exchange quote date")
+        if previous_close:
+            # A closed-market audit can compare the latest completed session's
+            # full regular-session buckets. This permission never relaxes live
+            # quote freshness, accepts an unfinished historical session or uses
+            # a calendar-time multiplier to invent intraday volume.
+            if (not allow_completed_session or live_clock
+                    or quote.hour * 60 + quote.minute < 960
+                    or (now - quote).total_seconds() > 7 * 86400):
+                raise ValueError("quote is not from the current trading date")
+            latest_quote = datetime.fromtimestamp(float((chart.get("meta") or {})["regularMarketTime"]), timezone.utc).astimezone(NY)
+            if latest_quote.date() != quote.date() or latest_quote > now:
+                raise ValueError("quote is not the latest observed completed session")
+        if live_clock and not 0 <= (now - quote).total_seconds() <= 600:
             raise ValueError("stale exchange quote")
         cutoff = min(960, (quote.hour * 60 + quote.minute) // 5 * 5)
         if cutoff <= 570:
@@ -174,9 +188,13 @@ def matched_relative_volume(chart, quote_ts, now=None):
             raise ValueError("intraday bar limit exceeded")
         volumes = (((chart.get("indicators") or {}).get("quote") or [{}])[0]).get("volume") or []
         sessions = {}
+        latest_bar_date = None
         for i, ts in enumerate(timestamps):
             dt = datetime.fromtimestamp(float(ts), timezone.utc).astimezone(NY)
             minute = dt.hour * 60 + dt.minute
+            if (dt <= now and dt.weekday() < 5 and 570 <= minute < 960
+                    and i < len(volumes) and volumes[i] is not None):
+                latest_bar_date = max(latest_bar_date or dt.date(), dt.date())
             if dt.date() > quote.date() or dt.weekday() >= 5 or minute not in expected or dt.second:
                 continue
             try:
@@ -190,6 +208,8 @@ def matched_relative_volume(chart, quote_ts, now=None):
                 buckets[minute] = None
             else:
                 buckets[minute] = volume
+        if previous_close and latest_bar_date != quote.date():
+            raise ValueError("quote is not the latest intraday session")
         def total(buckets):
             if set(buckets) != expected or any(v is None for v in buckets.values()):
                 return None
@@ -206,6 +226,8 @@ def matched_relative_volume(chart, quote_ts, now=None):
         result.update(relative_volume=current / baseline, status="available", asof=quote.isoformat(),
                       cutoff=f"{cutoff // 60:02d}:{cutoff % 60:02d} America/New_York",
                       current_volume=current, historical_average_volume=baseline)
-    except (TypeError, ValueError, OverflowError, OSError) as exc:
+        if previous_close:
+            result["basis"] = "latest completed regular-session volume / mean of up to 20 prior complete sessions"
+    except (KeyError, TypeError, ValueError, OverflowError, OSError) as exc:
         result["status"] = f"unavailable ({exc})"
     return result
