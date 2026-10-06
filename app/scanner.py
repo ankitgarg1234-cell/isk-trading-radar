@@ -29,6 +29,10 @@ from .score_diagnostics import scan_score_diagnostics
 from .ai_engine import AIEngine
 
 NY = ZoneInfo("America/New_York")
+LIVE_DEEP_ANALYSIS_MAX = 12
+LIVE_PERSISTED_QUALIFIED_MAX = 6
+LIVE_STALE_REFRESH_MAX = 6
+
 
 
 
@@ -811,6 +815,20 @@ class RadarService:
             stale.extend(s for s in article_news.dirty_symbols(limit) if s not in stale)
         return stale[:limit]
 
+    def persisted_qualified_symbols(self, limit: int = 8) -> list[str]:
+        """Current best lane-qualified names, ranked from persisted analysis."""
+        if limit <= 0:
+            return []
+        with SessionLocal() as db:
+            rows = (
+                db.query(RadarCandidate.symbol)
+                .filter(RadarCandidate.lane_qualified == True)
+                .order_by(RadarCandidate.portfolio_rank_score.desc(), RadarCandidate.updated_at.desc())
+                .limit(limit)
+                .all()
+            )
+            return [r.symbol for r in rows]
+
     def preopen_warmup_symbols(self, limit: int = 32) -> list[str]:
         """Highest-value analysis queue for the 30-minute pre-open handoff.
 
@@ -827,16 +845,7 @@ class RadarService:
             self._preopen_warmed_symbols.clear()
 
         holdings = self.holding_symbols()
-        persisted: list[str] = []
-        with SessionLocal() as db:
-            rows = (
-                db.query(RadarCandidate.symbol)
-                .filter(RadarCandidate.lane_qualified == True)
-                .order_by(RadarCandidate.portfolio_rank_score.desc(), RadarCandidate.updated_at.desc())
-                .limit(max(8, limit // 2))
-                .all()
-            )
-            persisted = [r.symbol for r in rows]
+        persisted = self.persisted_qualified_symbols(limit=max(8, limit // 2))
         stale = self.stale_scoring_symbols(limit=max(8, limit // 3))
         priority = self.priority_symbols()[: settings.priority_deep_limit]
         discovered: list[str] = []
@@ -862,28 +871,38 @@ class RadarService:
 
 
     def candidate_symbols(self):
-        """Return the deep-analysis queue with holdings and stale scores first."""
+        """Return the live deep-analysis queue in decision-value order.
+
+        A market-open cycle must not spend its first minute repairing a long stale
+        backlog. Holdings and already-qualified names are refreshed first, followed
+        by fresh movers/priority names; stale-version and rotating broad-universe
+        work is carried behind them.
+        """
         holdings = self.holding_symbols()
-        stale = self.stale_scoring_symbols(limit=20)
+        persisted = self.persisted_qualified_symbols(limit=LIVE_PERSISTED_QUALIFIED_MAX)
         priority = self.priority_symbols()[: settings.priority_deep_limit]
         discovered = self.provider.discover(100)
         discovered.sort(key=lambda x: float(x.get("change_pct") or 0), reverse=True)
         discovery_symbols = [d["symbol"] for d in discovered[: settings.discovery_deep_candidates]]
+        stale = self.stale_scoring_symbols(limit=LIVE_STALE_REFRESH_MAX)
         broad = self._prefilter_universe(self._universe_slice())
         broad_symbols = [q["symbol"] for q in broad]
-        ordered = holdings + stale + priority + discovery_symbols + broad_symbols
+        ordered = holdings + persisted + discovery_symbols + priority + stale + broad_symbols
         return list(dict.fromkeys(s.upper() for s in ordered if s))
 
     def _deep_analysis_batch(self, symbols: list[str]) -> tuple[list[str], int]:
-        """Size from the actual queue and carry overflow into the next cycle.
+        """Keep each live cycle bounded while preserving deferred coverage.
 
-        Stale-score refreshes are additional work, not part of configured
-        discovery quotas. Never discard the rotating candidates at the tail.
-        Keep only ticker strings between cycles, with no retained market bundles.
+        Fresh decision-relevant names take precedence over yesterday's overflow;
+        the remainder is deduplicated and carried into later cycles. With current
+        provider latency a 12-name ceiling keeps a normal live cycle near the
+        sub-minute target instead of allowing a 40-48 name multi-minute block.
         """
         holdings = self.holding_symbols()
-        queued = list(dict.fromkeys(holdings + self._deferred_analysis_symbols + symbols))
-        budget = min(48, max(settings.scan_batch_size, len(queued)))
+        fresh = list(dict.fromkeys(holdings + symbols))
+        deferred = [s for s in self._deferred_analysis_symbols if s not in fresh]
+        queued = fresh + deferred
+        budget = min(LIVE_DEEP_ANALYSIS_MAX, max(1, settings.scan_batch_size), len(queued))
         batch = queued[:budget]
         self._deferred_analysis_symbols = queued[budget:]
         return batch, len(queued)
