@@ -16,7 +16,7 @@ from .portfolio_engine import RISK_PROFILES, ACTION_RANK, normalise_profile, sto
 from .paper_engine import paper_status, reset_paper, run_paper_cycle, manual_paper_add, manual_paper_close
 from .scanner import radar
 from .ai_engine import AIEngine
-from .score_band_capture import experiment_status
+from .score_band_capture import experiment_status, experiment_holding_symbols
 from . import article_news
 from .trading_rules import MIN_ENTRY_RISK_REWARD
 from .full_scan import FullUniverseScan
@@ -230,6 +230,10 @@ def _manual_reallocation_suggestion(position: dict, selected_new: list[dict]) ->
 def _dashboard_state(db):
     positions=db.query(Position).order_by(Position.symbol).all()
     paper_positions=db.query(PaperPosition).filter(PaperPosition.account=="Optimizer Paper").order_by(PaperPosition.symbol).all()
+    # The canonical score-band paper ledger is persisted separately from the
+    # legacy PaperPosition table. Treat its open and pending symbols as owned so
+    # they cannot reappear as new-entry candidates while already in-flight/held.
+    score_band_owned=set(experiment_holding_symbols())
     trades=db.query(Trade).order_by(Trade.created_at.desc()).limit(20).all()
     recent_analysis_rows=db.query(AnalysisRequest).order_by(AnalysisRequest.created_at.desc()).limit(100).all()
     analyses_req=[];seen_analysis_symbols=set()
@@ -260,7 +264,7 @@ def _dashboard_state(db):
         .order_by(RadarCandidate.portfolio_rank_score.desc(),RadarCandidate.updated_at.desc())
         .limit(200).all())
     have={c.symbol for c in candidates}
-    tracked_symbols={p.symbol for p in positions} | {p.symbol for p in paper_positions}
+    tracked_symbols={p.symbol for p in positions} | {p.symbol for p in paper_positions} | score_band_owned
     missing=[sym for sym in tracked_symbols if sym not in have]
     if missing:
         candidates += db.query(RadarCandidate).filter(RadarCandidate.symbol.in_(missing)).all()
@@ -372,7 +376,7 @@ def _dashboard_state(db):
             "symbol":p.symbol,"shares":p.shares,"avg_cost":p.avg_cost,
             "value_base":(price*p.shares*rate) if price and rate else 0.0,
         }
-    owned_symbols=set(owned) | set(paper_owned)
+    owned_symbols=set(owned) | set(paper_owned) | score_band_owned
 
     account=account_risk(risk_rows,cash,target_profile=risk_profile)
     portfolio_value=float(account.get("total") or cash)
@@ -465,7 +469,7 @@ def _dashboard_state(db):
         radar_views.append(view)
 
     approved_buy_symbols={r["symbol"] for r in optimizer["selected_new"]}
-    paper_owned_symbols=set(paper_owned)
+    paper_owned_symbols=set(paper_owned) | score_band_owned
     alerts=[]
     for a in raw_alerts:
         if _is_snoozed(a) or not _attentionworthy_alert(a):continue
