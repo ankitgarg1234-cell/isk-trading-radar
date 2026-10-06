@@ -244,6 +244,15 @@ def _scan_job(variant: str) -> None:
             state.scan_status = "READY"
             state.scan_finished_at = datetime.now(timezone.utc)
             state.error = None
+            print(
+                "Dual Momentum scan ready: decision=%s regime=%s universe=%s candidates=%s" % (
+                    snapshot.get("decision_date"),
+                    (snapshot.get("regime") or {}).get("state"),
+                    snapshot.get("universe_size"),
+                    len(snapshot.get("candidates") or []),
+                ),
+                flush=True,
+            )
 
             # Only verified PASS updates the incumbent's verified fundamental state.
             checks = snapshot.get("holding_checks") or {}
@@ -263,6 +272,7 @@ def _scan_job(variant: str) -> None:
             state.error = f"{type(exc).__name__}: {exc}"
             state.scan_finished_at = datetime.now(timezone.utc)
             db.commit()
+            print("Dual Momentum scan error: %s: %s" % (type(exc).__name__, exc), flush=True)
     finally:
         source.close()
         SCAN_LOCK.release()
