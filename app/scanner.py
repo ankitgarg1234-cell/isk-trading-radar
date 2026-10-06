@@ -19,7 +19,7 @@ from .db import SessionLocal, Position, AnalysisRequest, WatchlistItem, Analysis
 from .market import YahooMarketProvider
 from .analysis_engine import score_bundle, position_action, position_action_plan, SCORING_VERSION
 from .market_evidence import recover_market_evidence, transient_missing, positive
-from .trading_rules import entry_status
+from .trading_rules import entry_status, MIN_DETERMINISTIC_SCORE
 from .news_scoring import VERSION as NEWS_VERSION
 from . import article_news
 from .portfolio_engine import candidate_rank_score, build_optimizer_plan, normalise_profile, INVESTABLE_ENTRY_ACTIONS, MIN_ENTRY_RISK_REWARD
@@ -30,7 +30,8 @@ from .ai_engine import AIEngine
 
 NY = ZoneInfo("America/New_York")
 LIVE_DEEP_ANALYSIS_MAX = 12
-LIVE_PERSISTED_QUALIFIED_MAX = 6
+LIVE_PERSISTED_QUALIFIED_MAX = 8
+LIVE_NEAR_QUALIFIED_MAX = 8
 LIVE_STALE_REFRESH_MAX = 6
 
 
@@ -829,6 +830,47 @@ class RadarService:
             )
             return [r.symbol for r in rows]
 
+    def persisted_near_qualified_symbols(self, limit: int = 8) -> list[str]:
+        """High-quality 60-64.9 names kept warm internally, never shown as buys.
+
+        This queue prevents a good company sitting just below the 65 conviction
+        floor from disappearing for days. It still must cross every live entry
+        gate before it can reach the dashboard or paper account.
+        """
+        if limit <= 0:
+            return []
+        floor = max(60.0, float(MIN_DETERMINISTIC_SCORE) - 5.0)
+        out: list[str] = []
+        with SessionLocal() as db:
+            rows = (
+                db.query(RadarCandidate)
+                .filter(RadarCandidate.score >= floor, RadarCandidate.score < MIN_DETERMINISTIC_SCORE)
+                .order_by(RadarCandidate.portfolio_rank_score.desc(), RadarCandidate.updated_at.desc())
+                .limit(max(40, limit * 5))
+                .all()
+            )
+            for row in rows:
+                try:
+                    payload = json.loads(row.current_json or "{}")
+                except (TypeError, ValueError):
+                    continue
+                if payload.get("scoring_version") != SCORING_VERSION:
+                    continue
+                breakdown = payload.get("breakdown") or {}
+                analyst = payload.get("analyst_score")
+                if float(breakdown.get("Fundamentals") or 0) < 14:
+                    continue
+                if analyst is None or float(analyst) < 75:
+                    continue
+                if str(payload.get("fundamental_confidence") or "low").lower() not in {"medium", "high"}:
+                    continue
+                if payload.get("negative_news_override") or (payload.get("promotion_risk") or {}).get("hard_reject"):
+                    continue
+                out.append(row.symbol)
+                if len(out) >= limit:
+                    break
+        return out
+
     def preopen_warmup_symbols(self, limit: int = 32) -> list[str]:
         """Highest-value analysis queue for the 30-minute pre-open handoff.
 
@@ -846,6 +888,7 @@ class RadarService:
 
         holdings = self.holding_symbols()
         persisted = self.persisted_qualified_symbols(limit=max(8, limit // 2))
+        near_qualified = self.persisted_near_qualified_symbols(limit=max(6, limit // 4))
         stale = self.stale_scoring_symbols(limit=max(8, limit // 3))
         priority = self.priority_symbols()[: settings.priority_deep_limit]
         discovered: list[str] = []
@@ -860,7 +903,7 @@ class RadarService:
         # rotate across the 30-minute window instead of repeatedly consuming the
         # whole batch with the same persisted Top 20.
         ordered = list(dict.fromkeys(
-            s.upper() for s in holdings + persisted + priority + discovered + stale if s
+            s.upper() for s in holdings + persisted + near_qualified + priority + discovered + stale if s
         ))
         holdings_set = {s.upper() for s in holdings}
         fresh = [
@@ -880,6 +923,7 @@ class RadarService:
         """
         holdings = self.holding_symbols()
         persisted = self.persisted_qualified_symbols(limit=LIVE_PERSISTED_QUALIFIED_MAX)
+        near_qualified = self.persisted_near_qualified_symbols(limit=LIVE_NEAR_QUALIFIED_MAX)
         priority = self.priority_symbols()[: settings.priority_deep_limit]
         discovered = self.provider.discover(100)
         discovered.sort(key=lambda x: float(x.get("change_pct") or 0), reverse=True)
@@ -887,7 +931,7 @@ class RadarService:
         stale = self.stale_scoring_symbols(limit=LIVE_STALE_REFRESH_MAX)
         broad = self._prefilter_universe(self._universe_slice())
         broad_symbols = [q["symbol"] for q in broad]
-        ordered = holdings + persisted + priority + discovery_symbols + stale + broad_symbols
+        ordered = holdings + persisted + near_qualified + priority + discovery_symbols + stale + broad_symbols
         return list(dict.fromkeys(s.upper() for s in ordered if s))
 
     def _deep_analysis_batch(self, symbols: list[str]) -> tuple[list[str], int]:
@@ -924,6 +968,7 @@ class RadarService:
             "visible_limit": settings.optimizer_visible_limit,
             "paper_trade_cost_bps": settings.paper_trade_cost_bps,
             "investable_entry_actions": sorted(INVESTABLE_ENTRY_ACTIONS),
+            "min_deterministic_score": MIN_DETERMINISTIC_SCORE,
             "min_entry_risk_reward": MIN_ENTRY_RISK_REWARD,
             # Explicitly encode the uncapped policy. These values are intentionally
             # absent as eligibility gates and changing legacy env vars must not
