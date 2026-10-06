@@ -1314,6 +1314,13 @@ class YahooMarketProvider:
             and avg_dollar_volume >= 20_000_000
             and (change_5 >= 3.0 or change_20 >= 7.0 or rel_vol >= 1.5 or near_high >= 0.985)
         )
+        quote_asof = None
+        try:
+            quote_ts = (chart.get("meta") or {}).get("regularMarketTime")
+            if quote_ts:
+                quote_asof = datetime.fromtimestamp(float(quote_ts), timezone.utc).isoformat()
+        except (TypeError, ValueError, OverflowError):
+            pass
         return {
             "symbol": symbol, "price": current, "previous_close": previous,
             "currency": currency, "exchange": exchange,
@@ -1321,6 +1328,7 @@ class YahooMarketProvider:
             "relative_volume": rel_vol, "dollar_volume": dollar_volume,
             "avg_dollar_volume_20": avg_dollar_volume,
             "near_20d_high": near_high, "scan_score": scan_score, "qualifies": qualifies,
+            "quote_asof": quote_asof,
         }
 
 
