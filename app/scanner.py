@@ -17,7 +17,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from .config import settings
 from .db import SessionLocal, Position, AnalysisRequest, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, PortfolioPreference, PaperPosition
 from .market import YahooMarketProvider
-from .analysis_engine import score_bundle, position_action, position_action_plan, SCORING_VERSION
+from .analysis_engine import score_bundle, position_action, position_action_plan, SCORING_VERSION, recalibrate_snapshot
 from .market_evidence import recover_market_evidence, transient_missing, positive
 from .trading_rules import entry_status
 from .news_scoring import VERSION as NEWS_VERSION
@@ -31,6 +31,7 @@ from .ai_engine import AIEngine
 NY = ZoneInfo("America/New_York")
 LIVE_DEEP_ANALYSIS_MAX = 12
 LIVE_PERSISTED_QUALIFIED_MAX = 6
+LIVE_QUALIFIED_RECHECK_MAX = 100
 LIVE_STALE_REFRESH_MAX = 6
 
 
@@ -158,6 +159,8 @@ class RadarService:
         self._last_strategic_enrich_at: datetime | None = None
         self._preopen_warmup_date: str | None = None
         self._preopen_warmed_symbols: set[str] = set()
+        self.last_live_qualified_rechecked = 0
+        self.last_live_ready_count = 0
 
     def market_open(self, now=None):
         """Regular-session V1 gate: Mon-Fri, 09:30-16:00 America/New_York.
@@ -830,6 +833,83 @@ class RadarService:
             )
             return [r.symbol for r in rows]
 
+    def live_ready_qualified_symbols(self, limit: int = LIVE_QUALIFIED_RECHECK_MAX) -> list[str]:
+        """Cheaply re-check every recent qualified name against the live quote.
+
+        The exhaustive audit can discover dozens of qualified names, but only a
+        bounded deep-analysis batch can run each live cycle. A quote-only recheck
+        prevents those qualified names from starving behind the rotating broad
+        universe: anything whose saved setup is actionable at the current price
+        is promoted to the front for a full fresh analysis before paper action.
+        """
+        if limit <= 0:
+            return []
+        cutoff = datetime.now(timezone.utc) - timedelta(days=4)
+        rows_payloads: list[tuple[str, float, dict]] = []
+        with SessionLocal() as db:
+            rows = (
+                db.query(RadarCandidate)
+                .filter(RadarCandidate.lane_qualified == True, RadarCandidate.updated_at >= cutoff)
+                .order_by(RadarCandidate.portfolio_rank_score.desc(), RadarCandidate.updated_at.desc())
+                .limit(limit)
+                .all()
+            )
+            for row in rows:
+                try:
+                    payload = json.loads(row.current_json or "{}")
+                except Exception:
+                    continue
+                if not isinstance(payload, dict):
+                    continue
+                if payload.get("scoring_version") != SCORING_VERSION:
+                    payload = recalibrate_snapshot(payload)
+                    if payload is None:
+                        continue
+                rows_payloads.append((row.symbol, float(row.portfolio_rank_score or 0), payload))
+
+        if not rows_payloads:
+            self.last_live_qualified_rechecked = 0
+            self.last_live_ready_count = 0
+            return []
+
+        ready: list[tuple[float, str]] = []
+        workers = max(1, min(settings.quick_scan_workers, 16, len(rows_payloads)))
+
+        def recheck(item):
+            symbol, rank_score, payload = item
+            q = self.provider.quick_scan(symbol)
+            price = float((q or {}).get("price") or 0)
+            if price <= 0:
+                return None
+            live = dict(payload)
+            live["price"] = price
+            if (q or {}).get("previous_close") is not None:
+                live["previous_close"] = q.get("previous_close")
+            technicals = dict(live.get("technicals") or {})
+            if (q or {}).get("relative_volume") is not None:
+                # This is only a priority hint. A promoted candidate receives a
+                # full analysis before it can reach paper/dashboard execution.
+                technicals["relative_volume"] = q.get("relative_volume")
+            live["technicals"] = technicals
+            status = entry_status(live, price)
+            return (rank_score, symbol) if status.get("ready") else None
+
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = [pool.submit(recheck, item) for item in rows_payloads]
+            for fut in as_completed(futures):
+                try:
+                    row = fut.result()
+                    if row:
+                        ready.append(row)
+                except Exception:
+                    continue
+
+        ready.sort(key=lambda x: (-x[0], x[1]))
+        self.last_live_qualified_rechecked = len(rows_payloads)
+        self.last_live_ready_count = len(ready)
+        return [symbol for _, symbol in ready]
+
+
     def preopen_warmup_symbols(self, limit: int = 32) -> list[str]:
         """Highest-value analysis queue for the 30-minute pre-open handoff.
 
@@ -880,6 +960,7 @@ class RadarService:
         work is carried behind them.
         """
         holdings = self.holding_symbols()
+        live_ready = self.live_ready_qualified_symbols()
         persisted = self.persisted_qualified_symbols(limit=LIVE_PERSISTED_QUALIFIED_MAX)
         priority = self.priority_symbols()[: settings.priority_deep_limit]
         discovered = self.provider.discover(100)
@@ -888,7 +969,7 @@ class RadarService:
         stale = self.stale_scoring_symbols(limit=LIVE_STALE_REFRESH_MAX)
         broad = self._prefilter_universe(self._universe_slice())
         broad_symbols = [q["symbol"] for q in broad]
-        ordered = holdings + persisted + priority + discovery_symbols + stale + broad_symbols
+        ordered = holdings + live_ready + persisted + priority + discovery_symbols + stale + broad_symbols
         return list(dict.fromkeys(s.upper() for s in ordered if s))
 
     def _deep_analysis_batch(self, symbols: list[str]) -> tuple[list[str], int]:
@@ -1215,6 +1296,8 @@ class RadarService:
             "universe_size": self.universe_size,
             "universe_prefiltered": self.last_universe_prefiltered,
             "universe_deep_candidates": self.last_universe_candidates,
+            "qualified_pool_rechecked": self.last_live_qualified_rechecked,
+            "qualified_pool_actionable_hint": self.last_live_ready_count,
             "universe_core_candidates": self.last_universe_core_candidates,
             "universe_explosive_candidates": self.last_universe_explosive_candidates,
             "universe_start": self.last_universe_start,

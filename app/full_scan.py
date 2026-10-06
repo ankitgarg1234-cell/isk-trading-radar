@@ -28,6 +28,7 @@ KEY = "latest"
 REUSABLE_PREFILTER_VERSIONS = {
     "2026-10-06-score-evidence-integrity-v19",
     "2026-10-06-sec-filing-coverage-v20",
+    "2026-10-06-actionable-entry-v22",
 }
 
 
@@ -84,7 +85,9 @@ def compact_result(full, source="fresh_analysis"):
         "missing_analyst": analyst is None,
         "transient_data_gap": bool(temporary_gap),
         "target": number((full.get("target_plan") or {}).get("base_target")),
-        "stop": number((full.get("levels") or {}).get("stop"))}
+        "entry_stop": number((full.get("levels") or {}).get("entry_stop")),
+        "thesis_stop": number((full.get("levels") or {}).get("thesis_stop") or (full.get("levels") or {}).get("stop")),
+        "stop": number((full.get("levels") or {}).get("entry_stop") or (full.get("levels") or {}).get("stop"))}
 
 
 def preflight(provider, symbol, session_date):
@@ -464,7 +467,7 @@ class FullUniverseScan:
             run = db.get(FullScanRun, KEY)
             if not run: return ""
             fields = ["symbol","status","price","avg_dollar_volume_20","deterministic_score","analyst_score",
-                      "risk_reward","qualified","ready_at_quote","lane","blocker","analyst_status",
+                      "target","entry_stop","thesis_stop","risk_reward","qualified","ready_at_quote","lane","blocker","analyst_status",
                       "valuation_status","market_cap_status","quote_asof","collected_at","source","error"]
             component_columns = {"fundamentals_points":"Fundamentals", "catalyst_points":"Catalyst",
                 "news_points":"News", "momentum_points":"Momentum", "sector_points":"Sector",

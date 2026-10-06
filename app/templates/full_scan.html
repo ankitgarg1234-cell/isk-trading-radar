@@ -5,7 +5,7 @@
 <main class="container"><section class="panel">
 <p>Checks every listed stock against the same price and liquidity gates, then fully scores every survivor. No top-candidate quota.</p>
 <p>The deterministic score combines company fundamentals with the current trade setup. Missing financial inputs can remove credit; a low score alone does not prove the company is weak. The download includes all eight component scores and financial-input gaps.</p>
-<p><b>Fundamentals ≥14/20 · Deterministic ≥70 · Analyst ≥75 · R/R ≥0.4× · Core or Explosive trade eligibility</b></p>
+<p><b>Fundamentals ≥14/20 · Deterministic ≥65 · Analyst ≥75 · R/R ≥0.4× · Core or Explosive trade eligibility</b></p>
 <p>After-hours analysis only. A ready entry at the saved quote still requires a fresh market-open check before paper execution.</p>
 <button class="btn primary" id="start">Start / resume full scan</button>
 <a class="btn secondary" href="/api/full-scan/results.csv">Download all stock results</a>
@@ -24,7 +24,7 @@
 <div class="table-wrap"><table><thead><tr><th>Input</th><th>Stocks missing it</th></tr></thead><tbody id="inputs"></tbody></table></div>
 </section></main>
 <script>
-const labels={fundamentals_14:'Fundamentals ≥14/20',analyst_75:'Analyst ≥75',fundamentals_and_analyst:'Both Fundamentals and Analyst pass',deterministic_70:'Overall deterministic ≥70',risk_reward_0_4:'R/R ≥0.4×',lane:'Combined Core / Explosive trade eligibility',qualified:'All qualification gates',ready_at_quote:'Entry trigger ready at saved quote'};
+const labels={fundamentals_14:'Fundamentals ≥14/20',analyst_75:'Analyst ≥75',fundamentals_and_analyst:'Both Fundamentals and Analyst pass',deterministic_65:'Overall deterministic ≥65',risk_reward_0_4:'R/R ≥0.4×',lane:'Combined Core / Explosive trade eligibility',qualified:'All qualification gates',ready_at_quote:'Entry trigger ready at saved quote'};
 const componentMax={'Fundamentals':20,'Catalyst':15,'News':15,'Momentum':15,'Sector':10,'Valuation':10,'Analyst confirmation':5,'Risk/Reward':10};
 const text=(id,value)=>document.getElementById(id).textContent=value;
 const numeric=(v,d=1)=>typeof v==='number'?v.toFixed(d):'Unavailable';
@@ -41,7 +41,7 @@ table('inputs',Object.entries(inputLabels).map(([k,label])=>[label,m['fundamenta
 table('components',Object.entries(componentMax).map(([k,max])=>[k,numeric((s.mean_score_components||{})[k],2),max]));
 text('time',`Session: ${d.session_date} · Updated: ${d.updated_at} · Scoring: ${d.scoring_version}${d.worker_running?' · Scan running':' · Worker idle'}`);
 table('gates',Object.entries(labels).map(([k,label])=>[label,(s.independent_gate_pass_counts||{})[k]||0]));
-text('qualifierCount',`${d.qualified_count} stocks qualify so far. Results remain provisional until the full scan finishes.`);
+const readyCount=(s.independent_gate_pass_counts||{}).ready_at_quote||0; text('qualifierCount',`${d.qualified_count} stocks qualify so far; ${readyCount} had an entry trigger at the saved quote. The live dashboard shows only names that remain actionable after a fresh market-open check. Results remain provisional until the full scan finishes.`);
 table('stocks',(d.qualified_stocks||[]).map(r=>{const a=document.createElement('a');a.href='/analysis/'+encodeURIComponent(r.symbol);a.textContent=r.symbol;return [a,numeric(r.price,2),numeric(r.deterministic_score),numeric(r.analyst_score),numeric(r.risk_reward,3)+'×',r.lane||'—',r.ready_at_quote?'Ready at saved quote':r.reason];}));
 table('blockers',Object.entries(s.first_blocker_counts||{}).filter(([,n])=>n>0).sort((a,b)=>b[1]-a[1]).map(([k,n])=>[k.replaceAll('_',' '),n]));
 }catch(e){text('progress',e.message);}}

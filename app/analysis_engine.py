@@ -54,7 +54,7 @@ CORE_MIN_AVG_DOLLAR_VOLUME = 10_000_000.0
 EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME = 20_000_000.0
 MIN_FUNDAMENTAL_SCORE = 14.0  # 70/100 normalized fundamental quality
 EXPLOSIVE_MAX_TRADING_SESSIONS = 20
-SCORING_VERSION = "2026-10-06-actionable-entry-v22"
+SCORING_VERSION = "2026-10-06-actionable-entry-v23"
 
 # The raw component models remain independently auditable at their historical
 # maxima. Deterministic conviction is now a calibrated 100-point blend that
@@ -138,6 +138,7 @@ def calibrated_score_components(raw: dict[str, float], rr: float | None) -> dict
 RECALIBRATABLE_SCORING_VERSIONS = {
     "2026-10-06-sec-filing-coverage-v20",
     "2026-10-06-deterministic-calibration-v21",
+    "2026-10-06-actionable-entry-v22",
 }
 
 
@@ -194,7 +195,7 @@ def recalibrate_snapshot(snapshot: dict) -> dict | None:
     out.update(lane_info)
     out.update({
         "scoring_version": SCORING_VERSION,
-        "score_calibration": "quality-balanced-v22-entry-stop",
+        "score_calibration": "quality-balanced-v23-entry-stop-floor",
         "score_weights": dict(DETERMINISTIC_WEIGHTS),
         "score_contributions": {k: round(v, 1) for k, v in contributions.items()},
         "deterministic_score": total,
@@ -549,7 +550,13 @@ def buy_levels(t: dict, price: float) -> dict:
     ]
     if price >= breakout:
         entry_candidates.append(h20 - 0.50 * a)
-    entry_stop = max(0.01, min(price - 0.01, max(entry_candidates)))
+    raw_entry_stop = max(entry_candidates)
+    # Never let the setup stop collapse to a token/penny distance below price.
+    # A minimum of 0.75 ATR or 1.5% of price keeps R/R economically meaningful
+    # while still remaining materially tighter than the structural thesis stop.
+    min_entry_risk = max(0.75 * a, price * 0.015)
+    max_valid_entry_stop = price - min_entry_risk
+    entry_stop = max(0.01, min(raw_entry_stop, max_valid_entry_stop))
     # Target is filled by forward_target_plan(). Keeping target construction out
     # of entry-level geometry prevents a distant historical 52-week high from
     # automatically becoming the reward assumption.
@@ -560,6 +567,7 @@ def buy_levels(t: dict, price: float) -> dict:
             "buy_low": buy_low, "buy_high": buy_high, "better_low": better_low,
             "better_high": better_high, "breakout": breakout,
             "entry_stop": entry_stop, "thesis_stop": thesis_stop, "stop": thesis_stop,
+            "entry_min_risk": min_entry_risk,
             "do_not_chase": do_not_chase,
         }.items()
     }
@@ -849,7 +857,7 @@ def classify_lane(
     if fconf == "low":
         core_reasons.append("fundamental evidence confidence is low"); core_blockers.append("fundamental evidence confidence low")
     if total_score < MIN_DETERMINISTIC_SCORE:
-        core_reasons.append(f"system conviction {total_score:.1f}/100 below 70"); core_blockers.append("system conviction < 70")
+        core_reasons.append(f"system conviction {total_score:.1f}/100 below {MIN_DETERMINISTIC_SCORE:.0f}"); core_blockers.append(f"system conviction < {MIN_DETERMINISTIC_SCORE:.0f}")
     if analyst_confirmation is None or not MIN_ANALYST_SCORE <= analyst_confirmation <= 100:
         core_reasons.append("analyst confirmation unavailable or below 75/100"); core_blockers.append("analyst score unavailable or < 75")
     if entry_rr + 1e-12 < MIN_ENTRY_RISK_REWARD:
@@ -1124,7 +1132,7 @@ def score_bundle(bundle: dict) -> dict:
     breakdown = raw_breakdown
     return {
         "scoring_version": SCORING_VERSION,
-        "score_calibration": "quality-balanced-v22-entry-stop",
+        "score_calibration": "quality-balanced-v23-entry-stop-floor",
         "score_weights": dict(DETERMINISTIC_WEIGHTS),
         "score_contributions": {k: round(v, 1) for k, v in score_contributions.items()},
         "currency": bundle.get("currency") or "USD",
