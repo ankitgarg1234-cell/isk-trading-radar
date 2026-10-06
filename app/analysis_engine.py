@@ -54,7 +54,34 @@ CORE_MIN_AVG_DOLLAR_VOLUME = 10_000_000.0
 EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME = 20_000_000.0
 MIN_FUNDAMENTAL_SCORE = 14.0  # 70/100 normalized fundamental quality
 EXPLOSIVE_MAX_TRADING_SESSIONS = 20
-SCORING_VERSION = "2026-10-06-sec-filing-coverage-v20"
+SCORING_VERSION = "2026-10-06-deterministic-calibration-v21"
+
+# The raw component models remain independently auditable at their historical
+# maxima. Deterministic conviction is now a calibrated 100-point blend that
+# reflects the current, more conservative target/news evidence model. Core
+# quality is driven primarily by verified fundamentals and analyst evidence;
+# Explosive still has separate hard catalyst/volume gates in classify_lane().
+DETERMINISTIC_WEIGHTS = {
+    "Fundamentals": 27.0,
+    "Catalyst": 10.0,
+    "News": 8.0,
+    "Momentum": 15.0,
+    "Sector": 10.0,
+    "Valuation": 10.0,
+    "Analyst confirmation": 10.0,
+    "Risk/Reward": 10.0,
+}
+RAW_COMPONENT_MAX = {
+    "Fundamentals": 20.0,
+    "Catalyst": 15.0,
+    "News": 15.0,
+    "Momentum": 15.0,
+    "Sector": 10.0,
+    "Valuation": 10.0,
+    "Analyst confirmation": 5.0,
+    "Risk/Reward": 10.0,
+}
+
 
 PROMOTION_SEVERE_TERMS = {
     "reverse split", "going concern", "minimum bid", "nasdaq compliance",
@@ -68,6 +95,44 @@ PROMOTION_DILUTION_TERMS = {
 
 def clamp(x: float, lo: float = 0.0, hi: float = 100.0) -> float:
     return max(lo, min(hi, x))
+
+
+def risk_reward_score(rr: float | None) -> float:
+    """Calibrated 0-10 R/R contribution.
+
+    The hard entry floor remains 0.4x. Under the old linear 3x normalization,
+    an otherwise acceptable 0.4x setup received only 1.33/10 and was therefore
+    penalised twice: once by the hard gate and again by the deterministic score.
+    This monotonic curve makes the gate boundary worth 4/10, 1x worth 6/10,
+    2x worth 8/10 and 3x+ worth 10/10. Sub-floor setups can still accumulate
+    partial descriptive credit but remain ineligible through qualification_check.
+    """
+    value = number(rr)
+    if value is None or value <= 0:
+        return 0.0
+    if value < 0.4:
+        return round(clamp(value / 0.4 * 4.0, 0, 4), 3)
+    if value < 1.0:
+        return round(4.0 + (value - 0.4) / 0.6 * 2.0, 3)
+    if value < 2.0:
+        return round(6.0 + (value - 1.0) * 2.0, 3)
+    if value < 3.0:
+        return round(8.0 + (value - 2.0) * 2.0, 3)
+    return 10.0
+
+
+def calibrated_score_components(raw: dict[str, float], rr: float | None) -> dict[str, float]:
+    """Translate auditable raw components into the calibrated 100-point score."""
+    out: dict[str, float] = {}
+    for key, weight in DETERMINISTIC_WEIGHTS.items():
+        if key == "Risk/Reward":
+            out[key] = risk_reward_score(rr)
+            continue
+        raw_max = RAW_COMPONENT_MAX[key]
+        value = number(raw.get(key))
+        value = 0.0 if value is None else clamp(value, 0, raw_max)
+        out[key] = round(value / raw_max * weight, 3)
+    return out
 
 
 def pct(v: Any) -> float | None:
@@ -933,8 +998,19 @@ def score_bundle(bundle: dict) -> dict:
     rr_up = (levels["target"] - price) / price if price else 0
     rr_down = (price - levels["stop"]) / price if price else 1
     rr = (rr_up / rr_down) if rr_down > 0 else 0
-    rr_score = clamp(rr / 3 * 10, 0, 10)
-    total = fs + catalyst + news["score"] + mom + sector + valuation + (a_score / 100 * 5 if a_score is not None else 2.5) + rr_score
+    analyst_confirmation = a_score / 20 if a_score is not None else 2.5
+    raw_breakdown = {
+        "Fundamentals": round(fs, 1),
+        "Catalyst": round(catalyst, 1),
+        "News": round(news["score"], 1),
+        "Momentum": round(mom, 1),
+        "Sector": round(sector, 1),
+        "Valuation": round(valuation, 1),
+        "Analyst confirmation": round(analyst_confirmation, 1),
+        "Risk/Reward": round(clamp(rr / 3 * 10, 0, 10), 1),
+    }
+    score_contributions = calibrated_score_components(raw_breakdown, rr)
+    total = sum(score_contributions.values())
 
     # Material negative news can override an otherwise strong numerical setup.
     override: str | None = None
@@ -959,14 +1035,12 @@ def score_bundle(bundle: dict) -> dict:
         catalyst_verified=bool(lane_info.get("catalyst_verified")),
     )
     deterministic_horizon = (horizon_plan["min_days"], horizon_plan["max_days"])
-    breakdown = {
-        "Fundamentals": round(fs, 1), "Catalyst": round(catalyst, 1), "News": round(news["score"], 1),
-        "Momentum": round(mom, 1), "Sector": round(sector, 1), "Valuation": round(valuation, 1),
-        "Analyst confirmation": round(a_score / 20 if a_score is not None else 2.5, 1),
-        "Risk/Reward": round(rr_score, 1),
-    }
+    breakdown = raw_breakdown
     return {
         "scoring_version": SCORING_VERSION,
+        "score_calibration": "quality-balanced-v21",
+        "score_weights": dict(DETERMINISTIC_WEIGHTS),
+        "score_contributions": {k: round(v, 1) for k, v in score_contributions.items()},
         "currency": bundle.get("currency") or "USD",
         "breakout_anchor": breakout_anchor,
         "deterministic_score": total,
