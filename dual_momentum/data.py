@@ -98,6 +98,7 @@ class LiveDataSource:
                     "symbol": symbol,
                     "name": (row.get("Security") or row.get("Name") or symbol).strip(),
                     "sector": (row.get("GICS Sector") or row.get("Sector") or "").strip(),
+                    "security_id": str(row.get("CIK") or symbol).strip(),
                 }
             )
         if len(rows) < 400:
@@ -167,7 +168,7 @@ class LiveDataSource:
             bars = self.price_bars(symbol)
             if through_date:
                 bars = [bar for bar in bars if bar.date <= through_date]
-            signal = build_momentum_signal(symbol, bars, lagged=lagged)
+            signal = build_momentum_signal(symbol, bars, lagged=lagged, security_id=member.get("security_id") or symbol)
             return signal
 
         with ThreadPoolExecutor(max_workers=self.price_workers) as pool:
@@ -291,6 +292,7 @@ class LiveDataSource:
                 "symbol": symbol,
                 "check": FundamentalCheck(FundamentalStatus.REVIEW, None, None, False, "SEC issuer mapping unavailable"),
                 "source": "SEC EDGAR/XBRL",
+                "security_id": None,
             }
 
         facts = self.sec._json(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{ref['cik10']}.json")
@@ -337,6 +339,7 @@ class LiveDataSource:
             "check": check,
             "source": "SEC EDGAR/XBRL companyfacts",
             "sic": sic,
+            "security_id": str(ref.get("cik") or symbol),
             "sector": submissions.get("sicDescription") or None,
             "company": submissions.get("name") or ref.get("title") or symbol,
             "last_filed": filed_dates[-1] if filed_dates else None,
@@ -355,7 +358,7 @@ class LiveDataSource:
         members = self.current_sp500()
         member_by_symbol = {m["symbol"]: m for m in members}
 
-        spy_bars_all = self.price_bars("SPY")
+        spy_bars_all = self.price_bars("SPY", "max")
         today_utc = datetime.now(timezone.utc).date()
         if decision_date is None:
             # Use the final SPY session of the most recently completed calendar month.
@@ -387,16 +390,14 @@ class LiveDataSource:
         checked = 0
         if regime.value == "BULL":
             for signal in ranked:
-                if checked >= max_fundamental_checks and len(eligible) >= 35:
+                if len(eligible) >= 35:
                     break
                 row = self.ttm_fundamentals(signal.symbol, decision_date)
                 checked += 1
                 fundamental_rows[signal.symbol] = row
                 if row["check"].status == FundamentalStatus.PASS:
                     eligible.append(signal)
-                    if len(eligible) >= 35 and all(
-                        h in fundamental_rows or h not in signal_by_symbol for h in holdings
-                    ):
+                    if len(eligible) >= 35:
                         break
 
         # Holdings are always checked even when outside the first selection tranche.
@@ -424,6 +425,7 @@ class LiveDataSource:
                     "symbol": signal.symbol,
                     "name": member.get("name") or f.get("company") or signal.symbol,
                     "sector": member.get("sector") or f.get("sector"),
+                    "security_id": member.get("security_id") or f.get("security_id") or signal.security_id or signal.symbol,
                     "price": signal.price,
                     "score": signal.score,
                     "r63": signal.r63,
@@ -454,7 +456,9 @@ class LiveDataSource:
                     "rank": None,
                     "momentum_positive": False,
                     "fundamental_status": "REVIEW",
-                    "reason": "Required price history, ATR, or positive momentum unavailable",
+                    "reason": "Required price history or ATR unavailable",
+                    "sector": (member_by_symbol.get(symbol) or {}).get("sector"),
+                    "security_id": (member_by_symbol.get(symbol) or {}).get("security_id") or symbol,
                 }
                 continue
             status = f["check"].status.value if f else "REVIEW"
@@ -471,11 +475,14 @@ class LiveDataSource:
                 "atr_pct": sig.atr_pct,
                 "fundamental_status": status,
                 "fundamental_reason": f["check"].reason if f else "Fundamentals unavailable",
+                "sector": (member_by_symbol.get(symbol) or {}).get("sector") or (f or {}).get("sector"),
+                "security_id": (member_by_symbol.get(symbol) or {}).get("security_id") or (f or {}).get("security_id") or sig.security_id or symbol,
             }
 
         return {
             "asof": datetime.now(timezone.utc).isoformat(),
             "decision_date": decision_date.isoformat(),
+            "next_execution_session": next((bar.date for bar in spy_bars_all if bar.date > decision_session), None),
             "variant": "lagged-21" if lagged else "baseline",
             "membership_source": SP500_CSV_URL,
             "membership_note": "Current-universe source for live dashboard only; historical backtests require point-in-time S&P 500 membership.",
