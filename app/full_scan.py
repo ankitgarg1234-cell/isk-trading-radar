@@ -28,6 +28,7 @@ KEY = "latest"
 REUSABLE_PREFILTER_VERSIONS = {
     "2026-10-06-score-evidence-integrity-v19",
     "2026-10-06-sec-filing-coverage-v20",
+    "2026-10-06-deterministic-calibration-v21",
 }
 
 
