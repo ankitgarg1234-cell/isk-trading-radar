@@ -164,6 +164,19 @@ class RadarService:
         mins = now.hour * 60 + now.minute
         return 570 <= mins < 960
 
+    def market_preopen(self, now=None, lead_minutes: int = 15):
+        """Reserve the final pre-open window for trading-radar warm-up.
+
+        Use New York exchange time rather than a fixed Stockholm/CET clock so DST
+        transitions cannot shift the handoff by an hour.
+        """
+        now = (now or datetime.now(timezone.utc)).astimezone(NY)
+        if now.weekday() >= 5:
+            return False
+        mins = now.hour * 60 + now.minute
+        lead = max(1, min(60, int(lead_minutes)))
+        return 570 - lead <= mins < 570
+
     def analyze_symbol(self, symbol: str, persist: bool = True, strategic_refresh: bool = False, contextual_ai: bool = True):
         symbol = symbol.upper().strip()
         bundle = self.provider.bundle(symbol)
@@ -790,6 +803,64 @@ class RadarService:
             stale.extend(s for s in article_news.dirty_symbols(limit) if s not in stale)
         return stale[:limit]
 
+    def preopen_priority_symbols(self, limit: int = 20) -> list[str]:
+        """Build a small high-value queue for the 15 minutes before the bell.
+
+        This deliberately avoids a fresh 200-name universe quick-scan. Holdings,
+        stale model outputs, current high-ranked candidates, watch/manual priority
+        names and the strongest public-screen discoveries are enough to make the
+        opening scanner warm without recreating the overnight audit.
+        """
+        limit = max(1, min(32, int(limit)))
+        holdings = self.holding_symbols()
+        stale = self.stale_scoring_symbols(limit=limit)
+        priority = self.priority_symbols()[: settings.priority_deep_limit]
+        ranked: list[str] = []
+        with SessionLocal() as db:
+            rows = (
+                db.query(RadarCandidate.symbol)
+                .order_by(RadarCandidate.portfolio_rank_score.desc(), RadarCandidate.updated_at.desc())
+                .limit(limit)
+                .all()
+            )
+            ranked = [row.symbol for row in rows]
+        discovered: list[str] = []
+        try:
+            items = self.provider.discover(50)
+            items.sort(key=lambda x: float(x.get("change_pct") or 0), reverse=True)
+            discovered = [str(x.get("symbol") or "").upper() for x in items[:8] if x.get("symbol")]
+        except Exception:
+            pass
+        ordered = holdings + stale + ranked + priority + discovered
+        return list(dict.fromkeys(s.upper() for s in ordered if s))[:limit]
+
+    def _preopen_warmup(self) -> dict:
+        """Refresh the opening decision set without executing paper/live trades."""
+        symbols = self.preopen_priority_symbols(limit=max(12, min(24, settings.scan_batch_size)))
+        analyst_provider = getattr(self.provider, "analyst", None)
+        if hasattr(analyst_provider, "prefetch_recommendations"):
+            analyst_provider.prefetch_recommendations(symbols)
+        refreshed: list[str] = []
+        errors: list[str] = []
+        for symbol in symbols:
+            try:
+                self.analyze_symbol(symbol)
+                refreshed.append(symbol)
+            except Exception as exc:
+                errors.append(f"{symbol}: {type(exc).__name__}")
+        self.last_scan = datetime.now(timezone.utc)
+        self.scan_count += 1
+        self.last_deep_analyzed = len(refreshed)
+        self.last_error = "; ".join(errors[:5]) if errors else None
+        return {
+            "status": "preopen_warmup",
+            "execution_enabled": False,
+            "analyzed": len(refreshed),
+            "refreshed_symbols": refreshed,
+            "errors": errors,
+            "handoff": "overnight audit paused; opening radar owns provider budget",
+        }
+
     def candidate_symbols(self):
         """Return the deep-analysis queue with holdings and stale scores first."""
         holdings = self.holding_symbols()
@@ -924,9 +995,13 @@ class RadarService:
 
     def _scan_once_impl(self, force: bool = False):
         audit = getattr(self, "full_universe_scan", None)
-        if not force and not self.market_open() and audit and audit.active():
+        market_open = self.market_open()
+        preopen = self.market_preopen()
+        if not force and not market_open and audit and audit.active() and not preopen:
             return {"status": "full_universe_audit_running", "execution_enabled": False}
-        if not force and not self.market_open():
+        if not force and preopen:
+            return self._preopen_warmup()
+        if not force and not market_open:
             # Universe metadata is safe to refresh while the market is closed.
             # Without this, a fresh process starts at universe_size=0 and the
             # dashboard misleadingly says "loading" until the next open scan.
