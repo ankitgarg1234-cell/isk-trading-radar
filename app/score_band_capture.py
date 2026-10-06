@@ -42,8 +42,9 @@ def _load(db):
         # starter allocation for the new 65-69 band.
         profile = str((state.get("spec") or {}).get("profile") or "MEDIUM")
         current_spec = experiment_spec(profile)
-        for key in ("bands", "min_deterministic", "min_analyst", "min_rr", "risk_per_trade_pct"):
+        for key in ("sizing_policy", "continuous_sizing", "min_deterministic", "min_analyst", "min_rr", "risk_per_trade_pct"):
             state.setdefault("spec", {})[key] = current_spec[key]
+        state["spec"].pop("bands", None)
         if settings.score_band_trial_armed_at:
             arm_trial(state, settings.score_band_trial_armed_at)
         row.state_json = json.dumps(state, default=str, separators=(",", ":"))
