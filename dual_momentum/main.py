@@ -381,6 +381,8 @@ def record_trade(
         snapshot = _load_snapshot(state)
         signal = _snapshot_signal(snapshot, symbol)
         position = db.query(DMPosition).filter(DMPosition.symbol == symbol).first()
+        system_reason = None
+        reference_date = None
 
         if side == "BUY":
             debit = price * shares + fees
@@ -429,6 +431,12 @@ def record_trade(
         else:
             if position is None or shares > int(position.shares or 0):
                 raise HTTPException(status_code=400, detail="Sell quantity exceeds the recorded position")
+            if position.pending_stop_exit:
+                system_reason = "STOP_EXIT"
+                reference_date = position.stop_asof
+            elif position.pending_rule_exit_reason:
+                system_reason = "RULE_EXIT"
+                reference_date = position.pending_rule_exit_date
             credit = price * shares - fees
             cash.cash_usd = float(cash.cash_usd or 0) + credit
             position.shares = int(position.shares or 0) - shares
@@ -437,7 +445,19 @@ def record_trade(
             else:
                 position.updated_at = datetime.now(timezone.utc)
 
-        db.add(DMTrade(symbol=symbol, side=side, shares=shares, price=price, fees=fees, reason=reason[:255]))
+        db.add(
+            DMTrade(
+                symbol=symbol,
+                side=side,
+                shares=shares,
+                price=price,
+                fees=fees,
+                reason=reason[:255],
+                system_reason=system_reason,
+                reference_date=reference_date,
+                executed_on=effective_date,
+            )
+        )
         cash.updated_at = datetime.now(timezone.utc)
         db.commit()
     return RedirectResponse("/", status_code=303)
