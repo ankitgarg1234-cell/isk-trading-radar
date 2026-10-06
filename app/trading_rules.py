@@ -114,7 +114,8 @@ def entry_status(a, price=None):
     if rr is None:
         current = number(a.get("price") if price is None else price)
         target = number((a.get("target_plan") or {}).get("base_target"))
-        levels = a.get("levels") or {}\n        stop = number(levels.get("entry_stop", levels.get("stop")))
+        levels = a.get("levels") or {}
+        stop = number(levels.get("entry_stop", levels.get("stop")))
         if current is not None and target is not None and stop is not None and 0 < stop < current < target:
             rr = (target-current)/(current-stop)
     return {"qualified": qualified, "ready": ready, "blocker": reason,
