@@ -158,13 +158,15 @@ class LiveDataSource:
     def price_bars(self, symbol: str, range_: str = "2y") -> list[PriceBar]:
         return self._bars_from_chart(self._chart_json(symbol, range_))
 
-    def price_universe(self, members: list[dict[str, str]], *, lagged: bool = False) -> tuple[list, list[dict]]:
+    def price_universe(self, members: list[dict[str, str]], *, lagged: bool = False, through_date: str | None = None) -> tuple[list, list[dict]]:
         signals = []
         errors: list[dict] = []
 
         def one(member: dict[str, str]):
             symbol = member["symbol"]
             bars = self.price_bars(symbol)
+            if through_date:
+                bars = [bar for bar in bars if bar.date <= through_date]
             signal = build_momentum_signal(symbol, bars, lagged=lagged)
             return signal
 
@@ -339,14 +341,33 @@ class LiveDataSource:
         max_fundamental_checks: int = 160,
     ) -> dict:
         holdings = {_normalise_yahoo_symbol(s) for s in (holdings or set())}
-        decision_date = decision_date or datetime.now(timezone.utc).date()
         members = self.current_sp500()
         member_by_symbol = {m["symbol"]: m for m in members}
 
-        spy_bars = self.price_bars("SPY")
+        spy_bars_all = self.price_bars("SPY")
+        today_utc = datetime.now(timezone.utc).date()
+        if decision_date is None:
+            # Use the final SPY session of the most recently completed calendar month.
+            prior_month_bars = [
+                bar for bar in spy_bars_all
+                if (date.fromisoformat(bar.date).year, date.fromisoformat(bar.date).month)
+                < (today_utc.year, today_utc.month)
+            ]
+            if not prior_month_bars:
+                raise RuntimeError("No completed prior-month SPY session is available")
+            decision_session = prior_month_bars[-1].date
+            decision_date = date.fromisoformat(decision_session)
+        else:
+            eligible_spy = [bar for bar in spy_bars_all if bar.date <= decision_date.isoformat()]
+            if not eligible_spy:
+                raise RuntimeError("No SPY session is available at or before the requested decision date")
+            decision_session = eligible_spy[-1].date
+            decision_date = date.fromisoformat(decision_session)
+
+        spy_bars = [bar for bar in spy_bars_all if bar.date <= decision_session]
         regime, spy_tr, spy_ema = market_regime([b.total_return_close for b in spy_bars])
 
-        ranked_all, price_errors = self.price_universe(members, lagged=lagged)
+        ranked_all, price_errors = self.price_universe(members, lagged=lagged, through_date=decision_session)
         signal_by_symbol = {s.symbol: s for s in ranked_all}
         ranked = [s for s in ranked_all if s.score > 0]
 
