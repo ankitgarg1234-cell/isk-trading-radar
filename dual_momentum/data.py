@@ -348,7 +348,13 @@ class LiveDataSource:
         result = ((response.json().get("chart") or {}).get("result") or [])
         if not result:
             raise RuntimeError(f"No daily chart for {symbol}")
-        return result[0]
+        chart = result[0]
+        granularity = str((chart.get("meta") or {}).get("dataGranularity") or "")
+        if granularity and granularity != "1d":
+            raise RuntimeError(
+                f"Yahoo returned {granularity} bars for {symbol} range={range_}; daily bars are required"
+            )
+        return chart
 
     @staticmethod
     def _bars_from_chart(chart: dict) -> list[PriceBar]:
@@ -593,7 +599,7 @@ class LiveDataSource:
     ) -> dict:
         holdings = {_normalise_yahoo_symbol(s) for s in (holdings or set())}
 
-        spy_bars_all = self.price_bars("SPY", "max")
+        spy_bars_all = self.price_bars("SPY", "5y")
         if decision_date is None:
             resolved_decision, next_session_date = _latest_completed_month_end_session(spy_bars_all)
             decision_date = resolved_decision
