@@ -220,7 +220,8 @@ def _buy(db, account: PaperAccount, symbol: str, price: float, target_value: flo
             hp = analysis.get("holding_horizon") or {}
             pos.entry_target = tp.get("base_target")
             pos.entry_stretch_target = tp.get("stretch_target")
-            pos.entry_stop = (analysis.get("levels") or {}).get("stop")
+            levels = analysis.get("levels") or {}
+            pos.entry_stop = levels.get("entry_stop") or levels.get("stop")
             pos.entry_horizon_days = hp.get("max_days")
             pos.entry_plan_version = analysis.get("scoring_version")
         pos.updated_at = datetime.now(timezone.utc)
@@ -232,7 +233,8 @@ def _buy(db, account: PaperAccount, symbol: str, price: float, target_value: flo
             rank_score_at_entry=rank_score, reason=reason[:255],
             entry_target=tp.get("base_target"),
             entry_stretch_target=tp.get("stretch_target"),
-            entry_stop=((analysis or {}).get("levels") or {}).get("stop"),
+            entry_stop=(((analysis or {}).get("levels") or {}).get("entry_stop")
+                        or ((analysis or {}).get("levels") or {}).get("stop")),
             entry_horizon_days=hp.get("max_days"),
             entry_plan_version=(analysis or {}).get("scoring_version"),
         ))
