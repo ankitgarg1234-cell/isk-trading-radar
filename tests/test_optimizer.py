@@ -575,9 +575,10 @@ def test_paper_owned_symbol_is_hold_and_stale_buy_alert_is_hidden():
         ))
         db.commit()
 
+    live = client.get("/api/live").json()
+    # Existing holdings are managed in the position surface, not repeated in the
+    # actionable-new-entry radar.
+    assert "NOW" not in {r["symbol"] for r in live["candidates"]}
+    assert all(a["symbol"] != "NOW" or a["action"] != "BUY" for a in live["alerts"])
     html = client.get("/").text
-    idx = html.index('data-symbol="NOW"')
-    row_html = html[idx:idx+3500]
-    assert 'signal-hold' in row_html
-    assert 'HOLD / DON&#39;T ADD' in row_html or "HOLD / DON'T ADD" in row_html
     assert 'NOW: Entry level reached — BUY' not in html
