@@ -235,24 +235,30 @@ def risk_fit(stock_risk: float, profile: str) -> str:
     return "ABOVE TARGET"
 
 
+CONTINUOUS_SCORE_SIZING = {
+    "floor_score": 65.0,
+    "floor_pct": 5.0,
+    "slope_per_score": 1.4,
+    "cap_pct": 40.0,
+}
+
+
 def score_target_allocation_pct(score: float) -> float:
-    """Conviction ladder agreed for both Core Quality and Explosive lanes."""
-    s = _clamp(_float(score))
-    if s < 68:
+    """Continuous target allocation for a brand-new qualified position.
+
+    65 -> 5%, then +1.4 percentage points of portfolio target per score point,
+    capped at 40%. Risk, cash and whole-share constraints may reduce the actual
+    order size but never increase it.
+    """
+    raw = _float(score, -1.0)
+    if raw < CONTINUOUS_SCORE_SIZING["floor_score"] or raw > 100:
         return 0.0
-    if s < 75:
-        return 2.0
-    if s < 80:
-        return 4.0
-    if s < 85:
-        return 6.0
-    if s < 90:
-        return 8.0
-    if s < 95:
-        return 10.0
-    if s < 98:
-        return 12.0
-    return 15.0
+    target = (
+        CONTINUOUS_SCORE_SIZING["floor_pct"]
+        + CONTINUOUS_SCORE_SIZING["slope_per_score"]
+        * (raw - CONTINUOUS_SCORE_SIZING["floor_score"])
+    )
+    return round(_clamp(target, CONTINUOUS_SCORE_SIZING["floor_pct"], CONTINUOUS_SCORE_SIZING["cap_pct"]), 2)
 
 
 def suggested_position_size(
@@ -266,12 +272,12 @@ def suggested_position_size(
     existing_value: float = 0.0,
     whole_shares: bool = True,
 ) -> dict:
-    """Score-led target sizing with risk/cash acting only as hard ceilings.
+    """Continuous score-led sizing for a prospective new position.
 
-    The same sizing ladder applies to Core Quality and Explosive candidates.
-    Higher Portfolio Priority scores receive larger target allocations. Stop
-    distance, available cash and existing exposure can reduce that target but
-    never increase it.
+    Higher Portfolio Priority scores receive proportionally larger targets.
+    Stop distance, available cash and existing exposure can reduce that target
+    but never increase it. Existing live/paper positions are not automatically
+    resized by the sizing-policy migration.
     """
     profile = normalise_profile(profile)
     p = RISK_PROFILES[profile]
@@ -294,7 +300,7 @@ def suggested_position_size(
         return {
             "shares": 0, "capital": 0.0, "fit": fit, "stock_risk": stock_risk,
             "portfolio_rank_score": round(rank_score, 1), "target_allocation_pct": 0.0,
-            "reason": f"Portfolio Priority {rank_score:.1f}/100 is below the 68 sizing threshold",
+            "reason": f"Portfolio Priority {rank_score:.1f}/100 is below the 65 sizing threshold",
         }
 
     price_base = price * fx_rate_to_base
@@ -313,10 +319,10 @@ def suggested_position_size(
     by_cash = deployable_cash / price_base if price_base > 0 else 0
 
     # Whole-share execution: approximate the score target with the nearest share,
-    # but never round through a hard risk, cash, or 15% portfolio-position ceiling.
-    # This prevents a 0.89-share target from becoming an artificial 0-share order
-    # while still blocking genuinely unaffordable/over-risk positions.
-    hard_position_cap_pct = 15.0
+    # but never round through a hard risk, cash, or 40% safety ceiling.
+    # The score formula itself reaches 40% only at 90+, so this is a safety cap
+    # rather than a second allocation ladder.
+    hard_position_cap_pct = CONTINUOUS_SCORE_SIZING["cap_pct"]
     remaining_position_cap = max(
         0.0,
         total * (hard_position_cap_pct / 100) - max(0.0, existing_value),
@@ -344,7 +350,7 @@ def suggested_position_size(
     if abs(shares_raw - by_cash) <= eps:
         limiting.append("available cash")
     if abs(shares_raw - by_position_cap) <= eps:
-        limiting.append("15% position cap")
+        limiting.append("40% position cap")
     if whole_shares and shares > math.floor(by_score + 1e-12):
         limiting.append("nearest whole-share rounding")
     limiter = ", ".join(dict.fromkeys(limiting)) or "whole-share rounding"
@@ -369,7 +375,7 @@ def suggested_position_size(
         "existing_risk_amount": round(existing_risk_amount, 2),
         "remaining_risk_budget": round(remaining_risk_budget, 2),
         "reason": (
-            f"Priority {rank_score:.1f}/100 targets {target_pct:.0f}% allocation; "
+            f"Priority {rank_score:.1f}/100 targets {target_pct:.1f}% allocation; "
             f"final whole-share size limited by {limiter}"
         ),
     }
