@@ -174,8 +174,7 @@ class LiveDataSource:
                 member = futures[future]
                 try:
                     signal = future.result()
-                    if signal.score > 0:
-                        signals.append(signal)
+                    signals.append(signal)
                 except Exception as exc:
                     errors.append(
                         {
@@ -347,8 +346,9 @@ class LiveDataSource:
         spy_bars = self.price_bars("SPY")
         regime, spy_tr, spy_ema = market_regime([b.total_return_close for b in spy_bars])
 
-        ranked, price_errors = self.price_universe(members, lagged=lagged)
-        signal_by_symbol = {s.symbol: s for s in ranked}
+        ranked_all, price_errors = self.price_universe(members, lagged=lagged)
+        signal_by_symbol = {s.symbol: s for s in ranked_all}
+        ranked = [s for s in ranked_all if s.score > 0]
 
         fundamental_rows: dict[str, dict] = {}
         eligible: list = []
