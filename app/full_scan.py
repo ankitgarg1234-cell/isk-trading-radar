@@ -185,7 +185,8 @@ class FullUniverseScan:
                 price, liquidity = number(old.get("price")), number(old.get("avg_dollar_volume_20"))
                 if price is None or price <= 0 or liquidity is None or liquidity < 0:
                     continue
-                if row.status == "excluded" and old.get("source") == "same_scoring_price_and_liquidity_inputs":
+                if row.status == "excluded" and old.get("source") in {
+                        "same_scoring_price_and_liquidity_inputs", "lightweight_exact_20d_preflight"}:
                     blocker = ("price_or_currency_invalid" if price < 5 or old.get("currency") != "USD"
                                else "liquidity_below_10m" if liquidity < CORE_MIN_AVG_DOLLAR_VOLUME else None)
                     if blocker == old.get("blocker"):
