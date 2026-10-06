@@ -80,6 +80,29 @@ def test_preflight_matches_scoring_liquidity_and_only_rejects_hard_floors():
     with pytest.raises(ValueError):preflight(p,"TEST","2026-10-06")
 
 
+@pytest.mark.parametrize("started", [
+    datetime(2026, 10, 6, 7, tzinfo=timezone.utc),
+    datetime(2026, 10, 10, 12, tzinfo=timezone.utc),
+])
+def test_new_after_hours_audit_uses_observed_market_session_not_calendar_today(monkeypatch, started):
+    scan, analyzed, _ = service(monkeypatch, ["A"])
+    monkeypatch.setattr(module, "now", lambda: started)
+    result = scan.start()
+    assert result["session_date"] == "2026-10-05"
+    assert result["processed"] == 1 and result["status_counts"]["scored"] == 1
+    assert result["status_counts"].get("error", 0) == 0 and analyzed[0][0] == "A"
+
+
+@pytest.mark.parametrize("stamp", [None, float("nan"), 0, NOW.timestamp() + 3600])
+def test_unavailable_stale_or_future_index_session_cannot_start_audit(monkeypatch, stamp):
+    scan, analyzed, _ = service(monkeypatch, ["A"])
+    monkeypatch.setattr(scan.radar.provider, "chart", lambda *args: {"meta": {"regularMarketTime": stamp}})
+    assert scan.start()["status"] == "error" and not analyzed
+    with SessionLocal() as db:
+        assert db.query(FullScanRun).count() == 0
+        assert db.query(FullScanResult).count() == 0
+
+
 def test_complete_universe_has_no_top_n_deep_cutoff_and_errors_are_separate(monkeypatch):
     symbols=[f"S{i}" for i in range(70)]+["LOW","ILLIQUID","ERROR"]
     scan, analyzed, persisted=service(monkeypatch,symbols,{"LOW":(4,1e7),"ILLIQUID":(100,99999)})

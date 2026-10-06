@@ -11,6 +11,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 
+from sqlalchemy import case, cast, func, or_
+from sqlalchemy.dialects.postgresql import JSONB
+
 from .config import settings
 from .db import SessionLocal, Position, AnalysisRequest, WatchlistItem, AnalysisSnapshot, RadarCandidate, Alert, PortfolioPreference, PaperPosition
 from .market import YahooMarketProvider
@@ -755,20 +758,34 @@ class RadarService:
         A deploy that changes target/R-R logic must not leave the dashboard showing
         an old cached target until that symbol happens to rotate through discovery.
         """
+        if limit <= 0:
+            return []
         stale: list[str] = []
         with SessionLocal() as db:
-            rows = db.query(RadarCandidate).order_by(
+            # Filter JSON versions inside the database and return symbols only.
+            # Iterating full candidate payloads downloaded the entire scored
+            # universe every cycle when all saved versions were already current.
+            # Guard malformed legacy JSON before extraction on both backends.
+            payload = RadarCandidate.current_json
+            if db.bind.dialect.name == "postgresql":
+                # Production uses PostgreSQL 18; pg_input_is_valid is available
+                # from PostgreSQL 16 and avoids errors on corrupt legacy rows.
+                version = case(
+                    (func.pg_input_is_valid(payload, "jsonb"),
+                     cast(payload, JSONB)["scoring_version"].astext),
+                    else_=None,
+                )
+            else:
+                version = case(
+                    (func.json_valid(payload), func.json_extract(payload, "$.scoring_version")),
+                    else_=None,
+                )
+            rows = db.query(RadarCandidate.symbol).filter(
+                or_(version.is_(None), version != SCORING_VERSION)
+            ).order_by(
                 RadarCandidate.portfolio_rank_score.desc(), RadarCandidate.updated_at.desc()
-            ).yield_per(200)
-            for row in rows:
-                try:
-                    payload = json.loads(row.current_json or "{}")
-                except Exception:
-                    payload = {}
-                if payload.get("scoring_version") != SCORING_VERSION:
-                    stale.append(row.symbol)
-                    if len(stale) >= limit:
-                        break
+            ).limit(limit).all()
+            stale = [row.symbol for row in rows]
         if len(stale) < limit:
             stale.extend(s for s in article_news.dirty_symbols(limit) if s not in stale)
         return stale[:limit]

@@ -152,10 +152,22 @@ class FullUniverseScan:
                     symbols = list(dict.fromkeys(r["symbol"] for r in universe))
                     if not symbols:
                         return {"status": "error", "message": "Universe directory unavailable"}
+                    # Before the open, on weekends and on holidays, calendar
+                    # today is not the date of the latest exchange quote. Freeze
+                    # the index's observed session instead of rejecting every
+                    # stock's perfectly valid previous-session close.
+                    try:
+                        index = self.radar.provider.chart("^GSPC", "5d", "1d")
+                        quote = datetime.fromtimestamp(float(index["meta"]["regularMarketTime"]), timezone.utc)
+                        if not now() - timedelta(days=7) <= quote <= now():
+                            raise ValueError("index_quote_not_recent")
+                        session_date = quote.astimezone(NY).date().isoformat()
+                    except Exception:
+                        return {"status": "error", "message": "Latest market session unavailable; no audit started"}
                     run_id = uuid.uuid4().hex
                     run = run or FullScanRun(key=KEY)
                     run.run_id, run.status, run.scoring_version = run_id, "prefilter", SCORING_VERSION
-                    run.session_date = now().astimezone(NY).date().isoformat()
+                    run.session_date = session_date
                     run.universe_json, run.summary_json = dumps(symbols), "{}"
                     run.worker_id, run.lease_until = "", None
                     run.started_at = run.updated_at = now(); run.finished_at = None
@@ -214,7 +226,7 @@ class FullUniverseScan:
 
     def _pending(self, run_id, status, limit):
         with SessionLocal() as db:
-            return [r.symbol for r in db.query(FullScanResult).filter_by(run_id=run_id, status=status)
+            return [r.symbol for r in db.query(FullScanResult.symbol).filter_by(run_id=run_id, status=status)
                     .order_by(FullScanResult.ordinal).limit(limit).all()]
 
     def _cached(self, symbol, session_date):
