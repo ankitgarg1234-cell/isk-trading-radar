@@ -98,7 +98,8 @@ class LiveDataSource:
                     "symbol": symbol,
                     "name": (row.get("Security") or row.get("Name") or symbol).strip(),
                     "sector": (row.get("GICS Sector") or row.get("Sector") or "").strip(),
-                    "security_id": str(row.get("CIK") or symbol).strip(),
+                    "issuer_id": str(row.get("CIK") or symbol).strip(),
+                    "security_id": f"{str(row.get('CIK') or symbol).strip()}:{symbol}",
                 }
             )
         if len(rows) < 400:
@@ -293,6 +294,7 @@ class LiveDataSource:
                 "check": FundamentalCheck(FundamentalStatus.REVIEW, None, None, False, "SEC issuer mapping unavailable"),
                 "source": "SEC EDGAR/XBRL",
                 "security_id": None,
+                "issuer_id": None,
             }
 
         facts = self.sec._json(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{ref['cik10']}.json")
@@ -339,7 +341,8 @@ class LiveDataSource:
             "check": check,
             "source": "SEC EDGAR/XBRL companyfacts",
             "sic": sic,
-            "security_id": str(ref.get("cik") or symbol),
+            "issuer_id": str(ref.get("cik") or symbol),
+            "security_id": f"{str(ref.get('cik') or symbol)}:{symbol}",
             "sector": submissions.get("sicDescription") or None,
             "company": submissions.get("name") or ref.get("title") or symbol,
             "last_filed": filed_dates[-1] if filed_dates else None,
@@ -447,6 +450,7 @@ class LiveDataSource:
                     "name": member.get("name") or f.get("company") or signal.symbol,
                     "sector": member.get("sector") or f.get("sector"),
                     "security_id": member.get("security_id") or f.get("security_id") or signal.security_id or signal.symbol,
+                    "issuer_id": member.get("issuer_id") or f.get("issuer_id") or signal.symbol,
                     "price": signal.price,
                     "score": signal.score,
                     "r63": signal.r63,
@@ -481,6 +485,7 @@ class LiveDataSource:
                     "reason": "Security is absent from the current S&P 500 membership feed",
                     "sector": None,
                     "security_id": symbol,
+                    "issuer_id": symbol,
                 }
                 continue
 
@@ -498,6 +503,7 @@ class LiveDataSource:
                     "reason": "Required price history or ATR unavailable",
                     "sector": member.get("sector"),
                     "security_id": member.get("security_id") or symbol,
+                    "issuer_id": member.get("issuer_id") or symbol,
                 }
                 continue
 
@@ -520,6 +526,7 @@ class LiveDataSource:
                 ),
                 "sector": member.get("sector") or (f or {}).get("sector"),
                 "security_id": member.get("security_id") or (f or {}).get("security_id") or sig.security_id or symbol,
+                "issuer_id": member.get("issuer_id") or (f or {}).get("issuer_id") or symbol,
             }
 
         return {
