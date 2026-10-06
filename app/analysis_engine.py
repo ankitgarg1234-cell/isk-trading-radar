@@ -54,7 +54,7 @@ CORE_MIN_AVG_DOLLAR_VOLUME = 10_000_000.0
 EXPLOSIVE_MIN_AVG_DOLLAR_VOLUME = 20_000_000.0
 MIN_FUNDAMENTAL_SCORE = 14.0  # 70/100 normalized fundamental quality
 EXPLOSIVE_MAX_TRADING_SESSIONS = 20
-SCORING_VERSION = "2026-10-06-deterministic-calibration-v21"
+SCORING_VERSION = "2026-10-06-actionable-entry-v22"
 
 # The raw component models remain independently auditable at their historical
 # maxima. Deterministic conviction is now a calibrated 100-point blend that
@@ -135,7 +135,10 @@ def calibrated_score_components(raw: dict[str, float], rr: float | None) -> dict
     return out
 
 
-RECALIBRATABLE_SCORING_VERSIONS = {"2026-10-06-sec-filing-coverage-v20"}
+RECALIBRATABLE_SCORING_VERSIONS = {
+    "2026-10-06-sec-filing-coverage-v20",
+    "2026-10-06-deterministic-calibration-v21",
+}
 
 
 def recalibrate_snapshot(snapshot: dict) -> dict | None:
@@ -155,10 +158,14 @@ def recalibrate_snapshot(snapshot: dict) -> dict | None:
         return None
     price = number(snapshot.get("price"))
     target = number((snapshot.get("target_plan") or {}).get("base_target"))
-    stop = number((snapshot.get("levels") or {}).get("stop"))
-    if price is None or target is None or stop is None or not 0 < stop < price < target:
+    if price is None or target is None or price >= target:
         return None
-    rr = (target - price) / (price - stop)
+    t = snapshot.get("technicals") or {}
+    levels = buy_levels(t, price)
+    entry_stop = number(levels.get("entry_stop"))
+    if entry_stop is None or not 0 < entry_stop < price:
+        return None
+    rr = (target - price) / (price - entry_stop)
     contributions = calibrated_score_components(raw, rr)
     total = sum(contributions.values())
     news = snapshot.get("news") or {}
@@ -183,10 +190,11 @@ def recalibrate_snapshot(snapshot: dict) -> dict | None:
         entry_rr=rr,
     )
     out = dict(snapshot)
+    out["levels"] = {**(snapshot.get("levels") or {}), **levels}
     out.update(lane_info)
     out.update({
         "scoring_version": SCORING_VERSION,
-        "score_calibration": "quality-balanced-v21",
+        "score_calibration": "quality-balanced-v22-entry-stop",
         "score_weights": dict(DETERMINISTIC_WEIGHTS),
         "score_contributions": {k: round(v, 1) for k, v in contributions.items()},
         "deterministic_score": total,
