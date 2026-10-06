@@ -19,7 +19,7 @@ from .analysis_engine import position_action, position_action_plan
 from .trading_rules import (MIN_DETERMINISTIC_SCORE, MIN_ENTRY_RISK_REWARD,
                             entry_check, qualification_check, signal_geometry)
 
-VERSION = "continuous-score-sizing-v2"
+VERSION = "score-bands-paper-v1"
 VARIANTS = ("complete_strategy",)
 
 
