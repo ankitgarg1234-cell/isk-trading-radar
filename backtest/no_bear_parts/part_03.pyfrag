@@ -1,0 +1,180 @@
+    leadership = []
+    for cap, sym, cik in issuers[:15]:
+        r = data.get(sym)
+        if not r:
+            continue
+        if r["fund"] is True and r["mom"] > 0 and r.get("rank") and r["rank"] <= 100 and r["r126"] > 0 and r["above_ema200"]:
+            leadership.append(sym)
+    return data, leadership[:LEAD_MAX]
+
+def retained_or_targets(st, snap, leadership, bull):
+    current_rot = [p.symbol for p in st.pos.values() if p.sleeve == "rot"]
+    current_lead = [p.symbol for p in st.pos.values() if p.sleeve == "lead"]
+    sell_keys = {}
+    rot_keep = []
+    for sym in current_rot:
+        pk = key("rot", sym)
+        p = st.pos.get(pk)
+        r = snap.get(sym)
+        if not r:
+            continue
+        fp = r["fund"]
+        if fp is None:
+            fp = p.last_fund
+        else:
+            p.last_fund = bool(fp)
+        if fp is not True or r["mom"] <= 0 or not r.get("rank") or r["rank"] > 35:
+            sell_keys[pk] = "ROT ELIGIBILITY/RANK EXIT"
+        else:
+            rot_keep.append(sym)
+    lead_keep = []
+    lead_set = set(leadership)
+    for sym in current_lead:
+        pk = key("lead", sym)
+        p = st.pos.get(pk)
+        r = snap.get(sym)
+        if not r:
+            continue
+        fp = r["fund"]
+        if fp is None:
+            fp = p.last_fund
+        else:
+            p.last_fund = bool(fp)
+        if fp is not True or sym not in lead_set:
+            sell_keys[pk] = "LEADERSHIP QUALIFICATION EXIT"
+        else:
+            lead_keep.append(sym)
+
+    if not bull and not st.no_bear_liquidation:
+        for pk in list(st.pos):
+            sell_keys[pk] = "BEAR LIQUIDATION"
+        return sell_keys, [], []
+
+    rot_sel = list(dict.fromkeys(rot_keep))
+    if bull:
+        candidates = sorted(
+            [(sym, r) for sym, r in snap.items()
+             if r["fund"] is True and r["mom"] > 0 and r.get("rank") and r["rank"] <= 20 and sym not in rot_sel],
+            key=lambda z: z[1]["rank"]
+        )
+        for sym, _ in candidates:
+            if len(rot_sel) >= ROT_MAX:
+                break
+            rot_sel.append(sym)
+
+    lead_sel = [s for s in lead_keep if s in lead_set]
+    if bull:
+        for sym in leadership:
+            if len(lead_sel) >= LEAD_MAX:
+                break
+            if sym not in lead_sel:
+                lead_sel.append(sym)
+    return sell_keys, rot_sel[:ROT_MAX], lead_sel[:LEAD_MAX]
+
+def target_weights(syms, sleeve_budget, max_slots, snap):
+    n = len(syms)
+    if n == 0:
+        return {}
+    exposure = sleeve_budget * n / max_slots
+    inv = {}
+    for s in syms:
+        a = (snap.get(s) or {}).get("pct_atr")
+        if a and a > 0:
+            inv[s] = 1.0 / a
+    if len(inv) != n or sum(inv.values()) <= 0:
+        return {s: exposure / n for s in syms}
+    tot = sum(inv.values())
+    return {s: exposure * inv[s] / tot for s in syms}
+
+def build_monthly_orders(st, d, bull, snap, leadership, markets):
+    sell_keys, rot_sel, lead_sel = retained_or_targets(st, snap, leadership, bull)
+    nav = portfolio_nav(st, markets, d)
+    targets = {}
+    for sym, w in target_weights(rot_sel, ROT_BUDGET, ROT_MAX, snap).items():
+        targets[key("rot", sym)] = (sym, "rot", w)
+    for sym, w in target_weights(lead_sel, LEAD_BUDGET, LEAD_MAX, snap).items():
+        targets[key("lead", sym)] = (sym, "lead", w)
+
+    orders = []
+    for pk, reason in sell_keys.items():
+        p = st.pos.get(pk)
+        if p:
+            orders.append({"kind": "sell", "pk": pk, "qty": p.shares, "reason": reason, "priority": -10000})
+
+    for pk, (sym, sleeve, w) in targets.items():
+        r = snap[sym]
+        est = r["close"]
+        desired = int(math.floor(nav * w / est)) if est and est > 0 else 0
+        cur = st.pos.get(pk).shares if pk in st.pos else 0
+        if desired < cur:
+            orders.append({"kind": "sell", "pk": pk, "qty": cur - desired,
+                           "reason": "MONTHLY RESIZE", "priority": r.get("rank") or 999})
+        elif desired > cur and bull:
+            orders.append({"kind": "buy", "pk": pk, "sym": sym, "sleeve": sleeve,
+                           "qty": desired - cur, "reason": "MONTHLY TARGET",
+                           "priority": r.get("rank") or 999, "atr": r.get("atr"), "fund": r.get("fund")})
+    return orders, rot_sel, lead_sel
+
+def run_variant(name, no_bear, trading_dates, signal_dates, members_by_signal, markets, pits, sectors, cikmap, spy):
+    st = State(name, no_bear)
+    signals = set(signal_dates)
+    pending_monthly = {}
+    snapshots = {}
+    siglog = {}
+    for d in signal_dates:
+        snap, leadership = signal_snapshot(d, members_by_signal[d], markets, pits, sectors, cikmap)
+        bull = regime(spy, d)
+        snapshots[d] = (snap, leadership, bull)
+        if d.year == 2023 and d.month in (6, 7):
+            st.leadership_log[d.isoformat()] = leadership
+
+    for d in trading_dates:
+        for p in list(st.pos.values()):
+            m = markets.get(p.symbol)
+            if not m:
+                continue
+            i = idx_on_or_before(m, d)
+            if i is not None and m["rows"][i]["date"] == d.isoformat():
+                div = m["rows"][i].get("dividend") or 0.0
+                if div:
+                    st.cash += p.shares * div
+
+        for pk, p in list(st.pos.items()):
+            if not p.pending_stop:
+                continue
+            m = markets.get(p.symbol)
+            if not m:
+                continue
+            i = idx_on_or_after(m, d)
+            if i is not None and m["rows"][i]["date"] == d.isoformat() and m["rows"][i]["open"] is not None:
+                execute_sell(st, pk, p.shares, m["rows"][i]["open"], d, "ATR STOP")
+
+        if d in pending_monthly:
+            orders = pending_monthly.pop(d)
+            for o in [x for x in orders if x["kind"] == "sell"]:
+                p = st.pos.get(o["pk"])
+                if not p:
+                    continue
+                m = markets.get(p.symbol)
+                if not m:
+                    continue
+                i = idx_on_or_after(m, d)
+                if i is not None and m["rows"][i]["date"] == d.isoformat() and m["rows"][i]["open"] is not None:
+                    execute_sell(st, o["pk"], o["qty"], m["rows"][i]["open"], d, o["reason"])
+            buys = sorted([x for x in orders if x["kind"] == "buy"], key=lambda x: (x["priority"], x["sym"]))
+            for o in buys:
+                m = markets.get(o["sym"])
+                if not m:
+                    continue
+                i = idx_on_or_after(m, d)
+                if i is not None and m["rows"][i]["date"] == d.isoformat() and m["rows"][i]["open"] is not None:
+                    execute_buy(st, o["sleeve"], o["sym"], o["qty"], m["rows"][i]["open"], d,
+                                o["reason"], o.get("atr"), o.get("fund"))
+
+        for pk, p in list(st.pos.items()):
+            m = markets.get(p.symbol)
+            if not m:
+                continue
+            i = idx_on_or_before(m, d)
+            if i is None or m["rows"][i]["date"] != d.isoformat():
+                continue
