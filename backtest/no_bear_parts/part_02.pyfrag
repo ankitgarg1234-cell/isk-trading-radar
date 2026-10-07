@@ -1,0 +1,180 @@
+        return None
+    return sf(rs[-1].get("val"))
+
+def indicators(mkt, d):
+    i = idx_on_or_before(mkt, d)
+    if i is None or i < 252:
+        return None
+    rows = mkt["rows"]
+    tr_now = rows[i]["tr"]
+    if tr_now is None or tr_now <= 0:
+        return None
+    def ret(n):
+        old = rows[i-n]["tr"]
+        return tr_now / old - 1.0 if old and old > 0 else None
+    r63, r126, r252 = ret(63), ret(126), ret(252)
+    if None in (r63, r126, r252):
+        return None
+    mom = (r63 + r126 + r252) / 3.0
+    vals = [rows[j]["tr"] for j in range(i-199, i+1)]
+    ema = vals[0]
+    alpha = 2.0 / 201.0
+    for v in vals[1:]:
+        ema = alpha * v + (1-alpha) * ema
+    close = rows[i]["close"]
+    atr = rows[i]["atr"]
+    pct_atr = atr / close if atr is not None and close and close > 0 else None
+    adv = statistics.mean([
+        rows[j]["close"] * rows[j]["volume"] for j in range(max(0, i-62), i+1)
+        if rows[j]["close"] is not None
+    ])
+    return {
+        "i": i, "mom": mom, "r63": r63, "r126": r126, "r252": r252,
+        "ema200_tr": ema, "above_ema200": tr_now > ema,
+        "close": close, "atr": atr, "pct_atr": pct_atr, "adv63": adv
+    }
+
+def regime(spy, d):
+    i = idx_on_or_before(spy, d)
+    if i is None or i < 199:
+        return None
+    vals = [spy["rows"][j]["tr"] for j in range(i-199, i+1)]
+    ema = vals[0]
+    alpha = 2.0 / 201.0
+    for v in vals[1:]:
+        ema = alpha * v + (1-alpha) * ema
+    return spy["rows"][i]["tr"] > ema
+
+@dataclass
+class VPos:
+    sleeve: str
+    symbol: str
+    shares: int
+    avg: float
+    opened: date
+    high: float
+    stop: float
+    last_fund: bool = True
+    pending_stop: bool = False
+
+@dataclass
+class State:
+    name: str
+    no_bear_liquidation: bool
+    cash: float = STARTING
+    pos: dict = field(default_factory=dict)
+    costs: float = 0.0
+    traded_notional: float = 0.0
+    trades: list = field(default_factory=list)
+    daily: list = field(default_factory=list)
+    leadership_log: dict = field(default_factory=dict)
+
+def key(sleeve, sym):
+    return sleeve + ":" + sym
+
+def commission(shares):
+    return max(1.0, 0.005 * abs(shares)) if shares else 0.0
+
+def portfolio_nav(st, markets, d):
+    v = st.cash
+    for p in st.pos.values():
+        m = markets.get(p.symbol)
+        if not m:
+            continue
+        i = idx_on_or_before(m, d)
+        if i is None:
+            continue
+        px = m["rows"][i]["close"]
+        v += p.shares * px
+    return v
+
+def execute_sell(st, pkey, qty, open_px, d, reason):
+    p = st.pos.get(pkey)
+    if not p:
+        return
+    qty = min(int(qty), p.shares)
+    if qty <= 0:
+        return
+    fill = open_px * (1.0 - TOTAL_BPS / 10000.0)
+    gross = qty * fill
+    comm = commission(qty)
+    slip = qty * open_px * TOTAL_BPS / 10000.0
+    st.cash += gross - comm
+    st.costs += comm + slip
+    st.traded_notional += qty * open_px
+    pnl = qty * (fill - p.avg) - comm
+    st.trades.append({
+        "date": d.isoformat(), "sleeve": p.sleeve, "symbol": p.symbol,
+        "side": "SELL", "shares": qty, "open": open_px, "fill": fill,
+        "reason": reason, "pnl": pnl, "commission": comm, "slippage": slip,
+        "days": (d - p.opened).days
+    })
+    p.shares -= qty
+    if p.shares <= 0:
+        st.pos.pop(pkey, None)
+
+def execute_buy(st, sleeve, sym, qty, open_px, d, reason, atr_prev, fund_ok):
+    qty = int(qty)
+    if qty <= 0:
+        return
+    fill = open_px * (1.0 + TOTAL_BPS / 10000.0)
+    while qty > 0:
+        comm = commission(qty)
+        total = qty * fill + comm
+        if total <= st.cash + 1e-9:
+            break
+        qty -= 1
+    if qty <= 0:
+        return
+    comm = commission(qty)
+    total = qty * fill + comm
+    slip = qty * open_px * TOTAL_BPS / 10000.0
+    st.cash -= total
+    st.costs += comm + slip
+    st.traded_notional += qty * open_px
+    pk = key(sleeve, sym)
+    if pk in st.pos:
+        p = st.pos[pk]
+        old_cost = p.avg * p.shares
+        p.shares += qty
+        p.avg = (old_cost + qty * fill) / p.shares
+        p.last_fund = fund_ok if fund_ok is not None else p.last_fund
+    else:
+        stop = fill - 3.0 * atr_prev if atr_prev is not None else -1e99
+        st.pos[pk] = VPos(sleeve, sym, qty, fill, d, fill, stop, bool(fund_ok), False)
+    st.trades.append({
+        "date": d.isoformat(), "sleeve": sleeve, "symbol": sym,
+        "side": "BUY", "shares": qty, "open": open_px, "fill": fill,
+        "reason": reason, "commission": comm, "slippage": slip
+    })
+
+def signal_snapshot(d, members, markets, pits, sectors, cikmap):
+    data = {}
+    issuer_caps = defaultdict(list)
+    for sym in members:
+        m = markets.get(sym)
+        pit = pits.get(sym)
+        if not m or not pit:
+            continue
+        ind = indicators(m, d)
+        if not ind:
+            continue
+        fp = fundamental_pass(pit, d, sectors.get(sym, ""))
+        sh = shares_asof(pit, d)
+        cap = sh * ind["close"] if sh and ind["close"] else None
+        rec = dict(ind)
+        rec.update({"fund": fp, "cap": cap, "cik": cikmap.get(sym)})
+        data[sym] = rec
+        if cap and cap > 0 and cikmap.get(sym):
+            issuer_caps[cikmap[sym]].append((cap, sym))
+    rankable = [(sym, r) for sym, r in data.items() if r["fund"] is True and r["mom"] > 0]
+    rankable.sort(key=lambda z: (z[1]["mom"], z[1]["adv63"], z[0]), reverse=True)
+    ranks = {sym: i+1 for i, (sym, _) in enumerate(rankable)}
+    for sym in data:
+        data[sym]["rank"] = ranks.get(sym)
+    issuers = []
+    for cik, vals in issuer_caps.items():
+        cap = max(x[0] for x in vals)
+        reps = sorted(vals, key=lambda x: (data[x[1]]["adv63"], x[1]), reverse=True)
+        issuers.append((cap, reps[0][1], cik))
+    issuers.sort(reverse=True)
