@@ -1,0 +1,32 @@
+name: Adaptive 2023 Diagnostic
+
+on:
+  push:
+    branches:
+      - research/adaptive-market-state-backtest
+    paths:
+      - scripts/summarize_adaptive_2023.py
+      - .github/workflows/adaptive-2023-diagnostic.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run diagnostic
+        run: python scripts/summarize_adaptive_2023.py
+      - name: Commit diagnostic
+        run: |
+          git config user.name "isk-backtest-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add backtests/results/adaptive_2023_diagnostic.md
+          git diff --cached --quiet && exit 0
+          git commit -m "Update adaptive 2023 diagnostic [skip ci]"
+          git push
