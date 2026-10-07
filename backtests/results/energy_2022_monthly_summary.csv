@@ -1,0 +1,13 @@
+date,spy_bull,energy_members,energy_with_snapshot,energy_positive_momentum,energy_fundamental_pass,energy_raw_global_top20,energy_engine_top20,owned_energy_count,owned_energy_weight_pct,target_energy_count,target_energy_weight_pct,owned_energy_symbols,target_energy_symbols,reason_counts
+2022-01-31,True,17,17,17,1,11,1,0,0.0,1,3.916521831427096,,BKR,"{""FUNDAMENTAL UNRESOLVED"": 16, ""SELECTED ROTATIONAL"": 1}"
+2022-02-28,False,17,17,17,1,11,1,1,4.123536258166777,0,0.0,BKR,,"{""BEAR GATE: liquidate/block equity"": 17}"
+2022-03-31,True,17,17,17,1,12,1,0,0.0,1,2.898095348047272,,BKR,"{""FUNDAMENTAL FAIL"": 6, ""FUNDAMENTAL UNRESOLVED"": 10, ""SELECTED ROTATIONAL"": 1}"
+2022-04-29,False,17,17,17,1,11,1,0,0.0,0,0.0,,,"{""BEAR GATE: liquidate/block equity"": 17}"
+2022-05-31,False,17,17,17,1,14,1,0,0.0,0,0.0,,,"{""BEAR GATE: liquidate/block equity"": 17}"
+2022-06-30,False,17,17,15,1,10,1,0,0.0,0,0.0,,,"{""BEAR GATE: liquidate/block equity"": 17}"
+2022-07-29,False,17,17,17,1,9,0,0,0.0,0,0.0,,,"{""BEAR GATE: liquidate/block equity"": 17}"
+2022-08-31,False,17,17,16,1,9,0,0,0.0,0,0.0,,,"{""BEAR GATE: liquidate/block equity"": 17}"
+2022-09-30,False,17,17,12,1,7,0,0,0.0,0,0.0,,,"{""BEAR GATE: liquidate/block equity"": 17}"
+2022-10-31,False,19,19,18,1,11,0,0,0.0,0,0.0,,,"{""BEAR GATE: liquidate/block equity"": 19}"
+2022-11-30,True,19,19,19,1,8,0,0,0.0,0,0.0,,,"{""FUNDAMENTAL FAIL"": 8, ""FUNDAMENTAL UNRESOLVED"": 10, ""GLOBAL RANK >20: NOT NEW-ENTRY ELIGIBLE"": 1}"
+2022-12-30,False,19,19,19,1,10,1,0,0.0,0,0.0,,,"{""BEAR GATE: liquidate/block equity"": 19}"
