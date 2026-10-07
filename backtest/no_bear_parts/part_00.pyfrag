@@ -123,21 +123,15 @@ def sp500_history(s):
         if t:
             current.add(t)
             sectors[t] = str(r.get(gc) or "")
-    ch = next(
-        x for x in tabs
-        if any("effective date" in str(c).lower() for c in x.columns)
-        and any("added" in str(c).lower() for c in x.columns)
-        and any("removed" in str(c).lower() for c in x.columns)
-    )
+    # The Wikipedia page contains the component table first and the
+    # selected-changes table second.  Header rendering has changed across
+    # pandas/HTML parser versions, so use the stable column positions here:
+    # date, added ticker, added security, removed ticker, removed security, reason.
+    if len(tabs) < 2 or len(tabs[1].columns) < 5:
+        raise RuntimeError("S&P changes table unavailable")
+    ch = tabs[1]
     cols = list(ch.columns)
-    dc = next(c for c in cols if "date" in str(c).lower())
-    added_cols = [c for c in cols if "added" in str(c).lower()]
-    removed_cols = [c for c in cols if "removed" in str(c).lower()]
-    # Wikipedia may render the two-row header as either "Added Ticker" /
-    # "Removed Ticker" or as duplicate Added/Removed columns.  In both
-    # layouts the ticker column precedes the security-name column.
-    ac = next((c for c in added_cols if "ticker" in str(c).lower()), added_cols[0])
-    rc = next((c for c in removed_cols if "ticker" in str(c).lower()), removed_cols[0])
+    dc, ac, rc = cols[0], cols[1], cols[3]
     changes = []
     for _, r in ch.iterrows():
         try:
