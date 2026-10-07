@@ -72,10 +72,22 @@ def ticker_map(s, cache, lim):
         return c
     raw = jget(s, SEC_TICKERS, lim=lim)
     out = {}
-    for x in raw.values():
-        t = norm(x.get("ticker"))
-        if t:
-            out[t] = f"{int(x['cik_str']):010d}"
+    if isinstance(raw, dict) and isinstance(raw.get("data"), list):
+        fields = list(raw.get("fields") or [])
+        for row in raw["data"]:
+            x = dict(zip(fields, row))
+            t = norm(x.get("ticker"))
+            cik = x.get("cik")
+            if t and cik is not None:
+                out[t] = f"{int(cik):010d}"
+    else:
+        for x in (raw.values() if isinstance(raw, dict) else raw):
+            if not isinstance(x, dict):
+                continue
+            t = norm(x.get("ticker"))
+            cik = x.get("cik_str", x.get("cik"))
+            if t and cik is not None:
+                out[t] = f"{int(cik):010d}"
     cache.put("sec", "tickers", out)
     return out
 
