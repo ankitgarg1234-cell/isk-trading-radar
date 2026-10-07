@@ -1,0 +1,55 @@
+                pits[sym] = preprocess_facts(f)
+        if i % 50 == 0:
+            print("SEC", i, "/", len(union), flush=True)
+    print("Coverage prices", len(markets), "SEC", len(pits), flush=True)
+
+    trading_dates = [
+        date.fromisoformat(r["date"]) for r in spy["rows"]
+        if START <= date.fromisoformat(r["date"]) <= END
+    ]
+    signal_pool = [
+        date.fromisoformat(r["date"]) for r in spy["rows"]
+        if date(2021, 12, 1) <= date.fromisoformat(r["date"]) <= END
+    ]
+    month_last = {}
+    for d in signal_pool:
+        month_last[(d.year, d.month)] = d
+    signal_dates = sorted(month_last.values())
+    signal_dates = [d for d in signal_dates if d < END]
+    members_by_signal = {d: members_at(current, changes, d) for d in signal_dates}
+
+    states = []
+    logs = {}
+    for name, no_bear in [
+        ("Control: full BEAR liquidation", False),
+        ("Variant: no new buys in BEAR", True)
+    ]:
+        st, siglog = run_variant(
+            name, no_bear, trading_dates, signal_dates, members_by_signal,
+            markets, pits, sectors, cikmap, spy
+        )
+        states.append(st)
+        logs[name] = siglog
+        print(name, metrics(st), flush=True)
+
+    rep = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "period": {"start": START.isoformat(), "end": END.isoformat()},
+        "coverage": {
+            "universe_symbols": len(union),
+            "price_symbols": len(markets),
+            "sec_symbols": len(pits)
+        },
+        "results": [metrics(x) for x in states],
+        "benchmark": benchmark_metrics(spy, trading_dates),
+        "signal_logs": logs,
+        "trades": {x.name: x.trades for x in states},
+        "daily": {x.name: x.daily for x in states}
+    }
+    OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
+    OUT_JSON.write_text(json.dumps(rep, indent=2))
+    OUT_MD.write_text(markdown(rep))
+    print(markdown(rep), flush=True)
+
+if __name__ == "__main__":
+    main()
