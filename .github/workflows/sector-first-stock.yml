@@ -1,0 +1,43 @@
+name: Sector First Stock Backtest
+
+on:
+  push:
+    branches:
+      - research/adaptive-market-state-backtest
+    paths:
+      - scripts/sector_first_stock_backtest.py
+      - .github/workflows/sector-first-stock.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: .backtest_cache
+          key: walkforward-v1-2022-2026
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pandas lxml requests
+      - name: Validate
+        run: python -m py_compile scripts/sector_first_stock_backtest.py
+      - name: Run
+        run: python scripts/sector_first_stock_backtest.py
+      - name: Commit
+        run: |
+          git config user.name "isk-backtest-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add backtests/results/sector_first_stock_backtest.json backtests/results/sector_first_stock_backtest.md
+          git diff --cached --quiet && exit 0
+          git commit -m "Update sector-first stock research [skip ci]"
+          git push
