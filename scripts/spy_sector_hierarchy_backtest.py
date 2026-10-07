@@ -276,6 +276,7 @@ def main():
     signal_dates=[d for d in sorted(ml.values()) if d<b.END]
 
     wiki=requests.Session(); wiki.headers['User-Agent']='OpenAI S&P rotational research (historical sector classification)'
+    pit_history=load_pit_sector_history(wiki)
     snapshots={}; coverage=[]
     for d in signal_dates:
         pit=pit_sector_snapshot(pit_history,d); sector_map=pit['sectors']
