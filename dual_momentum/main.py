@@ -14,7 +14,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import settings
 from .data import LiveDataSource
-from .db import DMCash, DMPosition, DMStrategyState, DMTrade, SessionLocal, get_or_create_cash, get_or_create_state, init_db
+from .db import DMCash, DMPosition, DMStrategyState, DMTrade, SessionLocal, engine, get_or_create_cash, get_or_create_state, init_db
 from .portfolio import build_portfolio_plan
 from .rules import StopState, advance_stop, wilder_atr_series
 
@@ -23,9 +23,45 @@ templates = Jinja2Templates(directory="dual_momentum/templates")
 SCAN_LOCK = threading.Lock()
 
 
+def _ensure_radar_recovery_access() -> None:
+    """Create an isolated schema/login for the main radar on the shared free DB.
+
+    The existing dual-momentum schema is untouched. This helper is inert unless
+    RADAR_RECOVERY_DB_PASSWORD is explicitly configured on this service.
+    """
+    password = os.getenv("RADAR_RECOVERY_DB_PASSWORD", "").strip()
+    if not password:
+        return
+    if not password.isalnum() or len(password) < 20:
+        raise RuntimeError("RADAR_RECOVERY_DB_PASSWORD must be >=20 alphanumeric characters")
+    role = "isk_radar_recovery"
+    schema = "isk_radar"
+    database = str(engine.url.database or "")
+    with engine.begin() as conn:
+        exists = conn.exec_driver_sql(
+            "SELECT 1 FROM pg_roles WHERE rolname = 'isk_radar_recovery'"
+        ).scalar()
+        if exists:
+            conn.exec_driver_sql(f"ALTER ROLE {role} PASSWORD '{password}'")
+        else:
+            conn.exec_driver_sql(f"CREATE ROLE {role} LOGIN PASSWORD '{password}'")
+        conn.exec_driver_sql(f"CREATE SCHEMA IF NOT EXISTS {schema}")
+        conn.exec_driver_sql(f"GRANT USAGE, CREATE ON SCHEMA {schema} TO {role}")
+        conn.exec_driver_sql(
+            f"ALTER ROLE {role} IN DATABASE \"{database}\" SET search_path TO {schema}"
+        )
+    print(
+        "RADAR_RECOVERY_DB_READY "
+        f"host={engine.url.host} port={engine.url.port or 5432} "
+        f"database={database} role={role} schema={schema}",
+        flush=True,
+    )
+
+
 @app.on_event("startup")
 def startup() -> None:
     init_db()
+    _ensure_radar_recovery_access()
 
     starting_cash_raw = os.getenv("DM_STARTING_CASH_USD", "0").strip()
     auto_initial_scan = os.getenv("DM_AUTO_INITIAL_SCAN", "").strip().lower() in {"1", "true", "yes", "on"}
