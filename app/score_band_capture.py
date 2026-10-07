@@ -84,6 +84,48 @@ def compact_observation(full):
     return out
 
 
+def _recovery_mark_only(state, observations, now, market_open):
+    """Refresh marks for reconstructed holdings without creating/canceling orders."""
+    book = state["variants"]["complete_strategy"]
+    touched = 0
+    for a in observations:
+        symbol = str(a.get("symbol") or "").upper()
+        price = number(a.get("price"))
+        observed = str(a.get("asof") or "")
+        if symbol not in book["positions"] or price is None or price <= 0:
+            continue
+        book["marks"][symbol] = float(price)
+        if observed and observed > book["seen"].get(symbol, ""):
+            book["seen"][symbol] = observed
+        touched += 1
+
+    value = book["cash"] + sum(
+        p["shares"] * book["marks"].get(symbol, p["avg_cost"])
+        for symbol, p in book["positions"].items()
+    )
+    book["peak_equity"] = max(float(book.get("peak_equity") or value), value)
+    if book["peak_equity"] > 0:
+        book["max_drawdown_pct"] = min(
+            float(book.get("max_drawdown_pct") or 0.0),
+            (value / book["peak_equity"] - 1) * 100,
+        )
+    book["samples"] = int(book.get("samples") or 0) + 1
+    book["cash_pct_sum"] = float(book.get("cash_pct_sum") or 0.0) + (
+        book["cash"] / value * 100 if value else 0.0
+    )
+    asof = now.isoformat()
+    row = {"asof": asof, "equity": value, "cash": book["cash"], "positions": len(book["positions"])}
+    slot = asof[:14] + ("00" if now.minute < 30 else "30")
+    if book["curve"] and book["curve"][-1].get("slot") == slot:
+        book["curve"][-1] = {**row, "slot": slot}
+    else:
+        book["curve"].append({**row, "slot": slot})
+    state["last_cycle"] = asof
+    state["last_market_open"] = bool(market_open)
+    state["coverage"]["recovery_mark_cycles"] = state["coverage"].get("recovery_mark_cycles", 0) + 1
+    return {"status": "recovery_readonly", "observations": touched, "fills": 0}
+
+
 def run_experiment_cycle(full_analyses, market_open, now=None):
     now = now or datetime.now(timezone.utc)
     observations = [compact_observation(a) for a in full_analyses]
@@ -102,7 +144,10 @@ def run_experiment_cycle(full_analyses, market_open, now=None):
         benchmark_asof = None
         if state.get("trial"):
             benchmark, benchmark_asof = benchmark_quote
-        result = advance(state, observations, now.isoformat(), market_open, benchmark, benchmark_asof)
+        if settings.recovery_readonly_paper:
+            result = _recovery_mark_only(state, observations, now, market_open)
+        else:
+            result = advance(state, observations, now.isoformat(), market_open, benchmark, benchmark_asof)
         for a in observations:
             observed = a.get("asof") or ""
             sym = a.get("symbol")
