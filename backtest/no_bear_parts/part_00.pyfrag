@@ -35,7 +35,7 @@ LEAD_BUDGET = 0.25
 
 WIKI = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
 YAHOO = "https://query1.finance.yahoo.com/v8/finance/chart/"
-SEC_TICKERS = "https://www.sec.gov/files/company_tickers.json"
+SEC_TICKERS = "https://raw.githubusercontent.com/Ancalagan/sec-data/main/company_tickers.json"
 SEC_FACTS = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
 
 OUT_JSON = ROOT / "backtests/results/walkforward_2022_2026.json"
