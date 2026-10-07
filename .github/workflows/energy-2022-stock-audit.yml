@@ -1,0 +1,43 @@
+name: 2022 Energy Stock Audit
+
+on:
+  push:
+    branches:
+      - research/adaptive-market-state-backtest
+    paths:
+      - scripts/energy_2022_stock_audit.py
+      - .github/workflows/energy-2022-stock-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: .backtest_cache
+          key: walkforward-v1-2022-2026
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pandas lxml requests
+      - name: Validate
+        run: python -m py_compile scripts/energy_2022_stock_audit.py
+      - name: Run
+        run: python scripts/energy_2022_stock_audit.py
+      - name: Commit
+        run: |
+          git config user.name "isk-backtest-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add backtests/results/energy_2022_monthly_audit.csv backtests/results/energy_2022_monthly_summary.csv backtests/results/energy_2022_monthly_audit.md
+          git diff --cached --quiet && exit 0
+          git commit -m "Update 2022 Energy stock capture audit [skip ci]"
+          git push
