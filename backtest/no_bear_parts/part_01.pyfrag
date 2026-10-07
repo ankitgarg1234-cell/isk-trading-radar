@@ -1,0 +1,180 @@
+                "date": datetime.fromtimestamp(t, tz=timezone.utc).date().isoformat(),
+                "open": a("open"), "high": a("high"), "low": a("low"),
+                "close": a("close"), "volume": a("volume") or 0
+            })
+        ev = r.get("events") or {}
+        div = []
+        for x in (ev.get("dividends") or {}).values():
+            try:
+                div.append({
+                    "date": datetime.fromtimestamp(float(x["date"]), tz=timezone.utc).date().isoformat(),
+                    "amount": float(x["amount"])
+                })
+            except Exception:
+                pass
+        out = {"rows": rows, "dividends": sorted(div, key=lambda x: x["date"])}
+        cache.put("yahoo", key, out)
+        return out
+    except Exception:
+        cache.put("yahoo", key, {"missing": True})
+        return None
+
+def prepare_market(data):
+    if not data or not data.get("rows"):
+        return None
+    rows = []
+    divmap = defaultdict(float)
+    for x in data.get("dividends") or []:
+        divmap[x["date"]] += sf(x.get("amount")) or 0.0
+    tr = 1.0
+    prev = None
+    atr = None
+    trs = []
+    for raw in data["rows"]:
+        c = sf(raw.get("close"))
+        o = sf(raw.get("open"))
+        h = sf(raw.get("high"))
+        l = sf(raw.get("low"))
+        if c is None:
+            continue
+        if prev is not None and prev > 0:
+            tr *= (c + divmap.get(raw["date"], 0.0)) / prev
+        if h is not None and l is not None:
+            if prev is None:
+                true_range = h - l
+            else:
+                true_range = max(h - l, abs(h - prev), abs(l - prev))
+            trs.append(true_range)
+            if atr is None and len(trs) >= 14:
+                atr = statistics.mean(trs[-14:])
+            elif atr is not None:
+                atr = (13.0 * atr + true_range) / 14.0
+        rows.append({
+            "date": raw["date"], "open": o, "high": h, "low": l, "close": c,
+            "volume": sf(raw.get("volume")) or 0.0, "tr": tr, "atr": atr,
+            "dividend": divmap.get(raw["date"], 0.0)
+        })
+        prev = c
+    dates = [r["date"] for r in rows]
+    return {"rows": rows, "dates": dates}
+
+def idx_on_or_before(data, d):
+    i = bisect.bisect_right(data["dates"], d.isoformat()) - 1
+    return i if i >= 0 else None
+
+def idx_on_or_after(data, d):
+    i = bisect.bisect_left(data["dates"], d.isoformat())
+    return i if i < len(data["rows"]) else None
+
+def ticker_map(s, cache, lim):
+    c = cache.get("sec", "tickers")
+    if c:
+        return c
+    raw = jget(s, SEC_TICKERS, lim=lim)
+    out = {}
+    for x in raw.values():
+        t = norm(x.get("ticker"))
+        if t:
+            out[t] = f"{int(x['cik_str']):010d}"
+    cache.put("sec", "tickers", out)
+    return out
+
+def facts(s, cache, lim, sym, cik):
+    c = cache.get("facts", sym + "_" + cik)
+    if c is not None:
+        return None if c.get("missing") else c
+    try:
+        x = jget(s, SEC_FACTS.format(cik=cik), lim=lim)
+        cache.put("facts", sym + "_" + cik, x)
+        return x
+    except Exception:
+        cache.put("facts", sym + "_" + cik, {"missing": True})
+        return None
+
+def fact_obj(f, ns, tags):
+    z = (f.get("facts") or {}).get(ns) or {}
+    for t in tags:
+        if t in z:
+            return z[t]
+    return None
+
+def entries(o, units=("USD",)):
+    if not o:
+        return []
+    u = o.get("units") or {}
+    for x in units:
+        if x in u:
+            return list(u[x] or [])
+    return list(next(iter(u.values()), []) or [])
+
+def duration_days(r):
+    try:
+        return (date.fromisoformat(r["end"]) - date.fromisoformat(r["start"])).days
+    except Exception:
+        return None
+
+def annual_records(o, units=("USD",)):
+    best = {}
+    for r in entries(o, units):
+        if r.get("form") not in ("10-K", "10-K/A", "20-F", "20-F/A"):
+            continue
+        n = duration_days(r)
+        if n is not None and not 300 <= n <= 430:
+            continue
+        if not r.get("end") or not r.get("filed") or r.get("val") is None:
+            continue
+        old = best.get(r["end"])
+        if old is None or str(r["filed"]) >= str(old.get("filed")):
+            best[r["end"]] = r
+    return sorted(best.values(), key=lambda x: (x["end"], x.get("filed", "")))
+
+def instant_records(o, units=("shares",)):
+    out = []
+    for r in entries(o, units):
+        if r.get("form") not in ("10-K", "10-K/A", "10-Q", "10-Q/A", "20-F", "20-F/A", "8-K"):
+            continue
+        if not r.get("end") or not r.get("filed") or r.get("val") is None:
+            continue
+        out.append(r)
+    out.sort(key=lambda x: (str(x.get("end")), str(x.get("filed"))))
+    return out
+
+def preprocess_facts(f):
+    rev = annual_records(fact_obj(f, "us-gaap", (
+        "RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues", "SalesRevenueNet"
+    )))
+    gp = annual_records(fact_obj(f, "us-gaap", ("GrossProfit",)))
+    shares = instant_records(fact_obj(f, "dei", ("EntityCommonStockSharesOutstanding",)), ("shares",))
+    if not shares:
+        shares = instant_records(fact_obj(f, "us-gaap", (
+            "WeightedAverageNumberOfDilutedSharesOutstanding",
+            "WeightedAverageNumberOfSharesOutstandingBasic"
+        )), ("shares",))
+    return {"rev": rev, "gp": gp, "shares": shares}
+
+def asof_records(rs, d):
+    return [r for r in rs if str(r.get("filed", ""))[:10] <= d.isoformat() and str(r.get("end", ""))[:10] <= d.isoformat()]
+
+def fundamental_pass(pit, d, sector):
+    rev = asof_records(pit.get("rev") or [], d)
+    if len(rev) < 2:
+        return None
+    r1 = sf(rev[-1].get("val"))
+    r0 = sf(rev[-2].get("val"))
+    if r1 is None or r0 is None or r1 <= 0 or r0 <= 0:
+        return False
+    if r1 / r0 - 1.0 < 0:
+        return False
+    if sector == "Financials":
+        return True
+    gp = asof_records(pit.get("gp") or [], d)
+    if not gp:
+        return None
+    latest_end = rev[-1]["end"]
+    same = [x for x in gp if x.get("end") == latest_end]
+    g = sf((same[-1] if same else gp[-1]).get("val"))
+    return bool(g is not None and g > 0)
+
+def shares_asof(pit, d):
+    rs = asof_records(pit.get("shares") or [], d)
+    if not rs:
