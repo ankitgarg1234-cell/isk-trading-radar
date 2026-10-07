@@ -26,37 +26,29 @@ def norm(v):
     s=str(v or '').strip().upper()
     return '' if not s or s=='NAN' else s.replace('.','-')
 
-def pit_sector_snapshot(session,d):
-    p=PIT_CACHE/f'{d.isoformat()}.json'
-    if p.exists():
-        return json.loads(p.read_text())
-    params={
-      'action':'query','prop':'revisions','titles':'List of S&P 500 companies',
-      'rvprop':'ids|timestamp','rvstart':(d+timedelta(days=1)).strftime('%Y-%m-%dT00:00:00Z'),
-      'rvlimit':'1','rvdir':'older','format':'json','formatversion':'2'
-    }
-    q=session.get(WIKI_API,params=params,timeout=40); q.raise_for_status()
-    pages=q.json()['query']['pages']; rev=pages[0]['revisions'][0]
-    revid=rev['revid']; ts=rev.get('timestamp','')
-    r=session.get(WIKI_API,params={'action':'parse','oldid':revid,'prop':'text','format':'json','formatversion':'2'},timeout=60)
-    r.raise_for_status()
-    html=r.json()['parse']['text']
-    tabs=pd.read_html(StringIO(html))
-    target=None
-    for df in tabs:
-        cols=[str(c).strip() for c in df.columns]
-        if any(c in cols for c in ['Symbol','Ticker','Ticker symbol']) and any('sector' in c.lower() for c in cols):
-            df=df.copy(); df.columns=cols; target=df; break
-    if target is None: raise RuntimeError(f'No sector table for {d}')
-    tc='Symbol' if 'Symbol' in target.columns else ('Ticker' if 'Ticker' in target.columns else 'Ticker symbol')
-    sc=next(c for c in target.columns if 'sector' in c.lower())
-    out={}
-    for _,row in target.iterrows():
-        t=norm(row.get(tc)); sec=str(row.get(sc) or '').strip()
-        if t and sec and sec.lower()!='nan': out[t]=sec
-    p.write_text(json.dumps({'date':d.isoformat(),'revision_id':revid,'revision_timestamp':ts,'sectors':out}))
-    time.sleep(0.15)
-    return {'date':d.isoformat(),'revision_id':revid,'revision_timestamp':ts,'sectors':out}
+PIT_PARQUET_URL='https://raw.githubusercontent.com/dackclup/quantrank/main/data/historical_sector.parquet'
+
+def load_pit_sector_history(session):
+    p=PIT_CACHE/'historical_sector.parquet'
+    if not p.exists():
+        r=session.get(PIT_PARQUET_URL,timeout=90)
+        r.raise_for_status()
+        p.write_bytes(r.content)
+    df=pd.read_parquet(p)
+    df['rebalance_date']=df['rebalance_date'].astype(str)
+    return df
+
+def pit_sector_snapshot(history,d):
+    ds=history.loc[history['rebalance_date']<=d.isoformat(),'rebalance_date']
+    if ds.empty:
+        raise RuntimeError(f'No PIT sector snapshot on/before {d}')
+    rd=ds.max()
+    sub=history.loc[history['rebalance_date']==rd]
+    sectors={norm(r.ticker):str(r.sector).strip() for r in sub.itertuples(index=False)}
+    ts=''
+    if 'revision_timestamp' in sub.columns and not sub.empty:
+        ts=str(sub.iloc[0].get('revision_timestamp') or '')
+    return {'date':d.isoformat(),'rebalance_date':rd,'revision_timestamp':ts,'sectors':sectors}
 
 def signal_snapshot_pit(d,members,markets,pits,sector_map,cikmap):
     data={}; issuer_caps=defaultdict(list)
@@ -243,7 +235,7 @@ def run_variant(cfg,trading_dates,signal_dates,snapshots,markets,spy):
             if ni<len(trading_dates): pending[trading_dates[ni]]=orders
             logs.append({'date':d.isoformat(),'spy_bull':spy_bull,'allowed_sectors':sorted(allowed),
                          'sector_states':secrows,'rotational':rot,'leadership':lead,
-                         'pit_revision_id':pitmeta['revision_id'],'pit_revision_timestamp':pitmeta['revision_timestamp']})
+                         'pit_sector_rebalance_date':pitmeta['rebalance_date'],'pit_revision_timestamp':pitmeta['revision_timestamp']})
     m=b.metrics(st); m['logs']=logs; return m
 
 def main():
@@ -291,7 +283,7 @@ def main():
         covered=sum(1 for s in members if s in sector_map)
         coverage.append({'date':d.isoformat(),'members':len(members),'sector_covered':covered,
                          'coverage_pct':100*covered/len(members) if members else 0,
-                         'revision_id':pit['revision_id'],'revision_timestamp':pit['revision_timestamp']})
+                         'rebalance_date':pit['rebalance_date'],'revision_timestamp':pit['revision_timestamp']})
         snap,lead=signal_snapshot_pit(d,members,markets,pits,sector_map,cikmap)
         snapshots[d]=(snap,lead,sector_signal(markets,d),pit)
 
@@ -314,12 +306,12 @@ def main():
            'spy_bull':'SPY total-return series above own EMA200',
            'stops':'original 3x Wilder ATR14 ratchet retained',
            'sizing':'original inverse-percent-ATR occupied-slot sizing retained',
-           'pit_sector':'monthly Wikipedia revision at or before signal date'
+           'pit_sector':'nearest prior committed Wikipedia-revision PIT sector snapshot (quarterly source snapshots)'
          }}
     OUTJ.parent.mkdir(parents=True,exist_ok=True); OUTJ.write_text(json.dumps(rep,indent=2))
 
     lines=['# SPY + sector hierarchy backtest (2022-Sep 2026)','',
-      'Pre-registered architecture test. Stock ranking, 75/25 sleeves, inverse-ATR sizing, 3x ATR stops, costs and monthly cadence are unchanged. The experiment changes only market/sector permission and replaces current-sector labels with monthly point-in-time Wikipedia GICS sector snapshots.','',
+      'Pre-registered architecture test. Stock ranking, 75/25 sleeves, inverse-ATR sizing, 3x ATR stops, costs and monthly cadence are unchanged. The experiment changes only market/sector permission and replaces current-sector labels with dated point-in-time Wikipedia-revision GICS sector snapshots.','',
       'Sector BULL = sector ETF has positive 63/126/252 average total-return momentum and is above its own EMA200. SPY BULL/BEAR is evaluated independently. In the Bear-exception variants, SPY BULL leaves the frozen engine unchanged; only SPY BEAR can admit stocks from BULL sectors.','',
       '| Variant | 2022 | 2023 | 2024 | 2025 | 2026 | CAGR | Max DD | Avg exposure | Turnover | Costs |',
       '|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|']
@@ -343,7 +335,7 @@ def main():
 
     lines+=['','## Interpretation guardrail','',
       '- This remains the independent public-data reconstruction, not the exact frozen $19,808.08 artifact. Compare variants within this replay; do not substitute these absolute returns for the frozen 14.66% benchmark.',
-      '- The SEC fundamental PASS approximation remains a known mismatch and can suppress otherwise strong stocks. Point-in-time sector classification is corrected here, but the exact original fundamental dataset is still unavailable.'
+      '- The SEC fundamental PASS approximation remains a known mismatch and can suppress otherwise strong stocks. Point-in-time sector classification is corrected using the nearest prior dated PIT sector snapshot, but the exact original fundamental dataset is still unavailable.'
     ]
     OUTM.write_text('\n'.join(lines)+'\n'); print(OUTM.read_text())
 
