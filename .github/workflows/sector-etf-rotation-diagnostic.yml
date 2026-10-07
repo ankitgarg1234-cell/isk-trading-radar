@@ -1,1 +1,39 @@
-name: Sector ETF Rotation Diagnostic\n\non:\n  push:\n    branches:\n      - research/adaptive-market-state-backtest\n    paths:\n      - scripts/sector_etf_rotation_diagnostic.py\n      - .github/workflows/sector-etf-rotation-diagnostic.yml\n  workflow_dispatch:\n\npermissions:\n  contents: write\n\njobs:\n  run:\n    runs-on: ubuntu-latest\n    timeout-minutes: 30\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-python@v5\n        with:\n          python-version: "3.12"\n      - uses: actions/cache@v4\n        with:\n          path: .backtest_cache\n          key: walkforward-v1-2022-2026\n      - name: Install\n        run: pip install requests\n      - name: Run\n        run: python scripts/sector_etf_rotation_diagnostic.py\n      - name: Commit\n        run: |\n          git config user.name "isk-backtest-bot"\n          git config user.email "actions@users.noreply.github.com"\n          git add backtests/results/sector_etf_rotation_diagnostic.json backtests/results/sector_etf_rotation_diagnostic.md\n          git diff --cached --quiet && exit 0\n          git commit -m "Update sector ETF rotation diagnostic [skip ci]"\n          git push\n
+name: Sector ETF Rotation Diagnostic
+
+on:
+  push:
+    branches:
+      - research/adaptive-market-state-backtest
+    paths:
+      - scripts/sector_etf_rotation_diagnostic.py
+      - .github/workflows/sector-etf-rotation-diagnostic.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: .backtest_cache
+          key: walkforward-v1-2022-2026
+      - name: Install
+        run: pip install requests
+      - name: Run
+        run: python scripts/sector_etf_rotation_diagnostic.py
+      - name: Commit
+        run: |
+          git config user.name "isk-backtest-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add backtests/results/sector_etf_rotation_diagnostic.json backtests/results/sector_etf_rotation_diagnostic.md
+          git diff --cached --quiet && exit 0
+          git commit -m "Update sector ETF rotation diagnostic [skip ci]"
+          git push
