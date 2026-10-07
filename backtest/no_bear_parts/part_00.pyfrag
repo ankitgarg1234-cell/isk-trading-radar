@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import ast
 import bisect
 import json
 import math
@@ -124,37 +125,36 @@ def sp500_history(s):
         if t:
             current.add(t)
             sectors[t] = str(r.get(gc) or "")
-    # Parse the selected-changes table directly from the HTML because
-    # recent Wikipedia markup is not consistently exposed by pandas.read_html.
-    root = lhtml.fromstring(html)
-    change_tables = []
-    for t in root.xpath("//table"):
-        txt = " ".join(" ".join(t.itertext()).split())
-        if "Added" in txt and "Removed" in txt and len(t.xpath(".//tr")) > 20:
-            change_tables.append(t)
-    if not change_tables:
-        raise RuntimeError("S&P changes table unavailable")
-    change_table = change_tables[0]
+    changes_url = "https://raw.githubusercontent.com/chinobing/historical_sp500_constituents/main/sp500_changes_since_1996.csv"
+    changes_text = s.get(changes_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=40).text
+    ch = pd.read_csv(StringIO(changes_text))
     changes = []
-    last_date = None
-    for tr in change_table.xpath(".//tr"):
-        cells = [" ".join(" ".join(x.itertext()).split()) for x in tr.xpath("./th|./td")]
-        if not cells:
+    for _, r in ch.iterrows():
+        try:
+            d = pd.to_datetime(r.get("date")).date()
+        except Exception:
             continue
-        parsed = pd.to_datetime(cells[0], errors="coerce")
-        if not pd.isna(parsed):
-            last_date = parsed.date()
-            vals = cells[1:]
-        else:
-            vals = cells
-        if last_date is None or len(vals) < 4:
-            continue
-        # After the date: added ticker, added security, removed ticker,
-        # removed security, reason. Empty table cells are preserved by XPath.
-        a = norm(vals[0])
-        rem = norm(vals[2]) if len(vals) >= 3 else ""
-        if a or rem:
-            changes.append({"date": last_date.isoformat(), "added": a, "removed": rem})
+        def tickers(v):
+            if v is None or (isinstance(v, float) and pd.isna(v)):
+                return []
+            sv = str(v).strip()
+            if not sv or sv.lower() == "nan":
+                return []
+            try:
+                x = ast.literal_eval(sv)
+                if isinstance(x, str):
+                    x = [x]
+                return [norm(z) for z in x if norm(z)]
+            except Exception:
+                return [norm(sv)] if norm(sv) else []
+        adds = tickers(r.get("added_tickers"))
+        rems = tickers(r.get("removed_tickers"))
+        n = max(len(adds), len(rems), 1)
+        for i in range(n):
+            a = adds[i] if i < len(adds) else ""
+            rem = rems[i] if i < len(rems) else ""
+            if a or rem:
+                changes.append({"date": d.isoformat(), "added": a, "removed": rem})
     changes.sort(key=lambda x: x["date"])
     return current, sectors, changes
 
