@@ -1,0 +1,47 @@
+name: Regime Hysteresis Recovery Backtest
+
+on:
+  push:
+    branches:
+      - research/adaptive-market-state-backtest
+    paths:
+      - scripts/regime_hysteresis_recovery_backtest.py
+      - .github/workflows/regime-hysteresis-recovery.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: regime-hysteresis-recovery
+  cancel-in-progress: true
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: .backtest_cache
+          key: walkforward-v1-2022-2026
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pandas lxml requests
+      - name: Validate
+        run: python -m py_compile scripts/regime_hysteresis_recovery_backtest.py
+      - name: Run
+        run: python scripts/regime_hysteresis_recovery_backtest.py
+      - name: Commit results
+        run: |
+          git config user.name "isk-backtest-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add backtests/results/regime_hysteresis_recovery_2022_2026.json backtests/results/regime_hysteresis_recovery_2022_2026.md
+          git diff --cached --quiet && exit 0
+          git commit -m "Update regime hysteresis recovery research [skip ci]"
+          git push
