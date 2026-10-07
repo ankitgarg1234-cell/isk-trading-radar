@@ -144,7 +144,7 @@ def run_experiment_cycle(full_analyses, market_open, now=None):
         benchmark_asof = None
         if state.get("trial"):
             benchmark, benchmark_asof = benchmark_quote
-        if settings.recovery_readonly_paper:
+        if getattr(settings, "recovery_readonly_paper", False):
             result = _recovery_mark_only(state, observations, now, market_open)
         else:
             result = advance(state, observations, now.isoformat(), market_open, benchmark, benchmark_asof)
@@ -232,8 +232,8 @@ def canonical_paper_status(db):
         'return_pct': metrics['return_pct'], 'absolute_return': absolute_return,
         'open_pnl': round(open_pnl, 2), 'realized_pnl': round(realized_pnl, 2),
         'pnl_reconciliation_delta': round(pnl_reconciliation_delta, 6),
-        'recovery_mode': bool(settings.recovery_readonly_paper),
-        'recovery_adjustment': round(pnl_reconciliation_delta, 2) if settings.recovery_readonly_paper else 0.0,
+        'recovery_mode': bool(getattr(settings, 'recovery_readonly_paper', False)),
+        'recovery_adjustment': round(pnl_reconciliation_delta, 2) if getattr(settings, 'recovery_readonly_paper', False) else 0.0,
         'recovery_note': (state.get('recovery') or {}).get('note'),
         'daily_pnl': daily, 'daily_pnl_pct': daily/base*100 if base else 0,
         'benchmark_label': 'S&P 500 Total Return', 'benchmark_return_pct': benchmark,
