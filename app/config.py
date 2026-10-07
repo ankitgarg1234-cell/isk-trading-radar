@@ -52,6 +52,7 @@ class Settings:
     optimizer_rotation_gap: float = float(os.getenv("OPTIMIZER_ROTATION_GAP", "12"))  # legacy
     optimizer_rotation_yield_gap: float = float(os.getenv("OPTIMIZER_ROTATION_YIELD_GAP", "8"))  # legacy
     paper_trading_enabled: bool = _bool("PAPER_TRADING_ENABLED", True)
+    recovery_readonly_paper: bool = _bool("RECOVERY_READONLY_PAPER", False)
     score_band_trial_armed_at: str = os.getenv("SCORE_BAND_TRIAL_ARMED_AT", "")
     paper_starting_cash: float = float(os.getenv("PAPER_STARTING_CASH", "10000"))
     paper_trade_cost_bps: float = float(os.getenv("PAPER_TRADE_COST_BPS", "10"))
