@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pandas as pd
 import requests
+from lxml import html as lhtml
 
 ROOT = Path(__file__).resolve().parents[1]
 STARTING = 10000.0
@@ -123,26 +124,40 @@ def sp500_history(s):
         if t:
             current.add(t)
             sectors[t] = str(r.get(gc) or "")
-    # The Wikipedia page contains the component table first and the
-    # selected-changes table second.  Header rendering has changed across
-    # pandas/HTML parser versions, so use the stable column positions here:
-    # date, added ticker, added security, removed ticker, removed security, reason.
-    if len(tabs) < 2 or len(tabs[1].columns) < 5:
+    # Parse the selected-changes table directly from the HTML because
+    # recent Wikipedia markup is not consistently exposed by pandas.read_html.
+    root = lhtml.fromstring(html)
+    change_tables = []
+    for t in root.xpath("//table"):
+        txt = " ".join(" ".join(t.itertext()).split())
+        if "Effective Date" in txt and "Added" in txt and "Removed" in txt:
+            change_tables.append(t)
+    if not change_tables:
         raise RuntimeError("S&P changes table unavailable")
-    ch = tabs[1]
-    cols = list(ch.columns)
-    dc, ac, rc = cols[0], cols[1], cols[3]
+    change_table = change_tables[0]
     changes = []
-    for _, r in ch.iterrows():
-        try:
-            d = pd.to_datetime(r.get(dc)).date()
-        except Exception:
+    last_date = None
+    for tr in change_table.xpath(".//tr"):
+        cells = [" ".join(" ".join(x.itertext()).split()) for x in tr.xpath("./th|./td")]
+        if not cells:
             continue
-        a, rem = norm(r.get(ac)), norm(r.get(rc))
+        parsed = pd.to_datetime(cells[0], errors="coerce")
+        if not pd.isna(parsed):
+            last_date = parsed.date()
+            vals = cells[1:]
+        else:
+            vals = cells
+        if last_date is None or len(vals) < 4:
+            continue
+        # After the date: added ticker, added security, removed ticker,
+        # removed security, reason. Empty table cells are preserved by XPath.
+        a = norm(vals[0])
+        rem = norm(vals[2]) if len(vals) >= 3 else ""
         if a or rem:
-            changes.append({"date": d.isoformat(), "added": a, "removed": rem})
+            changes.append({"date": last_date.isoformat(), "added": a, "removed": rem})
     changes.sort(key=lambda x: x["date"])
     return current, sectors, changes
+
 
 def members_at(current, changes, when):
     m = set(current)
