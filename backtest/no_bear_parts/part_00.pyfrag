@@ -130,7 +130,7 @@ def sp500_history(s):
     change_tables = []
     for t in root.xpath("//table"):
         txt = " ".join(" ".join(t.itertext()).split())
-        if "Effective Date" in txt and "Added" in txt and "Removed" in txt:
+        if "Added" in txt and "Removed" in txt and len(t.xpath(".//tr")) > 20:
             change_tables.append(t)
     if not change_tables:
         raise RuntimeError("S&P changes table unavailable")
