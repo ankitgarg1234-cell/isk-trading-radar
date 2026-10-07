@@ -19,6 +19,7 @@ from .ai_engine import AIEngine
 from .score_band_capture import experiment_status, experiment_holding_symbols
 from . import article_news
 from .trading_rules import MIN_ENTRY_RISK_REWARD
+from .recovery import ensure_recovery_seed
 from .full_scan import FullUniverseScan
 
 full_scan = FullUniverseScan(radar)
@@ -27,6 +28,7 @@ radar.full_universe_scan = full_scan
 @asynccontextmanager
 async def lifespan(app:FastAPI):
     task=None
+    await asyncio.to_thread(ensure_recovery_seed)
     experiment = await asyncio.to_thread(experiment_status)
     radar.last_experiment_result = {"status": experiment["status"], "version": experiment["version"],
         "started_at": experiment["started_at"], "profile": experiment["spec"]["profile"],
