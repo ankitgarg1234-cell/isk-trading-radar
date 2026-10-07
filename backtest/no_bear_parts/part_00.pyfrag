@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import bisect
+import json
+import math
+import statistics
+import threading
+import time
+from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta, timezone
+from io import StringIO
+from pathlib import Path
+
+import pandas as pd
+import requests
+
+ROOT = Path(__file__).resolve().parents[1]
+STARTING = 10000.0
+START = date(2022, 1, 1)
+END = date(2026, 9, 30)
+DATA_START = START - timedelta(days=400)
+DATA_END = date(2026, 10, 6)
+
+SLIPPAGE_BPS = 5.0
+EXTRA_BPS = 2.0
+TOTAL_BPS = SLIPPAGE_BPS + EXTRA_BPS
+ROT_MAX = 15
+LEAD_MAX = 5
+ROT_BUDGET = 0.75
+LEAD_BUDGET = 0.25
+
+WIKI = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+YAHOO = "https://query1.finance.yahoo.com/v8/finance/chart/"
+SEC_TICKERS = "https://www.sec.gov/files/company_tickers.json"
+SEC_FACTS = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
+
+OUT_JSON = ROOT / "backtests/results/walkforward_2022_2026.json"
+OUT_MD = ROOT / "backtests/results/walkforward_2022_2026.md"
+
+def sf(v):
+    try:
+        x = float(v)
+        return x if math.isfinite(x) else None
+    except Exception:
+        return None
+
+def norm(v):
+    s = str(v or "").strip().upper()
+    return "" if not s or s == "NAN" else s.replace(".", "-")
+
+class Cache:
+    def __init__(self, p):
+        self.p = Path(p)
+        self.p.mkdir(parents=True, exist_ok=True)
+    def _p(self, g, k):
+        d = self.p / g
+        d.mkdir(parents=True, exist_ok=True)
+        return d / (k.replace("/", "_").replace("^", "IDX_") + ".json")
+    def get(self, g, k):
+        p = self._p(g, k)
+        try:
+            return json.loads(p.read_text()) if p.exists() else None
+        except Exception:
+            return None
+    def put(self, g, k, v):
+        self._p(g, k).write_text(json.dumps(v))
+
+class Limiter:
+    def __init__(self, rps):
+        self.dt = 1.0 / rps
+        self.lock = threading.Lock()
+        self.next = 0.0
+    def wait(self):
+        with self.lock:
+            now = time.monotonic()
+            if now < self.next:
+                time.sleep(self.next - now)
+            self.next = time.monotonic() + self.dt
+
+def jget(s, url, params=None, lim=None):
+    err = None
+    for i in range(6):
+        try:
+            if lim:
+                lim.wait()
+            r = s.get(url, params=params, timeout=40)
+            if r.status_code in (429, 500, 502, 503, 504):
+                raise RuntimeError(str(r.status_code))
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            err = e
+            time.sleep(min(12, 1.6 ** i))
+    raise RuntimeError(str(err))
+
+def flat(df):
+    z = df.copy()
+    z.columns = [
+        " ".join(dict.fromkeys(str(x) for x in c if str(x) != "nan"))
+        if isinstance(c, tuple) else str(c)
+        for c in z.columns
+    ]
+    return z
+
+def col(cols, *parts):
+    for c in cols:
+        q = c.lower()
+        if all(p.lower() in q for p in parts):
+            return c
+    return None
+
+def sp500_history(s):
+    html = s.get(WIKI, headers={"User-Agent": "Mozilla/5.0"}, timeout=40).text
+    tabs = [flat(x) for x in pd.read_html(StringIO(html))]
+    cur = next(x for x in tabs if col(list(x.columns), "symbol") and col(list(x.columns), "gics", "sector"))
+    sc = col(list(cur.columns), "symbol")
+    gc = col(list(cur.columns), "gics", "sector")
+    current, sectors = set(), {}
+    for _, r in cur.iterrows():
+        t = norm(r.get(sc))
+        if t:
+            current.add(t)
+            sectors[t] = str(r.get(gc) or "")
+    ch = next(x for x in tabs if col(list(x.columns), "added", "ticker") and col(list(x.columns), "removed", "ticker"))
+    dc = col(list(ch.columns), "date")
+    ac = col(list(ch.columns), "added", "ticker")
+    rc = col(list(ch.columns), "removed", "ticker")
+    changes = []
+    for _, r in ch.iterrows():
+        try:
+            d = pd.to_datetime(r.get(dc)).date()
+        except Exception:
+            continue
+        a, rem = norm(r.get(ac)), norm(r.get(rc))
+        if a or rem:
+            changes.append({"date": d.isoformat(), "added": a, "removed": rem})
+    changes.sort(key=lambda x: x["date"])
+    return current, sectors, changes
+
+def members_at(current, changes, when):
+    m = set(current)
+    for x in reversed(changes):
+        d = date.fromisoformat(x["date"])
+        if d <= when:
+            continue
+        if x["added"]:
+            m.discard(x["added"])
+        if x["removed"]:
+            m.add(x["removed"])
+    return m
+
+def epoch(d):
+    return int(datetime(d.year, d.month, d.day, tzinfo=timezone.utc).timestamp())
+
+def yahoo(s, cache, sym, start, end):
+    key = sym + "_" + start.isoformat() + "_" + end.isoformat()
+    c = cache.get("yahoo", key)
+    if c is not None:
+        return None if c.get("missing") else c
+    try:
+        data = jget(
+            s, YAHOO + sym,
+            {"period1": epoch(start), "period2": epoch(end + timedelta(days=3)),
+             "interval": "1d", "events": "div,splits"}
+        )
+        r = ((data.get("chart") or {}).get("result") or [None])[0]
+        if not r:
+            raise RuntimeError("no chart")
+        ts = r.get("timestamp") or []
+        q = ((r.get("indicators") or {}).get("quote") or [{}])[0]
+        rows = []
+        for i, t in enumerate(ts):
+            def a(n):
+                x = q.get(n) or []
+                return x[i] if i < len(x) else None
+            if a("close") is None:
+                continue
+            rows.append({
