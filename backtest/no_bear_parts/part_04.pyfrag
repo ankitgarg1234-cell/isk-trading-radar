@@ -1,0 +1,180 @@
+            row = m["rows"][i]
+            c = row["close"]
+            atr = row["atr"]
+            if c is None:
+                continue
+            if c <= p.stop:
+                p.pending_stop = True
+            else:
+                p.high = max(p.high, c)
+                if atr is not None:
+                    p.stop = max(p.stop, p.high - 3.0 * atr)
+
+        nav = portfolio_nav(st, markets, d)
+        eq = max(0.0, nav - st.cash)
+        st.daily.append({
+            "date": d.isoformat(), "nav": nav, "cash": st.cash,
+            "equity_exposure": eq / nav if nav > 0 else 0.0,
+            "positions": len(st.pos)
+        })
+
+        if d in signals:
+            snap, leadership, bull = snapshots[d]
+            orders, rot_sel, lead_sel = build_monthly_orders(st, d, bool(bull), snap, leadership, markets)
+            stopped_syms = {p.symbol for p in st.pos.values() if p.pending_stop}
+            if stopped_syms:
+                orders = [o for o in orders if not (o["kind"] == "buy" and o.get("sym") in stopped_syms)]
+            ni = bisect.bisect_right(trading_dates, d)
+            if ni < len(trading_dates):
+                pending_monthly[trading_dates[ni]] = orders
+            siglog[d.isoformat()] = {"bull": bool(bull), "rotational": rot_sel, "leadership": lead_sel}
+    return st, siglog
+
+def metrics(st):
+    ds = st.daily
+    endv = ds[-1]["nav"]
+    total = endv / STARTING - 1.0
+    cagr_5y = (endv / STARTING) ** (1/5.0) - 1.0
+    actual_years = (date.fromisoformat(ds[-1]["date"]) - date.fromisoformat(ds[0]["date"])).days / 365.25
+    cagr_actual = (endv / STARTING) ** (1/actual_years) - 1.0
+    peak = -1e99
+    maxdd = 0.0
+    byyear = defaultdict(list)
+    for r in ds:
+        nav = r["nav"]
+        peak = max(peak, nav)
+        if peak > 0:
+            maxdd = min(maxdd, nav / peak - 1.0)
+        byyear[int(r["date"][:4])].append(r)
+    annual = {}
+    prev = STARTING
+    for y in sorted(byyear):
+        v = byyear[y][-1]["nav"]
+        annual[str(y)] = v / prev - 1.0
+        prev = v
+    avg_nav = statistics.mean([r["nav"] for r in ds])
+    avg_exp = statistics.mean([r["equity_exposure"] for r in ds])
+    avg_hold = statistics.mean([r["positions"] for r in ds])
+    sells = [t for t in st.trades if t["side"] == "SELL"]
+    return {
+        "name": st.name,
+        "end_value": round(endv, 2),
+        "total_return_pct": round(total*100, 2),
+        "cagr_5y_convention_pct": round(cagr_5y*100, 2),
+        "cagr_actual_elapsed_pct": round(cagr_actual*100, 2),
+        "max_drawdown_pct": round(maxdd*100, 2),
+        "annual_returns_pct": {k: round(v*100, 2) for k, v in annual.items()},
+        "avg_equity_exposure_pct": round(avg_exp*100, 2),
+        "avg_virtual_positions": round(avg_hold, 2),
+        "trade_count": len(st.trades),
+        "sell_count": len(sells),
+        "costs": round(st.costs, 2),
+        "traded_notional": round(st.traded_notional, 2),
+        "annualized_turnover_x": round(st.traded_notional / avg_nav / 5.0, 2),
+        "leadership_log": st.leadership_log
+    }
+
+def benchmark_metrics(spy, trading_dates):
+    i0 = idx_on_or_before(spy, trading_dates[0])
+    i1 = idx_on_or_before(spy, trading_dates[-1])
+    tr0 = spy["rows"][i0]["tr"]
+    tr1 = spy["rows"][i1]["tr"]
+    ret = tr1 / tr0 - 1.0
+    return {"name": "SPY total-return reconstruction", "total_return_pct": round(ret*100, 2)}
+
+def markdown(rep):
+    a = []
+    a.append("# 75/25 leadership architecture — BEAR liquidation ablation")
+    a.append("")
+    a.append("Research branch run. The only intended behavioral change between the two variants is the market-regime action:")
+    a.append("- Control: BEAR liquidates all equity positions and blocks buys.")
+    a.append("- No-new-buys: BEAR blocks new/additional buys but retains incumbents unless their own rank, momentum, leadership qualification, or ATR stop exits them.")
+    a.append("")
+    a.append("| Metric | Frozen-rule control | No-new-buys in BEAR |")
+    a.append("|---|---:|---:|")
+    c, n = rep["results"]
+    for label, key_, fmt in [
+        ("Ending value", "end_value", "${:,.2f}"),
+        ("5Y return", "total_return_pct", "{:+.2f}%"),
+        ("CAGR (same 5Y convention)", "cagr_5y_convention_pct", "{:.2f}%"),
+        ("Actual elapsed CAGR", "cagr_actual_elapsed_pct", "{:.2f}%"),
+        ("Max drawdown", "max_drawdown_pct", "{:.2f}%"),
+        ("2022", None, None), ("2023", None, None), ("2024", None, None),
+        ("2025", None, None), ("2026 Jan-Sep", None, None),
+        ("Avg equity exposure", "avg_equity_exposure_pct", "{:.2f}%"),
+        ("Annualized turnover", "annualized_turnover_x", "{:.2f}x"),
+        ("Costs", "costs", "${:,.2f}"),
+        ("Trades", "trade_count", "{:,.0f}")
+    ]:
+        if label.startswith("202"):
+            y = label[:4]
+            cv = c["annual_returns_pct"].get(y)
+            nv = n["annual_returns_pct"].get(y)
+            a.append(f"| {label} | {cv:+.2f}% | {nv:+.2f}% |")
+        else:
+            a.append(f"| {label} | {fmt.format(c[key_])} | {fmt.format(n[key_])} |")
+    a.append("")
+    a.append("## Validation against the previously reported control")
+    a.append("")
+    a.append("Previously reported earlier-25%-leadership control: ending value $19,808.08, 5Y return +98.08%, CAGR 14.66%, max drawdown -33.85%, 2023 +2.91%.")
+    a.append("This independent replay uses the public S&P constituent-change table, Yahoo historical prices/dividends, and SEC filing-timestamped annual revenue/gross-profit/share data. Any difference from the prior artifact is reported rather than calibrated away.")
+    a.append("")
+    a.append("## 2023 leadership validation")
+    a.append("")
+    a.append("Expected conceptual check from prior research: June/July 2023 should favor mega-cap trend-qualified names such as MSFT, AMZN, NVDA, TSLA and AVGO.")
+    a.append("")
+    a.append("Control leadership log: " + json.dumps(c.get("leadership_log") or {}, sort_keys=True))
+    a.append("")
+    a.append("## Data/method notes")
+    a.append("")
+    a.append("- Point-in-time S&P 500 membership is reconstructed from the public current-constituent and historical-changes tables.")
+    a.append("- Momentum and the SPY regime use a dividend-reinvested total-return series reconstructed from split-adjusted Yahoo closes plus cash dividends.")
+    a.append("- Fills use next-session opens with 7 bps adverse price drag per side plus max($1, $0.005/share) commission.")
+    a.append("- Sizing is inverse percentage Wilder ATR14, with occupied-slot exposure preserved separately for the 15-slot rotational and 5-slot leadership sleeves.")
+    a.append("- Fundamental PASS is approximated from filing-timestamped SEC annual revenue growth >=0 and positive gross profit, with Financials gross-profit-exempt. This is the largest potential source of mismatch versus the earlier experiment artifact.")
+    a.append("- Whole shares only; no leverage; stopped-out cash waits until a later monthly cycle.")
+    return "\n".join(a) + "\n"
+
+def main():
+    cache = Cache(ROOT / ".backtest_cache")
+    s = requests.Session()
+    s.headers["User-Agent"] = "Mozilla/5.0 ISK dual-momentum research"
+    current, sectors, changes = sp500_history(s)
+    members0 = members_at(current, changes, date(2021, 12, 31))
+    rel = [x for x in changes if date(2021, 12, 1) <= date.fromisoformat(x["date"]) <= END]
+    union = set(members0) | current
+    for x in rel:
+        if x["added"]:
+            union.add(x["added"])
+        if x["removed"]:
+            union.add(x["removed"])
+    print("Universe", len(union), flush=True)
+
+    raw = {}
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    def fetch_sym(sym):
+        z = requests.Session()
+        z.headers["User-Agent"] = "Mozilla/5.0 ISK dual-momentum research"
+        return sym, yahoo(z, cache, sym, DATA_START, DATA_END)
+    with ThreadPoolExecutor(max_workers=10) as ex:
+        fs = [ex.submit(fetch_sym, x) for x in sorted(union | {"SPY"})]
+        for i, f in enumerate(as_completed(fs), 1):
+            sym, v = f.result()
+            if v:
+                raw[sym] = v
+            if i % 50 == 0:
+                print("Yahoo", i, "/", len(fs), flush=True)
+    markets = {k: prepare_market(v) for k, v in raw.items()}
+    markets = {k: v for k, v in markets.items() if v}
+    spy = markets["SPY"]
+
+    lim = Limiter(7)
+    ss = requests.Session()
+    ss.headers["User-Agent"] = "ISK dual-momentum point-in-time research"
+    cikmap = ticker_map(ss, cache, lim)
+    pits = {}
+    for i, sym in enumerate(sorted(union), 1):
+        cik = cikmap.get(sym)
+        if cik:
+            f = facts(ss, cache, lim, sym, cik)
+            if f:
