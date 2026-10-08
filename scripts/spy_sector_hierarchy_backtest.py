@@ -72,8 +72,8 @@ def signal_snapshot_pit(d,members,markets,pits,sector_map,cikmap):
         if not ind: continue
         sec=sector_map.get(sym,'')
         fp=b.fundamental_pass(pit,d,sec) if pit is not None else None
-        sh=b.shares_asof(pit,d) if pit is not None else None
-        cap=sh*ind['close'] if sh and ind['close'] else None
+        share_record=b.shares_record_asof(pit,d) if pit is not None else None
+        cap=b.split_adjusted_market_cap(share_record,m,ind['close'])
         rec=dict(ind); rec.update({'fund':fp,'cap':cap,'cik':cikmap.get(sym),'sector':sec})
         data[sym]=rec
         if cap and cap>0 and cikmap.get(sym): issuer_caps[cikmap[sym]].append((cap,sym))
