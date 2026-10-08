@@ -4,20 +4,20 @@ Independent new strategy; NOT the original frozen 75/25 engine or its replicatio
 
 | Year | Return |
 |---|---:|
-| 2022 | -11.95% |
-| 2023 | -11.58% |
-| 2024 | -3.62% |
-| 2025 | +3.20% |
-| 2026 | -1.78% |
+| 2022 | -18.83% |
+| 2023 | -8.31% |
+| 2024 | +6.34% |
+| 2025 | +21.14% |
+| 2026 | +4.63% |
 
 | Metric | Result |
 |---|---:|
-| CAGR | -5.61% |
-| Max drawdown | -38.67% |
-| Avg equity exposure | 71.61% |
-| Ending NAV ($10,000) | $7,605.46 |
-| Trades | 4760 |
-| Costs | $6,596.61 |
+| CAGR | 0.07% |
+| Max drawdown | -29.56% |
+| Avg equity exposure | 73.96% |
+| Ending NAV ($10,000) | $10,031.46 |
+| Trades | 2266 |
+| Costs | $3,284.76 |
 
 ## 2022 monthly sector decisions
 
@@ -37,7 +37,8 @@ Independent new strategy; NOT the original frozen 75/25 engine or its replicatio
 | 2022-12-30 | False | Energy: 35%, Industrials: 15% |
 
 ## Execution and interpretation
-- Daily and monthly decisions are computed from same-day close, executed next available session open.
+- Monthly sector ranking is frozen between rebalances; daily SPY flips or active-sector permission failures can trigger next-open risk transitions.
+- REENTRY events buy only vacant stock positions from available cash; they do not resize all existing holdings.
 - Intraday trailing stops use the *previous day's* stop, with gap-open adjustment.
 - In SPY BEAR with two qualifying sectors, allocation is capped at 50% and split 70/30 or 50/50 among Top-2.
 - Sector breadth is strict >50%, resolving the 50% boundary overlap in favor of the original permission definition.
