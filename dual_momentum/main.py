@@ -18,7 +18,7 @@ from .data import LiveDataSource
 from .db import DMCash, DMPosition, DMStrategyState, DMTrade, SessionLocal, engine, get_or_create_cash, get_or_create_state, init_db
 from .portfolio import build_portfolio_plan
 from .rules import StopState, advance_stop, wilder_atr_series
-from .trial import init_trial, read_trial, poll, START as TRIAL_START, END as TRIAL_END, NY as TRIAL_NY
+from .trial import init_trial, read_trial, poll, refresh_ranking_only, START as TRIAL_START, END as TRIAL_END, NY as TRIAL_NY
 
 app = FastAPI(title="Dual Momentum Radar", version="1.0.0")
 templates = Jinja2Templates(directory="dual_momentum/templates")
@@ -454,6 +454,13 @@ def export_trial():
     return Response(content=body, media_type="application/json", headers={
         "Content-Disposition": 'attachment; filename="Dual_Momentum_Paper_Trial_2026.json"'
     })
+
+
+@app.post("/api/trial/ranking-audit/refresh")
+def refresh_paper_ranking_audit(background_tasks: BackgroundTasks):
+    # Diagnostic-only. May run even when temporary storage blocks paper trades.
+    background_tasks.add_task(refresh_ranking_only)
+    return RedirectResponse("/trial", status_code=303)
 
 
 @app.post("/api/trial/refresh")
