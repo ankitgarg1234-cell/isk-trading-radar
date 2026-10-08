@@ -51,12 +51,13 @@ class TestPaperTrial(unittest.TestCase):
     def test_sector_cap_leaves_cash_instead_of_backfill(self):
         s=_initial()
         members=[{"symbol":x,"sector":"Information Technology"} for x in ["NVDA","MSFT","AAPL","AVGO","AMD"]]
-        stats={x:{"score":5-i,"above_ema":True,"close":100.0,"last":"2026-10-08"} for i,x in enumerate(["NVDA","MSFT","AAPL","AVGO","AMD"])}
-        qty,w,selected,_=_calculate_targets(s,members,stats,1.0,{x:100 for x in stats})
+        stats={x:{"score":5-i,"risk":5-i,"r63":.40,"above_ema50":True,"above_ema":True,"close":100.0,"last":"2026-10-08"} for i,x in enumerate(["NVDA","MSFT","AAPL","AVGO","AMD"])}
+        qty,w,selected,_=_calculate_targets(s,members,stats,1.0,{x:100 for x in stats},spy_r63=.10)
         self.assertEqual(len(selected),5)
         self.assertLessEqual(sum(w.values()),SECTOR_CAP+1e-9)
-        self.assertEqual(qty["AAPL"],0)
-        self.assertEqual(sum(qty.values()),50)
+        self.assertGreater(qty["AAPL"],0)
+        self.assertTrue(all(w[s]>0 for s in selected))
+        self.assertLessEqual(sum(qty.values()),50)
 
     def test_existing_stops_are_not_filled_before_entry(self):
         s=_initial()
