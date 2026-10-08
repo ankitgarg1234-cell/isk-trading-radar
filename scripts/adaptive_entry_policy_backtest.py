@@ -255,6 +255,15 @@ def prepare_market(data):
             "dividend": divmap.get(raw["date"], 0.0)
         })
         prev = c
+    # True continuous EMA200, seeded once with the arithmetic mean of the
+    # first 200 sessions.  The old last-200-window re-seeding was incorrect.
+    if len(rows) >= 200:
+        ema = statistics.mean(r["tr"] for r in rows[:200])
+        rows[199]["ema200_tr"] = ema
+        alpha = 2.0 / 201.0
+        for j in range(200, len(rows)):
+            ema = alpha * rows[j]["tr"] + (1.0 - alpha) * ema
+            rows[j]["ema200_tr"] = ema
     dates = [r["date"] for r in rows]
     return {"rows": rows, "dates": dates}
 
@@ -422,11 +431,7 @@ def indicators(mkt, d):
     if None in (r63, r126, r252):
         return None
     mom = (r63 + r126 + r252) / 3.0
-    vals = [rows[j]["tr"] for j in range(i-199, i+1)]
-    ema = vals[0]
-    alpha = 2.0 / 201.0
-    for v in vals[1:]:
-        ema = alpha * v + (1-alpha) * ema
+    ema = ema200_at_index(rows, i)
     close = rows[i]["close"]
     atr = rows[i]["atr"]
     pct_atr = atr / close if atr is not None and close and close > 0 else None
@@ -440,16 +445,25 @@ def indicators(mkt, d):
         "close": close, "atr": atr, "pct_atr": pct_atr, "adv63": adv
     }
 
+def ema200_at_index(rows, i):
+    """Exact continuous 200-session EMA; cache is only a performance shortcut."""
+    if i is None or i < 199:
+        return None
+    cached = rows[i].get("ema200_tr")
+    if cached is not None:
+        return cached
+    ema = statistics.mean(float(r["tr"]) for r in rows[:200])
+    alpha = 2.0 / 201.0
+    for j in range(200, i+1):
+        ema = alpha * float(rows[j]["tr"]) + (1.0-alpha) * ema
+    return ema
+
+
 def regime(spy, d):
     i = idx_on_or_before(spy, d)
     if i is None or i < 199:
         return None
-    vals = [spy["rows"][j]["tr"] for j in range(i-199, i+1)]
-    ema = vals[0]
-    alpha = 2.0 / 201.0
-    for v in vals[1:]:
-        ema = alpha * v + (1-alpha) * ema
-    return spy["rows"][i]["tr"] > ema
+    return spy["rows"][i]["tr"] > ema200_at_index(spy["rows"], i)
 
 @dataclass
 class VPos:
