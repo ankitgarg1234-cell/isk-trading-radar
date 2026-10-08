@@ -35,6 +35,10 @@ def load_pit_sector_history(session):
         r.raise_for_status()
         p.write_bytes(r.content)
     df=pd.read_parquet(p)
+    required={'rebalance_date','ticker','sector','revision_timestamp','sector_source'}
+    missing=required-set(df.columns)
+    if missing:
+        raise RuntimeError(f"PIT GICS data missing provenance columns: {missing}")
     df['rebalance_date']=df['rebalance_date'].astype(str)
     return df
 
@@ -44,10 +48,19 @@ def pit_sector_snapshot(history,d):
         raise RuntimeError(f'No PIT sector snapshot on/before {d}')
     rd=ds.max()
     sub=history.loc[history['rebalance_date']==rd]
+    # Fallback labels are not verified historical GICS data.
+    sub=sub.loc[sub['sector_source']=='wikipedia_pit']
+    if sub.empty:
+        raise RuntimeError(f"Missing verified PIT sector table for {d}")
+    ts=str(sub.iloc[0]['revision_timestamp'])
+    if not ts or ts[:10] > d.isoformat():
+        raise RuntimeError(f"LOOKAHEAD in PIT sector snapshot {rd}: {ts} > {d}")
+    if (d - date.fromisoformat(rd)).days > 125:
+        raise RuntimeError(f"Stale sector revision {rd} at {d}")
     sectors={norm(r.ticker):str(r.sector).strip() for r in sub.itertuples(index=False)}
-    ts=''
-    if 'revision_timestamp' in sub.columns and not sub.empty:
-        ts=str(sub.iloc[0].get('revision_timestamp') or '')
+    if any(sec not in SECTOR_ETFS for sec in sectors.values()):
+        unknown={sec for sec in sectors.values() if sec not in SECTOR_ETFS}
+        raise RuntimeError(f"Unknown historical GICS sector names at {d}: {unknown}")
     return {'date':d.isoformat(),'rebalance_date':rd,'revision_timestamp':ts,'sectors':sectors}
 
 def signal_snapshot_pit(d,members,markets,pits,sector_map,cikmap):
@@ -117,7 +130,9 @@ def selection_plan(st,snap,leadership,allowed,spy_bull,mode):
     sells={}; rot_keep=[]; lead_keep=[]
     for sym in [p.symbol for p in st.pos.values() if p.sleeve=='rot']:
         pk=b.key('rot',sym); p=st.pos.get(pk); r=snap.get(sym)
-        if not r: continue
+        if not r:
+            sells[pk]='MISSING SNAPSHOT/UNIVERSE EXIT'
+            continue
         fp=r['fund']
         if fp is None: fp=p.last_fund
         else: p.last_fund=bool(fp)
@@ -130,7 +145,9 @@ def selection_plan(st,snap,leadership,allowed,spy_bull,mode):
     lead_set=set(leadership)
     for sym in [p.symbol for p in st.pos.values() if p.sleeve=='lead']:
         pk=b.key('lead',sym); p=st.pos.get(pk); r=snap.get(sym)
-        if not r: continue
+        if not r:
+            sells[pk]='MISSING SNAPSHOT/UNIVERSE EXIT'
+            continue
         fp=r['fund']
         if fp is None: fp=p.last_fund
         else: p.last_fund=bool(fp)
@@ -179,6 +196,19 @@ def build_orders(st,d,snap,leadership,allowed,spy_bull,mode,markets):
 
 def run_variant(cfg,trading_dates,signal_dates,snapshots,markets,spy):
     st=b.State(cfg['name'],False); pending={}; logs=[]; signals=set(signal_dates)
+    if not trading_dates:
+        raise ValueError("No trading dates for replay")
+    # December 2021 month-end orders execute on the FIRST January 2022
+    # trading session.  Otherwise the 2022 test starts artificially in cash.
+    warmup=[d for d in signal_dates if d < trading_dates[0]]
+    if not warmup:
+        raise RuntimeError("Missing pre-start rebalance; initial portfolio would be fabricated as cash")
+    initial=max(warmup)
+    snap,leadership,secrows,pitmeta=snapshots[initial]
+    spy_bull=bool(b.regime(spy,initial))
+    allowed=allowed_sectors(secrows,spy_bull,cfg['mode'],cfg.get('bear_topk'))
+    initial_orders,_,_=build_orders(st,initial,snap,leadership,allowed,spy_bull,cfg['mode'],markets)
+    pending[trading_dates[0]]=initial_orders
     for d in trading_dates:
         for p in list(st.pos.values()):
             m=markets.get(p.symbol)
@@ -204,7 +234,11 @@ def run_variant(cfg,trading_dates,signal_dates,snapshots,markets,spy):
                 m=markets.get(p.symbol); i=b.idx_on_or_after(m,d) if m else None
                 if i is not None and m['rows'][i]['date']==d.isoformat() and m['rows'][i]['open'] is not None:
                     b.execute_sell(st,o['pk'],o['qty'],m['rows'][i]['open'],d,o['reason'])
-            stopped={p.symbol for p in st.pos.values() if p.pending_stop}
+            # Stop sells already executed above; cancelled/stale monthly buys
+            # must not be allowed to rebuy a stop-triggered position in the
+            # same open.  Detect from actual trades, not surviving positions.
+            stopped={t['symbol'] for t in st.trades
+                     if t['date']==d.isoformat() and t['side']=='SELL' and t['reason']=='ATR STOP'}
             buys=sorted([x for x in orders if x['kind']=='buy' and x.get('sym') not in stopped],
                         key=lambda x:(x['priority'],x['sym']))
             for o in buys:
@@ -312,7 +346,7 @@ def main():
     OUTJ.parent.mkdir(parents=True,exist_ok=True); OUTJ.write_text(json.dumps(rep,indent=2))
 
     lines=['# SPY + sector hierarchy backtest (2022-Sep 2026)','',
-      'Pre-registered architecture test. Stock ranking, 75/25 sleeves, inverse-ATR sizing, 3x ATR stops, costs and monthly cadence are unchanged. The experiment changes only market/sector permission and replaces current-sector labels with dated point-in-time Wikipedia-revision GICS sector snapshots.','',
+      'Corrected research replay: December warm-start, raw momentum rank before fundamental filter, strict point-in-time filing cutoffs, missing-snapshot exits, verified historical sector snapshots. The experiment changes only market/sector permission; sizing and 3x ATR are otherwise unchanged.','',
       'Sector BULL = sector ETF has positive 63/126/252 average total-return momentum and is above its own EMA200. SPY BULL/BEAR is evaluated independently. In the Bear-exception variants, SPY BULL leaves the frozen engine unchanged; only SPY BEAR can admit stocks from BULL sectors.','',
       '| Variant | 2022 | 2023 | 2024 | 2025 | 2026 | CAGR | Max DD | Avg exposure | Turnover | Costs |',
       '|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|']
