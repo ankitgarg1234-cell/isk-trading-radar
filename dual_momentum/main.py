@@ -397,9 +397,19 @@ def _trial_worker() -> None:
                         ((now.hour, now.minute) >= (16, 25) and
                          (now.hour, now.minute) <= (23, 30))
                     )):
-                last = read_trial().get("last_poll")
+                trial_info = read_trial()
+                last = trial_info.get("last_poll")
                 poll_day = str(last or "")[:10]
-                if poll_day != now.astimezone(timezone.utc).date().isoformat():
+                retry_due = False
+                if trial_info.get("status") in {"WAITING_FOR_CLOSE", "ERROR"}:
+                    try:
+                        previous_poll = datetime.fromisoformat(last)
+                        if previous_poll.tzinfo is None:
+                            previous_poll = previous_poll.replace(tzinfo=timezone.utc)
+                        retry_due = (datetime.now(timezone.utc) - previous_poll).total_seconds() >= 1800
+                    except (ValueError, TypeError):
+                        retry_due = True
+                if poll_day != now.astimezone(timezone.utc).date().isoformat() or retry_due:
                     result = poll()
                     trial_done = read_trial().get("state") or {}
                     quality = trial_done.get("data_quality") or {}
