@@ -1,4 +1,4 @@
-# Explicit sector-first trade-churn audit (final price-momentum specification)
+# Explicit sector-first trade-churn audit ($100,000 initial capital)
 
 - Trades: 2265
 - Final NAV: 10,994.97
