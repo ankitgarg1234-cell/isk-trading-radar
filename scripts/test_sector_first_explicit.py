@@ -30,6 +30,31 @@ class SectorFirstContract(unittest.TestCase):
         self.assertEqual(m.sector_allocation(False,[row("Energy",.3),row("Technology",.28)]),
                          {"Energy":.25,"Technology":.25})
         self.assertEqual(m.sector_allocation(False,[row("Energy",.2,bull=False)]),{})
+    def test_monthly_rotation_does_not_retrade_on_daily_rank_noise(self):
+        # Momentum leadership can change intramonth, but is not a daily
+        # turnover signal unless the active sector actually loses permission.
+        active={"Energy":.7,"Technology":.3}
+        rows=[row("Technology",.7),row("Energy",.3)]
+        self.assertEqual(m.event_driven_allocation(active,True,True,rows,False),active)
+        self.assertEqual(m.event_driven_allocation(active,True,True,rows,True),
+                         {"Technology":.7,"Energy":.3})
+
+    def test_market_switch_forces_override_at_next_close(self):
+        active={"Energy":.7,"Technology":.3}
+        rows=[row("Technology",.2),row("Energy",.4)]
+        self.assertEqual(m.event_driven_allocation(active,True,False,rows,False),
+                         {"Energy":.35,"Technology":.15})
+
+    def test_single_bear_leader_de_risks_on_momentum5_negative(self):
+        active={"Energy":.5}
+        rows=[row("Energy",.4,.8,rel=.1,r5=-.02)]
+        self.assertEqual(m.event_driven_allocation(active,False,False,rows,False),
+                         {"Energy":.4})
+    def test_ineligible_sector_forces_risk_exit_daily(self):
+        active={"Energy":.5}
+        rows=[row("Energy",.4,bull=False)]
+        self.assertEqual(m.event_driven_allocation(active,False,False,rows,False),{})
+
     def test_no_future_lookahead_in_ema(self):
         v=pd.Series([100.]*200+[110.,500.],index=list(range(202)))
         e=m.ema_close(v,200)
