@@ -94,7 +94,9 @@ class TestPaperTrial(unittest.TestCase):
         html=(Path(__file__).resolve().parents[1] /
               "dual_momentum" / "templates" / "trial.html").read_text()
         self.assertIn("Target exposure by sector",html)
-        self.assertIn("Run ranking audit",html)
+        self.assertIn("Audit calculating",html)
+        self.assertIn("auditAutoRequested",html)
+        self.assertIn("Rebuild ranking explanation",html)
         self.assertIn("sectorFor(k)",html)
         self.assertIn("Eligible buy rank",html)
 
