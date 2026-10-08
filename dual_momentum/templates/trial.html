@@ -48,7 +48,7 @@ const pct=v=>(Number(v||0)*100).toFixed(2)+'%';
 const el=id=>document.getElementById(id);
 const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function table(cols,rows){if(!rows.length)return '<p>None yet.</p>';return '<table><thead><tr>'+cols.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(c=>'<td>'+esc(c)+'</td>').join('')+'</tr>').join('')+'</tbody></table>'}
-let sectorsCache=null,sectorFetch=null;
+let sectorsCache=null,sectorFetch=null,auditAutoRequested=false;
 async function currentSectorLabels(){
  if(sectorsCache) return sectorsCache;
  if(!sectorFetch) sectorFetch=fetch('/api/trial/sectors').then(r=>{if(!r.ok)throw Error('Sector feed HTTP '+r.status);return r.json()}).then(x=>{sectorsCache=x.sectors||{};return sectorsCache}).finally(()=>{sectorFetch=null});
@@ -68,9 +68,15 @@ async function refresh(){try{
  const audit=((sig&&sig.ranking_audit&&sig.ranking_audit.asof===sig.asof)
      ?sig.ranking_audit:(!sig?s.read_only_ranking_preview:null))||null;
  const bySymbol=Object.fromEntries((audit&&audit.rows||[]).map(r=>[r.symbol,r]));
+ if(sig && !audit && !auditAutoRequested && !s.ranking_audit_error){
+   auditAutoRequested=true;
+   el('audit-summary').textContent='Reconstructing saved ranking (read-only); this may take up to a minute.';
+   fetch('/api/trial/ranking-audit/refresh',{method:'POST'})
+     .catch(()=>{el('audit-summary').textContent='Automatic audit request failed. Use the Rebuild button.'});
+ }
  const sectorFor=x=>(sig&&sig.sector_by_symbol&&sig.sector_by_symbol[x])||(bySymbol[x]&&bySymbol[x].sector)||liveSectors[x]||'Sector not verified';
  const entryRankFor=x=>{
-   if(!audit)return 'Run ranking audit';
+   if(!audit)return 'Audit calculating';
    const row=bySymbol[x];
    if(!row)return 'Not in audit';
    return row.eligible_rank==null ? (row.status==='RETAINED'?'Retained, entry ineligible':'Not eligible') : row.eligible_rank;
@@ -84,7 +90,7 @@ async function refresh(){try{
   rows.push(['Target cash / unallocated',pct(Math.max(0,1-allocated))]);
   el('sector-summary').innerHTML=table(['Sector','Target allocation'],rows);
  }else{el('sector-summary').innerHTML='<p>Awaiting signal</p>'}
- el('audit-summary').textContent=audit?('As of '+audit.asof+' · '+audit.universe_with_valid_signals+' with valid price signals · '+audit.qualified_and_not_locked+' qualified, not locked · '+audit.basis):('Ranking audit not generated yet. Click Rebuild ranking explanation. '+(s.ranking_audit_error||''));
+ el('audit-summary').textContent=audit?('As of '+audit.asof+' · '+audit.universe_with_valid_signals+' with valid price signals · '+audit.qualified_and_not_locked+' qualified, not locked · '+audit.basis):('Ranking audit '+(auditAutoRequested?'calculating from stored market close; please wait.':'not generated; use Rebuild ranking explanation.')+' '+(s.ranking_audit_error||''));
  const auditRows=syms=>syms.map(x=>{const r=bySymbol[x];return r?[r.symbol,r.raw_rank||'—',r.eligible_rank||'—',Number(r.risk_adjusted_score).toFixed(3),r.status,r.reason]:[x,'—','—','—','NOT VERIFIED','No stored qualification evidence']});
  el('raw-five').innerHTML=audit?table(['Ticker','Raw rank','Eligible buy rank','Risk score','Decision','Explanation'],auditRows(audit.raw_top5||[])):'<p>Audit not yet available.</p>';
  el('eligible-five').innerHTML=audit?table(['Ticker','Raw rank','Eligible buy rank','Risk score','Decision','Explanation'],auditRows(audit.eligible_top5||[])):'<p>Audit not yet available.</p>';
