@@ -262,6 +262,113 @@ def _calculate_targets(state, members, stats, regime_cap, price_by_symbol,
     return qty, weights, selected, rank
 
 
+def _ranking_audit(state, members, stats, selected, raw_ranks,
+                   spy_r63, sessions=None, decision_date=None,
+                   historical_selection=False, limit=25):
+    """Explain a FROZEN decision without influencing selection or orders.
+
+    Mirrors the exact raw and risk-adjusted entry sorting and qualification
+    predicates in _calculate_targets. Called after selecting, never as input.
+    For a previously saved decision, source (new versus retained) is unknown.
+    """
+    symbols = {m["symbol"] for m in members}
+    sectors = {m["symbol"]: str(m.get("sector") or "Unknown") for m in members}
+    eligible = sorted(
+        (sym for sym in symbols if sym in stats and
+         math.isfinite(stats[sym]["risk"]) and
+         stats[sym]["above_ema50"] and stats[sym]["above_ema"] and
+         stats[sym]["r63"] > spy_r63),
+        key=lambda sym: (-stats[sym]["risk"], sym))
+    signal_date = decision_date or max((v["last"] for v in stats.values()), default="")
+    blocked = set()
+    for sym, stop_date in (state.get("lockouts") or {}).items():
+        if sessions is None:
+            cursor = date.fromisoformat(stop_date)
+            count = 0
+            while cursor < date.fromisoformat(signal_date):
+                cursor += timedelta(days=1)
+                if cursor.weekday() < 5:
+                    count += 1
+        else:
+            count = sum(stop_date < session <= signal_date for session in sessions)
+        if count < 5:
+            blocked.add(sym)
+    eligible = [sym for sym in eligible if sym not in blocked]
+    entry_ranks = {sym: i + 1 for i, sym in enumerate(eligible)}
+    raw_top = sorted(raw_ranks, key=lambda sym: (raw_ranks[sym], sym))[:20]
+    coverage = (set(raw_top) |
+                set(eligible[:limit]) |
+                set(selected))
+    selected_set = set(selected)
+    rows = []
+    for sym in coverage:
+        info = stats.get(sym)
+        if not info:
+            continue
+        is_selected = sym in selected_set
+        reasons = []
+        if not info["above_ema50"]:
+            reasons.append("Below 50-day EMA")
+        if not info["above_ema"]:
+            reasons.append("Below 200-day EMA")
+        if info["r63"] <= spy_r63:
+            reasons.append("63-day return not above SPY")
+        if sym in blocked:
+            reasons.append("Five-session post-stop entry lockout")
+        if is_selected:
+            if historical_selection:
+                status = "SELECTED"
+                reason = "Selected in recorded decision; original entry/retention route not separately stored"
+            elif sym in state["holdings"] and raw_ranks.get(sym,9999) <= 15 and info["score"] > 0 and info["above_ema"]:
+                status = "RETAINED"
+                reason = "Protected incumbent within raw Top 15"
+            else:
+                status = "NEW ENTRY"
+                reason = "Next eligible risk-adjusted candidate after protecting incumbents"
+            if reasons:
+                reason += " (current entry screen: " + "; ".join(reasons) + ")"
+        elif reasons:
+            status = "NOT ELIGIBLE"
+            reason = "; ".join(reasons)
+        elif sym in entry_ranks:
+            status = "NOT SELECTED"
+            reason = "Five positions filled by qualified higher-priority candidates or retained Top-15 incumbents"
+        else:
+            status = "NO PRICE SIGNAL"
+            reason = "Required signal data unavailable"
+        rows.append({
+            "symbol":sym, "sector":sectors.get(sym,"Unknown"),
+            "raw_rank":raw_ranks.get(sym),
+            "eligible_rank":entry_ranks.get(sym),
+            "raw_score":round(info["score"], 6),
+            "risk_adjusted_score":round(info["risk"], 6),
+            "ema50_pass":bool(info["above_ema50"]),
+            "ema200_pass":bool(info["above_ema"]),
+            "spy_relative_pass":bool(info["r63"]>spy_r63),
+            "selected":is_selected,
+            "status":status,
+            "reason":reason,
+        })
+    rows.sort(key=lambda row: (
+        0 if row["selected"] else 1 if row["raw_rank"] is not None and row["raw_rank"] <= 5 else 2,
+        row["eligible_rank"] if row["eligible_rank"] is not None else 9999,
+        row["raw_rank"] if row["raw_rank"] is not None else 9999,
+        row["symbol"]))
+    return {
+        "asof": signal_date,
+        "basis": "Recorded historical decision" if historical_selection else "Current completed-close decision",
+        "raw_rank_method": "Equal average 63/126/252-session total returns",
+        "entry_rank_method": "0.50×R63/vol63 + 0.30×R126/vol126 + 0.20×R252/vol252",
+        "qualification": "Above EMA50 and EMA200; R63 greater than SPY R63; five-session lockout",
+        "raw_top5": [sym for sym in raw_top[:5]],
+        "eligible_top5": eligible[:5],
+        "selected":list(selected),
+        "universe_with_valid_signals": len(symbols.intersection(stats)),
+        "qualified_and_not_locked": len(eligible),
+        "rows": rows,
+    }
+
+
 def _estimate_fee(shares, px):
     if shares <= 0:
         return 0.
@@ -532,6 +639,28 @@ def _poll_impl():
             if latest_spy==asof_limit:
                 _stage_decision(state,members,bars_by_symbol,latest_spy,"LATE_START")
                 state["notes"].append("Trial began later than October 9; no retrospective fills")
+        # Fill diagnostics on an existing saved signal without changing its
+        # selections, exposure, orders, fills or cash. Audit uses that date's
+        # bars, not any future price information.
+        signal = state.get("last_signal") or {}
+        if signal.get("asof") and not signal.get("ranking_audit"):
+            asof = signal["asof"]
+            cut = {sym:[b for b in bars if b.date<=asof]
+                   for sym,bars in bars_by_symbol.items()}
+            evidence = {sym:momentum for sym,bs in cut.items()
+                        if (momentum := _momentum(bs)) is not None}
+            members_stats = {m["symbol"]:evidence[m["symbol"]]
+                             for m in members if m["symbol"] in evidence}
+            spy_at_signal = evidence.get("SPY")
+            if spy_at_signal and len(members_stats)>=450:
+                raw_symbols = sorted(members_stats,
+                                     key=lambda sym:(-members_stats[sym]["score"],sym))
+                raw_ranks = {sym:i+1 for i,sym in enumerate(raw_symbols)}
+                signal["ranking_audit"] = _ranking_audit(
+                    state,members,members_stats,signal.get("selected") or [],
+                    raw_ranks,spy_at_signal["r63"],
+                    sessions=[bar.date for bar in cut["SPY"]],
+                    decision_date=asof,historical_selection=True)
         if len(state["notes"])>35:
             state["notes"]=state["notes"][-35:]
         state["data_quality"]=dict(members=len(members),symbols=len(bars_by_symbol),
@@ -564,9 +693,14 @@ def _stage_decision(state,members,bars_by_symbol,day,reason):
                                                         sessions=[b.date for b in spy],
                                                         spy_r63=stats["SPY"]["r63"])
     _stage(state,day,desired,reason)
+    ranking_audit = _ranking_audit(
+        state, members, member_stats, selected, ranks,
+        stats["SPY"]["r63"], sessions=[b.date for b in spy],
+        decision_date=day)
     state["last_signal"]=dict(asof=day,reason=reason,selected=selected,
                               weights=weights,raw_ranks={s:ranks.get(s) for s in selected},
-                              equity_cap=cap,sector_cap=SECTOR_CAP,targets=desired)
+                              equity_cap=cap,sector_cap=SECTOR_CAP,targets=desired,
+                              ranking_audit=ranking_audit)
     state["last_regime"]=regime
     state["active_cap"]=cap
 
