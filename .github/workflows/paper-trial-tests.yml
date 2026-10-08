@@ -1,0 +1,22 @@
+name: paper-trial-safety-tests
+on:
+  push:
+    branches: [dual-momentum-dashboard]
+    paths:
+      - "dual_momentum/trial.py"
+      - "dual_momentum/main.py"
+      - "dual_momentum/templates/trial.html"
+      - "tests/test_paper_trial.py"
+      - ".github/workflows/paper-trial-tests.yml"
+  workflow_dispatch:
+jobs:
+  paper-trial-unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r dual_momentum_requirements.txt
+      - run: python -m unittest -v tests/test_paper_trial.py
