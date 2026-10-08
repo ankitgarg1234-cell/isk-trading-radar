@@ -13,7 +13,7 @@ months=collections.defaultdict(list)
 for t in ts:months[t["date"][:7]].append(t)
 navmonths={}
 for row in ds:navmonths[row["date"][:7]]=row["nav"]
-lines=["# Explicit sector-first trade-churn audit (final price-momentum specification)","",
+lines=["# Explicit sector-first trade-churn audit ($100,000 initial capital)","",
        f"- Trades: {len(ts)}",
        f"- Final NAV: {r['metrics']['end_value']:,.2f}",
        f"- Costs: {r['metrics']['costs']:,.2f}",
@@ -29,7 +29,7 @@ lines+=["","## Original December 2021 information set","",
      f"- Dec-2021 entry signal: {r['initial_signal']}",
      "","## 2022 monthly NAV and trades","",
         "| Month | Trades | End NAV | Month return |","|---|---:|---:|---:|"]
-prev=10000
+prev=float(r['rules'].get('starting_capital',10000))
 for mo,end in sorted(navmonths.items()):
  if not mo.startswith('2022'):continue
  lines.append(f"| {mo} | {len(months[mo])} | \${end:,.2f} | {(end/prev-1)*100:+.2f}% |")
