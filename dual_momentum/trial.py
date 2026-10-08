@@ -182,7 +182,7 @@ def _positions_value(state, price_by_symbol):
     return total
 
 
-def _calculate_targets(state, members, stats, regime_cap, price_by_symbol):
+def _calculate_targets(state, members, stats, regime_cap, price_by_symbol, sessions=None):
     sector_by_symbol = {m["symbol"]: str(m.get("sector") or "Unknown") for m in members}
     rankable = sorted(
         (s for s in stats if stats[s]["score"] > 0 and stats[s]["above_ema"]
@@ -192,11 +192,22 @@ def _calculate_targets(state, members, stats, regime_cap, price_by_symbol):
     retained = sorted((s for s in state["holdings"] if s in rank and rank[s] <= 15),
                       key=lambda s: rank[s])
     selected = retained[:5]
-    # Re-entry lockout lasts five completed SPY sessions, not indefinitely.
-    blocked = set(state.get("lockouts") or {})
-    for sym, stop_date in list((state.get("lockouts") or {}).items()):
-        if (date.fromisoformat(stats[next(iter(stats))]["last"]) - date.fromisoformat(stop_date)).days >= 8:
-            blocked.discard(sym)
+    # Exclude the stop session; five FULL subsequent SPY trading sessions must elapse.
+    blocked = set()
+    signal_date = max((v["last"] for v in stats.values()), default="")
+    for sym, stop_date in (state.get("lockouts") or {}).items():
+        if sessions is None:
+            start_day = date.fromisoformat(stop_date)
+            end_day = date.fromisoformat(signal_date)
+            seen = 0
+            while start_day < end_day:
+                start_day += timedelta(days=1)
+                if start_day.weekday() < 5:
+                    seen += 1
+        else:
+            seen = sum(stop_date < session <= signal_date for session in sessions)
+        if seen < 5:
+            blocked.add(sym)
     for sym in rankable:
         if len(selected) >= 5:
             break
@@ -434,7 +445,8 @@ def _stage_decision(state,members,bars_by_symbol,day,reason):
         raise RuntimeError("Only %s S&P 500 stock signals: refuse to stage"%len(member_stats))
     cap,regime=_sector_and_cap(members,member_stats,stats,spy)
     marks={s:float(bars[-1].close) for s,bars in cut.items() if bars}
-    desired,weights,selected,ranks=_calculate_targets(state,members,member_stats,cap,marks)
+    desired,weights,selected,ranks=_calculate_targets(state,members,member_stats,cap,marks,
+                                                        sessions=[b.date for b in spy])
     _stage(state,day,desired,reason)
     state["last_signal"]=dict(asof=day,reason=reason,selected=selected,
                               weights=weights,raw_ranks={s:ranks.get(s) for s in selected},
