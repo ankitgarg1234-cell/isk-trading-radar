@@ -19,11 +19,15 @@ lines=["# Explicit sector-first trade-churn audit (updated after monthly-rank fr
        f"- Costs: {r['metrics']['costs']:,.2f}",
        "","## Causes by trade reason","","| Reason | Trades |","|---|---:|"]
 for reason,n in reason.most_common():lines.append(f"| {reason} | {n} |")
-lines+=["","## Yearly counts","",
-  "| Year | Trades | BUY | SELL |","|---|---:|---:|---:|"]
+lines+=["","## Yearly counts and transaction-cost drag","",
+  "| Year | Trades | BUY | SELL | Modeled cost ($) |","|---|---:|---:|---:|---:|"]
 for y,records in years.items():
-    lines.append(f"| {y} | {len(records)} | {sum(x['side']=='BUY' for x in records)} | {sum(x['side']=='SELL' for x in records)} |")
-lines+=["","## 2022 monthly NAV and trades","",
+    trading_cost=sum(float(x['commission'])+abs(float(x['unadjusted_exec_price'])-float(x['fill']))*int(x['shares']) for x in records)
+    lines.append(f"| {y} | {len(records)} | {sum(x['side']=='BUY' for x in records)} | {sum(x['side']=='SELL' for x in records)} | ${trading_cost:,.2f} |")
+lines+=["","## Original December 2021 information set","",
+     f"- Dec-2021 sector targets: {r['initial_allocation']}",
+     f"- Dec-2021 entry signal: {r['initial_signal']}",
+     "","## 2022 monthly NAV and trades","",
         "| Month | Trades | End NAV | Month return |","|---|---:|---:|---:|"]
 prev=10000
 for mo,end in sorted(navmonths.items()):
