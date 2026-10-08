@@ -80,6 +80,33 @@ class DataAccuracyTests(unittest.TestCase):
         self.assertAlmostEqual(b.ema200_at_index(market["rows"],200),1.0+alpha,places=10)
         self.assertTrue(b.regime(market,date(2020,1,1)+timedelta(days=200)))
 
+    def test_split_adjusted_historical_cap_restores_pre_split_issuer_size(self):
+        # June 2024 NVDA 10-for-1 split: historic prices use post-split
+        # units, while March 2023 SEC shares used pre-split units.
+        shares={"val":2_500_000_000,"end":"2023-03-31"}
+        market={"splits_verified":True,"splits":[
+             {"date":"2024-06-10","ratio":10.0}]}
+        self.assertAlmostEqual(
+            b.split_adjusted_market_cap(shares,market,40.0),
+            1_000_000_000_000.0)
+        self.assertAlmostEqual(
+            b.split_adjusted_market_cap(
+              {"val":25_000_000_000,"end":"2024-06-30"},market,40.0),
+            1_000_000_000_000.0)
+
+    def test_historical_cap_never_assumes_no_splits_when_events_not_verified(self):
+        with self.assertRaisesRegex(RuntimeError,"UNVERIFIED_SPLIT_EVENTS"):
+            b.split_adjusted_market_cap(
+                {"val":2_500_000_000,"end":"2023-03-31"},
+                {"splits":None,"splits_verified":False},40.0)
+
+    def test_yahoo_split_events_parsed_and_validated(self):
+        action={"events":{"splits":{"e1":{"date":1717977600,
+            "numerator":10,"denominator":1,"splitRatio":"10:1"}}}}
+        actions=b.parse_chart_splits(action)
+        self.assertEqual(len(actions),1)
+        self.assertEqual(actions[0]["ratio"],10.0)
+
     def test_historical_sector_snapshot_changes_by_date(self):
         history=pd.DataFrame([
             {"rebalance_date":"2022-01-01","ticker":"TEST","sector":"Information Technology",
