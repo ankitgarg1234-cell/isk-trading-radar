@@ -174,20 +174,51 @@ def members_at(current, changes, when):
 def epoch(d):
     return int(datetime(d.year, d.month, d.day, tzinfo=timezone.utc).timestamp())
 
+def parse_chart_splits(result):
+    """Yahoo event ratios map pre-split shares onto split-adjusted OHLC units."""
+    ev=(result.get("events") or {}).get("splits") or {}
+    out=[]
+    for v in ev.values():
+        dt=datetime.fromtimestamp(float(v["date"]),tz=timezone.utc).date().isoformat()
+        num=sf(v.get("numerator")); den=sf(v.get("denominator"))
+        if num and den and num>0 and den>0:
+            ratio=num/den
+        else:
+            parts=str(v.get("splitRatio") or "").split(":")
+            if len(parts)!=2:
+                raise RuntimeError(f"UNKNOWN_SPLIT_RATIO {dt}: {v}")
+            ratio=float(parts[0])/float(parts[1])
+        if not math.isfinite(ratio) or ratio<=0:
+            raise RuntimeError(f"INVALID_SPLIT_RATIO {dt}: {ratio}")
+        out.append({"date":dt,"ratio":ratio})
+    return sorted(out,key=lambda x:x["date"])
+
+
+def fetch_chart_result(s,sym,start,end):
+    data=jget(s,YAHOO+sym,{"period1":epoch(start),"period2":epoch(end+timedelta(days=3)),
+        "interval":"1d","events":"div,splits"})
+    r=((data.get("chart") or {}).get("result") or [None])[0]
+    if not r:
+        raise RuntimeError(f"No chart for {sym}")
+    return r
+
+
 def yahoo(s, cache, sym, start, end):
     key = sym + "_" + start.isoformat() + "_" + end.isoformat()
     c = cache.get("yahoo", key)
     if c is not None:
-        return None if c.get("missing") else c
+        if c.get("missing"):
+            return None
+        if "splits" not in c:
+            # Older price caches omitted corporate-action metadata.
+            # Fetch and verify it rather than assuming 'no stock splits'.
+            r=fetch_chart_result(s,sym,start,end)
+            c=dict(c)
+            c["splits"]=parse_chart_splits(r)
+            cache.put("yahoo",key,c)
+        return c
     try:
-        data = jget(
-            s, YAHOO + sym,
-            {"period1": epoch(start), "period2": epoch(end + timedelta(days=3)),
-             "interval": "1d", "events": "div,splits"}
-        )
-        r = ((data.get("chart") or {}).get("result") or [None])[0]
-        if not r:
-            raise RuntimeError("no chart")
+        r = fetch_chart_result(s,sym,start,end)
         ts = r.get("timestamp") or []
         q = ((r.get("indicators") or {}).get("quote") or [{}])[0]
         rows = []
@@ -212,7 +243,8 @@ def yahoo(s, cache, sym, start, end):
                 })
             except Exception:
                 pass
-        out = {"rows": rows, "dividends": sorted(div, key=lambda x: x["date"])}
+        out = {"rows": rows, "dividends": sorted(div, key=lambda x: x["date"]),
+               "splits": parse_chart_splits(r)}
         cache.put("yahoo", key, out)
         return out
     except Exception:
@@ -265,7 +297,8 @@ def prepare_market(data):
             ema = alpha * rows[j]["tr"] + (1.0 - alpha) * ema
             rows[j]["ema200_tr"] = ema
     dates = [r["date"] for r in rows]
-    return {"rows": rows, "dates": dates}
+    return {"rows": rows, "dates": dates,
+            "splits": data.get("splits"), "splits_verified": "splits" in data}
 
 def idx_on_or_before(data, d):
     i = bisect.bisect_right(data["dates"], d.isoformat()) - 1
@@ -410,11 +443,40 @@ def fundamental_pass(pit, d, sector):
     g = sf((same[-1] if same else gp[-1]).get("val"))
     return bool(g is not None and g > 0)
 
+def shares_record_asof(pit,d):
+    rs=asof_records(pit.get("shares") or [],d)
+    return rs[-1] if rs else None
+
+
 def shares_asof(pit, d):
-    rs = asof_records(pit.get("shares") or [], d)
-    if not rs:
+    rec=shares_record_asof(pit,d)
+    return sf(rec.get("val")) if rec is not None else None
+
+
+def split_adjusted_market_cap(shares_record, market, split_adjusted_price):
+    """Normalize SEC shares onto Yahoo split-adjusted share units.
+
+    Example: 2.5 billion pre-2024 NVDA shares, post-split adjusted
+    $40 historical price => 2.5bn * 10 * $40, not 2.5bn * $40.
+    Later split events are used only to convert price/share units.
+    This is an accounting normalization, not a predictive signal.
+    """
+    if shares_record is None or not split_adjusted_price:
         return None
-    return sf(rs[-1].get("val"))
+    shares=sf(shares_record.get("val"))
+    if not shares or shares<=0:
+        return None
+    # Production prepared markets always include verified Yahoo split events.
+    if isinstance(market,dict):
+        if not market.get("splits_verified",False):
+            raise RuntimeError("UNVERIFIED_SPLIT_EVENTS: cannot value historical issuer cap")
+        rec_end=str(shares_record.get("end") or "")[:10]
+        if not rec_end:
+            raise RuntimeError("MISSING_SHARE_DATE: cannot normalize shares")
+        for ev in market["splits"]:
+            if ev["date"] > rec_end:
+                shares *= float(ev["ratio"])
+    return shares*float(split_adjusted_price)
 
 def indicators(mkt, d):
     i = idx_on_or_before(mkt, d)
@@ -589,8 +651,8 @@ def signal_snapshot(d, members, markets, pits, sectors, cikmap):
         if not ind:
             continue
         fp = fundamental_pass(pit, d, sectors.get(sym, "")) if pit is not None else None
-        sh = shares_asof(pit, d) if pit is not None else None
-        cap = sh * ind["close"] if sh and ind["close"] else None
+        share_record = shares_record_asof(pit,d) if pit is not None else None
+        cap = split_adjusted_market_cap(share_record,m,ind["close"])
         rec = dict(ind)
         rec.update({"fund": fp, "cap": cap, "cik": cikmap.get(sym)})
         data[sym] = rec
