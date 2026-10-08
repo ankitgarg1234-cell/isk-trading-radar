@@ -100,6 +100,17 @@ class DataAccuracyTests(unittest.TestCase):
                 {"val":2_500_000_000,"end":"2023-03-31"},
                 {"splits":None,"splits_verified":False},40.0)
 
+    def test_sec_1000x_share_scale_anomaly_does_not_enter_top15_issuers(self):
+        historical={"end":"2023-04-28","filed":"2023-05-03",
+                    "val":89_932_185_000,"form":"10-Q"}
+        avg={"end":"2022-12-31","filed":"2023-02-23",
+             "val":90_000_000,"form":"10-K"}
+        pit={"shares":[historical],"weighted_shares":[avg]}
+        self.assertIsNone(b.credible_shares_record(pit,date(2023,5,31)))
+        corrected=dict(historical,val=89_932_185)
+        self.assertEqual(b.credible_shares_record(
+           dict(pit,shares=[corrected]),date(2023,5,31))["val"],89_932_185)
+
     def test_yahoo_split_events_parsed_and_validated(self):
         action={"events":{"splits":{"e1":{"date":1717977600,
             "numerator":10,"denominator":1,"splitRatio":"10:1"}}}}
