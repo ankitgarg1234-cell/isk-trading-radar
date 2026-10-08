@@ -142,6 +142,35 @@ class DataAccuracyTests(unittest.TestCase):
 
 
 class AccountingAndExecutionTests(unittest.TestCase):
+    def test_execute_at_next_session_open_not_signal_close(self):
+        dec=date(2021,12,31)
+        first=date(2022,1,3)
+        second=date(2022,1,4)
+        snap={"AAA":{"mom":0.25,"rank":1,"fund":True,"sector":"Energy",
+                     "pct_atr":0.02,"close":100.0,"atr":2.0}}
+        prices={"AAA":{"dates":["2022-01-03","2022-01-04"],
+                       "rows":[{"date":"2022-01-03","open":100.0,"close":110.0,
+                                "atr":2.0,"dividend":0.0},
+                               {"date":"2022-01-04","open":109.0,"close":110.0,
+                                "atr":2.0,"dividend":0.0}]}}
+        snapshots={dec:(snap,[],[],{"rebalance_date":"2021-11-15",
+                                   "revision_timestamp":"2021-11-14"})}
+        with patch.object(b,"regime",return_value=True):
+            result=h.run_variant({"name":"test","mode":"control"},
+                [first,second],[dec],snapshots,prices,None)
+        buys=[t for t in result["trades"] if t["side"]=="BUY"]
+        self.assertEqual(len(buys),1)
+        self.assertEqual(buys[0]["date"],"2022-01-03")
+        self.assertAlmostEqual(buys[0]["open"],100.0)
+        self.assertEqual(buys[0]["shares"],5)
+        self.assertGreater(result["daily"][0]["nav"],10000.0)
+
+    def test_unavailable_open_rejects_execution(self):
+        m={"dates":["2022-01-04"],
+           "rows":[{"date":"2022-01-04","open":100.0}]}
+        with self.assertRaisesRegex(RuntimeError,"UNEXECUTABLE_ORDER"):
+            h.execution_open({"AAA":m},"AAA",date(2022,1,3))
+
     def test_missing_monthly_snapshot_creates_exit_in_both_engines(self):
         st=b.State("test",False)
         st.pos[b.key("rot","GHOST")]=b.VPos("rot","GHOST",10,10.0,date(2022,1,3),10,7)
