@@ -23,6 +23,8 @@ header{display:flex;justify-content:space-between;align-items:center;flex-wrap:w
 <section class="panel"><h2>Strategy signal / sector exposure</h2><p id="signal">No scan yet</p><div id="selected"></div></section>
 <section class="panel"><h2>Why these five stocks? Ranking audit</h2>
 <p><strong>Raw momentum rank</strong> is the equal-weight 3/6/12-month return rank. <strong>Eligible buying rank</strong> is the separate volatility-adjusted 50/30/20 score, after EMA50, EMA200, SPY-relative and post-stop lockout checks. Existing positions may be protected by the raw Top-15 retention rule.</p>
+<form method="post" action="/api/trial/ranking-audit/refresh"><button type="submit">Rebuild ranking explanation (read-only)</button></form>
+<p class="label">This audit can run even when paper fills are disabled. It only reads market prices and reports qualification; it never submits simulated trades.</p>
 <p class="label" id="audit-summary">Candidate audit loads with the market-close decision.</p>
 <h3>Raw momentum Top 5 — were they eligible?</h3><div id="raw-five"></div>
 <h3>Top 5 qualified risk-adjusted new-buy candidates</h3><div id="eligible-five"></div>
@@ -52,10 +54,10 @@ async function refresh(){try{
  el('error').textContent=(!a.durable_storage?'STORAGE BLOCKED: Render is using ephemeral SQLite. Link DATABASE_URL to the existing Render Postgres database before simulated fills are enabled. ': '')+(a.error||'');
  const sig=s.last_signal,reg=s.last_regime;
  el('signal').textContent=sig?('As of '+sig.asof+' · '+sig.reason+' · '+reg.spy+' · allowed equity '+pct(sig.equity_cap)+' · BULL sectors: '+(reg.bull_sectors||[]).join(', ')):'No completed-close signal yet';
- const audit=sig&&sig.ranking_audit;
+ const audit=(sig&&sig.ranking_audit)||s.read_only_ranking_preview||null;
  const bySymbol=Object.fromEntries((audit&&audit.rows||[]).map(r=>[r.symbol,r]));
  el('selected').innerHTML=sig?table(['Stock','Raw rank','Eligible buy rank','Target wt','Shares'],(sig.selected||[]).map(x=>[x,sig.raw_ranks[x],bySymbol[x]&&bySymbol[x].eligible_rank||'—',pct(sig.weights[x]),sig.targets[x]])):'';
- el('audit-summary').textContent=audit?('As of '+audit.asof+' · '+audit.universe_with_valid_signals+' with valid price signals · '+audit.qualified_and_not_locked+' qualified, not locked · '+audit.basis):'Ranking audit is unavailable for this saved signal; it will be populated from completed-close data at the next successful refresh.';
+ el('audit-summary').textContent=audit?('As of '+audit.asof+' · '+audit.universe_with_valid_signals+' with valid price signals · '+audit.qualified_and_not_locked+' qualified, not locked · '+audit.basis):('Ranking audit not generated yet. Click Rebuild ranking explanation. '+(s.ranking_audit_error||''));
  const auditRows=syms=>syms.map(x=>{const r=bySymbol[x];return r?[r.symbol,r.raw_rank||'—',r.eligible_rank||'—',Number(r.risk_adjusted_score).toFixed(3),r.status,r.reason]:[x,'—','—','—','NOT VERIFIED','No stored qualification evidence']});
  el('raw-five').innerHTML=audit?table(['Ticker','Raw rank','Eligible buy rank','Risk score','Decision','Explanation'],auditRows(audit.raw_top5||[])):'<p>Audit not yet available.</p>';
  el('eligible-five').innerHTML=audit?table(['Ticker','Raw rank','Eligible buy rank','Risk score','Decision','Explanation'],auditRows(audit.eligible_top5||[])):'<p>Audit not yet available.</p>';
