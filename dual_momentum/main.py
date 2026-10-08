@@ -379,6 +379,15 @@ def _scan_job(variant: str) -> None:
 
 def _trial_worker() -> None:
     """Opportunistic EOD refresh while Render is awake; not a guaranteed scheduler."""
+    try:
+        trial = read_trial()
+        state = trial.get("state") or {}
+        print("Paper-trial initial ledger: status=%s signal=%s queued=%s trades=%s" % (
+            trial.get("status"), (state.get("last_signal") or {}).get("asof"),
+            sum(len(p.get("orders", [])) for p in state.get("pending", [])),
+            len(state.get("trades", []))), flush=True)
+    except Exception as exc:
+        print("Paper-trial ledger diagnostic error: %s" % type(exc).__name__, flush=True)
     while True:
         now = datetime.now(TRIAL_NY)
         try:
