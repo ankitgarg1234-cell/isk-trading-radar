@@ -72,6 +72,13 @@ class TestPaperTrial(unittest.TestCase):
         self.assertTrue(all(w[s]>0 for s in selected))
         self.assertLessEqual(sum(qty.values()),50)
 
+    def test_ranking_inspection_is_a_separate_endpoint_from_paper_execution(self):
+        from dual_momentum.main import app
+        routes={(r.path,method) for r in app.routes
+                for method in (getattr(r,"methods",None) or set())}
+        self.assertIn(("/api/trial/ranking-audit/refresh","POST"),routes)
+        self.assertIn(("/api/trial/refresh","POST"),routes)
+
     def test_ranking_audit_explains_raw_number_one_exclusion_without_trades(self):
         """Raw #1 can be ineligible despite having the highest simple momentum."""
         state=_initial()
