@@ -52,5 +52,6 @@ async function refresh(){try{
  el('notes').innerHTML='<p>Stock coverage: '+esc(quality.symbols||'—')+' priced; download failures: '+esc(quality.failures||0)+'; last SPY bar: '+esc(quality.last_completed_spy||'—')+'</p>'+ (s.notes||[]).map(n=>'<p>'+esc(n)+'</p>').join('');
 }catch(e){el('status').textContent='Unable to load paper ledger: '+e.message}}
 refresh();
+setInterval(refresh, 20000);
 </script>
 </main></body></html>
