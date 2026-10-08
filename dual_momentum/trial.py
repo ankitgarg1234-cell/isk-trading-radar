@@ -661,6 +661,9 @@ def _poll_impl():
                     raw_ranks,spy_at_signal["r63"],
                     sessions=[bar.date for bar in cut["SPY"]],
                     decision_date=asof,historical_selection=True)
+                sectors={m["symbol"]:str(m.get("sector") or "Unknown") for m in members}
+                signal["sector_by_symbol"] = {
+                    sym:sectors.get(sym,"Unknown") for sym in signal.get("selected") or []}
         if len(state["notes"])>35:
             state["notes"]=state["notes"][-35:]
         state["data_quality"]=dict(members=len(members),symbols=len(bars_by_symbol),
@@ -697,8 +700,11 @@ def _stage_decision(state,members,bars_by_symbol,day,reason):
         state, members, member_stats, selected, ranks,
         stats["SPY"]["r63"], sessions=[b.date for b in spy],
         decision_date=day)
+    sector_by_symbol={m["symbol"]:str(m.get("sector") or "Unknown") for m in members}
     state["last_signal"]=dict(asof=day,reason=reason,selected=selected,
                               weights=weights,raw_ranks={s:ranks.get(s) for s in selected},
+                              sector_by_symbol={sym:sector_by_symbol.get(sym,"Unknown")
+                                                for sym in selected},
                               equity_cap=cap,sector_cap=SECTOR_CAP,targets=desired,
                               ranking_audit=ranking_audit)
     state["last_regime"]=regime
@@ -774,6 +780,13 @@ def refresh_ranking_only():
                 raise RuntimeError("Signal changed during audit; refresh ranking again")
             if current_signal:
                 current_signal["ranking_audit"] = diagnostic
+                # Sector metadata is informational. Never change recorded
+                # positions, share targets or the signal selection.
+                sectors={m["symbol"]:str(m.get("sector") or "Unknown")
+                         for m in members}
+                current_signal["sector_by_symbol"]={
+                    sym:sectors.get(sym,"Unknown")
+                    for sym in current_signal.get("selected") or []}
             else:
                 current["read_only_ranking_preview"] = diagnostic
             current.pop("ranking_audit_error",None)
