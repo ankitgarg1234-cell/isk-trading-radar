@@ -77,7 +77,8 @@ def signal_snapshot_pit(d,members,markets,pits,sector_map,cikmap):
         rec=dict(ind); rec.update({'fund':fp,'cap':cap,'cik':cikmap.get(sym),'sector':sec})
         data[sym]=rec
         if cap and cap>0 and cikmap.get(sym): issuer_caps[cikmap[sym]].append((cap,sym))
-    rankable=[(s,r) for s,r in data.items() if r['fund'] is True and r['mom']>0]
+    # Preserve raw global momentum ranking regardless of fundamental status.
+    rankable=[(s,r) for s,r in data.items() if r['mom']>0]
     rankable.sort(key=lambda z:(z[1]['mom'],z[1]['adv63'],z[0]),reverse=True)
     ranks={s:i+1 for i,(s,_) in enumerate(rankable)}
     for s in data: data[s]['rank']=ranks.get(s)
