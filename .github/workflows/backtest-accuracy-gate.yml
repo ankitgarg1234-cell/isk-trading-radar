@@ -1,0 +1,31 @@
+name: Backtest Accuracy Gate - Unit Tests
+
+on:
+  push:
+    branches:
+      - research/adaptive-market-state-backtest
+    paths:
+      - scripts/adaptive_entry_policy_backtest.py
+      - scripts/spy_sector_hierarchy_backtest.py
+      - scripts/test_backtest_accuracy_gate.py
+      - .github/workflows/backtest-accuracy-gate.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install pandas requests lxml pyarrow
+      - name: Compile
+        run: python -m py_compile scripts/adaptive_entry_policy_backtest.py scripts/spy_sector_hierarchy_backtest.py scripts/test_backtest_accuracy_gate.py
+      - name: Regression suite
+        run: python scripts/test_backtest_accuracy_gate.py -v
