@@ -416,6 +416,15 @@ def trial_state():
     return read_trial()
 
 
+@app.get("/api/trial/export")
+def export_trial():
+    from fastapi.responses import Response
+    body = json.dumps(read_trial(), indent=2, default=str)
+    return Response(content=body, media_type="application/json", headers={
+        "Content-Disposition": 'attachment; filename="Dual_Momentum_Paper_Trial_2026.json"'
+    })
+
+
 @app.post("/api/trial/refresh")
 def trial_refresh(background_tasks: BackgroundTasks):
     if datetime.now(TRIAL_NY).date() > TRIAL_END:
