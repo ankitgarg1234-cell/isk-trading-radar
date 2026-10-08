@@ -1,0 +1,28 @@
+name: Issuer Market Cap Integrity Diagnostic
+
+on:
+  push:
+    branches:
+      - research/adaptive-market-state-backtest
+    paths:
+      - scripts/diagnose_issuer_market_cap.py
+      - .github/workflows/issuer-cap-integrity.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: .backtest_cache
+          key: walkforward-v1-2022-2026
+      - run: pip install pandas requests lxml
+      - run: python scripts/diagnose_issuer_market_cap.py
