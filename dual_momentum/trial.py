@@ -492,7 +492,11 @@ def _poll_impl():
         # completed pre-start market close. Never backdate initial orders.
         if not state["equity"] and not state.get("pending"):
             ready=[b for b in spy_bars if b.date== (START-timedelta(days=1)).isoformat()]
-            if ready and ready[-1].date==asof_limit:
+            # A previous-close signal may target today's opening ONLY if
+            # its order is staged BEFORE the 09:30 New York market open.
+            initial_window = (now.date() < START or
+                              (now.date() == START and (now.hour, now.minute) < (9, 30)))
+            if ready and ready[-1].date==asof_limit and initial_window:
                 _stage_decision(state,members,bars_by_symbol,ready[-1].date,"INITIAL")
         for day in completed:
             if state.get("pending"):
