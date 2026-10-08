@@ -14,15 +14,20 @@
 | REENTRY | 287 |
 | WARM_START | 10 |
 
-## Yearly counts
+## Yearly counts and transaction-cost drag
 
-| Year | Trades | BUY | SELL |
-|---|---:|---:|---:|
-| 2022 | 641 | 321 | 320 |
-| 2023 | 582 | 294 | 288 |
-| 2024 | 343 | 172 | 171 |
-| 2025 | 417 | 200 | 217 |
-| 2026 | 283 | 137 | 146 |
+| Year | Trades | BUY | SELL | Modeled cost ($) |
+|---|---:|---:|---:|---:|
+| 2022 | 641 | 321 | 320 | $890.96 |
+| 2023 | 582 | 294 | 288 | $825.76 |
+| 2024 | 343 | 172 | 171 | $503.97 |
+| 2025 | 417 | 200 | 217 | $603.00 |
+| 2026 | 283 | 137 | 146 | $461.08 |
+
+## Original December 2021 information set
+
+- Dec-2021 sector targets: {'Real Estate': 0.5, 'Information Technology': 0.5}
+- Dec-2021 entry signal: 2021-12-31
 
 ## 2022 monthly NAV and trades
 
