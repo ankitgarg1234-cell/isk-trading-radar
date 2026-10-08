@@ -67,12 +67,12 @@ def signal_snapshot_pit(d,members,markets,pits,sector_map,cikmap):
     data={}; issuer_caps=defaultdict(list)
     for sym in members:
         m=markets.get(sym); pit=pits.get(sym)
-        if not m or not pit: continue
+        if not m: continue
         ind=b.indicators(m,d)
         if not ind: continue
         sec=sector_map.get(sym,'')
-        fp=b.fundamental_pass(pit,d,sec)
-        sh=b.shares_asof(pit,d)
+        fp=b.fundamental_pass(pit,d,sec) if pit is not None else None
+        sh=b.shares_asof(pit,d) if pit is not None else None
         cap=sh*ind['close'] if sh and ind['close'] else None
         rec=dict(ind); rec.update({'fund':fp,'cap':cap,'cik':cikmap.get(sym),'sector':sec})
         data[sym]=rec
@@ -271,7 +271,12 @@ def run_variant(cfg,trading_dates,signal_dates,snapshots,markets,spy):
             logs.append({'date':d.isoformat(),'spy_bull':spy_bull,'allowed_sectors':sorted(allowed),
                          'sector_states':secrows,'rotational':rot,'leadership':lead,
                          'pit_sector_rebalance_date':pitmeta['rebalance_date'],'pit_revision_timestamp':pitmeta['revision_timestamp']})
-    m=b.metrics(st); m['logs']=logs; return m
+    m=b.metrics(st); m['logs']=logs
+    # Preserve one auditable transaction-by-transaction control ledger.
+    if cfg['mode']=='control':
+        m['trades']=st.trades
+        m['daily']=st.daily
+    return m
 
 def main():
     cache=b.Cache(ROOT/'.backtest_cache')
