@@ -39,11 +39,16 @@ jobs:
         run: python -m py_compile scripts/spy_sector_hierarchy_backtest.py
       - name: Run
         run: python scripts/spy_sector_hierarchy_backtest.py
+      - name: Reconciliation (BLOCKED until original frozen ledger supplied)
+        run: |
+          python scripts/reconcile_frozen_baseline.py \
+            --candidate backtests/results/spy_sector_hierarchy_2022_2026.json \
+            --report backtests/results/frozen_baseline_reconciliation.json
       - name: Commit results
         run: |
           git config user.name "isk-backtest-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add backtests/results/spy_sector_hierarchy_2022_2026.json backtests/results/spy_sector_hierarchy_2022_2026.md
+          git add backtests/results/spy_sector_hierarchy_2022_2026.json backtests/results/spy_sector_hierarchy_2022_2026.md backtests/results/frozen_baseline_reconciliation.json
           git diff --cached --quiet && exit 0
           git commit -m "Update SPY-sector hierarchy research [skip ci]"
           git pull --rebase origin "$GITHUB_REF_NAME"
