@@ -326,7 +326,10 @@ def duration_days(r):
         return None
 
 def annual_records(o, units=("USD",)):
-    best = {}
+    # Preserve EVERY historical filing, including amendments.  Deduplicating
+    # by fiscal year *before* the decision-date cut-off silently replaces a
+    # then-available filing with a future amendment, causing false UNKNOWN.
+    out = []
     for r in entries(o, units):
         if r.get("form") not in ("10-K", "10-K/A", "20-F", "20-F/A"):
             continue
@@ -335,10 +338,8 @@ def annual_records(o, units=("USD",)):
             continue
         if not r.get("end") or not r.get("filed") or r.get("val") is None:
             continue
-        old = best.get(r["end"])
-        if old is None or str(r["filed"]) >= str(old.get("filed")):
-            best[r["end"]] = r
-    return sorted(best.values(), key=lambda x: (x["end"], x.get("filed", "")))
+        out.append(r)
+    return sorted(out, key=lambda x: (str(x["end"]), str(x.get("filed", "")), str(x.get("accn", ""))))
 
 def instant_records(o, units=("shares",)):
     out = []
@@ -365,7 +366,20 @@ def preprocess_facts(f):
     return {"rev": rev, "gp": gp, "shares": shares}
 
 def asof_records(rs, d):
-    return [r for r in rs if str(r.get("filed", ""))[:10] <= d.isoformat() and str(r.get("end", ""))[:10] <= d.isoformat()]
+    """Latest actually available filing for each fiscal period at decision date."""
+    cutoff = d.isoformat()
+    latest = {}
+    for r in rs:
+        filed = str(r.get("filed", ""))[:10]
+        end = str(r.get("end", ""))[:10]
+        if not filed or not end or filed > cutoff or end > cutoff:
+            continue
+        old = latest.get(end)
+        if old is None or (filed, str(r.get("accn", ""))) > (
+            str(old.get("filed", ""))[:10], str(old.get("accn", ""))
+        ):
+            latest[end] = r
+    return [latest[end] for end in sorted(latest)]
 
 def fundamental_pass(pit, d, sector):
     rev = asof_records(pit.get("rev") or [], d)
@@ -559,7 +573,9 @@ def signal_snapshot(d, members, markets, pits, sectors, cikmap):
         data[sym] = rec
         if cap and cap > 0 and cikmap.get(sym):
             issuer_caps[cikmap[sym]].append((cap, sym))
-    rankable = [(sym, r) for sym, r in data.items() if r["fund"] is True and r["mom"] > 0]
+    # Raw cross-sectional momentum rank must be independent of fund PASS.
+    # Fundamentals govern entry eligibility, not the position in the ranking.
+    rankable = [(sym, r) for sym, r in data.items() if r["mom"] > 0]
     rankable.sort(key=lambda z: (z[1]["mom"], z[1]["adv63"], z[0]), reverse=True)
     ranks = {sym: i+1 for i, (sym, _) in enumerate(rankable)}
     for sym in data:
@@ -589,6 +605,7 @@ def retained_or_targets(st, snap, leadership, bull):
         p = st.pos.get(pk)
         r = snap.get(sym)
         if not r:
+            sell_keys[pk] = "MISSING SNAPSHOT/UNIVERSE EXIT"
             continue
         fp = r["fund"]
         if fp is None:
@@ -606,6 +623,7 @@ def retained_or_targets(st, snap, leadership, bull):
         p = st.pos.get(pk)
         r = snap.get(sym)
         if not r:
+            sell_keys[pk] = "MISSING SNAPSHOT/UNIVERSE EXIT"
             continue
         fp = r["fund"]
         if fp is None:
