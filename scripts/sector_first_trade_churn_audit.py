@@ -13,7 +13,7 @@ months=collections.defaultdict(list)
 for t in ts:months[t["date"][:7]].append(t)
 navmonths={}
 for row in ds:navmonths[row["date"][:7]]=row["nav"]
-lines=["# Explicit sector-first trade-churn audit (updated after monthly-rank freeze)","",
+lines=["# Explicit sector-first trade-churn audit (final price-momentum specification)","",
        f"- Trades: {len(ts)}",
        f"- Final NAV: {r['metrics']['end_value']:,.2f}",
        f"- Costs: {r['metrics']['costs']:,.2f}",
