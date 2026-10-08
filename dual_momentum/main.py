@@ -64,6 +64,7 @@ def _ensure_radar_recovery_access() -> None:
 def startup() -> None:
     init_db()
     init_trial()
+    print("Paper-trial durable storage backend: %s" % engine.url.get_backend_name(), flush=True)
     _ensure_radar_recovery_access()
     threading.Thread(target=_trial_worker, daemon=True, name="paper-trial-monitor").start()
 
