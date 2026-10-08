@@ -1,0 +1,349 @@
+{
+  "method": "2022 sector ETF allocation only; warm-start on 2021-12-31, next open 2022-01-03; continuous EMA200; top-K equal weight; monthly sell-and-rebuy; cash dividends and transaction cost, no ATR or stock fundamental filter.",
+  "results": [
+    {
+      "k": 1,
+      "return_2022_pct": 24.326842789577952,
+      "ending_nav": 12432.684278957795,
+      "costs": 206.73068658789978,
+      "selections": [
+        {
+          "signal": "2021-12-31",
+          "executed": "2022-01-03",
+          "sectors": [
+            "XLRE"
+          ],
+          "cash_after_rebalance": 11.853975952149995
+        },
+        {
+          "signal": "2022-01-31",
+          "executed": "2022-02-01",
+          "sectors": [
+            "XLE"
+          ],
+          "cash_after_rebalance": 10.128544914248778
+        },
+        {
+          "signal": "2022-02-28",
+          "executed": "2022-03-01",
+          "sectors": [
+            "XLE"
+          ],
+          "cash_after_rebalance": 29.18584913369159
+        },
+        {
+          "signal": "2022-03-31",
+          "executed": "2022-04-01",
+          "sectors": [
+            "XLE"
+          ],
+          "cash_after_rebalance": 31.87352750588616
+        },
+        {
+          "signal": "2022-04-29",
+          "executed": "2022-05-02",
+          "sectors": [
+            "XLE"
+          ],
+          "cash_after_rebalance": 14.558853030797763
+        },
+        {
+          "signal": "2022-05-31",
+          "executed": "2022-06-01",
+          "sectors": [
+            "XLE"
+          ],
+          "cash_after_rebalance": 38.78157896387893
+        },
+        {
+          "signal": "2022-06-30",
+          "executed": "2022-07-01",
+          "sectors": [
+            "XLE"
+          ],
+          "cash_after_rebalance": 26.193602619197918
+        },
+        {
+          "signal": "2022-07-29",
+          "executed": "2022-08-01",
+          "sectors": [
+            "XLE"
+          ],
+          "cash_after_rebalance": 8.28592226031651
+        },
+        {
+          "signal": "2022-08-31",
+          "executed": "2022-09-01",
+          "sectors": [
+            "XLE"
+          ],
+          "cash_after_rebalance": 29.62892001727596
+        },
+        {
+          "signal": "2022-09-30",
+          "executed": "2022-10-03",
+          "sectors": [
+            "XLE"
+          ],
+          "cash_after_rebalance": 18.27624548190761
+        },
+        {
+          "signal": "2022-10-31",
+          "executed": "2022-11-01",
+          "sectors": [
+            "XLE"
+          ],
+          "cash_after_rebalance": 43.184200629084444
+        },
+        {
+          "signal": "2022-11-30",
+          "executed": "2022-12-01",
+          "sectors": [
+            "XLE"
+          ],
+          "cash_after_rebalance": 22.31910744900415
+        }
+      ]
+    },
+    {
+      "k": 2,
+      "return_2022_pct": 9.886922442165824,
+      "ending_nav": 10988.692244216581,
+      "costs": 202.3122845004987,
+      "selections": [
+        {
+          "signal": "2021-12-31",
+          "executed": "2022-01-03",
+          "sectors": [
+            "XLRE",
+            "XLK"
+          ],
+          "cash_after_rebalance": 39.103518904114935
+        },
+        {
+          "signal": "2022-01-31",
+          "executed": "2022-02-01",
+          "sectors": [
+            "XLE",
+            "XLF"
+          ],
+          "cash_after_rebalance": 26.357599621586814
+        },
+        {
+          "signal": "2022-02-28",
+          "executed": "2022-03-01",
+          "sectors": [
+            "XLE",
+            "XLP"
+          ],
+          "cash_after_rebalance": 51.45001984482769
+        },
+        {
+          "signal": "2022-03-31",
+          "executed": "2022-04-01",
+          "sectors": [
+            "XLE",
+            "XLU"
+          ],
+          "cash_after_rebalance": 19.56821712609417
+        },
+        {
+          "signal": "2022-04-29",
+          "executed": "2022-05-02",
+          "sectors": [
+            "XLE",
+            "XLP"
+          ],
+          "cash_after_rebalance": 69.26232631837775
+        },
+        {
+          "signal": "2022-05-31",
+          "executed": "2022-06-01",
+          "sectors": [
+            "XLE",
+            "XLU"
+          ],
+          "cash_after_rebalance": 19.430401361489203
+        },
+        {
+          "signal": "2022-06-30",
+          "executed": "2022-07-01",
+          "sectors": [
+            "XLE",
+            "XLU"
+          ],
+          "cash_after_rebalance": 41.56003360674549
+        },
+        {
+          "signal": "2022-07-29",
+          "executed": "2022-08-01",
+          "sectors": [
+            "XLE",
+            "XLU"
+          ],
+          "cash_after_rebalance": 25.83979364169045
+        },
+        {
+          "signal": "2022-08-31",
+          "executed": "2022-09-01",
+          "sectors": [
+            "XLE",
+            "XLU"
+          ],
+          "cash_after_rebalance": 50.53173110583339
+        },
+        {
+          "signal": "2022-09-30",
+          "executed": "2022-10-03",
+          "sectors": [
+            "XLE"
+          ],
+          "cash_after_rebalance": 3.575307257113309
+        },
+        {
+          "signal": "2022-10-31",
+          "executed": "2022-11-01",
+          "sectors": [
+            "XLE",
+            "XLV"
+          ],
+          "cash_after_rebalance": 117.75645304493082
+        },
+        {
+          "signal": "2022-11-30",
+          "executed": "2022-12-01",
+          "sectors": [
+            "XLE",
+            "XLV"
+          ],
+          "cash_after_rebalance": 100.15692500271143
+        }
+      ]
+    },
+    {
+      "k": 3,
+      "return_2022_pct": 19.846059883354705,
+      "ending_nav": 11984.60598833547,
+      "costs": 231.29038501662623,
+      "selections": [
+        {
+          "signal": "2021-12-31",
+          "executed": "2022-01-03",
+          "sectors": [
+            "XLRE",
+            "XLK",
+            "XLE"
+          ],
+          "cash_after_rebalance": 48.4106632453927
+        },
+        {
+          "signal": "2022-01-31",
+          "executed": "2022-02-01",
+          "sectors": [
+            "XLE",
+            "XLF",
+            "XLP"
+          ],
+          "cash_after_rebalance": 29.741977912144648
+        },
+        {
+          "signal": "2022-02-28",
+          "executed": "2022-03-01",
+          "sectors": [
+            "XLE",
+            "XLP",
+            "XLU"
+          ],
+          "cash_after_rebalance": 37.3207473133175
+        },
+        {
+          "signal": "2022-03-31",
+          "executed": "2022-04-01",
+          "sectors": [
+            "XLE",
+            "XLU",
+            "XLRE"
+          ],
+          "cash_after_rebalance": 66.47614351197717
+        },
+        {
+          "signal": "2022-04-29",
+          "executed": "2022-05-02",
+          "sectors": [
+            "XLE",
+            "XLP",
+            "XLU"
+          ],
+          "cash_after_rebalance": 101.3424388885719
+        },
+        {
+          "signal": "2022-05-31",
+          "executed": "2022-06-01",
+          "sectors": [
+            "XLE",
+            "XLU",
+            "XLV"
+          ],
+          "cash_after_rebalance": 144.7904457702898
+        },
+        {
+          "signal": "2022-06-30",
+          "executed": "2022-07-01",
+          "sectors": [
+            "XLE",
+            "XLU"
+          ],
+          "cash_after_rebalance": 13.619276861601975
+        },
+        {
+          "signal": "2022-07-29",
+          "executed": "2022-08-01",
+          "sectors": [
+            "XLE",
+            "XLU",
+            "XLV"
+          ],
+          "cash_after_rebalance": 58.0595009064059
+        },
+        {
+          "signal": "2022-08-31",
+          "executed": "2022-09-01",
+          "sectors": [
+            "XLE",
+            "XLU"
+          ],
+          "cash_after_rebalance": 35.35528430408522
+        },
+        {
+          "signal": "2022-09-30",
+          "executed": "2022-10-03",
+          "sectors": [
+            "XLE"
+          ],
+          "cash_after_rebalance": 21.26760037540589
+        },
+        {
+          "signal": "2022-10-31",
+          "executed": "2022-11-01",
+          "sectors": [
+            "XLE",
+            "XLV"
+          ],
+          "cash_after_rebalance": 59.85668216175782
+        },
+        {
+          "signal": "2022-11-30",
+          "executed": "2022-12-01",
+          "sectors": [
+            "XLE",
+            "XLV",
+            "XLP"
+          ],
+          "cash_after_rebalance": 118.747595269062
+        }
+      ]
+    }
+  ],
+  "note": "NOT a simulation of the frozen 75/25 stock strategy and NOT a verification of the user-proposed +16.4%.",
+  "acceptance_test": "The full stock-engine result requires original frozen execution and eligibility ledger."
+}
