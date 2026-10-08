@@ -72,6 +72,32 @@ class TestPaperTrial(unittest.TestCase):
         self.assertTrue(all(w[s]>0 for s in selected))
         self.assertLessEqual(sum(qty.values()),50)
 
+    def test_read_only_sector_lookup_never_invokes_trading(self):
+        from dual_momentum.main import trial_sectors
+        fake_members=[{"symbol":"MPC","sector":"Energy"},
+                      {"symbol":"HPE","sector":"Information Technology"},
+                      {"symbol":"ILMN","sector":"Health Care"}]
+        fake_members += [{"symbol":"MOCK"+str(i),"sector":"Industrials"}
+                         for i in range(480)]
+        with patch("dual_momentum.main.LiveDataSource") as factory, \
+             patch("dual_momentum.trial.poll") as paper_engine:
+            factory.return_value.current_sp500.return_value=fake_members
+            response=trial_sectors()
+            self.assertEqual(response["sectors"]["MPC"],"Energy")
+            self.assertEqual(response["sectors"]["HPE"],"Information Technology")
+            self.assertEqual(response["sectors"]["ILMN"],"Health Care")
+            paper_engine.assert_not_called()
+            factory.return_value.close.assert_called_once()
+
+    def test_dashboard_shows_sectors_and_missing_audit_not_a_fabricated_rank(self):
+        from pathlib import Path
+        html=(Path(__file__).resolve().parents[1] /
+              "dual_momentum" / "templates" / "trial.html").read_text()
+        self.assertIn("Target exposure by sector",html)
+        self.assertIn("Run ranking audit",html)
+        self.assertIn("sectorFor(k)",html)
+        self.assertIn("Eligible buy rank",html)
+
     def test_ranking_inspection_is_a_separate_endpoint_from_paper_execution(self):
         from dual_momentum.main import app
         routes={(r.path,method) for r in app.routes
