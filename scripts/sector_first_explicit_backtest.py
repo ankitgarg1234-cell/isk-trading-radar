@@ -380,7 +380,7 @@ def main():
     wiki=requests.Session()
     wiki.headers["User-Agent"]="Mozilla/5.0 sector PIT study"
     pit_history=hist.load_pit_sector_history(wiki)
-    membership_cache={};sector_cache={}
+    membership_cache={};sector_cache={};stale_sector_dates=[]
     def members_at(d):
         key=d.isoformat()
         if key not in membership_cache:
@@ -389,7 +389,21 @@ def main():
     def sectors_at(d):
         key=d.isoformat()
         if key not in sector_cache:
-            sector_cache[key]=hist.pit_sector_snapshot(pit_history,d)["sectors"]
+            # Historical PIT source has no post-May-2026 snapshot, so use
+            # the LAST KNOWN historic revision without lookahead, and
+            # explicitly flag the aging classification as lower confidence.
+            ds=pit_history.loc[pit_history["rebalance_date"]<=key,"rebalance_date"]
+            if ds.empty:raise RuntimeError(f"MISSING_PIT_SECTOR_HISTORY {key}")
+            rd=ds.max()
+            sub=pit_history.loc[(pit_history["rebalance_date"]==rd)&
+                                (pit_history["sector_source"]=="wikipedia_pit")]
+            if sub.empty:raise RuntimeError(f"UNVERIFIED_PIT_SECTOR_HISTORY {key}")
+            if any(str(t)[:10]>key for t in sub["revision_timestamp"]):
+                raise RuntimeError(f"LOOKAHEAD_SECTOR_REVISION {key}")
+            age=(d-date.fromisoformat(rd)).days
+            if age>125:stale_sector_dates.append({"date":key,"source_date":rd,"age_days":age})
+            sector_cache[key]={hist.norm(r.ticker):str(r.sector).strip()
+                 for r in sub.itertuples(index=False)}
         return sector_cache[key]
     # Warm start at 2021-12-31, execute targets on 2022-01-03.
     pre=calendar[calendar.index(trading_dates[0])-1]
@@ -421,7 +435,10 @@ def main():
       "no_sec_fundamentals":True,
       "no_75_25_sleeves":True,
       "cash_yield":0.0
-    },"metrics":sm,"initial_signal":pre,"initial_allocation":allocation,
+    },"sector_history_staleness":{"stale_daily_count":len(stale_sector_dates),
+       "first_stale":stale_sector_dates[0] if stale_sector_dates else None,
+       "last_stale":stale_sector_dates[-1] if stale_sector_dates else None},
+       "metrics":sm,"initial_signal":pre,"initial_allocation":allocation,
       "monthly_signals":[x for x in st.signal_log if x["date"]==months.get(x["date"][:7])],
       "trades":st.trades,"daily":st.daily}
     OUTJ.parent.mkdir(parents=True,exist_ok=True)
@@ -452,6 +469,7 @@ def main():
       "- If either Top-2 sector momentum is non-positive, the 1.5x ratio is undefined; use a conservative 50/50 split.",
       "- Financials are not special-cased; unlike prior reconstructed experiments, no SEC fundamental gate is applied.",
       "- No guarantee of +16.4% in 2022: this is the mechanically executed strategy, not the manually authored monthly P&L path.",
+      f"- Late-source PIT GICS classifications (>125 days old): {len(stale_sector_dates)} daily observations, latest dated snapshot carried forward without lookahead (lower confidence).",
       "- Historical S&P membership and GICS source completeness, raw Yahoo corporate actions, and financing assumptions remain research-quality, not institutional-grade certified." ]
     OUTM.write_text("\n".join(lines)+"\n")
     print(OUTM.read_text())
