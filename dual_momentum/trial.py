@@ -705,6 +705,99 @@ def _stage_decision(state,members,bars_by_symbol,day,reason):
     state["active_cap"]=cap
 
 
+def refresh_ranking_only():
+    """Build an independent decision-date audit, with ZERO paper trades.
+
+    This diagnostic intentionally works even while trading is disabled for
+    non-durable storage. A manual request never changes cash, holdings,
+    pending orders or simulated fills.
+    """
+    if not RUN_LOCK.acquire(blocking=False):
+        return {"status": "BUSY"}
+    source = LiveDataSource(price_workers=12)
+    try:
+        original = read_trial()
+        signal = original["state"].get("last_signal") or {}
+        spy_bars = _closed_bars(source.price_bars("SPY", "2y"))
+        if len(spy_bars) < 254:
+            raise RuntimeError("Cannot verify SPY signal: insufficient completed daily bars")
+        asof = signal.get("asof") or spy_bars[-1].date
+        if asof > spy_bars[-1].date:
+            raise RuntimeError("Recorded signal date is later than most recent completed SPY bar")
+        members = source.current_sp500()
+        if len(members) < 480:
+            raise RuntimeError("Current S&P 500 membership feed incomplete")
+        fetch_symbols = sorted({m["symbol"] for m in members} | {"SPY"})
+        data = {}
+        def fetch(symbol):
+            bars = _closed_bars(source.price_bars(symbol, "2y"))
+            return symbol, [b for b in bars if b.date <= asof]
+        with ThreadPoolExecutor(max_workers=12) as pool:
+            futures = {pool.submit(fetch,sym):sym for sym in fetch_symbols}
+            for future in as_completed(futures):
+                sym = futures[future]
+                try:
+                    _, bars = future.result()
+                    if bars and bars[-1].date == asof:
+                        data[sym] = bars
+                except Exception:
+                    continue
+        stats = {sym:info for sym,bars in data.items()
+                 if (info := _momentum(bars)) is not None}
+        member_stats = {m["symbol"]:stats[m["symbol"]]
+                        for m in members if m["symbol"] in stats}
+        if len(member_stats) < 450 or "SPY" not in stats:
+            raise RuntimeError("Candidate coverage insufficient for audited ranks")
+        ranked = sorted(member_stats, key=lambda sym:(-member_stats[sym]["score"],sym))
+        raw_ranks = {sym:i+1 for i,sym in enumerate(ranked)}
+        selected = list(signal.get("selected") or [])
+        diagnostic = _ranking_audit(
+            original["state"],members,member_stats,selected,raw_ranks,
+            stats["SPY"]["r63"], sessions=[b.date for b in data["SPY"]],
+            decision_date=asof,historical_selection=True)
+        if not signal:
+            diagnostic["basis"] = "Read-only candidate preview; NOT an executed strategy decision"
+            for row in diagnostic["rows"]:
+                if row["status"] == "NOT SELECTED":
+                    row["status"] = "ELIGIBLE"
+                    row["reason"] = "Qualified candidate (read-only preview; no paper order)"
+        # Merge into the LATEST ledger row, not into the snapshot read before
+        # the market-data requests. Do not overwrite funds or orders.
+        with SessionLocal() as db:
+            row = db.get(DMTrialRow,1)
+            if row is None:
+                raise RuntimeError("Paper ledger is unavailable")
+            current = json.loads(row.payload)
+            current_signal = current.get("last_signal") or {}
+            if (current_signal.get("asof"),current_signal.get("selected")) != (
+                    signal.get("asof"),signal.get("selected")):
+                raise RuntimeError("Signal changed during audit; refresh ranking again")
+            if current_signal:
+                current_signal["ranking_audit"] = diagnostic
+            else:
+                current["read_only_ranking_preview"] = diagnostic
+            current.pop("ranking_audit_error",None)
+            row.payload = json.dumps(current,separators=(",",":"),allow_nan=False)
+            db.commit()
+        return {"status":"AUDIT_READY","asof":asof,
+                "qualified":diagnostic["qualified_and_not_locked"],
+                "stocks":diagnostic["universe_with_valid_signals"]}
+    except Exception as exc:
+        # Diagnostic failures must not alter trading status.
+        error = "%s: %s" % (type(exc).__name__,exc)
+        with SessionLocal() as db:
+            row=db.get(DMTrialRow,1)
+            if row is not None:
+                current=json.loads(row.payload)
+                current["ranking_audit_error"]=error
+                row.payload=json.dumps(current,separators=(",",":"))
+                db.commit()
+        return {"status":"AUDIT_ERROR","error":error}
+    finally:
+        source.close()
+        RUN_LOCK.release()
+
+
 def poll():
     if not RUN_LOCK.acquire(blocking=False):
         return {"status":"ALREADY_RUNNING"}
