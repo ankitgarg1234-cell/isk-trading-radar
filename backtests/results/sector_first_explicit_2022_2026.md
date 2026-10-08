@@ -4,20 +4,20 @@ Independent new strategy; NOT the original frozen 75/25 engine or its replicatio
 
 | Year | Return |
 |---|---:|
-| 2022 | -18.83% |
-| 2023 | -8.31% |
-| 2024 | +6.34% |
-| 2025 | +21.14% |
-| 2026 | +4.63% |
+| 2022 | -16.51% |
+| 2023 | -10.51% |
+| 2024 | +0.70% |
+| 2025 | +23.20% |
+| 2026 | +18.62% |
 
 | Metric | Result |
 |---|---:|
-| CAGR | 0.07% |
-| Max drawdown | -29.56% |
-| Avg equity exposure | 73.96% |
-| Ending NAV ($10,000) | $10,031.46 |
-| Trades | 2266 |
-| Costs | $3,284.76 |
+| CAGR | 2.02% |
+| Max drawdown | -31.96% |
+| Avg equity exposure | 73.71% |
+| Ending NAV ($10,000) | $10,994.97 |
+| Trades | 2265 |
+| Costs | $3,264.52 |
 
 ## 2022 monthly sector decisions
 
