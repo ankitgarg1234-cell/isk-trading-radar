@@ -405,7 +405,12 @@ def preprocess_facts(f):
             "WeightedAverageNumberOfDilutedSharesOutstanding",
             "WeightedAverageNumberOfSharesOutstandingBasic"
         )), ("shares",))
-    return {"rev": rev, "gp": gp, "shares": shares}
+    weighted_shares=annual_records(fact_obj(f,"us-gaap",(
+        "WeightedAverageNumberOfDilutedSharesOutstanding",
+        "WeightedAverageNumberOfSharesOutstandingBasic"
+    )),("shares",))
+    return {"rev": rev, "gp": gp, "shares": shares,
+            "weighted_shares":weighted_shares}
 
 def asof_records(rs, d):
     """Latest actually available filing for each fiscal period at decision date."""
@@ -451,6 +456,28 @@ def shares_record_asof(pit,d):
 def shares_asof(pit, d):
     rec=shares_record_asof(pit,d)
     return sf(rec.get("val")) if rec is not None else None
+
+
+def credible_shares_record(pit,d):
+    """Reject implausible share units when SEC outstanding and filed
+    weighted-average share facts disagree by more than 20x.
+    This detects XBRL scaling anomalies (e.g. 1,000x) without
+    re-scaling a source value or fabricating a company valuation.
+    """
+    record=shares_record_asof(pit,d)
+    if record is None:
+        return None
+    val=sf(record.get("val"))
+    if val is None or val<=0:
+        return None
+    avg=asof_records(pit.get("weighted_shares") or [],d)
+    if avg:
+        comparable=sf(avg[-1].get("val"))
+        if comparable and comparable>0:
+            ratio=val/comparable
+            if ratio>20.0 or ratio<0.05:
+                return None
+    return record
 
 
 def split_adjusted_market_cap(shares_record, market, split_adjusted_price):
@@ -651,7 +678,7 @@ def signal_snapshot(d, members, markets, pits, sectors, cikmap):
         if not ind:
             continue
         fp = fundamental_pass(pit, d, sectors.get(sym, "")) if pit is not None else None
-        share_record = shares_record_asof(pit,d) if pit is not None else None
+        share_record = credible_shares_record(pit,d) if pit is not None else None
         cap = split_adjusted_market_cap(share_record,m,ind["close"])
         rec = dict(ind)
         rec.update({"fund": fp, "cap": cap, "cik": cikmap.get(sym)})
