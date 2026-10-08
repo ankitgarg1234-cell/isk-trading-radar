@@ -440,6 +440,26 @@ def trial_dashboard(request: Request):
     })
 
 
+@app.get("/api/trial/sectors")
+def trial_sectors():
+    # Current display metadata only: NEVER re-rank or trade from this feed.
+    # A historical decision uses its saved sector labels when available.
+    source = LiveDataSource(price_workers=1)
+    try:
+        members=source.current_sp500()
+        if len(members)<480:
+            raise HTTPException(status_code=503,detail="Sector feed incomplete")
+        return {"asof":"current membership", "sectors":{
+            row["symbol"]:str(row.get("sector") or "Unknown")
+            for row in members}}
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=503,detail="Sector labels temporarily unavailable")
+    finally:
+        source.close()
+
+
 @app.get("/api/trial/state")
 def trial_state():
     result = read_trial()
