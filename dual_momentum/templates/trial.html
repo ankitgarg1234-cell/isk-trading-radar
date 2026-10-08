@@ -21,6 +21,15 @@ header{display:flex;justify-content:space-between;align-items:center;flex-wrap:w
 <form method="post" action="/api/trial/refresh"><button>Refresh account from completed market data</button></form>
 <p><a href="/api/trial/export">Download JSON backup of the paper ledger</a></p><p class="muted">Important: the current free Render Postgres instance is scheduled to expire on November 5, 2026. Save backups or arrange database continuity before then.</p><p id="error"></p><p class="label">Only signals actually stored before a later trading session may receive next-opening-price simulated fills. Render free instances may sleep. Refreshes and stop executions are modeled, not brokerage confirmations.</p></section>
 <section class="panel"><h2>Strategy signal / sector exposure</h2><p id="signal">No scan yet</p><div id="selected"></div></section>
+<section class="panel"><h2>Why these five stocks? Ranking audit</h2>
+<p><strong>Raw momentum rank</strong> is the equal-weight 3/6/12-month return rank. <strong>Eligible buying rank</strong> is the separate volatility-adjusted 50/30/20 score, after EMA50, EMA200, SPY-relative and post-stop lockout checks. Existing positions may be protected by the raw Top-15 retention rule.</p>
+<p class="label" id="audit-summary">Candidate audit loads with the market-close decision.</p>
+<h3>Raw momentum Top 5 — were they eligible?</h3><div id="raw-five"></div>
+<h3>Top 5 qualified risk-adjusted new-buy candidates</h3><div id="eligible-five"></div>
+<details style="margin-top:20px"><summary style="cursor:pointer;color:#a5caff">Show full candidate-by-candidate explanation</summary>
+<p class="label">A raw Top-5 name may fail entry qualification. An eligible #1–5 name may also be displaced by a protected incumbent. Selected holdings are not necessarily the highest raw-return stocks.</p>
+<div id="ranking-table"></div></details>
+</section>
 <section class="panel"><h2>Pending next-open orders</h2><div id="orders">None</div></section>
 <section class="panel"><h2>Open positions and stops</h2><div id="holdings">None</div></section>
 <section class="panel"><h2>Transaction ledger</h2><div id="trades">No trades</div></section>
@@ -43,7 +52,14 @@ async function refresh(){try{
  el('error').textContent=(!a.durable_storage?'STORAGE BLOCKED: Render is using ephemeral SQLite. Link DATABASE_URL to the existing Render Postgres database before simulated fills are enabled. ': '')+(a.error||'');
  const sig=s.last_signal,reg=s.last_regime;
  el('signal').textContent=sig?('As of '+sig.asof+' · '+sig.reason+' · '+reg.spy+' · allowed equity '+pct(sig.equity_cap)+' · BULL sectors: '+(reg.bull_sectors||[]).join(', ')):'No completed-close signal yet';
- el('selected').innerHTML=sig?table(['Stock','Rank','Target wt','Shares'],(sig.selected||[]).map(x=>[x,sig.raw_ranks[x],pct(sig.weights[x]),sig.targets[x]])):'';
+ const audit=sig&&sig.ranking_audit;
+ const bySymbol=Object.fromEntries((audit&&audit.rows||[]).map(r=>[r.symbol,r]));
+ el('selected').innerHTML=sig?table(['Stock','Raw rank','Eligible buy rank','Target wt','Shares'],(sig.selected||[]).map(x=>[x,sig.raw_ranks[x],bySymbol[x]&&bySymbol[x].eligible_rank||'—',pct(sig.weights[x]),sig.targets[x]])):'';
+ el('audit-summary').textContent=audit?('As of '+audit.asof+' · '+audit.universe_with_valid_signals+' with valid price signals · '+audit.qualified_and_not_locked+' qualified, not locked · '+audit.basis):'Ranking audit is unavailable for this saved signal; it will be populated from completed-close data at the next successful refresh.';
+ const auditRows=syms=>syms.map(x=>{const r=bySymbol[x];return r?[r.symbol,r.raw_rank||'—',r.eligible_rank||'—',Number(r.risk_adjusted_score).toFixed(3),r.status,r.reason]:[x,'—','—','—','NOT VERIFIED','No stored qualification evidence']});
+ el('raw-five').innerHTML=audit?table(['Ticker','Raw rank','Eligible buy rank','Risk score','Decision','Explanation'],auditRows(audit.raw_top5||[])):'<p>Audit not yet available.</p>';
+ el('eligible-five').innerHTML=audit?table(['Ticker','Raw rank','Eligible buy rank','Risk score','Decision','Explanation'],auditRows(audit.eligible_top5||[])):'<p>Audit not yet available.</p>';
+ el('ranking-table').innerHTML=audit?table(['Stock','Sector','Raw rank','Eligible rank','Risk score','EMA50','EMA200','Above SPY R63','Decision','Reason'],(audit.rows||[]).map(r=>[r.symbol,r.sector,r.raw_rank||'—',r.eligible_rank||'—',Number(r.risk_adjusted_score).toFixed(3),r.ema50_pass?'Pass':'Fail',r.ema200_pass?'Pass':'Fail',r.spy_relative_pass?'Pass':'Fail',r.status,r.reason])):'<p>Audit not yet available.</p>';
  el('orders').innerHTML=table(['Signal','Earliest fill','Side','Stock','Shares'],(s.pending||[]).flatMap(p=>(p.orders||[]).map(o=>[p.signal_date,p.fill_after,o.side,o.symbol,o.shares])));
  el('holdings').innerHTML=table(['Stock','Shares','Average cost','Active stop'],Object.entries(s.holdings||{}).map(([k,v])=>[k,v.shares,usd(v.cost),usd(v.stop)]));
  el('trades').innerHTML=table(['Date','Side','Stock','Shares','Fill','Fee','Reason'],(s.trades||[]).slice().reverse().map(t=>[t.date,t.side,t.symbol,t.shares,usd(t.price),usd(t.fee),t.reason]));
