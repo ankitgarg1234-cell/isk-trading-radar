@@ -392,8 +392,11 @@ def _trial_worker() -> None:
         now = datetime.now(TRIAL_NY)
         try:
             if (TRIAL_START - __import__("datetime").timedelta(days=1) <= now.date() <= TRIAL_END
-                    and now.weekday() < 5 and (now.hour, now.minute) >= (16, 25)
-                    and (now.hour, now.minute) <= (23, 30)):
+                    and now.weekday() < 5 and (
+                        (8 <= now.hour < 9) or
+                        ((now.hour, now.minute) >= (16, 25) and
+                         (now.hour, now.minute) <= (23, 30))
+                    )):
                 last = read_trial().get("last_poll")
                 poll_day = str(last or "")[:10]
                 if poll_day != now.astimezone(timezone.utc).date().isoformat():
