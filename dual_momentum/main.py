@@ -442,7 +442,9 @@ def trial_dashboard(request: Request):
 
 @app.get("/api/trial/state")
 def trial_state():
-    return read_trial()
+    result = read_trial()
+    result["durable_storage"] = engine.url.get_backend_name() != "sqlite"
+    return result
 
 
 @app.get("/api/trial/export")
