@@ -65,6 +65,21 @@ class DataAccuracyTests(unittest.TestCase):
                  {"A":"Energy","B":"Energy"},cmap)
             self.assertEqual(base["B"]["rank"],2)
 
+    def test_continuous_ema200_uses_original_200_session_mean(self):
+        from datetime import timedelta
+        raw=[]
+        for i in range(201):
+            d=(date(2020,1,1)+timedelta(days=i)).isoformat()
+            price=100.0 if i<200 else 200.0
+            raw.append({"date":d,"open":price,"high":price,"low":price,
+                        "close":price,"volume":1000})
+        market=b.prepare_market({"rows":raw,"dividends":[]})
+        alpha=2.0/201.0
+        self.assertAlmostEqual(market["rows"][199]["ema200_tr"],1.0,places=10)
+        self.assertAlmostEqual(market["rows"][200]["ema200_tr"],1.0+alpha,places=10)
+        self.assertAlmostEqual(b.ema200_at_index(market["rows"],200),1.0+alpha,places=10)
+        self.assertTrue(b.regime(market,date(2020,1,1)+timedelta(days=200)))
+
     def test_historical_sector_snapshot_changes_by_date(self):
         history=pd.DataFrame([
             {"rebalance_date":"2022-01-01","ticker":"TEST","sector":"Information Technology",
