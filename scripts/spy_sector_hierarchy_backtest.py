@@ -326,7 +326,7 @@ def main():
 
     wiki=requests.Session(); wiki.headers['User-Agent']='OpenAI S&P rotational research (historical sector classification)'
     pit_history=load_pit_sector_history(wiki)
-    snapshots={}; coverage=[]
+    snapshots={}; coverage=[]; eligibility_audit=[]
     for d in signal_dates:
         pit=pit_sector_snapshot(pit_history,d); sector_map=pit['sectors']
         members=b.members_at(current,changes,d)
@@ -336,6 +336,24 @@ def main():
                          'rebalance_date':pit['rebalance_date'],'revision_timestamp':pit['revision_timestamp']})
         snap,lead=signal_snapshot_pit(d,members,markets,pits,sector_map,cikmap)
         snapshots[d]=(snap,lead,sector_signal(markets,d),pit)
+        raw20=sorted([(sym,v) for sym,v in snap.items()
+                       if v.get('rank') and v['rank']<=20],key=lambda z:z[1]['rank'])
+        pass20=[sym for sym,v in raw20 if v.get('fund') is True]
+        cap15=sorted([(sym,v.get('cap')) for sym,v in snap.items()
+                      if v.get('cap') is not None],
+                     key=lambda z:z[1],reverse=True)[:15]
+        eligibility_audit.append({
+          'date':d.isoformat(),
+          'priced_indicators':len(snap),
+          'fundamental_pass_total':sum(v.get('fund') is True for v in snap.values()),
+          'raw_global_top20':len(raw20),
+          'fundamental_pass_in_top20':len(pass20),
+          'fundamental_unresolved_in_top20':sum(v.get('fund') is None for _,v in raw20),
+          'fundamental_failed_in_top20':sum(v.get('fund') is False for _,v in raw20),
+          'qualifying_rotational_symbols':pass20,
+          'leadership':lead,
+          'top15_implied_issuer_caps':[{'symbol':t,'implied_cap':c} for t,c in cap15],
+        })
 
     cfgs=[
       {'name':'PIT frozen-like control','mode':'control'},
@@ -347,7 +365,7 @@ def main():
       {'name':'Full hierarchy + Top-2 in SPY BEAR','mode':'full_hierarchy','bear_topk':2},
     ]
     results=[run_variant(c,trading_dates,signal_dates,snapshots,markets,spy) for c in cfgs]
-    rep={'results':results,'sector_coverage':coverage,
+    rep={'results':results,'sector_coverage':coverage,'eligibility_audit':eligibility_audit,
          'rules':{
            'stock_entry':'global eligible rank <=20, positive momentum, fundamental PASS',
            'stock_retention':'eligible rank <=35',
@@ -368,6 +386,24 @@ def main():
     for x in results:
         ar=x['annual_returns_pct']
         lines.append(f"| {x['name']} | {ar.get('2022',0):+.2f}% | {ar.get('2023',0):+.2f}% | {ar.get('2024',0):+.2f}% | {ar.get('2025',0):+.2f}% | {ar.get('2026',0):+.2f}% | {x['cagr_5y_convention_pct']:.2f}% | {x['max_drawdown_pct']:.2f}% | {x['avg_equity_exposure_pct']:.2f}% | {x['annualized_turnover_x']:.2f}x | ${x['costs']:,.0f} |")
+
+    lines+=['','## Independent stock-eligibility diagnostics','',
+        'This table isolates the pipeline before allocation and trading. A strong raw rank cannot become a position if fundamental PASS or leadership market cap fails. The raw-ranked universe still depends on price coverage.',
+        '',
+        '| Year | Median priced stock count | Median Top-20 fundamental PASS | Median Top-20 unresolved | Median qualified leadership count |',
+        '|---|---:|---:|---:|---:|']
+    import statistics
+    for year in ('2022','2023','2024','2025','2026'):
+        rows=[x for x in eligibility_audit if x['date'].startswith(year)]
+        if not rows:continue
+        lines.append(f"| {year} | {statistics.median(x['priced_indicators'] for x in rows):.0f} | {statistics.median(x['fundamental_pass_in_top20'] for x in rows):.1f} | {statistics.median(x['fundamental_unresolved_in_top20'] for x in rows):.1f} | {statistics.median(len(x['leadership']) for x in rows):.1f} |")
+    lines+=['','## Leadership diagnostic samples','',
+        '| Date | Top-15 inferred-cap companies | Actual selected leadership names |',
+        '|---|---|---|']
+    for x in eligibility_audit:
+        if x['date'][:7] in ('2022-05','2023-05','2023-06','2023-07','2024-06','2025-06','2026-06'):
+            top=', '.join(r['symbol'] for r in x['top15_implied_issuer_caps'])
+            lines.append(f"| {x['date']} | {top} | {', '.join(x['leadership']) or '-'} |")
 
     lines+=['','## Point-in-time sector coverage','',
             '| Period | Min coverage | Median coverage | Max coverage |','|---|---:|---:|---:|']
