@@ -398,7 +398,13 @@ def _trial_worker() -> None:
                 poll_day = str(last or "")[:10]
                 if poll_day != now.astimezone(timezone.utc).date().isoformat():
                     result = poll()
-                    print("Paper-trial refresh: %s" % result.get("status"), flush=True)
+                    trial_done = read_trial().get("state") or {}
+                    quality = trial_done.get("data_quality") or {}
+                    signal = trial_done.get("last_signal") or {}
+                    print("Paper-trial refresh: %s; SPY_bars=%s; signals=%s; queued=%s; trades=%s; priced=%s; failures=%s" % (
+                        result.get("status"), quality.get("last_completed_spy"),
+                        signal.get("asof"),sum(len(p.get("orders") or []) for p in trial_done.get("pending", [])),
+                        len(trial_done.get("trades", [])),quality.get("symbols"),quality.get("failures")),flush=True)
         except Exception as exc:
             print("Paper-trial worker error: %s" % type(exc).__name__, flush=True)
         time.sleep(1800)
