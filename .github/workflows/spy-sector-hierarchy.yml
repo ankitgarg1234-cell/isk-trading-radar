@@ -6,6 +6,8 @@ on:
       - research/adaptive-market-state-backtest
     paths:
       - scripts/spy_sector_hierarchy_backtest.py
+      - scripts/adaptive_entry_policy_backtest.py
+      - scripts/reconcile_frozen_baseline.py
       - .github/workflows/spy-sector-hierarchy.yml
   workflow_dispatch:
 
