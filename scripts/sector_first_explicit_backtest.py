@@ -79,10 +79,12 @@ def sector_allocation(spy_bull, sector_rows):
             equity=0.50 if r["breadth"]>=0.60 and r["r5"]>=0 else 0.40
         return {r["sector"]:equity}
     first,second=selected
-    if first["momentum"]<=0 or second["momentum"]<=0:
-        raise RuntimeError("top sector candidates missing positive momentum")
-    ratio=first["momentum"]/second["momentum"]
-    split=(0.7,0.3) if ratio>=1.5 else (0.5,0.5)
+    # The user-defined ratio is meaningful only for strictly positive
+    # numerator and denominator.  Negative momentum does not cancel ETF/
+    # breadth permission; default to the conservative 50/50 split.
+    ratio=(first["momentum"]/second["momentum"]
+           if first["momentum"]>0 and second["momentum"]>0 else None)
+    split=(0.7,0.3) if ratio is not None and ratio>=1.5 else (0.5,0.5)
     equity=1.0 if spy_bull else 0.5
     return {first["sector"]:equity*split[0],second["sector"]:equity*split[1]}
 
@@ -197,14 +199,27 @@ def signal_context(d,frames,spy,symbols,members,sector_map):
     allocation=sector_allocation(spy_bull,sector_rows)
     return spy_bull,allocation,sector_rows
 
-def run(frames,calendar,months,members_lookup,sectors_lookup,diagnostic=False):
+def run(frames,calendar,months,members_lookup,sectors_lookup,
+        warm_start=None,diagnostic=False):
     st=Portfolio()
     dates=[d for d in calendar if START.isoformat()<=d<=END.isoformat()]
     if not dates: raise RuntimeError("empty trading calendar")
     start_signal=max(d for d in calendar if d<dates[0])
+    if warm_start is None or warm_start["date"] != start_signal:
+        raise RuntimeError("WARM_START_REQUIRED: provide the preceding trading-day signal")
+    st.pending[dates[0]]={"target":warm_start["target"],"reason":"WARM_START"}
+    st.last_allocation=warm_start["allocation"]
+    st.signal_log.append({"date":start_signal,"spy_bull":warm_start["spy_bull"],
+         "sector_alloc":warm_start["allocation"],"sector_breadth":warm_start["sector_breadth"],
+         "stocks":sorted(warm_start["target"]),"trigger":"WARM_START"})
     count_events=Counter(); periods=[]
     watch=[]
     for ix,d in enumerate(dates):
+        # Ex-date dividends belong ONLY to shares held prior to the ex-date
+        # opening. New shares purchased at today's open are not entitled.
+        for sym,pos in list(st.pos.items()):
+            exrow=getrow(frames,sym,d,True)
+            st.cash+=pos["qty"]*float(exrow["dividend"])
         # Previous close instructions execute at this opening.
         plan=st.pending.pop(d,None)
         if plan:
@@ -243,11 +258,6 @@ def run(frames,calendar,months,members_lookup,sectors_lookup,diagnostic=False):
                 st.stopped[sym]=ix
                 st.below_count.pop(sym,None)
                 count_events["ATR_INTRA"]+=1
-        # Dividends accrue to shares surviving the daily ex-div event;
-        # split-adjusted OHLC make daily price mark internally consistent.
-        for sym,pos in list(st.pos.items()):
-            row=getrow(frames,sym,d,True)
-            st.cash+=pos["qty"]*float(row["dividend"])
         nav=st.cash; invested=0
         for sym,pos in st.pos.items():
             row=getrow(frames,sym,d,True)
@@ -317,7 +327,6 @@ def run(frames,calendar,months,members_lookup,sectors_lookup,diagnostic=False):
             count_events[reason]+=1
         st.last_allocation=allocation
     if not st.daily:raise RuntimeError("No NAV output")
-    # signals at 2021-12-31 (before first session) handled separately by caller
     return st
 
 def summary(st):
@@ -393,7 +402,7 @@ def main():
             initial[sym]=w/len(selected)
     # Warm start state enters run before the first open.
     st=run_with_warm_start(frames,calendar,months,members_at,sectors_at,
-                           pre,allocation,initial)
+                           pre,spy_bull,allocation,sect,initial)
     sm=summary(st)
     result={"strategy":"Sector-first explicit v1","rules":{
       "sector_permission":"ETF split-adjusted Close > continuous EMA200(close) AND PIT breadth >50%",
@@ -438,16 +447,20 @@ def main():
       "- Daily and monthly decisions are computed from same-day close, executed next available session open.",
       "- Intraday trailing stops use the *previous day's* stop, with gap-open adjustment.",
       "- In SPY BEAR with two qualifying sectors, allocation is capped at 50% and split 70/30 or 50/50 among Top-2.",
-      "- Sector breadth is strict >50%, resolving the user's 50% boundary overlap in favor of the original permission definition.",
+      "- Sector breadth is strict >50%, resolving the 50% boundary overlap in favor of the original permission definition.",
+      "- If either Top-2 sector momentum is non-positive, the 1.5x ratio is undefined; use a conservative 50/50 split.",
       "- Financials are not special-cased; unlike prior reconstructed experiments, no SEC fundamental gate is applied.",
       "- No guarantee of +16.4% in 2022: this is the mechanically executed strategy, not the manually authored monthly P&L path.",
       "- Historical S&P membership and GICS source completeness, raw Yahoo corporate actions, and financing assumptions remain research-quality, not institutional-grade certified." ]
     OUTM.write_text("\n".join(lines)+"\n")
     print(OUTM.read_text())
 
-def run_with_warm_start(frames,calendar,months,members_lookup,sectors_lookup,pre,allocation,initial):
-    """Inject verified pre-start decisions; run only historical trading dates."""
-    st=run(frames,calendar,months,members_lookup,sectors_lookup)
-    return st
+def run_with_warm_start(frames,calendar,months,members_lookup,sectors_lookup,
+                        pre,spy_bull,allocation,sector_rows,initial):
+    """Execute the preceding December signal on the first January open."""
+    warm={"date":pre,"spy_bull":spy_bull,"allocation":allocation,
+          "sector_breadth":{r["sector"]:round(r["breadth"],4) for r in sector_rows},
+          "target":initial}
+    return run(frames,calendar,months,members_lookup,sectors_lookup,warm_start=warm)
 
 if __name__=="__main__":main()
