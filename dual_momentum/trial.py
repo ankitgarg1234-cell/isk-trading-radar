@@ -192,10 +192,15 @@ def _calculate_targets(state, members, stats, regime_cap, price_by_symbol):
     retained = sorted((s for s in state["holdings"] if s in rank and rank[s] <= 15),
                       key=lambda s: rank[s])
     selected = retained[:5]
+    # Re-entry lockout lasts five completed SPY sessions, not indefinitely.
+    blocked = set(state.get("lockouts") or {})
+    for sym, stop_date in list((state.get("lockouts") or {}).items()):
+        if (date.fromisoformat(stats[next(iter(stats))]["last"]) - date.fromisoformat(stop_date)).days >= 8:
+            blocked.discard(sym)
     for sym in rankable:
         if len(selected) >= 5:
             break
-        if sym not in selected and rank[sym] <= 5 and sym not in state.get("lockouts", {}):
+        if sym not in selected and rank[sym] <= 5 and sym not in blocked:
             selected.append(sym)
     nav = _positions_value(state, price_by_symbol)
     max_equity = max(0.0, min(1.0, float(regime_cap)))
@@ -289,7 +294,7 @@ def _stop_check(state, bars_by_symbol, day):
         if not bar:
             continue
         # Resting stop established strictly before today's session.
-        if holding["opened"] < day and float(bar.low) <= float(holding["stop"]):
+        if holding["opened"] <= day and float(bar.low) <= float(holding["stop"]):
             shares = int(holding["shares"])
             trigger = min(float(bar.open), float(holding["stop"]))
             px = trigger*(1-TRADING_COST_BPS/10000)
@@ -371,7 +376,7 @@ def _poll_impl():
         # Before first real session, stage the first orders from an ACTUAL
         # completed pre-start market close. Never backdate initial orders.
         if not state["equity"] and not state.get("pending"):
-            ready=[b for b in spy_bars if b.date<START.isoformat()]
+            ready=[b for b in spy_bars if b.date== (START-timedelta(days=1)).isoformat()]
             if ready and ready[-1].date==asof_limit:
                 _stage_decision(state,members,bars_by_symbol,ready[-1].date,"INITIAL")
         for day in completed:
@@ -396,12 +401,16 @@ def _poll_impl():
             # the next available session, never at today's close.
             following=[d for d in completed if d>day]
             next_known=following[0] if following else None
-            month_end=not next_known or day[:7]!=next_known[:7]
+            month_end=_next_weekday(date.fromisoformat(day)).month != date.fromisoformat(day).month
             if month_end and day<END.isoformat() and not state.get("pending"):
                 _stage_decision(state,members,bars_by_symbol,day,"MONTH_END")
         # If no session advanced, no trades are invented.
-        if not state["equity"] and not state.get("pending") and asof_limit>=START.isoformat():
-            state["notes"].append("No timely pre-open signal existed; no retrospective opening fills")
+        if not state.get("pending") and not state["holdings"] and not state["trades"] and START.isoformat() <= asof_limit < END.isoformat():
+            # Missed launch: propose at the latest completed close for NEXT open only.
+            latest_spy=spy_bars[-1].date
+            if latest_spy==asof_limit:
+                _stage_decision(state,members,bars_by_symbol,latest_spy,"LATE_START")
+                state["notes"].append("Trial began later than October 9; no retrospective fills")
         if len(state["notes"])>35:
             state["notes"]=state["notes"][-35:]
         state["data_quality"]=dict(members=len(members),symbols=len(bars_by_symbol),
