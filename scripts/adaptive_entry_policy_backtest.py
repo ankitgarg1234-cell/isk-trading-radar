@@ -482,15 +482,24 @@ def commission(shares):
     return max(1.0, 0.005 * abs(shares)) if shares else 0.0
 
 def portfolio_nav(st, markets, d):
+    """Never silently value a held/delisted name using an arbitrarily old quote."""
     v = st.cash
     for p in st.pos.values():
         m = markets.get(p.symbol)
         if not m:
-            continue
+            raise RuntimeError(f"MISSING_MARKET: held {p.symbol} at {d}")
         i = idx_on_or_before(m, d)
         if i is None:
-            continue
-        px = m["rows"][i]["close"]
+            raise RuntimeError(f"NO_PREVIOUS_PRICE: held {p.symbol} at {d}")
+        quote = m["rows"][i]
+        if (d - date.fromisoformat(quote["date"])).days > 7:
+            raise RuntimeError(
+                f"STALE_HELD_PRICE: {p.symbol}, decision={d}, last_quote={quote['date']}. "
+                "Resolve delisting/corporate-action proceeds before publishing NAV."
+            )
+        px = quote["close"]
+        if px is None or px <= 0:
+            raise RuntimeError(f"INVALID_MARK: held {p.symbol} at {d}")
         v += p.shares * px
     return v
 
