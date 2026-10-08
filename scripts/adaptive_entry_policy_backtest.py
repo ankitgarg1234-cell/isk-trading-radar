@@ -569,13 +569,13 @@ def signal_snapshot(d, members, markets, pits, sectors, cikmap):
     for sym in members:
         m = markets.get(sym)
         pit = pits.get(sym)
-        if not m or not pit:
+        if not m:
             continue
         ind = indicators(m, d)
         if not ind:
             continue
-        fp = fundamental_pass(pit, d, sectors.get(sym, ""))
-        sh = shares_asof(pit, d)
+        fp = fundamental_pass(pit, d, sectors.get(sym, "")) if pit is not None else None
+        sh = shares_asof(pit, d) if pit is not None else None
         cap = sh * ind["close"] if sh and ind["close"] else None
         rec = dict(ind)
         rec.update({"fund": fp, "cap": cap, "cik": cikmap.get(sym)})
