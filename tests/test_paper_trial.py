@@ -5,7 +5,7 @@ from datetime import date, timedelta
 
 from dual_momentum.trial import (
     CAPITAL, SECTOR_CAP, _initial, _next_weekday, _stage,
-    _calculate_targets, _execute_pending, _stop_check,
+    _calculate_targets, _ranking_audit, _execute_pending, _stop_check,
 )
 from dual_momentum.rules import PriceBar
 
@@ -71,6 +71,59 @@ class TestPaperTrial(unittest.TestCase):
         self.assertGreater(qty["AAPL"],0)
         self.assertTrue(all(w[s]>0 for s in selected))
         self.assertLessEqual(sum(qty.values()),50)
+
+    def test_ranking_audit_explains_raw_number_one_exclusion_without_trades(self):
+        """Raw #1 can be ineligible despite having the highest simple momentum."""
+        state=_initial()
+        members=[{"symbol":x,"sector":"Information Technology"} for x in ("FAST","LOWVOL","STRONG","THIRD")]
+        stats={
+            "FAST":{"score":1.0,"risk":0.8,"r63":.35,"above_ema50":False,"above_ema":True,"close":100.,"last":"2026-10-08"},
+            "LOWVOL":{"score":0.7,"risk":3.5,"r63":.28,"above_ema50":True,"above_ema":True,"close":100.,"last":"2026-10-08"},
+            "STRONG":{"score":0.5,"risk":3.0,"r63":.40,"above_ema50":True,"above_ema":True,"close":100.,"last":"2026-10-08"},
+            "THIRD":{"score":0.3,"risk":1.0,"r63":.30,"above_ema50":True,"above_ema":True,"close":100.,"last":"2026-10-08"},
+        }
+        selected=["LOWVOL","STRONG","THIRD"]
+        ranks={"FAST":1,"LOWVOL":2,"STRONG":3,"THIRD":4}
+        original_cash=state["cash"]
+        report=_ranking_audit(state,members,stats,selected,ranks,.10,
+                              decision_date="2026-10-08")
+        assert report["raw_top5"][0]=="FAST"
+        assert report["eligible_top5"][0]=="LOWVOL"
+        indexed={r["symbol"]:r for r in report["rows"]}
+        self.assertEqual(indexed["FAST"]["status"],"NOT ELIGIBLE")
+        self.assertIn("Below 50-day EMA",indexed["FAST"]["reason"])
+        self.assertEqual(indexed["LOWVOL"]["eligible_rank"],1)
+        self.assertEqual(indexed["LOWVOL"]["status"],"NEW ENTRY")
+        self.assertEqual(state["cash"],original_cash)
+        self.assertEqual(state["pending"],[])
+        self.assertEqual(state["trades"],[])
+
+    def test_ranking_audit_marks_protected_incumbent_not_eligible_new_entry(self):
+        state=_initial()
+        state["holdings"]={"EXIST":{"shares":2,"cost":100.,"peak":100.,"stop":80.,"opened":"2026-10-01"}}
+        members=[{"symbol":"EXIST","sector":"Industrials"},{"symbol":"NEXT","sector":"Technology"}]
+        stats={
+            "EXIST":{"score":.40,"risk":.50,"r63":.01,"above_ema50":False,"above_ema":True,"close":100.,"last":"2026-10-08"},
+            "NEXT":{"score":.55,"risk":.60,"r63":.30,"above_ema50":True,"above_ema":True,"close":100.,"last":"2026-10-08"},
+        }
+        report=_ranking_audit(state,members,stats,["NEXT","EXIST"],{"NEXT":1,"EXIST":2},.10,
+                              decision_date="2026-10-08")
+        by={r["symbol"]:r for r in report["rows"]}
+        self.assertEqual(by["EXIST"]["status"],"RETAINED")
+        self.assertIsNone(by["EXIST"]["eligible_rank"])
+        self.assertEqual(by["NEXT"]["status"],"NEW ENTRY")
+
+    def test_ranking_audit_does_not_modify_existing_target_allocations(self):
+        s=_initial()
+        members=[{"symbol":x,"sector":"Energy"} for x in ["MPC","VLO","PSX"]]
+        stats={x:{"score":5-i,"risk":8-i,"r63":.40,"above_ema50":True,"above_ema":True,
+                  "close":100.,"last":"2026-10-08"} for i,x in enumerate(["MPC","VLO","PSX"])}
+        marks={sym:100. for sym in stats}
+        before=_calculate_targets(s,members,stats,1.0,marks,spy_r63=.10)
+        _,_,selected,ranks=before
+        _ranking_audit(s,members,stats,selected,ranks,.10,decision_date="2026-10-08")
+        after=_calculate_targets(s,members,stats,1.0,marks,spy_r63=.10)
+        self.assertEqual(before,after)
 
     def test_existing_stops_are_not_filled_before_entry(self):
         s=_initial()
