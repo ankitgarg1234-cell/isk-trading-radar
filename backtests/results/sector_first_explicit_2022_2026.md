@@ -1,23 +1,23 @@
-# Explicit sector-first strategy (2022–Sep 2026)
+# Explicit sector-first strategy (2022–Sep 2026), $100,000 initial capital
 
 Independent new strategy; NOT the original frozen 75/25 engine or its replication. Using point-in-time historical constituent mappings and price-only stock criteria (no SEC fundamentals).
 
 | Year | Return |
 |---|---:|
-| 2022 | -16.51% |
-| 2023 | -10.51% |
-| 2024 | +0.70% |
-| 2025 | +23.20% |
-| 2026 | +18.62% |
+| 2022 | -11.55% |
+| 2023 | -6.89% |
+| 2024 | +7.94% |
+| 2025 | +28.43% |
+| 2026 | +7.88% |
 
 | Metric | Result |
 |---|---:|
-| CAGR | 2.02% |
-| Max drawdown | -31.96% |
-| Avg equity exposure | 73.71% |
-| Ending NAV ($10,000) | $10,994.97 |
-| Trades | 2265 |
-| Costs | $3,264.52 |
+| CAGR | 4.49% |
+| Max drawdown | -30.42% |
+| Avg equity exposure | 80.28% |
+| Ending NAV ($100,000) | $123,160.44 |
+| Trades | 2444 |
+| Costs | $14,748.63 |
 
 ## 2022 monthly sector decisions
 
