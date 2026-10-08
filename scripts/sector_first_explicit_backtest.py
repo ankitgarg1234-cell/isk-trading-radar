@@ -185,10 +185,10 @@ def signal_context(d,frames,spy,symbols,members,sector_map):
             if q is None or not np.isfinite(q["ema200"]):continue
             known+=1
             if q["close"]>q["ema200"]:above+=1
-        breadth=above/known if known else 0
-        # Fail closed rather than treating missing constituents as breadth bearish.
-        if sector_names and known/len(sector_names)<0.80:
-            raise RuntimeError(f"INSUFFICIENT_SECTOR_BREADTH {sector} {d} {known}/{len(sector_names)}")
+        # Conservative lower bound: include ALL historical constituents
+        # in the denominator. A missing/short-history stock cannot be
+        # counted as >EMA200. Record coverage separately for transparency.
+        breadth=above/len(sector_names) if sector_names else 0
         momentum=float(r["sector_momentum"])
         relative63=float(r["px63"])-spy_ret
         bull=close_level_state(r) and breadth>0.50
@@ -406,7 +406,7 @@ def main():
     sm=summary(st)
     result={"strategy":"Sector-first explicit v1","rules":{
       "sector_permission":"ETF split-adjusted Close > continuous EMA200(close) AND PIT breadth >50%",
-      "breadth_denominator":"historical constituent count with observed 200-session EMA; missing coverage below 80% fails closed",
+      "breadth_denominator":"ALL point-in-time historical sector constituents; missing/short history counts as not-above-EMA; coverage separately auditable",
       "spy":"split-adjusted close > EMA200 close",
       "sector_momentum":"mean 63/126/252 total-return",
       "relative63":"63d price return sector minus SPY > 0 for BEAR overrides",
@@ -448,6 +448,7 @@ def main():
       "- Intraday trailing stops use the *previous day's* stop, with gap-open adjustment.",
       "- In SPY BEAR with two qualifying sectors, allocation is capped at 50% and split 70/30 or 50/50 among Top-2.",
       "- Sector breadth is strict >50%, resolving the 50% boundary overlap in favor of the original permission definition.",
+      "- Missing individual stock history contributes zero to the sector breadth numerator but remains in the historical constituent denominator; this is conservative and may understate bullish breadth.",
       "- If either Top-2 sector momentum is non-positive, the 1.5x ratio is undefined; use a conservative 50/50 split.",
       "- Financials are not special-cased; unlike prior reconstructed experiments, no SEC fundamental gate is applied.",
       "- No guarantee of +16.4% in 2022: this is the mechanically executed strategy, not the manually authored monthly P&L path.",
