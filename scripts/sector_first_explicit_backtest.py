@@ -49,9 +49,10 @@ def features(raw):
     df["ema50"]=ema_close(close,50)
     df["ema200"]=ema_close(close,200)
     for n in (63,126,252):
-        df[f"r{n}"]=tr/tr.shift(n)-1
+        df[f"r{n}"]=tr/tr.shift(n)-1  # ETF total-return sector momentum
+        df[f"pr{n}"]=close/close.shift(n)-1  # User-defined stock PRICE momentum
         df[f"sigma{n}"]=daily.rolling(n,min_periods=n).std(ddof=1)*math.sqrt(252)
-    df["score"]=0.5*df["r63"]/df["sigma63"]+0.3*df["r126"]/df["sigma126"]+0.2*df["r252"]/df["sigma252"]
+    df["score"]=0.5*df["pr63"]/df["sigma63"]+0.3*df["pr126"]/df["sigma126"]+0.2*df["pr252"]/df["sigma252"]
     df["sector_momentum"]=(df["r63"]+df["r126"]+df["r252"])/3
     df["px63"]=close/close.shift(63)-1
     df["r5"]=tr/tr.shift(5)-1
@@ -458,7 +459,7 @@ def main():
       "sector_momentum":"mean 63/126/252 total-return",
       "relative63":"63d price return sector minus SPY > 0 for BEAR overrides",
       "sector_allocation":"top2; momentum ratio >=1.5 70/30 else 50/50; single 90% (>70 breadth) or 70% (50-70); BEAR 50% max / 40% weaker single; cash 0%",
-      "stock_score":"0.5 r63/sigma63 + 0.3 r126/sigma126 + 0.2 r252/sigma252 with sample 252 annualized daily volatility",
+      "stock_score":"0.5 price_return_63/sigma63 + 0.3 price_return_126/sigma126 + 0.2 price_return_252/sigma252 with annualized price-return volatility",
       "stocks":"top5 per sector, close > EMA50 & EMA200, equal within sector",
       "rebalancing":"monthly sector stock ranks/weights, daily SPY regime and active-sector permission failures, daily stop and cash-only reentry",
       "atr":"Wilder 14, trailing stop prev close minus 3xATR, intraday low gap/open handling, 7bp adverse fill",
