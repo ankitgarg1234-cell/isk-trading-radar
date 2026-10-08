@@ -6,13 +6,13 @@ Sector BULL = sector ETF has positive 63/126/252 average total-return momentum a
 
 | Variant | 2022 | 2023 | 2024 | 2025 | 2026 | CAGR | Max DD | Avg exposure | Turnover | Costs |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| PIT frozen-like control | -5.08% | -6.39% | +2.09% | +7.83% | +9.94% | 1.46% | -13.39% | 22.01% | 4.36x | $701 |
-| Bear exception: all BULL sectors | -7.85% | -3.36% | -0.33% | +7.78% | +11.04% | 1.22% | -13.72% | 22.42% | 4.43x | $702 |
-| Bear exception: Top-3 BULL sectors | -6.00% | -2.99% | -0.06% | +7.40% | +9.69% | 1.43% | -11.51% | 22.01% | 4.34x | $693 |
-| Bear exception: Top-2 BULL sectors | -6.01% | -2.98% | -0.06% | +7.79% | +10.63% | 1.68% | -11.53% | 21.77% | 4.29x | $685 |
-| Bear exception: Top-1 BULL sector | -5.08% | -5.34% | -0.91% | +7.65% | +11.13% | 1.27% | -12.86% | 21.11% | 4.15x | $659 |
-| Full hierarchy: sector BULL required | -7.68% | -2.57% | -0.31% | +9.13% | +9.72% | 1.43% | -12.72% | 21.44% | 4.20x | $667 |
-| Full hierarchy + Top-2 in SPY BEAR | -5.84% | -1.63% | -0.01% | +11.40% | +9.42% | 2.45% | -10.07% | 20.77% | 4.08x | $661 |
+| PIT frozen-like control | -5.08% | -5.67% | +2.05% | +7.60% | +9.89% | 1.56% | -12.66% | 21.72% | 4.33x | $697 |
+| Bear exception: all BULL sectors | -5.78% | -2.95% | -0.05% | +6.51% | +9.79% | 1.34% | -11.65% | 22.62% | 4.43x | $713 |
+| Bear exception: Top-3 BULL sectors | -6.26% | -2.24% | -0.06% | +7.27% | +10.63% | 1.68% | -11.49% | 22.02% | 4.33x | $698 |
+| Bear exception: Top-2 BULL sectors | -6.01% | -1.79% | -0.06% | +8.10% | +10.43% | 1.95% | -10.93% | 21.64% | 4.26x | $686 |
+| Bear exception: Top-1 BULL sector | -5.08% | -4.69% | -0.63% | +7.78% | +9.83% | 1.25% | -12.14% | 20.85% | 4.12x | $656 |
+| Full hierarchy: sector BULL required | -5.61% | -1.94% | -0.06% | +7.23% | +10.49% | 1.85% | -10.52% | 22.06% | 4.29x | $695 |
+| Full hierarchy + Top-2 in SPY BEAR | -5.84% | -0.89% | -0.20% | +9.28% | +9.80% | 2.25% | -9.87% | 20.96% | 4.12x | $664 |
 
 ## Point-in-time sector coverage
 
@@ -37,7 +37,7 @@ Sector BULL = sector ETF has positive 63/126/252 average total-return momentum a
 | 2022-11-30 | BULL | Communication Services, Consumer Discretionary, Consumer Staples, Energy, Financials, Health Care, Industrials, Information Technology, Materials, Real Estate, Utilities | Energy | BULL |
 | 2022-12-30 | BEAR | Energy, Industrials | Energy | BULL |
 | 2023-01-31 | BULL | Communication Services, Consumer Discretionary, Consumer Staples, Energy, Financials, Health Care, Industrials, Information Technology, Materials, Real Estate, Utilities | Energy | BULL |
-| 2023-02-28 | BULL | Communication Services, Consumer Discretionary, Consumer Staples, Energy, Financials, Health Care, Industrials, Information Technology, Materials, Real Estate, Utilities | Energy | BULL |
+| 2023-02-28 | BEAR | Energy, Industrials | Energy | BULL |
 | 2023-03-31 | BULL | Communication Services, Consumer Discretionary, Consumer Staples, Energy, Financials, Health Care, Industrials, Information Technology, Materials, Real Estate, Utilities | Information Technology | BULL |
 | 2023-04-28 | BULL | Communication Services, Consumer Discretionary, Consumer Staples, Energy, Financials, Health Care, Industrials, Information Technology, Materials, Real Estate, Utilities | Information Technology | BULL |
 | 2023-05-31 | BULL | Communication Services, Consumer Discretionary, Consumer Staples, Energy, Financials, Health Care, Industrials, Information Technology, Materials, Real Estate, Utilities | Information Technology | BULL |
