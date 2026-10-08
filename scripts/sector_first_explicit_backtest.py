@@ -130,7 +130,7 @@ def lockout_allows_signal(signal_index, stopped_index):
     return stopped_index is None or signal_index>=stopped_index+6
 
 class Portfolio:
-    def __init__(self,starting=10000.0):
+    def __init__(self,starting=100000.0):
         self.cash=starting
         self.pos={}
         self.stopped={}
@@ -365,7 +365,7 @@ def run(frames,calendar,months,members_lookup,sectors_lookup,
 
 def summary(st):
     daily=st.daily
-    starting=10000
+    starting=100000
     prev=starting
     years={}
     for year in sorted({r["date"][:4] for r in daily}):
@@ -468,6 +468,7 @@ def main():
       "universe":"reconstructed historical S&P constituents and prior-dated historical GICS",
       "no_sec_fundamentals":True,
       "no_75_25_sleeves":True,
+      "starting_capital":100000.0,
       "cash_yield":0.0
     },"sector_history_staleness":{"stale_daily_count":len(stale_sector_dates),
        "first_stale":stale_sector_dates[0] if stale_sector_dates else None,
@@ -477,7 +478,7 @@ def main():
       "trades":st.trades,"daily":st.daily}
     OUTJ.parent.mkdir(parents=True,exist_ok=True)
     OUTJ.write_text(json.dumps(result,indent=2))
-    lines=["# Explicit sector-first strategy (2022–Sep 2026)","",
+    lines=["# Explicit sector-first strategy (2022–Sep 2026), $100,000 initial capital","",
       "Independent new strategy; NOT the original frozen 75/25 engine or its replication. Using point-in-time historical constituent mappings and price-only stock criteria (no SEC fundamentals).",
       "",
       "| Year | Return |","|---|---:|"]
@@ -486,7 +487,7 @@ def main():
     lines+=["","| Metric | Result |","|---|---:|",
       f"| CAGR | {sm['cagr_pct']:.2f}% |", f"| Max drawdown | {sm['max_dd_pct']:.2f}% |",
       f"| Avg equity exposure | {sm['avg_exposure_pct']:.2f}% |",
-      f"| Ending NAV ($10,000) | ${sm['end_value']:,.2f} |",
+      f"| Ending NAV ($100,000) | ${sm['end_value']:,.2f} |",
       f"| Trades | {sm['trade_count']} |",f"| Costs | ${sm['costs']:,.2f} |",
       "","## 2022 monthly sector decisions","",
       "| Date | SPY BULL | Sector allocation |","|---|---|---|"]
