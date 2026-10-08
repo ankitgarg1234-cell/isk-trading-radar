@@ -12,12 +12,18 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: spy-sector-hierarchy-results
+  cancel-in-progress: true
+
 jobs:
   backtest:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -40,4 +46,5 @@ jobs:
           git add backtests/results/spy_sector_hierarchy_2022_2026.json backtests/results/spy_sector_hierarchy_2022_2026.md
           git diff --cached --quiet && exit 0
           git commit -m "Update SPY-sector hierarchy research [skip ci]"
-          git push
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin HEAD:"$GITHUB_REF_NAME"
