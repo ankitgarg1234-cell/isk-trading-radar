@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo
@@ -17,6 +18,7 @@ from .data import LiveDataSource
 from .db import DMCash, DMPosition, DMStrategyState, DMTrade, SessionLocal, engine, get_or_create_cash, get_or_create_state, init_db
 from .portfolio import build_portfolio_plan
 from .rules import StopState, advance_stop, wilder_atr_series
+from .trial import init_trial, read_trial, poll, START as TRIAL_START, END as TRIAL_END, NY as TRIAL_NY
 
 app = FastAPI(title="Dual Momentum Radar", version="1.0.0")
 templates = Jinja2Templates(directory="dual_momentum/templates")
@@ -61,7 +63,9 @@ def _ensure_radar_recovery_access() -> None:
 @app.on_event("startup")
 def startup() -> None:
     init_db()
+    init_trial()
     _ensure_radar_recovery_access()
+    threading.Thread(target=_trial_worker, daemon=True, name="paper-trial-monitor").start()
 
     starting_cash_raw = os.getenv("DM_STARTING_CASH_USD", "0").strip()
     auto_initial_scan = os.getenv("DM_AUTO_INITIAL_SCAN", "").strip().lower() in {"1", "true", "yes", "on"}
@@ -371,6 +375,53 @@ def _scan_job(variant: str) -> None:
     finally:
         source.close()
         SCAN_LOCK.release()
+
+
+def _trial_worker() -> None:
+    """Opportunistic EOD refresh while Render is awake; not a guaranteed scheduler."""
+    while True:
+        now = datetime.now(TRIAL_NY)
+        try:
+            if (TRIAL_START - __import__("datetime").timedelta(days=1) <= now.date() <= TRIAL_END
+                    and now.weekday() < 5 and (now.hour, now.minute) >= (16, 25)
+                    and (now.hour, now.minute) <= (23, 30)):
+                last = read_trial().get("last_poll")
+                poll_day = str(last or "")[:10]
+                if poll_day != now.astimezone(timezone.utc).date().isoformat():
+                    result = poll()
+                    print("Paper-trial refresh: %s" % result.get("status"), flush=True)
+        except Exception as exc:
+            print("Paper-trial worker error: %s" % type(exc).__name__, flush=True)
+        time.sleep(1800)
+
+
+@app.get("/trial", response_class=HTMLResponse)
+def trial_dashboard(request: Request):
+    trial = read_trial()
+    state = trial["state"]
+    latest = state["equity"][-1] if state.get("equity") else None
+    peak = state.get("initial_capital", 10000.0)
+    maximum_dd = 0.0
+    for row in state.get("equity", []):
+        peak = max(peak, float(row["nav"]))
+        maximum_dd = min(maximum_dd, float(row["nav"])/peak-1)
+    return templates.TemplateResponse(request, "trial.html", {
+        "trial": trial, "paper": state, "latest": latest, "max_drawdown": maximum_dd,
+        "refresh_available": datetime.now(TRIAL_NY).date() <= TRIAL_END,
+    })
+
+
+@app.get("/api/trial/state")
+def trial_state():
+    return read_trial()
+
+
+@app.post("/api/trial/refresh")
+def trial_refresh(background_tasks: BackgroundTasks):
+    if datetime.now(TRIAL_NY).date() > TRIAL_END:
+        raise HTTPException(status_code=409, detail="Trial is complete and frozen")
+    background_tasks.add_task(poll)
+    return RedirectResponse("/trial", status_code=303)
 
 
 @app.get("/health")
