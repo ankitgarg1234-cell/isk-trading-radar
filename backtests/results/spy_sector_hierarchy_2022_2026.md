@@ -6,13 +6,37 @@ Sector BULL = sector ETF has positive 63/126/252 average total-return momentum a
 
 | Variant | 2022 | 2023 | 2024 | 2025 | 2026 | CAGR | Max DD | Avg exposure | Turnover | Costs |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| PIT frozen-like control | -5.08% | -5.67% | +2.05% | +7.60% | +9.89% | 1.56% | -12.66% | 21.72% | 4.33x | $697 |
-| Bear exception: all BULL sectors | -5.78% | -2.95% | -0.05% | +6.51% | +9.79% | 1.34% | -11.65% | 22.62% | 4.43x | $713 |
-| Bear exception: Top-3 BULL sectors | -6.26% | -2.24% | -0.06% | +7.27% | +10.63% | 1.68% | -11.49% | 22.02% | 4.33x | $698 |
-| Bear exception: Top-2 BULL sectors | -6.01% | -1.79% | -0.06% | +8.10% | +10.43% | 1.95% | -10.93% | 21.64% | 4.26x | $686 |
-| Bear exception: Top-1 BULL sector | -5.08% | -4.69% | -0.63% | +7.78% | +9.83% | 1.25% | -12.14% | 20.85% | 4.12x | $656 |
-| Full hierarchy: sector BULL required | -5.61% | -1.94% | -0.06% | +7.23% | +10.49% | 1.85% | -10.52% | 22.06% | 4.29x | $695 |
-| Full hierarchy + Top-2 in SPY BEAR | -5.84% | -0.89% | -0.20% | +9.28% | +9.80% | 2.25% | -9.87% | 20.96% | 4.12x | $664 |
+| PIT frozen-like control | -6.89% | -3.67% | +3.40% | +9.22% | +8.83% | 1.97% | -12.29% | 23.37% | 4.70x | $759 |
+| Bear exception: all BULL sectors | -6.95% | -1.44% | +2.22% | +8.27% | +9.83% | 2.20% | -11.56% | 24.31% | 4.75x | $773 |
+| Bear exception: Top-3 BULL sectors | -7.88% | -0.72% | +2.23% | +9.27% | +9.76% | 2.32% | -11.81% | 23.80% | 4.69x | $758 |
+| Bear exception: Top-2 BULL sectors | -7.63% | +0.22% | +2.19% | +9.33% | +9.40% | 2.50% | -10.86% | 23.23% | 4.59x | $744 |
+| Bear exception: Top-1 BULL sector | -6.89% | -2.32% | +1.03% | +8.33% | +10.45% | 1.91% | -11.25% | 22.53% | 4.46x | $717 |
+| Full hierarchy: sector BULL required | -6.78% | -0.47% | +2.19% | +8.50% | +9.73% | 2.45% | -10.53% | 23.54% | 4.58x | $748 |
+| Full hierarchy + Top-2 in SPY BEAR | -7.46% | +1.01% | +2.03% | +9.26% | +9.13% | 2.60% | -9.94% | 22.56% | 4.49x | $726 |
+
+## Independent stock-eligibility diagnostics
+
+This table isolates the pipeline before allocation and trading. A strong raw rank cannot become a position if fundamental PASS or leadership market cap fails. The raw-ranked universe still depends on price coverage.
+
+| Year | Median priced stock count | Median Top-20 fundamental PASS | Median Top-20 unresolved | Median qualified leadership count |
+|---|---:|---:|---:|---:|
+| 2022 | 459 | 4.5 | 12.0 | 0.5 |
+| 2023 | 474 | 8.0 | 9.5 | 4.0 |
+| 2024 | 480 | 6.0 | 7.0 | 4.0 |
+| 2025 | 488 | 8.5 | 7.0 | 5.0 |
+| 2026 | 496 | 10.0 | 5.5 | 3.0 |
+
+## Leadership diagnostic samples
+
+| Date | Top-15 inferred-cap companies | Actual selected leadership names |
+|---|---|---|
+| 2022-05-31 | AAPL, MSFT, AMZN, TSLA, JNJ, NVDA, UNH, XOM, JPM, PG, WMT, CVX, HD, CTVA, BAC | JNJ |
+| 2023-05-31 | PKG, AAPL, MSFT, AMZN, NVDA, META, TSLA, UNH, XOM, LLY, JNJ, JPM, WMT, AVGO, PG | AAPL, MSFT, AMZN, NVDA, AVGO |
+| 2023-06-30 | PKG, AAPL, MSFT, AMZN, NVDA, TSLA, META, UNH, LLY, XOM, JNJ, JPM, WMT, AVGO, PG | AAPL, MSFT, AMZN, NVDA, AVGO |
+| 2023-07-31 | PKG, AAPL, MSFT, AMZN, NVDA, TSLA, META, UNH, JPM, JNJ, XOM, LLY, WMT, AVGO, PG | AAPL, MSFT, AMZN, NVDA, JPM |
+| 2024-06-28 | PKG, MSFT, AAPL, NVDA, AMZN, META, LLY, AVGO, TSLA, JPM, WMT, UNH, XOM, PG, ORCL | MSFT, NVDA, AMZN, AVGO, JPM |
+| 2025-06-30 | NVDA, MSFT, AAPL, AMZN, GOOG, GOOGL, META, AVGO, TSLA, JPM, WMT, LLY, ORCL, NFLX, XOM | NVDA, AVGO, JPM, ORCL, NFLX |
+| 2026-06-30 | NVDA, GOOGL, GOOG, AAPL, MSFT, AMZN, AVGO, TSLA, META, MU, LLY, AMD, WMT, JPM, INTC | MU, AMD, JNJ |
 
 ## Point-in-time sector coverage
 

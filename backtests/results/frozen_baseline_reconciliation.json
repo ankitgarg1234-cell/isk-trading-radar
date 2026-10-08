@@ -14,54 +14,54 @@
   "control_name": "PIT frozen-like control",
   "control_actual": {
     "annual_returns_pct": {
-      "2022": -5.08,
-      "2023": -5.67,
-      "2024": 2.05,
-      "2025": 7.6,
-      "2026": 9.89
+      "2022": -6.89,
+      "2023": -3.67,
+      "2024": 3.4,
+      "2025": 9.22,
+      "2026": 8.83
     },
-    "cagr_5y_convention_pct": 1.56,
-    "max_drawdown_pct": -12.66,
-    "end_value": 10803.13,
-    "avg_equity_exposure_pct": 21.72,
-    "trade_count": 553,
-    "costs": 697.15
+    "cagr_5y_convention_pct": 1.97,
+    "max_drawdown_pct": -12.29,
+    "end_value": 11023.56,
+    "avg_equity_exposure_pct": 23.37,
+    "trade_count": 602,
+    "costs": 759.49
   },
   "metric_mismatches": [
     {
       "field": "cagr_5y_convention_pct",
       "expected": 14.66,
-      "actual": 1.56
+      "actual": 1.97
     },
     {
       "field": "max_drawdown_pct",
       "expected": -33.85,
-      "actual": -12.66
+      "actual": -12.29
     },
     {
       "field": "annual_returns_pct.2022",
       "expected": -17.25,
-      "actual": -5.08
+      "actual": -6.89
     },
     {
       "field": "annual_returns_pct.2023",
       "expected": 2.91,
-      "actual": -5.67
+      "actual": -3.67
     },
     {
       "field": "annual_returns_pct.2024",
       "expected": 50.52,
-      "actual": 2.05
+      "actual": 3.4
     },
     {
       "field": "annual_returns_pct.2025",
       "expected": 13.05,
-      "actual": 7.6
+      "actual": 9.22
     },
     {
       "field": "annual_returns_pct.2026",
       "expected": 39.57,
-      "actual": 9.89
+      "actual": 8.83
     }
   ],
   "trade_mismatches": [],
