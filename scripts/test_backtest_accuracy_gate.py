@@ -10,6 +10,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import adaptive_entry_policy_backtest as b
 import spy_sector_hierarchy_backtest as h
+import reconcile_frozen_baseline as reconciliation
 
 
 def annual(end, filed, val):
@@ -89,6 +90,49 @@ class DataAccuracyTests(unittest.TestCase):
             "revision_timestamp":"2022-01-25T00:00:00Z"}])
         with self.assertRaisesRegex(RuntimeError,"Missing verified"):
             h.pit_sector_snapshot(hist,date(2022,3,31))
+
+    def test_no_sec_facts_keeps_raw_stock_rank_but_not_entry_permission(self):
+        markets={"NOS":object(),"YES":object()}
+        imap={markets["NOS"]:dummy_ind(1.5),markets["YES"]:dummy_ind(0.5)}
+        pits={"YES":{"pass":True}}
+        with patch.object(b,"indicators",side_effect=lambda m,d: imap[m]), \
+             patch.object(b,"fundamental_pass",side_effect=lambda pit,d,sec: pit["pass"]), \
+             patch.object(b,"shares_asof",return_value=100):
+            snap,_=h.signal_snapshot_pit(date(2022,6,30),set(markets),markets,pits,
+               {"YES":"Energy","NOS":"Energy"},{"YES":"1","NOS":"2"})
+            self.assertEqual(snap["NOS"]["rank"],1)
+            self.assertIsNone(snap["NOS"]["fund"])
+            self.assertEqual(snap["YES"]["rank"],2)
+
+    def test_reconciliation_rejects_scalar_matching_without_reference_ledger(self):
+        reference={
+            "name":"PIT frozen-like control",
+            "annual_returns_pct":dict(reconciliation.TARGET["annual_returns_pct"]),
+            "cagr_5y_convention_pct":reconciliation.TARGET["cagr_5y_convention_pct"],
+            "max_drawdown_pct":reconciliation.TARGET["max_drawdown_pct"],
+            "trades":[],"daily":[]
+        }
+        result=reconciliation.assess({"results":[reference]})
+        self.assertEqual(result["status"],"BLOCKED")
+        self.assertEqual(result["metric_mismatches"],[])
+        self.assertIn("ledger unavailable",result["reasons"][0].lower())
+
+    def test_reconciliation_flags_exact_transaction_difference(self):
+        actual={
+            "name":"PIT frozen-like control",
+            "annual_returns_pct":dict(reconciliation.TARGET["annual_returns_pct"]),
+            "cagr_5y_convention_pct":reconciliation.TARGET["cagr_5y_convention_pct"],
+            "max_drawdown_pct":reconciliation.TARGET["max_drawdown_pct"],
+            "trades":[{"date":"2022-01-03","side":"BUY","symbol":"AAA",
+                "sleeve":"rot","shares":5,"fill":100.0,"commission":1}],
+            "daily":[{"date":"2022-01-03","nav":10000.0,"cash":9500.0,
+                "equity_exposure":0.05,"positions":1}]
+        }
+        expected={"trades":[dict(actual["trades"][0],shares=4)],
+                  "daily":[dict(actual["daily"][0])]}
+        result=reconciliation.assess({"results":[actual]},expected)
+        self.assertEqual(result["status"],"BLOCKED")
+        self.assertTrue(result["trade_mismatches"])
 
     def test_membership_respects_effective_dates(self):
         history=[{"date":"2022-06-01","added":"NEW","removed":"OLD"}]
