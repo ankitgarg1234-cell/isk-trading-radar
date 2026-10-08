@@ -518,8 +518,13 @@ def _poll_impl():
         state["data_quality"]=dict(members=len(members),symbols=len(bars_by_symbol),
                                    failures=len(errors),sample_failures=errors[:12],
                                    last_completed_spy=spy_bars[-1].date)
-        _write(state,"READY")
-        return {"status":"READY","last_session":state.get("last_session"),"trades":len(state["trades"])}
+        ready = bool(state.get("last_signal") or state.get("trades") or state.get("equity"))
+        status = "READY" if ready else "WAITING_FOR_CLOSE"
+        if not ready:
+            state["notes"] = [n for n in state["notes"] if not n.startswith("Waiting for")]
+            state["notes"].append("Waiting for a completed and fully adjusted pre-start SPY market bar before staging a forward paper order; no historical fill will be invented")
+        _write(state,status)
+        return {"status":status,"last_session":state.get("last_session"),"trades":len(state["trades"])}
     finally:
         source.close()
 
