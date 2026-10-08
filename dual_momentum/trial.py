@@ -112,17 +112,37 @@ def _atr(bars):
 
 
 def _momentum(bars):
+    """Backtest-compatible raw 3/6/12m momentum and risk-adjusted 50/30/20 score."""
     if len(bars) < 253:
         return None
     px = [float(b.total_return_close) for b in bars]
-    ema = ema_seeded(px, 200)[-1]
-    if ema is None or not all(px[-1-n] > 0 for n in (0, 63, 126, 252)):
+    # Pandas EWM(adjust=False, min_periods=N) seeds from the first observation.
+    def ewm(period):
+        alpha = 2.0/(period+1)
+        value = px[0]
+        for p in px[1:]:
+            value = alpha*p+(1-alpha)*value
+        return value
+    e50 = ewm(50)
+    e200 = ewm(200)
+    if not all(px[-1-n] > 0 for n in (0, 63, 126, 252)):
         return None
-    rets = [(px[-1] / px[-1-n] - 1) for n in (63, 126, 252)]
+    rets = [px[-1]/px[-1-n]-1.0 for n in (63, 126, 252)]
+    daily = [px[i]/px[i-1]-1.0 for i in range(1,len(px))]
+    def annual_vol(n):
+        returns = daily[-n:]
+        mean = sum(returns)/n
+        var = sum((r-mean)**2 for r in returns)/(n-1)
+        return math.sqrt(var*252)
+    vols = [annual_vol(n) for n in (63,126,252)]
+    if min(vols) <= 0:
+        return None
+    risk = sum(w*r/v for w,r,v in zip((.50,.30,.20),rets,vols))
     atr = _atr(bars)
     if atr is None or atr <= 0:
         return None
-    return dict(score=sum(rets)/3, r63=rets[0], above_ema=px[-1]>ema,
+    return dict(score=sum(rets)/3, risk=risk, r63=rets[0],
+                above_ema50=px[-1]>e50, above_ema=px[-1]>e200,
                 close=float(bars[-1].close), atr=atr, last=bars[-1].date)
 
 
@@ -182,51 +202,62 @@ def _positions_value(state, price_by_symbol):
     return total
 
 
-def _calculate_targets(state, members, stats, regime_cap, price_by_symbol, sessions=None):
+def _calculate_targets(state, members, stats, regime_cap, price_by_symbol,
+                       sessions=None, spy_r63=-math.inf):
+    """Protected raw Top-15 incumbents, risk-adjusted qualified challengers.
+
+    Risk ranking: .50*R63/vol63 + .30*R126/vol126 + .20*R252/vol252
+    Original five allocation weights use a 2% pre-capital cash reserve.
+    Sector caps reduce each name in an overcrowded sector pro rata.
+    """
     sector_by_symbol = {m["symbol"]: str(m.get("sector") or "Unknown") for m in members}
-    rankable = sorted(
-        (s for s in stats if stats[s]["score"] > 0 and stats[s]["above_ema"]
-         and s in sector_by_symbol),
+    raw = sorted(
+        (s for s in stats if s in sector_by_symbol and math.isfinite(stats[s]["score"])),
         key=lambda s: (-stats[s]["score"], s))
-    rank = {s: i+1 for i, s in enumerate(rankable)}
-    retained = sorted((s for s in state["holdings"] if s in rank and rank[s] <= 15),
-                      key=lambda s: rank[s])
-    selected = retained[:5]
-    # Exclude the stop session; five FULL subsequent SPY trading sessions must elapse.
+    rank = {s: i+1 for i,s in enumerate(raw)}
+    retained = [s for s in state["holdings"]
+                if s in rank and rank[s] <= 15 and stats[s]["score"] > 0
+                and stats[s]["above_ema"] and math.isfinite(stats[s]["risk"])]
+    qualified = sorted(
+        (s for s in stats if s in sector_by_symbol and
+         math.isfinite(stats[s]["risk"]) and stats[s]["above_ema50"]
+         and stats[s]["above_ema"] and stats[s]["r63"] > spy_r63),
+        key=lambda s: (-stats[s]["risk"],s))
     blocked = set()
     signal_date = max((v["last"] for v in stats.values()), default="")
     for sym, stop_date in (state.get("lockouts") or {}).items():
         if sessions is None:
-            start_day = date.fromisoformat(stop_date)
+            cursor = date.fromisoformat(stop_date)
             end_day = date.fromisoformat(signal_date)
             seen = 0
-            while start_day < end_day:
-                start_day += timedelta(days=1)
-                if start_day.weekday() < 5:
+            while cursor < end_day:
+                cursor += timedelta(days=1)
+                if cursor.weekday() < 5:
                     seen += 1
         else:
             seen = sum(stop_date < session <= signal_date for session in sessions)
         if seen < 5:
             blocked.add(sym)
-    for sym in rankable:
+    selected = retained[:5]
+    for sym in qualified:
         if len(selected) >= 5:
             break
-        if sym not in selected and rank[sym] <= 5 and sym not in blocked:
+        if sym not in selected and sym not in blocked:
             selected.append(sym)
+    selected.sort(key=lambda sym: (-stats[sym]["risk"],sym))
     nav = _positions_value(state, price_by_symbol)
     max_equity = max(0.0, min(1.0, float(regime_cap)))
-    sector_remaining = {}
-    weights = {}
-    for i, s in enumerate(selected):
-        sector = sector_by_symbol[s]
-        # Equal scaling of the rank-weights is used when fewer than 5 qualify.
-        proposed = (WEIGHTS[i] if i < 5 else 0.0) * max_equity
-        room = SECTOR_CAP - sector_remaining.get(sector, 0.0)
-        actual = max(0.0, min(proposed, room))
-        weights[s] = actual
-        sector_remaining[sector] = sector_remaining.get(sector, 0.0) + actual
-    qty = {s: max(0, math.floor(nav*w/stats[s]["close"]))
-           for s,w in weights.items()}
+    weights = {sym: .98*WEIGHTS[i]*max_equity for i,sym in enumerate(selected)}
+    sector_sum = {}
+    for sym,w in weights.items():
+        sec=sector_by_symbol[sym]
+        sector_sum[sec]=sector_sum.get(sec,0.0)+w
+    for sym in weights:
+        sec=sector_by_symbol[sym]
+        if sector_sum[sec]>SECTOR_CAP:
+            weights[sym] *= SECTOR_CAP/sector_sum[sec]
+    qty = {sym:max(0, math.floor(nav*w/stats[sym]["close"]))
+           for sym,w in weights.items()}
     return qty, weights, selected, rank
 
 
@@ -323,7 +354,7 @@ def _stop_check(state, bars_by_symbol, day):
         if atr and holding["opened"]<=day:
             peak = max(float(holding["peak"]),float(bar.close))
             holding["peak"] = peak
-            holding["stop"] = max(float(holding["stop"]),peak-STOP_MULT*atr)
+            holding["stop"] = max(float(holding["stop"]),float(bar.close)-STOP_MULT*atr)
 
 
 def _stage(state, asof, desired, reason):
@@ -446,7 +477,8 @@ def _stage_decision(state,members,bars_by_symbol,day,reason):
     cap,regime=_sector_and_cap(members,member_stats,stats,spy)
     marks={s:float(bars[-1].close) for s,bars in cut.items() if bars}
     desired,weights,selected,ranks=_calculate_targets(state,members,member_stats,cap,marks,
-                                                        sessions=[b.date for b in spy])
+                                                        sessions=[b.date for b in spy],
+                                                        spy_r63=stats["SPY"]["r63"])
     _stage(state,day,desired,reason)
     state["last_signal"]=dict(asof=day,reason=reason,selected=selected,
                               weights=weights,raw_ranks={s:ranks.get(s) for s in selected},
