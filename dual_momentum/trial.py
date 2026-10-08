@@ -440,6 +440,21 @@ def _poll_impl():
         return {"status":"ENDED","reason":"Trial period complete"}
     source = LiveDataSource(price_workers=12)
     try:
+        prior = read_trial()["state"]
+        # One SPY query first: don't download ~500 stocks repeatedly while the
+        # most recent completed close is unavailable or its adjclose is missing.
+        spy_probe = [b for b in _closed_bars(source.price_bars("SPY","2y"))
+                     if b.date <= asof_limit]
+        if (not prior.get("last_signal") and not prior.get("trades") and
+                not prior.get("equity") and
+                now.date() <= START and
+                (not spy_probe or spy_probe[-1].date < (START-timedelta(days=1)).isoformat())):
+            prior["data_quality"] = dict(members=None, symbols=1, failures=0,
+                    last_completed_spy=spy_probe[-1].date if spy_probe else None)
+            prior["notes"] = [n for n in prior["notes"] if not n.startswith("Waiting for")]
+            prior["notes"].append("Waiting for October 8 SPY adjusted close; no forward opening signal can be staged yet")
+            _write(prior,"WAITING_FOR_CLOSE")
+            return {"status":"WAITING_FOR_CLOSE","reason":"Oct 8 SPY EOD not yet available"}
         members = source.current_sp500()
         if len(members) < 480:
             raise RuntimeError("S&P 500 membership feed incomplete")
