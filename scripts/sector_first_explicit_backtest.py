@@ -88,6 +88,31 @@ def sector_allocation(spy_bull, sector_rows):
     equity=1.0 if spy_bull else 0.5
     return {first["sector"]:equity*split[0],second["sector"]:equity*split[1]}
 
+def event_driven_allocation(prev_alloc,prev_spy,spy_bull,sector_rows,month_end):
+    """Monthly rotation; daily permission/market break or forced de-risk only.
+
+    A mere day-to-day change in sector momentum rank or Top-2 ratio does
+    not rotate the entire portfolio.  That is assessed at month-end.
+    """
+    optimal=sector_allocation(spy_bull,sector_rows)
+    if prev_alloc is None or month_end or prev_spy is None or spy_bull!=prev_spy:
+        return optimal
+    if not prev_alloc:
+        return optimal if optimal else {}
+    bysec={r["sector"]:r for r in sector_rows}
+    for sec in prev_alloc:
+        r=bysec.get(sec)
+        if r is None or not r["bull"] or (not spy_bull and r["relative63"]<=0):
+            return optimal
+    if not spy_bull and len(prev_alloc)==1:
+        sec=next(iter(prev_alloc))
+        r=bysec[sec]
+        reduced=0.50 if r["breadth"]>=0.60 and r["r5"]>=0 else 0.40
+        if abs(prev_alloc[sec]-reduced)>1e-12:
+            return {sec:reduced}
+    return dict(prev_alloc)
+
+
 def intraday_stop_fill(open_price, low_price, known_stop):
     """Previous day's stop, gap fill at open, otherwise stop (before trading costs)."""
     if known_stop is None:return None
@@ -116,6 +141,7 @@ class Portfolio:
         self.signal_log=[]
         self.pending={}
         self.last_allocation=None
+        self.last_spy_bull=None
         self.below_count=defaultdict(int)
     def trade(self,sym,qty,raw_price,d,reason):
         """Signed whole-share order; sells before buys; commission+slippage."""
@@ -209,6 +235,7 @@ def run(frames,calendar,months,members_lookup,sectors_lookup,
         raise RuntimeError("WARM_START_REQUIRED: provide the preceding trading-day signal")
     st.pending[dates[0]]={"target":warm_start["target"],"reason":"WARM_START"}
     st.last_allocation=warm_start["allocation"]
+    st.last_spy_bull=warm_start["spy_bull"]
     st.signal_log.append({"date":start_signal,"spy_bull":warm_start["spy_bull"],
          "sector_alloc":warm_start["allocation"],"sector_breadth":warm_start["sector_breadth"],
          "stocks":sorted(warm_start["target"]),"trigger":"WARM_START"})
@@ -227,17 +254,18 @@ def run(frames,calendar,months,members_lookup,sectors_lookup,
             nav_at_open=st.cash
             for sym,pos in list(st.pos.items()):
                 nav_at_open+=pos["qty"]*float(getrow(frames,sym,d,True)["open"])
-            for sym,pos in list(st.pos.items()):
-                px=float(getrow(frames,sym,d,True)["open"])
-                want=int(math.floor(nav_at_open*desired.get(sym,0)/px))
-                delta=want-pos["qty"]
-                if delta<0:
-                    st.trade(sym,delta,px,d,plan["reason"])
+            if not plan.get("cash_only",False):
+                for sym,pos in list(st.pos.items()):
+                    px=float(getrow(frames,sym,d,True)["open"])
+                    want=int(math.floor(nav_at_open*desired.get(sym,0)/px))
+                    delta=want-pos["qty"]
+                    if delta<0:
+                        st.trade(sym,delta,px,d,plan["reason"])
             for sym,w in sorted(desired.items(),key=lambda z:(-z[1],z[0])):
                 px=float(getrow(frames,sym,d,True)["open"])
                 have=st.pos[sym]["qty"] if sym in st.pos else 0
                 want=int(math.floor(nav_at_open*w/px))
-                if want>have:
+                if want>have and (not plan.get("cash_only",False) or have==0):
                     if sym in st.stopped and not lockout_allows_signal(ix-1,st.stopped[sym]):
                         raise RuntimeError("LOCKOUT_BYPASS")
                     amt=st.trade(sym,want-have,px,d,plan["reason"])
@@ -278,9 +306,11 @@ def run(frames,calendar,months,members_lookup,sectors_lookup,
         membership_day=date.fromisoformat(d)
         members=members_lookup(membership_day)
         sectormap=sectors_lookup(membership_day)
-        spy_bull,allocation,sector_rows=signal_context(d,frames,"SPY",frames.keys(),members,sectormap)
-        regime_changed=allocation!=st.last_allocation
+        spy_bull,optimal_allocation,sector_rows=signal_context(d,frames,"SPY",frames.keys(),members,sectormap)
         month_end=months.get(d[:7])==d
+        allocation=event_driven_allocation(st.last_allocation,st.last_spy_bull,
+                                           spy_bull,sector_rows,month_end)
+        regime_changed=allocation!=st.last_allocation
         rank_by_sector={}
         if allocation and (regime_changed or month_end):
             rank_by_sector={sec:selected_stock_ranks(d,sec,members,sectormap,frames) for sec in allocation}
@@ -298,6 +328,7 @@ def run(frames,calendar,months,members_lookup,sectors_lookup,
                 vacancies.append(sec)
         if (not regime_changed and not month_end and not fail and not vacancies):
             st.last_allocation=allocation
+            st.last_spy_bull=spy_bull
             continue
         target={}
         for sec,weight in allocation.items():
@@ -319,13 +350,15 @@ def run(frames,calendar,months,members_lookup,sectors_lookup,
                 for sym in choices:target[sym]=weight/len(choices)
         reason="MONTHLY" if month_end else ("REGIME" if regime_changed else ("REGIME_FAILURE" if fail else "REENTRY"))
         next_d=dates[ix+1]
-        st.pending[next_d]={"target":target,"reason":reason}
+        st.pending[next_d]={"target":target,"reason":reason,
+                            "cash_only":reason=="REENTRY"}
         if month_end or regime_changed:
             st.signal_log.append({"date":d,"spy_bull":spy_bull,
                 "sector_alloc":allocation,"sector_breadth":{r["sector"]:round(r["breadth"],4) for r in sector_rows},
                 "stocks":sorted(target),"trigger":reason})
             count_events[reason]+=1
         st.last_allocation=allocation
+        st.last_spy_bull=spy_bull
     if not st.daily:raise RuntimeError("No NAV output")
     return st
 
@@ -427,7 +460,7 @@ def main():
       "sector_allocation":"top2; momentum ratio >=1.5 70/30 else 50/50; single 90% (>70 breadth) or 70% (50-70); BEAR 50% max / 40% weaker single; cash 0%",
       "stock_score":"0.5 r63/sigma63 + 0.3 r126/sigma126 + 0.2 r252/sigma252 with sample 252 annualized daily volatility",
       "stocks":"top5 per sector, close > EMA50 & EMA200, equal within sector",
-      "rebalancing":"monthly close->next open, daily sector/SPY state transitions->next open; daily reentry only on vacancy",
+      "rebalancing":"monthly sector stock ranks/weights, daily SPY regime and active-sector permission failures, daily stop and cash-only reentry",
       "atr":"Wilder 14, trailing stop prev close minus 3xATR, intraday low gap/open handling, 7bp adverse fill",
       "lockout":"5 full trading sessions, earliest new signal day >= stopped_index+6",
       "regime_failure":"two closes below stock EMA200 => sell next open",
@@ -461,7 +494,8 @@ def main():
             desc=", ".join(f"{sec}: {w*100:.0f}%" for sec,w in x["sector_alloc"].items()) or "Cash"
             lines.append(f"| {x['date']} | {x['spy_bull']} | {desc} |")
     lines+=["","## Execution and interpretation",
-      "- Daily and monthly decisions are computed from same-day close, executed next available session open.",
+      "- Monthly sector ranking is frozen between rebalances; daily SPY flips or active-sector permission failures can trigger next-open risk transitions.",
+      "- REENTRY events buy only vacant stock positions from available cash; they do not resize all existing holdings.",
       "- Intraday trailing stops use the *previous day's* stop, with gap-open adjustment.",
       "- In SPY BEAR with two qualifying sectors, allocation is capped at 50% and split 70/30 or 50/50 among Top-2.",
       "- Sector breadth is strict >50%, resolving the 50% boundary overlap in favor of the original permission definition.",
