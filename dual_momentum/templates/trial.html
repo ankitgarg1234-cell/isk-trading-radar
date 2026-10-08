@@ -40,7 +40,7 @@ async function refresh(){try{
  let peak=10000,dd=0;for(const d of hist){peak=Math.max(peak,d.nav);dd=Math.min(dd,d.nav/peak-1)}
  el('dd').textContent=pct(dd);el('cash').textContent=usd(s.cash);el('spy').textContent=usd(last?last.spy:10000);
  el('status').textContent='Status: '+a.status+' · Last refresh: '+(a.last_poll||'not yet')+' · Last completed session: '+(s.last_session||'none');
- el('error').textContent=a.error||'';
+ el('error').textContent=(!a.durable_storage?'STORAGE BLOCKED: Render is using ephemeral SQLite. Link DATABASE_URL to the existing Render Postgres database before simulated fills are enabled. ': '')+(a.error||'');
  const sig=s.last_signal,reg=s.last_regime;
  el('signal').textContent=sig?('As of '+sig.asof+' · '+sig.reason+' · '+reg.spy+' · allowed equity '+pct(sig.equity_cap)+' · BULL sectors: '+(reg.bull_sectors||[]).join(', ')):'No completed-close signal yet';
  el('selected').innerHTML=sig?table(['Stock','Rank','Target wt','Shares'],(sig.selected||[]).map(x=>[x,sig.raw_ranks[x],pct(sig.weights[x]),sig.targets[x]])):'';
