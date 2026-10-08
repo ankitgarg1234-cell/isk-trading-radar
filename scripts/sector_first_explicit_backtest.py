@@ -84,7 +84,7 @@ def sector_allocation(spy_bull, sector_rows):
     # breadth permission; default to the conservative 50/50 split.
     ratio=(first["momentum"]/second["momentum"]
            if first["momentum"]>0 and second["momentum"]>0 else None)
-    split=(0.7,0.3) if ratio is not None and ratio>=1.5 else (0.5,0.5)
+    split=(0.7,0.3) if ratio is not None and ratio>=1.5-1e-12 else (0.5,0.5)
     equity=1.0 if spy_bull else 0.5
     return {first["sector"]:equity*split[0],second["sector"]:equity*split[1]}
 
@@ -435,8 +435,8 @@ def main():
     lines+=["","| Metric | Result |","|---|---:|",
       f"| CAGR | {sm['cagr_pct']:.2f}% |", f"| Max drawdown | {sm['max_dd_pct']:.2f}% |",
       f"| Avg equity exposure | {sm['avg_exposure_pct']:.2f}% |",
-      f"| Ending NAV ($10,000) | \${sm['end_value']:,.2f} |",
-      f"| Trades | {sm['trade_count']} |",f"| Costs | \${sm['costs']:,.2f} |",
+      f"| Ending NAV ($10,000) | ${sm['end_value']:,.2f} |",
+      f"| Trades | {sm['trade_count']} |",f"| Costs | ${sm['costs']:,.2f} |",
       "","## 2022 monthly sector decisions","",
       "| Date | SPY BULL | Sector allocation |","|---|---|---|"]
     for x in result["monthly_signals"]:
