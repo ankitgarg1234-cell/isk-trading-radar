@@ -40,11 +40,13 @@ jobs:
         run: python scripts/test_sector_first_explicit.py
       - name: Full five-year replay
         run: python scripts/sector_first_explicit_backtest.py
+      - name: Trade-path and cost audit
+        run: python scripts/sector_first_trade_churn_audit.py
       - name: Publish result to research branch
         run: |
           git config user.name "isk-backtest-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add backtests/results/sector_first_explicit_2022_2026.json backtests/results/sector_first_explicit_2022_2026.md
+          git add backtests/results/sector_first_explicit_2022_2026.json backtests/results/sector_first_explicit_2022_2026.md backtests/results/sector_first_explicit_churn_audit.md
           git diff --cached --quiet && exit 0
           git commit -m "Results sector-first explicit five-year replay [skip ci]"
           git pull --rebase origin "$GITHUB_REF_NAME"
