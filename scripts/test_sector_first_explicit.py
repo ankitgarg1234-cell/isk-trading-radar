@@ -55,6 +55,21 @@ class SectorFirstContract(unittest.TestCase):
         rows=[row("Energy",.4,bull=False)]
         self.assertEqual(m.event_driven_allocation(active,False,False,rows,False),{})
 
+    def test_stock_risk_score_uses_price_not_dividend_returns(self):
+        from datetime import timedelta
+        rows=[]
+        for i in range(310):
+            dt=(date(2020,1,1)+timedelta(days=i)).isoformat()
+            px=100+i*0.1+math.sin(i/3)*2
+            rows.append({"date":dt,"open":px,"high":px+1,
+                         "low":px-1,"close":px,"volume":10000})
+        last=rows[-1]["date"]
+        df=m.features({"rows":rows,"dividends":[{"date":last,"amount":10.0}],"splits":[]})
+        r=df.iloc[-1]
+        self.assertGreater(r["r63"],r["pr63"])
+        expected=.5*r["pr63"]/r["sigma63"]+.3*r["pr126"]/r["sigma126"]+.2*r["pr252"]/r["sigma252"]
+        self.assertAlmostEqual(float(r["score"]),float(expected),places=12)
+
     def test_no_future_lookahead_in_ema(self):
         v=pd.Series([100.]*200+[110.,500.],index=list(range(202)))
         e=m.ema_close(v,200)
