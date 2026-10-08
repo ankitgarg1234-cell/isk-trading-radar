@@ -358,6 +358,63 @@ def _stop_check(state, bars_by_symbol, day):
             holding["stop"] = max(float(holding["stop"]),float(bar.close)-STOP_MULT*atr)
 
 
+def _daily_risk_check(state, members, bars_by_symbol, day):
+    """Keep the month-end shortlist, but correct daily risk-budget breaches.
+
+    Uses only bars available at today's completed close, with executable
+    orders queued no earlier than the NEXT open. No forced cross-sector buys.
+    """
+    if not state.get("last_signal") or state.get("pending"):
+        return
+    cut={s:[b for b in bars if b.date<=day] for s,bars in bars_by_symbol.items()}
+    stats={s:m for s,bars in cut.items() if (m:=_momentum(bars)) is not None}
+    members_valid={m["symbol"]:stats[m["symbol"]] for m in members if m["symbol"] in stats}
+    if len(members_valid)<450:
+        state["notes"].append(day+": incomplete breadth, daily risk check blocked")
+        return
+    spy=cut.get("SPY",[])
+    cap, regime = _sector_and_cap(members,members_valid,stats,spy)
+    marks={s:float(bs[-1].close) for s,bs in cut.items() if bs}
+    nav=_positions_value(state,marks)
+    sector_lookup={m["symbol"]:str(m.get("sector") or "Unknown") for m in members}
+    market_by_sector={}
+    invested=0.0
+    for sym,h in state["holdings"].items():
+        value=int(h["shares"])*marks[sym]
+        invested+=value
+        sector=sector_lookup.get(sym,"Unknown")
+        market_by_sector[sector]=market_by_sector.get(sector,0.0)+value
+    # A change in the SPY/sector allowance is actionable; drift is only
+    # corrected at next opening, not retroactively at the decision close.
+    old_cap=float(state.get("active_cap",state["last_signal"]["equity_cap"]))
+    drift=invested>nav*cap+nav*.005 or any(x>nav*SECTOR_CAP+nav*.005 for x in market_by_sector.values())
+    if abs(old_cap-cap)<1e-9 and not drift:
+        return
+    sel=list(state["last_signal"].get("selected") or [])
+    sector_sum={}
+    weights={}
+    for i,sym in enumerate(sel):
+        if sym not in sector_lookup or sym not in marks:
+            continue
+        # Do not reinstate a position that is still serving a stop lockout.
+        if sym in state.get("lockouts",{}) and sym not in state["holdings"]:
+            continue
+        w=.98*WEIGHTS[i]*cap
+        weights[sym]=w
+        sector=sector_lookup[sym]
+        sector_sum[sector]=sector_sum.get(sector,0.0)+w
+    for sym in weights:
+        sector=sector_lookup[sym]
+        if sector_sum[sector]>SECTOR_CAP:
+            weights[sym]*=SECTOR_CAP/sector_sum[sector]
+    desired={sym:max(0,math.floor(nav*w/marks[sym])) for sym,w in weights.items()}
+    _stage(state,day,desired,"EOD_SECTOR_OR_REGIME_RISK")
+    state["active_cap"]=cap
+    state["last_regime"]=regime
+    state["notes"].append(day+": cap "+str(old_cap)+" -> "+str(cap)+
+                          "; sector concentration review; next-open rebalance")
+
+
 def _stage(state, asof, desired, reason):
     existing = state.get("pending") or []
     if existing:
@@ -447,6 +504,8 @@ def _poll_impl():
             month_end=_next_weekday(date.fromisoformat(day)).month != date.fromisoformat(day).month
             if month_end and day<END.isoformat() and not state.get("pending"):
                 _stage_decision(state,members,bars_by_symbol,day,"MONTH_END")
+            elif day<END.isoformat() and not state.get("pending"):
+                _daily_risk_check(state,members,bars_by_symbol,day)
         # If no session advanced, no trades are invented.
         if not state.get("pending") and not state["holdings"] and not state["trades"] and START.isoformat() <= asof_limit < END.isoformat():
             # Missed launch: propose at the latest completed close for NEXT open only.
@@ -485,6 +544,7 @@ def _stage_decision(state,members,bars_by_symbol,day,reason):
                               weights=weights,raw_ranks={s:ranks.get(s) for s in selected},
                               equity_cap=cap,sector_cap=SECTOR_CAP,targets=desired)
     state["last_regime"]=regime
+    state["active_cap"]=cap
 
 
 def poll():
