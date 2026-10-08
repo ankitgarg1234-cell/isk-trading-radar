@@ -1,0 +1,28 @@
+name: SPY Sector Backtest Integrity Audit
+
+on:
+  push:
+    branches:
+      - research/adaptive-market-state-backtest
+    paths:
+      - scripts/audit_spy_sector_backtest_integrity.py
+      - .github/workflows/audit-spy-sector-backtest.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install requests pandas lxml pyarrow
+      - name: Validate imports
+        run: python -m py_compile scripts/audit_spy_sector_backtest_integrity.py scripts/spy_sector_hierarchy_backtest.py
+      - name: Run integrity tests
+        run: python scripts/audit_spy_sector_backtest_integrity.py
