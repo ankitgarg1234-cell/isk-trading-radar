@@ -150,10 +150,10 @@ def _sector_and_cap(members, stats, etf_stats, spy_bars):
     spy = _momentum(spy_bars)
     if spy is None:
         raise RuntimeError("SPY EMA200/252-day data incomplete")
-    spy_close = [b.total_return_close for b in spy_bars]
-    ema_series = ema_seeded(spy_close, 200)
-    spy_bear = (spy_close[-1] <= ema_series[-1] and
-                spy_close[-2] <= ema_series[-2])
+    previous_spy = _momentum(spy_bars[:-1])
+    if previous_spy is None:
+        raise RuntimeError("SPY preceding session signal unavailable")
+    spy_bear = not spy["above_ema"] and not previous_spy["above_ema"]
     grouped = {}
     for m in members:
         sector = str(m.get("sector") or "")
@@ -174,17 +174,18 @@ def _sector_and_cap(members, stats, etf_stats, spy_bars):
         sector_evidence.append(dict(sector=sector, breadth=round(breadth,3),
                                     coverage=round(coverage,3), bull=bull))
     overall_breadth = sum(s["above_ema"] for s in stats.values())/len(stats) if stats else 0
+    sole_breadth = next((row["breadth"] for row in sector_evidence if row["bull"]), 0.0)
     if not spy_bear:
         if len(bulls) >= 2:
             cap = 1.0
         elif len(bulls) == 1:
-            cap = .90 if overall_breadth >= .70 else .70 if overall_breadth >= .50 else 0.0
+            cap = .90 if sole_breadth > .70 else .70 if sole_breadth >= .50 else 0.0
         else:
             cap = 0.0
     elif len(bulls) >= 2:
         cap = 0.50
     elif len(bulls) == 1:
-        cap = 0.50 if overall_breadth >= .60 else 0.40 if overall_breadth >= .50 else 0.0
+        cap = 0.50 if sole_breadth >= .60 else 0.40 if sole_breadth >= .50 else 0.0
     else:
         cap = 0.0
     return cap, dict(spy="BEAR" if spy_bear else "BULL",
