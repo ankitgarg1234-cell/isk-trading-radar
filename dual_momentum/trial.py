@@ -572,6 +572,16 @@ def poll():
         return {"status":"ALREADY_RUNNING"}
     try:
         saved=read_trial()
+        if engine.url.get_backend_name() == "sqlite":
+            warning = ("Paper execution disabled: Render's SQLite storage is ephemeral. "
+                       "Connect the existing Render Postgres database by setting DATABASE_URL "
+                       "on the dual-momentum-radar service before Friday's market opening.")
+            state = saved["state"]
+            state["pending"] = []  # Never carry ephemeral opening orders forward.
+            state["notes"] = [x for x in state["notes"] if not x.startswith("Paper execution disabled:")]
+            state["notes"].append(warning)
+            _write(state,"STORAGE_BLOCKED",warning)
+            return {"status":"STORAGE_BLOCKED","reason":warning}
         _write(saved["state"],"RUNNING")
         try:
             return _poll_impl()
