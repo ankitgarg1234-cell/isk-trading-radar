@@ -77822,10 +77822,6 @@
       ],
       "top15_implied_issuer_caps": [
         {
-          "symbol": "PKG",
-          "implied_cap": 11154288795769.5
-        },
-        {
           "symbol": "AAPL",
           "implied_cap": 2787912429500.0
         },
@@ -77880,6 +77876,10 @@
         {
           "symbol": "PG",
           "implied_cap": 335868128385.0
+        },
+        {
+          "symbol": "ORCL",
+          "implied_cap": 286017030471.3135
         }
       ]
     },
@@ -77908,10 +77908,6 @@
         "AVGO"
       ],
       "top15_implied_issuer_caps": [
-        {
-          "symbol": "PKG",
-          "implied_cap": 11885437898941.498
-        },
         {
           "symbol": "AAPL",
           "implied_cap": 3050896346140.0757
@@ -77967,6 +77963,10 @@
         {
           "symbol": "PG",
           "implied_cap": 357646537867.49915
+        },
+        {
+          "symbol": "ORCL",
+          "implied_cap": 323241094370.0867
         }
       ]
     },
@@ -77997,10 +77997,6 @@
         "JPM"
       ],
       "top15_implied_issuer_caps": [
-        {
-          "symbol": "PKG",
-          "implied_cap": 13791101118652.496
-        },
         {
           "symbol": "AAPL",
           "implied_cap": 3089903459899.8105
@@ -78056,6 +78052,10 @@
         {
           "symbol": "PG",
           "implied_cap": 368394312221.4995
+        },
+        {
+          "symbol": "HD",
+          "implied_cap": 335634763557.40265
         }
       ]
     },
@@ -78870,10 +78870,6 @@
       ],
       "top15_implied_issuer_caps": [
         {
-          "symbol": "PKG",
-          "implied_cap": 16477031659985.031
-        },
-        {
           "symbol": "MSFT",
           "implied_cap": 3085373140553.7754
         },
@@ -78928,6 +78924,10 @@
         {
           "symbol": "COST",
           "implied_cap": 359189490212.68115
+        },
+        {
+          "symbol": "JNJ",
+          "implied_cap": 352987631363.8488
         }
       ]
     },
@@ -78955,10 +78955,6 @@
         "JPM"
       ],
       "top15_implied_issuer_caps": [
-        {
-          "symbol": "PKG",
-          "implied_cap": 16393518827006.652
-        },
         {
           "symbol": "MSFT",
           "implied_cap": 3321869165354.689
@@ -79014,6 +79010,10 @@
         {
           "symbol": "ORCL",
           "implied_cap": 389127423589.7827
+        },
+        {
+          "symbol": "COST",
+          "implied_cap": 376830332720.3164
         }
       ]
     },
@@ -79040,10 +79040,6 @@
         "ORCL"
       ],
       "top15_implied_issuer_caps": [
-        {
-          "symbol": "PKG",
-          "implied_cap": 17947921624263.305
-        },
         {
           "symbol": "AAPL",
           "implied_cap": 3405392958637.543
@@ -79099,6 +79095,10 @@
         {
           "symbol": "XOM",
           "implied_cap": 467601169799.2176
+        },
+        {
+          "symbol": "ORCL",
+          "implied_cap": 384304668589.7827
         }
       ]
     },
@@ -80696,10 +80696,6 @@
       ],
       "top15_implied_issuer_caps": [
         {
-          "symbol": "PKG",
-          "implied_cap": 20709997228708.465
-        },
-        {
           "symbol": "NVDA",
           "implied_cap": 4305717059326.172
         },
@@ -80754,6 +80750,10 @@
         {
           "symbol": "JNJ",
           "implied_cap": 598691175019.853
+        },
+        {
+          "symbol": "MU",
+          "implied_cap": 464126248462.9193
         }
       ]
     },
@@ -80780,10 +80780,6 @@
         "JNJ"
       ],
       "top15_implied_issuer_caps": [
-        {
-          "symbol": "PKG",
-          "implied_cap": 18932866583583.07
-        },
         {
           "symbol": "NVDA",
           "implied_cap": 4237919851684.5703
@@ -80839,6 +80835,10 @@
         {
           "symbol": "JNJ",
           "implied_cap": 589075701799.3823
+        },
+        {
+          "symbol": "COST",
+          "implied_cap": 442068697182.79175
         }
       ]
     },
@@ -80867,10 +80867,6 @@
         "AMD"
       ],
       "top15_implied_issuer_caps": [
-        {
-          "symbol": "PKG",
-          "implied_cap": 19042598677042.33
-        },
         {
           "symbol": "NVDA",
           "implied_cap": 4849551177978.516
@@ -80926,6 +80922,10 @@
         {
           "symbol": "MU",
           "implied_cap": 583218911529.3335
+        },
+        {
+          "symbol": "AMD",
+          "implied_cap": 577964323813.0891
         }
       ]
     },
