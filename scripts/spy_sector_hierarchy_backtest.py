@@ -195,6 +195,20 @@ def build_orders(st,d,snap,leadership,allowed,spy_bull,mode,markets):
                            'priority':r.get('rank') or 999,'atr':r.get('atr'),'fund':r.get('fund')})
     return orders,rot_sel,lead_sel
 
+def execution_open(markets,sym,d):
+    """Do not silently drop orders when next-session market data is unavailable."""
+    m=markets.get(sym)
+    if m is None:
+        raise RuntimeError(f"UNEXECUTABLE_ORDER: no market history for {sym} at {d}")
+    i=b.idx_on_or_after(m,d)
+    if i is None or m["rows"][i]["date"]!=d.isoformat() or m["rows"][i]["open"] is None:
+        raise RuntimeError(f"UNEXECUTABLE_ORDER: no next-session opening price for {sym} at {d}")
+    price=float(m["rows"][i]["open"])
+    if not math.isfinite(price) or price<=0:
+        raise RuntimeError(f"UNEXECUTABLE_ORDER: invalid open for {sym} at {d}")
+    return price
+
+
 def run_variant(cfg,trading_dates,signal_dates,snapshots,markets,spy):
     st=b.State(cfg['name'],False); pending={}; logs=[]; signals=set(signal_dates)
     if not trading_dates:
@@ -221,20 +235,16 @@ def run_variant(cfg,trading_dates,signal_dates,snapshots,markets,spy):
 
         for pk,p in list(st.pos.items()):
             if not p.pending_stop: continue
-            m=markets.get(p.symbol)
-            if not m: continue
-            i=b.idx_on_or_after(m,d)
-            if i is not None and m['rows'][i]['date']==d.isoformat() and m['rows'][i]['open'] is not None:
-                b.execute_sell(st,pk,p.shares,m['rows'][i]['open'],d,'ATR STOP')
+            px=execution_open(markets,p.symbol,d)
+            b.execute_sell(st,pk,p.shares,px,d,'ATR STOP')
 
         if d in pending:
             orders=pending.pop(d)
             for o in [x for x in orders if x['kind']=='sell']:
                 p=st.pos.get(o['pk'])
                 if not p: continue
-                m=markets.get(p.symbol); i=b.idx_on_or_after(m,d) if m else None
-                if i is not None and m['rows'][i]['date']==d.isoformat() and m['rows'][i]['open'] is not None:
-                    b.execute_sell(st,o['pk'],o['qty'],m['rows'][i]['open'],d,o['reason'])
+                px=execution_open(markets,p.symbol,d)
+                b.execute_sell(st,o['pk'],o['qty'],px,d,o['reason'])
             # Stop sells already executed above; cancelled/stale monthly buys
             # must not be allowed to rebuy a stop-triggered position in the
             # same open.  Detect from actual trades, not surviving positions.
@@ -243,9 +253,8 @@ def run_variant(cfg,trading_dates,signal_dates,snapshots,markets,spy):
             buys=sorted([x for x in orders if x['kind']=='buy' and x.get('sym') not in stopped],
                         key=lambda x:(x['priority'],x['sym']))
             for o in buys:
-                m=markets.get(o['sym']); i=b.idx_on_or_after(m,d) if m else None
-                if i is not None and m['rows'][i]['date']==d.isoformat() and m['rows'][i]['open'] is not None:
-                    b.execute_buy(st,o['sleeve'],o['sym'],o['qty'],m['rows'][i]['open'],d,o['reason'],o.get('atr'),o.get('fund'))
+                px=execution_open(markets,o['sym'],d)
+                b.execute_buy(st,o['sleeve'],o['sym'],o['qty'],px,d,o['reason'],o.get('atr'),o.get('fund'))
 
         for pk,p in list(st.pos.items()):
             m=markets.get(p.symbol); i=b.idx_on_or_before(m,d) if m else None
