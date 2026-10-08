@@ -1,0 +1,74 @@
+{
+  "status": "BLOCKED",
+  "baseline_expected": {
+    "annual_returns_pct": {
+      "2022": -17.25,
+      "2023": 2.91,
+      "2024": 50.52,
+      "2025": 13.05,
+      "2026": 39.57
+    },
+    "cagr_5y_convention_pct": 14.66,
+    "max_drawdown_pct": -33.85
+  },
+  "control_name": "PIT frozen-like control",
+  "control_actual": {
+    "annual_returns_pct": {
+      "2022": -5.08,
+      "2023": -6.39,
+      "2024": 2.09,
+      "2025": 7.83,
+      "2026": 9.94
+    },
+    "cagr_5y_convention_pct": 1.46,
+    "max_drawdown_pct": -13.39,
+    "end_value": 10752.87,
+    "avg_equity_exposure_pct": 22.01,
+    "trade_count": 556,
+    "costs": 700.52
+  },
+  "metric_mismatches": [
+    {
+      "field": "cagr_5y_convention_pct",
+      "expected": 14.66,
+      "actual": 1.46
+    },
+    {
+      "field": "max_drawdown_pct",
+      "expected": -33.85,
+      "actual": -13.39
+    },
+    {
+      "field": "annual_returns_pct.2022",
+      "expected": -17.25,
+      "actual": -5.08
+    },
+    {
+      "field": "annual_returns_pct.2023",
+      "expected": 2.91,
+      "actual": -6.39
+    },
+    {
+      "field": "annual_returns_pct.2024",
+      "expected": 50.52,
+      "actual": 2.09
+    },
+    {
+      "field": "annual_returns_pct.2025",
+      "expected": 13.05,
+      "actual": 7.83
+    },
+    {
+      "field": "annual_returns_pct.2026",
+      "expected": 39.57,
+      "actual": 9.94
+    }
+  ],
+  "trade_mismatches": [],
+  "daily_mismatches": [],
+  "reasons": [
+    "Control does not reproduce authoritative frozen annual/CAGR/drawdown metrics",
+    "Original frozen trade/daily-NAV ledger unavailable; transaction reconciliation BLOCKED"
+  ],
+  "note": "Only a full original frozen trade/NAV ledger with matching assumptions can remove the BLOCKED status."
+}
