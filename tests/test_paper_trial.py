@@ -1,5 +1,6 @@
 """Network-free regression tests for the isolated one-month paper trial."""
 import unittest
+from unittest.mock import patch
 from datetime import date, timedelta
 
 from dual_momentum.trial import (
@@ -25,6 +26,18 @@ def bars(symbol="MSFT", days=270, end=date(2026, 10, 9)):
 
 
 class TestPaperTrial(unittest.TestCase):
+    def test_ephemeral_sqlite_fails_closed_without_market_download(self):
+        from dual_momentum.trial import poll
+        with patch("dual_momentum.trial.read_trial",return_value={"state":_initial()}), \
+             patch("dual_momentum.trial._write") as save, \
+             patch("dual_momentum.trial._poll_impl") as engine_run, \
+             patch("dual_momentum.trial.engine") as db_engine:
+            db_engine.url.get_backend_name.return_value = "sqlite"
+            result=poll()
+            self.assertEqual(result["status"],"STORAGE_BLOCKED")
+            self.assertFalse(engine_run.called)
+            self.assertEqual(save.call_args.args[1],"STORAGE_BLOCKED")
+
     def test_initial_account_is_exactly_ten_thousand(self):
         s=_initial()
         self.assertEqual(s["cash"],CAPITAL)
