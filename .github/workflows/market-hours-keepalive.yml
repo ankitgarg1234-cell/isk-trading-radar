@@ -2,8 +2,11 @@ name: U.S. market-hours keepalive
 
 on:
   schedule:
-    # UTC window deliberately covers both U.S. daylight-saving and standard-time sessions.
-    # 13:02-21:57 UTC keeps the Render free web process warm before the open through after the close.
+    # UTC range covers both US daylight-saving and standard-time sessions.
+    # Runs every five minutes on weekdays. GitHub cron can be delayed.
+    # This wakes both dashboards: the original Radar and the isolated
+    # Dual Momentum Radar paper trading service (where the local NY scheduler
+    # checks queued opens and completed-session closes).
     - cron: "2-57/5 13-21 * * 1-5"
   workflow_dispatch:
 
@@ -18,9 +21,23 @@ jobs:
   keepalive:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        url:
+          - https://isk-trading-radar.onrender.com/health
+          - https://dual-momentum-radar.onrender.com/health
     steps:
-      - name: Wake Render service and verify scanner health
+      - name: Wake service and verify HTTP health
         shell: bash
+        env:
+          HEALTH_URL: ${{ matrix.url }}
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error             --retry 3             --retry-delay 10             --retry-all-errors             --connect-timeout 20             --max-time 180             https://isk-trading-radar.onrender.com/health
+          curl --fail --silent --show-error \
+            --retry 3 \
+            --retry-delay 10 \
+            --retry-all-errors \
+            --connect-timeout 20 \
+            --max-time 180 \
+            "${HEALTH_URL}"
