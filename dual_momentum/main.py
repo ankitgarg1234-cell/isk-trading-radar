@@ -392,36 +392,41 @@ def _trial_worker() -> None:
     while True:
         now = datetime.now(TRIAL_NY)
         try:
-            if (TRIAL_START - __import__("datetime").timedelta(days=1) <= now.date() <= TRIAL_END
-                    and now.weekday() < 5 and (
-                        (8 <= now.hour < 9) or
-                        ((now.hour, now.minute) >= (16, 25) and
-                         (now.hour, now.minute) <= (23, 30))
-                    )):
-                trial_info = read_trial()
-                last = trial_info.get("last_poll")
-                poll_day = str(last or "")[:10]
-                retry_due = False
-                if trial_info.get("status") in {"WAITING_FOR_CLOSE", "ERROR"}:
-                    try:
-                        previous_poll = datetime.fromisoformat(last)
-                        if previous_poll.tzinfo is None:
-                            previous_poll = previous_poll.replace(tzinfo=timezone.utc)
-                        retry_due = (datetime.now(timezone.utc) - previous_poll).total_seconds() >= 1800
-                    except (ValueError, TypeError):
-                        retry_due = True
-                if poll_day != now.astimezone(timezone.utc).date().isoformat() or retry_due:
-                    result = poll()
-                    trial_done = read_trial().get("state") or {}
-                    quality = trial_done.get("data_quality") or {}
-                    signal = trial_done.get("last_signal") or {}
-                    print("Paper-trial refresh: %s; SPY_bars=%s; signals=%s; queued=%s; trades=%s; priced=%s; failures=%s" % (
-                        result.get("status"), quality.get("last_completed_spy"),
-                        signal.get("asof"),sum(len(p.get("orders") or []) for p in trial_done.get("pending", [])),
-                        len(trial_done.get("trades", [])),quality.get("symbols"),quality.get("failures")),flush=True)
+            if TRIAL_START <= now.date() <= TRIAL_END and now.weekday() < 5:
+                info=read_trial()
+                state=info.get("state") or {}
+                pending=state.get("pending") or []
+                signal=state.get("last_signal") or {}
+                due_open=bool(pending and
+                              pending[0].get("signal_date","") < now.date().isoformat() and
+                              pending[0].get("fill_after") == now.date().isoformat() and
+                              (9,45) <= (now.hour,now.minute) <= (16,0))
+                completed_eod=(now.hour,now.minute)>=(16,25)
+                eod_needed=completed_eod and state.get("last_session") != now.date().isoformat()
+                last=info.get("last_poll")
+                try:
+                    previous=datetime.fromisoformat(last)
+                    if previous.tzinfo is None:
+                        previous=previous.replace(tzinfo=timezone.utc)
+                    since=(datetime.now(timezone.utc)-previous).total_seconds()
+                except (TypeError,ValueError):
+                    since=999999
+                # Model open checks only for an actual pre-existing queued order.
+                # Recheck delayed Yahoo bars about every 10 min, not per second.
+                if due_open and since>=600:
+                    result=poll()
+                    print("Paper-trial opening check: %s; signal=%s" %
+                          (result.get("status"),signal.get("asof")),flush=True)
+                elif eod_needed and since>=1200:
+                    result=poll()
+                    trial_done=read_trial().get("state") or {}
+                    quality=trial_done.get("data_quality") or {}
+                    print("Paper-trial daily close check: %s; session=%s; trades=%s; priced=%s" % (
+                        result.get("status"),trial_done.get("last_session"),
+                        len(trial_done.get("trades") or []),quality.get("symbols")),flush=True)
         except Exception as exc:
             print("Paper-trial worker error: %s" % type(exc).__name__, flush=True)
-        time.sleep(1800)
+        time.sleep(300)
 
 
 @app.get("/trial", response_class=HTMLResponse)
