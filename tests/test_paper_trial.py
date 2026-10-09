@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 from dual_momentum.trial import (
     CAPITAL, SECTOR_CAP, _initial, _next_weekday, _stage,
     _calculate_targets, _ranking_audit, _execute_pending, _stop_check,
-    _fill_queued_open_after_market_data,
+    _fill_queued_open_after_market_data, _waiting_for_latest_close,
 )
 from dual_momentum.rules import PriceBar
 
@@ -107,6 +107,24 @@ class TestPaperTrial(unittest.TestCase):
             self.assertEqual(result["status"],"STORAGE_BLOCKED")
             self.assertFalse(engine_run.called)
             self.assertEqual(save.call_args.args[1],"STORAGE_BLOCKED")
+
+    def test_daily_pnl_waits_for_completed_session_without_faking_zero(self):
+        from pathlib import Path
+        html=(Path(__file__).resolve().parents[1] /
+              "dual_momentum" / "templates" / "trial.html").read_text()
+        self.assertIn('id="daily-pnl"',html)
+        self.assertIn("Awaiting close",html)
+        self.assertIn("dayPL=Number(last.nav)-priorNav",html)
+        self.assertIn("equityWithPL=hist.map",html)
+        self.assertTrue(_waiting_for_latest_close(
+            datetime(2026,10,9,16,25,tzinfo=ZoneInfo("America/New_York")),
+            None,"2026-10-08"))
+        self.assertFalse(_waiting_for_latest_close(
+            datetime(2026,10,9,16,25,tzinfo=ZoneInfo("America/New_York")),
+            "2026-10-09","2026-10-09"))
+        self.assertFalse(_waiting_for_latest_close(
+            datetime(2026,10,9,9,30,tzinfo=ZoneInfo("America/New_York")),
+            None,"2026-10-08"))
 
     def test_initial_account_is_exactly_ten_thousand(self):
         s=_initial()
