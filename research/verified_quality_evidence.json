@@ -1,0 +1,13 @@
+{
+  "source": "Independently verified information supplied by the user on 2026-10-10; no new provider requests",
+  "market_returns": {
+    "005930.KO": {"2026-07-31": {"return_pct": 26.81, "source": "User-supplied independently verified IBKR daily return", "explanation": "Genuine semiconductor-led market rebound"}},
+    "000660.KO": {"2026-07-31": {"return_pct": 29.95, "source": "User-supplied independently verified IBKR daily return", "explanation": "Genuine semiconductor-led market rebound"}},
+    "009150.KO": {"2026-07-31": {"return_pct": 29.92, "source": "User-supplied independently verified IBKR daily return", "explanation": "Genuine semiconductor-led market rebound"}}
+  },
+  "exchange_closures": {
+    "XTAI": {
+      "2026-07-10": {"reason": "Taiwan stock exchange closed because of Typhoon Bavi", "source": "User-supplied independently verified extraordinary exchange closure"}
+    }
+  }
+}

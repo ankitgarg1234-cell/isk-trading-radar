@@ -58,12 +58,17 @@ def validate_prices(payload: object) -> list[dict]:
         seen.add(day)
         for field in FIELDS[1:]:
             value = row.get(field)
-            if value is None or not isinstance(value, (int, float)) or not math.isfinite(value):
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
                 raise ValueError(f"Missing/nonfinite {field} for {day}")
         if min(float(row[k]) for k in ("open", "high", "low", "close", "adjusted_close")) <= 0:
             raise ValueError("Nonpositive stock price")
         if float(row["volume"]) < 0:
             raise ValueError("Negative volume")
+        if not float(row["volume"]).is_integer():
+            raise ValueError("Fractional stock volume")
+        if not (row["low"] <= min(row["open"], row["close"])
+                <= max(row["open"], row["close"]) <= row["high"]):
+            raise ValueError("Inconsistent OHLC range")
         records.append({field: row[field] for field in FIELDS})
     if [r["date"] for r in records] != sorted(seen):
         raise ValueError("Prices not in ascending session order")
@@ -79,6 +84,17 @@ def claim_call(ledger_path: Path, today: str, cap: int) -> None:
         raise RuntimeError("Local daily EODHD request safety cap reached")
     ledger["used"] += 1
     ledger_path.write_text(json.dumps(ledger, indent=2) + "\n", encoding="utf-8")
+
+
+def read_cached_prices(path: Path) -> list[dict]:
+    with path.open(newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    try:
+        prices = [{"date": row["date"], **{field: float(row[field]) for field in FIELDS[1:]}}
+                  for row in rows]
+    except (KeyError, TypeError, ValueError):
+        raise ValueError("Malformed cached price CSV") from None
+    return validate_prices(prices)
 
 
 def fetch_prices(ticker: str, token: str, start: str, end: str) -> list[dict]:
@@ -130,11 +146,26 @@ def main() -> int:
         raise SystemExit("Missing EODHD_API_TOKEN (configure Codex environment secret, not source code)")
     args.output.mkdir(parents=True, exist_ok=True)
     ledger_path = args.output / "daily_request_ledger.json"
+    # Flags are observations, not inferred splits or permission to trade.
+    try:
+        from research.corporate_actions import price_flags
+    except ModuleNotFoundError:
+        from corporate_actions import price_flags
     records = []
     for ticker in symbols:
         path = args.output / (ticker.replace(".", "_") + ".csv")
         if path.exists():
-            records.append({"ticker": ticker, "status": "cached", "rows": None})
+            try:
+                prices = read_cached_prices(path)
+                if any(not args.from_date <= row["date"] <= args.to_date for row in prices):
+                    raise ValueError("Cache belongs to a different requested date range; use a separate output directory")
+                records.append({"ticker": ticker, "status": "cached", "rows": len(prices),
+                                "first": prices[0]["date"], "last": prices[-1]["date"],
+                                "cache_range_verified": False,
+                                "corporate_action_flags": price_flags(prices),
+                                "cache_note": "CSV has no request-range provenance; endpoint completeness requires the coverage report/calendar checks."})
+            except ValueError as exc:
+                records.append({"ticker": ticker, "status": "failed", "reason": str(exc)})
             continue
         try:
             claim_call(ledger_path, date.today().isoformat(), args.daily_cap)
@@ -144,7 +175,8 @@ def main() -> int:
                 writer.writeheader()
                 writer.writerows(prices)
             records.append({"ticker": ticker, "status": "ok", "rows": len(prices),
-                            "first": prices[0]["date"], "last": prices[-1]["date"]})
+                            "first": prices[0]["date"], "last": prices[-1]["date"],
+                            "corporate_action_flags": price_flags(prices)})
         except (ValueError, RuntimeError) as exc:
             records.append({"ticker": ticker, "status": "failed", "reason": str(exc)})
             if "safety cap" in str(exc):
