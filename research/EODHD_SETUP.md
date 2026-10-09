@@ -2,6 +2,11 @@
 
 For the separate **SPGM historical ETF holdings proxy** (public SEC/Wayback
 sources, zero EODHD calls), see [SPGM_PROXY_REPORT.md](SPGM_PROXY_REPORT.md).
+For the strictly prior-public stock-membership construction, company-appearance
+audit and five-stock strategy readiness assessment, see
+[SPGM_UNIVERSE_READINESS.md](SPGM_UNIVERSE_READINESS.md). Run
+`python -m research.spgm_universe` and `python -m research.spgm_universe_report`
+entirely offline; monthly security-level exports stay compressed and Git-ignored.
 `python -m research.spgm_sources`, `python -m research.spgm_benchmarks`, and
 `python -m research.spgm_proxy` rebuild from the existing ignored cache without
 network requests. Only the first two accept explicit `--fetch` for public-source
