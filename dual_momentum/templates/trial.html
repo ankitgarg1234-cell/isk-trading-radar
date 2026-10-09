@@ -13,7 +13,8 @@ header{display:flex;justify-content:space-between;align-items:center;flex-wrap:w
 <header><div><p>DUAL MOMENTUM RADAR · PAPER ACCOUNT</p><h1>One-month live-market trial</h1></div><a href="/">Original dashboard</a></header>
 <p>October 9–November 9, 2026 · Initial $10,000 · Top-5 entry / Top-15 retention / 3.5× ATR stop / 50% sector cap / cash fallback. No broker connections or real trades.</p>
 <div class="grid"><div class="card"><div class="label">Account equity</div><div class="value" id="nav">$10,000.00</div></div>
-<div class="card"><div class="label">Paper return</div><div class="value" id="return">0.00%</div></div>
+<div class="card"><div class="label">Paper return since $10K start</div><div class="value" id="return">0.00%</div></div>
+<div class="card"><div class="label">Latest completed day's P&L</div><div class="value" id="daily-pnl">Awaiting close</div><div class="label" id="daily-pnl-date">No completed session valuation yet</div></div>
 <div class="card"><div class="label">Max drawdown</div><div class="value" id="dd">0.00%</div></div>
 <div class="card"><div class="label">Cash</div><div class="value" id="cash">$10,000.00</div></div>
 <div class="card"><div class="label">SPY comparator</div><div class="value" id="spy">$10,000.00</div></div></div>
@@ -39,7 +40,7 @@ header{display:flex;justify-content:space-between;align-items:center;flex-wrap:w
 <section class="panel"><h2>Pending next-open orders</h2><div id="orders">None</div></section>
 <section class="panel"><h2>Open positions and stops</h2><div id="holdings">None</div></section>
 <section class="panel"><h2>Transaction ledger</h2><div id="trades">No trades</div></section>
-<section class="panel"><h2>Daily portfolio value vs. SPY</h2><div id="equity">Awaiting first market session</div></section>
+<section class="panel"><h2>Daily portfolio value and P&L vs. SPY</h2><p class="label">Daily P&L = closing equity minus the prior completed close (or the initial $10,000 on the first day), including modeled execution fees. No live intraday P&L is implied.</p><div id="equity">Awaiting first completed close</div></section>
 <section class="panel"><h2>Audit notes and coverage</h2><div id="notes">No notes</div></section>
 <footer>Paper-only research. Historical returns were provisional and these hypothetical fills do not establish realizable execution. Existing Radar account remains unchanged.</footer>
 <script>
@@ -59,6 +60,18 @@ async function refresh(){try{
  const a=await res.json(),s=a.state||{},hist=s.equity||[],last=hist[hist.length-1];
  const liveSectors=await currentSectorLabels();
  const nav=last?last.nav:10000;el('nav').textContent=usd(nav);el('return').textContent=pct(nav/10000-1);
+ const initial=Number(s.initial_capital||10000);
+ const priorNav=hist.length>1?Number(hist[hist.length-2].nav):initial;
+ if(last){
+   const dayPL=Number(last.nav)-priorNav;
+   el('daily-pnl').textContent=(dayPL>=0?'+':'-')+usd(Math.abs(dayPL))+' ('+(dayPL>=0?'+':'')+pct(dayPL/priorNav)+')';
+   el('daily-pnl-date').textContent='Completed NYSE session: '+last.date+' · after-close valuation';
+ }else{
+   el('daily-pnl').textContent='Awaiting close';
+   el('daily-pnl-date').textContent=(s.trades||[]).length
+       ?'Opening trades booked; daily P&L follows completed closing prices.'
+       :'No completed daily valuation available yet.';
+ }
  let peak=10000,dd=0;for(const d of hist){peak=Math.max(peak,d.nav);dd=Math.min(dd,d.nav/peak-1)}
  el('dd').textContent=pct(dd);el('cash').textContent=usd(s.cash);el('spy').textContent=usd(last?last.spy:10000);
  el('status').textContent='Status: '+a.status+' · Last refresh: '+(a.last_poll||'not yet')+' · Last completed session: '+(s.last_session||'none');
@@ -98,7 +111,14 @@ async function refresh(){try{
  el('orders').innerHTML=table(['Signal','Earliest fill','Side','Stock','Shares'],(s.pending||[]).flatMap(p=>(p.orders||[]).map(o=>[p.signal_date,p.fill_after,o.side,o.symbol,o.shares])));
  el('holdings').innerHTML=table(['Stock','Sector','Shares','Average cost','Active stop'],Object.entries(s.holdings||{}).map(([k,v])=>[k,sectorFor(k),v.shares,usd(v.cost),usd(v.stop)]));
  el('trades').innerHTML=table(['Date','Side','Stock','Shares','Fill','Fee','Reason'],(s.trades||[]).slice().reverse().map(t=>[t.date,t.side,t.symbol,t.shares,usd(t.price),usd(t.fee),t.reason]));
- el('equity').innerHTML=table(['Session','Account','SPY','Cash','Holdings'],hist.slice().reverse().map(d=>[d.date,usd(d.nav),usd(d.spy),usd(d.cash),d.holdings]));
+ const equityWithPL=hist.map((d,i)=>{
+  const prev=i?Number(hist[i-1].nav):initial;
+  const value=Number(d.nav)-prev;
+  const previousSpy=i?Number(hist[i-1].spy):initial;
+  const spyPL=Number(d.spy)-previousSpy;
+  return [d.date,usd(d.nav),(value>=0?'+':'-')+usd(Math.abs(value)),(value>=0?'+':'')+pct(value/prev),usd(d.spy),(spyPL>=0?'+':'-')+usd(Math.abs(spyPL)),usd(d.cash),d.holdings];
+ });
+ el('equity').innerHTML=table(['Session','Account','Daily P&L','Daily return','SPY value','SPY daily P&L','Cash','Holdings'],equityWithPL.reverse());
  const quality=s.data_quality||{};
  el('notes').innerHTML='<p>Stock coverage: '+esc(quality.symbols||'—')+' priced; download failures: '+esc(quality.failures||0)+'; last SPY bar: '+esc(quality.last_completed_spy||'—')+'</p>'+ (s.notes||[]).map(n=>'<p>'+esc(n)+'</p>').join('');
 }catch(e){el('status').textContent='Unable to load paper ledger: '+e.message}}
