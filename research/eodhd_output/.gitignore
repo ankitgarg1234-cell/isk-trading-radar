@@ -1,0 +1,3 @@
+# Never commit data extracts, reports or request ledgers.
+*
+!.gitignore
