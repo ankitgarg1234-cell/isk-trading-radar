@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: dual-momentum-radar
+    runtime: python
+    plan: free
+    buildCommand: pip install -r dual_momentum_requirements.txt
+    startCommand: uvicorn dual_momentum.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_USERNAME
+        value: admin
+      - key: APP_PASSWORD
+        sync: false
+      - key: SEC_USER_AGENT
+        sync: false

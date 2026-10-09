@@ -1,0 +1,128 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paper Trial | Dual Momentum Radar</title>
+<style>
+body{margin:0;background:#0b1524;color:#e9f0f8;font:15px system-ui,sans-serif} main{max-width:1200px;margin:auto;padding:32px 20px}
+a{color:#a5caff}p{color:#bacbdc;line-height:1.6}h1{font-size:30px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.card,.panel{background:#162338;border:1px solid #30445b;border-radius:12px;padding:18px;margin:12px 0;overflow:auto}
+.value{font-size:26px;font-weight:bold;padding-top:8px}.label{font-size:12px;color:#a3b6c9}
+table{width:100%;border-collapse:collapse}td,th{text-align:left;font-size:13px;border-bottom:1px solid #2e445e;padding:9px}
+button{background:#a6cfff;border:0;border-radius:8px;padding:11px;font-weight:bold;cursor:pointer}
+header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}footer{color:#9eb5c8;font-size:13px}
+</style></head><body><main>
+<header><div><p>DUAL MOMENTUM RADAR · PAPER ACCOUNT</p><h1>One-month live-market trial</h1></div><a href="/">Original dashboard</a></header>
+<p>October 9–November 9, 2026 · Initial $10,000 · Top-5 entry / Top-15 retention / 3.5× ATR stop / 50% sector cap / cash fallback. No broker connections or real trades.</p>
+<div class="grid"><div class="card"><div class="label">Account equity</div><div class="value" id="nav">$10,000.00</div></div>
+<div class="card"><div class="label">Paper return since $10K start</div><div class="value" id="return">0.00%</div></div>
+<div class="card"><div class="label">Latest completed day's P&L</div><div class="value" id="daily-pnl">Awaiting close</div><div class="label" id="daily-pnl-date">No completed session valuation yet</div></div>
+<div class="card"><div class="label">Max drawdown</div><div class="value" id="dd">0.00%</div></div>
+<div class="card"><div class="label">Cash</div><div class="value" id="cash">$10,000.00</div></div>
+<div class="card"><div class="label">SPY comparator</div><div class="value" id="spy">$10,000.00</div></div></div>
+<section class="panel"><h2>Live trial status</h2><p id="status">Loading...</p>
+<form method="post" action="/api/trial/refresh"><button>Refresh account from completed market data</button></form>
+<p><a href="/api/trial/export">Download JSON backup of the paper ledger</a></p><p class="muted">Important: the current free Render Postgres instance is scheduled to expire on November 5, 2026. Save backups or arrange database continuity before then.</p><p id="error"></p><p class="label">Only signals actually stored before a later trading session may receive next-opening-price simulated fills. Render free instances may sleep. Refreshes and stop executions are modeled, not brokerage confirmations.</p></section>
+<section class="panel"><h2>Strategy signal / sector exposure</h2>
+<p id="signal">No scan yet</p>
+<p class="label">These are proposed allocations, not necessarily executed holdings. Equity allowance is the maximum; sector caps and cash reserves can leave a smaller invested target.</p>
+<div id="selected"></div><h3>Target exposure by sector</h3><div id="sector-summary"></div>
+</section>
+<section class="panel"><h2>Why these five stocks? Ranking audit</h2>
+<p><strong>Raw momentum rank</strong> is the equal-weight 3/6/12-month return rank. <strong>Eligible buying rank</strong> is the separate volatility-adjusted 50/30/20 score, after EMA50, EMA200, SPY-relative and post-stop lockout checks. Existing positions may be protected by the raw Top-15 retention rule.</p>
+<form method="post" action="/api/trial/ranking-audit/refresh"><button type="submit">Rebuild ranking explanation (read-only)</button></form>
+<p class="label">This audit can run even when paper fills are disabled. It only reads market prices and reports qualification; it never submits simulated trades. For older signals, click Rebuild once and allow time for the approximately 500-symbol scan to finish.</p>
+<p class="label" id="audit-summary">Candidate audit loads with the market-close decision.</p>
+<h3>Raw momentum Top 5 — were they eligible?</h3><div id="raw-five"></div>
+<h3>Top 5 qualified risk-adjusted new-buy candidates</h3><div id="eligible-five"></div>
+<details style="margin-top:20px"><summary style="cursor:pointer;color:#a5caff">Show full candidate-by-candidate explanation</summary>
+<p class="label">A raw Top-5 name may fail entry qualification. An eligible #1–5 name may also be displaced by a protected incumbent. Selected holdings are not necessarily the highest raw-return stocks.</p>
+<div id="ranking-table"></div></details>
+</section>
+<section class="panel"><h2>Pending next-open orders</h2><div id="orders">None</div></section>
+<section class="panel"><h2>Open positions and stops</h2><div id="holdings">None</div></section>
+<section class="panel"><h2>Transaction ledger</h2><div id="trades">No trades</div></section>
+<section class="panel"><h2>Daily portfolio value and P&L vs. SPY</h2><p class="label">Daily P&L = closing equity minus the prior completed close (or the initial $10,000 on the first day), including modeled execution fees. No live intraday P&L is implied.</p><div id="equity">Awaiting first completed close</div></section>
+<section class="panel"><h2>Audit notes and coverage</h2><div id="notes">No notes</div></section>
+<footer>Paper-only research. Historical returns were provisional and these hypothetical fills do not establish realizable execution. Existing Radar account remains unchanged.</footer>
+<script>
+const usd=v=>'$'+Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct=v=>(Number(v||0)*100).toFixed(2)+'%';
+const el=id=>document.getElementById(id);
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function table(cols,rows){if(!rows.length)return '<p>None yet.</p>';return '<table><thead><tr>'+cols.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(c=>'<td>'+esc(c)+'</td>').join('')+'</tr>').join('')+'</tbody></table>'}
+let sectorsCache=null,sectorFetch=null,auditAutoRequested=false;
+async function currentSectorLabels(){
+ if(sectorsCache) return sectorsCache;
+ if(!sectorFetch) sectorFetch=fetch('/api/trial/sectors').then(r=>{if(!r.ok)throw Error('Sector feed HTTP '+r.status);return r.json()}).then(x=>{sectorsCache=x.sectors||{};return sectorsCache}).finally(()=>{sectorFetch=null});
+ try{return await sectorFetch}catch(e){return {}}
+}
+async function refresh(){try{
+ const res=await fetch('/api/trial/state');if(!res.ok)throw Error('HTTP '+res.status);
+ const a=await res.json(),s=a.state||{},hist=s.equity||[],last=hist[hist.length-1];
+ const liveSectors=await currentSectorLabels();
+ const nav=last?last.nav:10000;el('nav').textContent=usd(nav);el('return').textContent=pct(nav/10000-1);
+ const initial=Number(s.initial_capital||10000);
+ const priorNav=hist.length>1?Number(hist[hist.length-2].nav):initial;
+ if(last){
+   const dayPL=Number(last.nav)-priorNav;
+   el('daily-pnl').textContent=(dayPL>=0?'+':'-')+usd(Math.abs(dayPL))+' ('+(dayPL>=0?'+':'')+pct(dayPL/priorNav)+')';
+   el('daily-pnl-date').textContent='Completed NYSE session: '+last.date+' · after-close valuation';
+ }else{
+   el('daily-pnl').textContent='Awaiting close';
+   el('daily-pnl-date').textContent=(s.trades||[]).length
+       ?'Opening trades booked; daily P&L follows completed closing prices.'
+       :'No completed daily valuation available yet.';
+ }
+ let peak=10000,dd=0;for(const d of hist){peak=Math.max(peak,d.nav);dd=Math.min(dd,d.nav/peak-1)}
+ el('dd').textContent=pct(dd);el('cash').textContent=usd(s.cash);el('spy').textContent=usd(last?last.spy:10000);
+ el('status').textContent='Status: '+a.status+' · Last refresh: '+(a.last_poll||'not yet')+' · Last completed session: '+(s.last_session||'none');
+ el('error').textContent=(!a.durable_storage?'STORAGE BLOCKED: Render is using ephemeral SQLite. Link DATABASE_URL to the existing Render Postgres database before simulated fills are enabled. ': '')+(a.error||'');
+ const sig=s.last_signal,reg=s.last_regime;
+ el('signal').textContent=sig?('As of '+sig.asof+' · '+sig.reason+' · '+reg.spy+' · allowed equity '+pct(sig.equity_cap)+' · BULL sectors: '+(reg.bull_sectors||[]).join(', ')):'No completed-close signal yet';
+ const audit=((sig&&sig.ranking_audit&&sig.ranking_audit.asof===sig.asof)
+     ?sig.ranking_audit:(!sig?s.read_only_ranking_preview:null))||null;
+ const bySymbol=Object.fromEntries((audit&&audit.rows||[]).map(r=>[r.symbol,r]));
+ if(sig && !audit && !auditAutoRequested && !s.ranking_audit_error){
+   auditAutoRequested=true;
+   el('audit-summary').textContent='Reconstructing saved ranking (read-only); this may take up to a minute.';
+   fetch('/api/trial/ranking-audit/refresh',{method:'POST'})
+     .catch(()=>{el('audit-summary').textContent='Automatic audit request failed. Use the Rebuild button.'});
+ }
+ const sectorFor=x=>(sig&&sig.sector_by_symbol&&sig.sector_by_symbol[x])||(bySymbol[x]&&bySymbol[x].sector)||liveSectors[x]||'Sector not verified';
+ const entryRankFor=x=>{
+   if(!audit)return 'Audit calculating';
+   const row=bySymbol[x];
+   if(!row)return 'Not in audit';
+   return row.eligible_rank==null ? (row.status==='RETAINED'?'Retained, entry ineligible':'Not eligible') : row.eligible_rank;
+ };
+ el('selected').innerHTML=sig?table(['Stock','Sector','Raw rank','Eligible buy rank','Target wt','Shares'],(sig.selected||[]).map(x=>[x,sectorFor(x),sig.raw_ranks[x],entryRankFor(x),pct(sig.weights[x]),sig.targets[x]])):'<p>No frozen selection yet.</p>';
+ if(sig){
+  const group={};
+  for(const sym of sig.selected||[]){const sector=sectorFor(sym);group[sector]=(group[sector]||0)+Number(sig.weights[sym]||0)}
+  const rows=Object.entries(group).sort((a,b)=>b[1]-a[1]).map(([name,weight])=>[name,pct(weight)]);
+  const allocated=Object.values(sig.weights||{}).reduce((acc,v)=>acc+Number(v),0);
+  rows.push(['Target cash / unallocated',pct(Math.max(0,1-allocated))]);
+  el('sector-summary').innerHTML=table(['Sector','Target allocation'],rows);
+ }else{el('sector-summary').innerHTML='<p>Awaiting signal</p>'}
+ el('audit-summary').textContent=audit?('As of '+audit.asof+' · '+audit.universe_with_valid_signals+' with valid price signals · '+audit.qualified_and_not_locked+' qualified, not locked · '+audit.basis):('Ranking audit '+(auditAutoRequested?'calculating from stored market close; please wait.':'not generated; use Rebuild ranking explanation.')+' '+(s.ranking_audit_error||''));
+ const auditRows=syms=>syms.map(x=>{const r=bySymbol[x];return r?[r.symbol,r.raw_rank||'—',r.eligible_rank||'—',Number(r.risk_adjusted_score).toFixed(3),r.status,r.reason]:[x,'—','—','—','NOT VERIFIED','No stored qualification evidence']});
+ el('raw-five').innerHTML=audit?table(['Ticker','Raw rank','Eligible buy rank','Risk score','Decision','Explanation'],auditRows(audit.raw_top5||[])):'<p>Audit not yet available.</p>';
+ el('eligible-five').innerHTML=audit?table(['Ticker','Raw rank','Eligible buy rank','Risk score','Decision','Explanation'],auditRows(audit.eligible_top5||[])):'<p>Audit not yet available.</p>';
+ el('ranking-table').innerHTML=audit?table(['Stock','Sector','Raw rank','Eligible rank','Risk score','EMA50','EMA200','Above SPY R63','Decision','Reason'],(audit.rows||[]).map(r=>[r.symbol,r.sector,r.raw_rank||'—',r.eligible_rank||'—',Number(r.risk_adjusted_score).toFixed(3),r.ema50_pass?'Pass':'Fail',r.ema200_pass?'Pass':'Fail',r.spy_relative_pass?'Pass':'Fail',r.status,r.reason])):'<p>Audit not yet available.</p>';
+ el('orders').innerHTML=table(['Signal','Earliest fill','Side','Stock','Shares'],(s.pending||[]).flatMap(p=>(p.orders||[]).map(o=>[p.signal_date,p.fill_after,o.side,o.symbol,o.shares])));
+ el('holdings').innerHTML=table(['Stock','Sector','Shares','Average cost','Active stop'],Object.entries(s.holdings||{}).map(([k,v])=>[k,sectorFor(k),v.shares,usd(v.cost),usd(v.stop)]));
+ el('trades').innerHTML=table(['Date','Side','Stock','Shares','Fill','Fee','Reason'],(s.trades||[]).slice().reverse().map(t=>[t.date,t.side,t.symbol,t.shares,usd(t.price),usd(t.fee),t.reason]));
+ const equityWithPL=hist.map((d,i)=>{
+  const prev=i?Number(hist[i-1].nav):initial;
+  const value=Number(d.nav)-prev;
+  const previousSpy=i?Number(hist[i-1].spy):initial;
+  const spyPL=Number(d.spy)-previousSpy;
+  return [d.date,usd(d.nav),(value>=0?'+':'-')+usd(Math.abs(value)),(value>=0?'+':'')+pct(value/prev),usd(d.spy),(spyPL>=0?'+':'-')+usd(Math.abs(spyPL)),usd(d.cash),d.holdings];
+ });
+ el('equity').innerHTML=table(['Session','Account','Daily P&L','Daily return','SPY value','SPY daily P&L','Cash','Holdings'],equityWithPL.reverse());
+ const quality=s.data_quality||{};
+ el('notes').innerHTML='<p>Stock coverage: '+esc(quality.symbols||'—')+' priced; download failures: '+esc(quality.failures||0)+'; last SPY bar: '+esc(quality.last_completed_spy||'—')+'</p>'+ (s.notes||[]).map(n=>'<p>'+esc(n)+'</p>').join('');
+}catch(e){el('status').textContent='Unable to load paper ledger: '+e.message}}
+refresh();
+setInterval(refresh, 20000);
+</script>
+</main></body></html>
