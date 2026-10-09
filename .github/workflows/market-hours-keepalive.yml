@@ -2,12 +2,10 @@ name: U.S. market-hours keepalive
 
 on:
   schedule:
-    # UTC range covers both US daylight-saving and standard-time sessions.
-    # Runs every five minutes on weekdays. GitHub cron can be delayed.
-    # This wakes both dashboards: the original Radar and the isolated
-    # Dual Momentum Radar paper trading service (where the local NY scheduler
-    # checks queued opens and completed-session closes).
-    - cron: "2-57/5 13-21 * * 1-5"
+    # Runs on the default branch. Five-minute wakeups cover both New York
+    # DST and standard time, including delayed data after the close.
+    # GitHub Actions scheduled starts are best-effort, not exact.
+    - cron: "2-57/5 13-23 * * 1-5"
   workflow_dispatch:
 
 permissions:
@@ -21,23 +19,21 @@ jobs:
   keepalive:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    strategy:
-      fail-fast: false
-      matrix:
-        url:
-          - https://isk-trading-radar.onrender.com/health
-          - https://dual-momentum-radar.onrender.com/health
     steps:
-      - name: Wake service and verify HTTP health
+      - name: Wake original radar and paper-trial service
         shell: bash
-        env:
-          HEALTH_URL: ${{ matrix.url }}
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error \
-            --retry 3 \
-            --retry-delay 10 \
-            --retry-all-errors \
-            --connect-timeout 20 \
-            --max-time 180 \
-            "${HEALTH_URL}"
+          health() {
+            curl --fail --silent --show-error \
+              --retry 3 --retry-delay 10 --retry-all-errors \
+              --connect-timeout 20 --max-time 180 "${1}"
+          }
+          # Two health checks in parallel, one GitHub runner.
+          # These are public wakeups; the logged-in app controls trial actions.
+          health https://isk-trading-radar.onrender.com/health &
+          original_pid=$!
+          health https://dual-momentum-radar.onrender.com/health &
+          paper_pid=$!
+          wait "$original_pid"
+          wait "$paper_pid"
