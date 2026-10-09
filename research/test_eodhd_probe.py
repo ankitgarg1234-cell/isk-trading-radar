@@ -39,7 +39,7 @@ class EodhdProbeTests(unittest.TestCase):
     def test_manifest_deduplicates(self):
         with tempfile.TemporaryDirectory() as temp:
             sample = Path(temp) / "sample.csv"
-            sample.write_text("eodhd_ticker\\nNVDA.US\\nMU.US\\nNVDA.US\\n")
+            sample.write_text("eodhd_ticker\nNVDA.US\nMU.US\nNVDA.US\n")
             self.assertEqual(read_symbols(sample), ["NVDA.US", "MU.US"])
 
 
