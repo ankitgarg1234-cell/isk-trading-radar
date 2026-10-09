@@ -55,3 +55,19 @@ jobs:
           pip install -r requirements.txt
       - name: Verify production Python startup imports
         run: python -c "import app.db; import app.main; print('PYTHON314_STARTUP_PASS')"
+
+
+  v22-live-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verify live v22 state
+        run: |
+          echo "FULL_SCAN_BEGIN"
+          curl --fail --silent --show-error --max-time 30 https://isk-trading-radar.onrender.com/api/full-scan
+          echo
+          echo "FULL_SCAN_END"
+          echo "LIVE_BEGIN"
+          curl --fail --silent --show-error --max-time 30 https://isk-trading-radar.onrender.com/api/live
+          echo
+          echo "LIVE_END"
