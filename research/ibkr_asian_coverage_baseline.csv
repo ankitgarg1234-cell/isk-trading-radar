@@ -1,0 +1,7 @@
+company,exchange,local_ticker,ibkr_contract_id,request_period,bar_interval,first_returned_date,last_returned_date,daily_bars,checked_at,source,notes
+Samsung Electronics,KRX,005930,17382528,FIVE_YEARS,ONE_DAY,2021-10-12,2026-10-08,1216,2026-10-09,IBKR connected historical price service,Direct primary Korean listing
+SK Hynix,KRX,000660,17382246,FIVE_YEARS,ONE_DAY,2021-10-12,2026-10-08,1216,2026-10-09,IBKR connected historical price service,Direct primary Korean listing
+Samsung Electro-Mechanics,KRX,009150,17382647,FIVE_YEARS,ONE_DAY,2021-10-12,2026-10-08,1216,2026-10-09,IBKR connected historical price service,Direct primary Korean listing
+TSMC,TWSE,2330,37928709,FIVE_YEARS,ONE_DAY,2023-04-25,2026-10-08,842,2026-10-09,IBKR connected historical price service,Shorter observed historical access than Korean listings
+Hon Hai Precision,TWSE,2317,37928714,FIVE_YEARS,ONE_DAY,2023-04-25,2026-10-08,842,2026-10-09,IBKR connected historical price service,Shorter observed historical access than Korean listings
+ASE Technology Holding,TWSE,3711,316261614,FIVE_YEARS,ONE_DAY,2023-04-25,2026-10-08,842,2026-10-09,IBKR connected historical price service,Shorter observed historical access than Korean listings
