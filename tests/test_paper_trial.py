@@ -1,11 +1,13 @@
 """Network-free regression tests for the isolated one-month paper trial."""
 import unittest
-from unittest.mock import patch
-from datetime import date, timedelta
+from unittest.mock import patch, MagicMock
+from datetime import date, timedelta, datetime, timezone
+from zoneinfo import ZoneInfo
 
 from dual_momentum.trial import (
     CAPITAL, SECTOR_CAP, _initial, _next_weekday, _stage,
     _calculate_targets, _ranking_audit, _execute_pending, _stop_check,
+    _fill_queued_open_after_market_data,
 )
 from dual_momentum.rules import PriceBar
 
@@ -26,6 +28,74 @@ def bars(symbol="MSFT", days=270, end=date(2026, 10, 9)):
 
 
 class TestPaperTrial(unittest.TestCase):
+    def test_staged_open_fills_only_after_quote_visible_in_same_session(self):
+        state=_initial()
+        _stage(state,"2026-10-08",{"HPE":5},"INITIAL")
+        source=MagicMock()
+        source._bars_from_chart.return_value=bars(end=date(2026,10,8))
+        opened_at=int(datetime(2026,10,9,13,30,tzinfo=timezone.utc).timestamp())
+        source._chart_json.return_value={
+            "timestamp":[opened_at],
+            "indicators":{"quote":[{"open":[120.0]}]}}
+        with patch("dual_momentum.trial.read_trial",return_value={"state":state}),\
+             patch("dual_momentum.trial._write") as save:
+            early=_fill_queued_open_after_market_data(
+                now=datetime(2026,10,9,9,32,tzinfo=ZoneInfo("America/New_York")),
+                source_factory=lambda **kw:source)
+            self.assertEqual(early["status"],"AWAITING_OPEN_DATA")
+            self.assertEqual(state["trades"],[])
+            save.assert_not_called()
+            filled=_fill_queued_open_after_market_data(
+                now=datetime(2026,10,9,9,50,tzinfo=ZoneInfo("America/New_York")),
+                source_factory=lambda **kw:source)
+            self.assertEqual(filled["status"],"OPEN_FILLED")
+            self.assertEqual(filled["modeled_fills"],1)
+            self.assertEqual(state["pending"],[])
+            self.assertEqual(len(state["trades"]),1)
+            self.assertEqual(state["trades"][0]["kind"],"MODELED_NEXT_OPEN")
+            self.assertEqual(state["trades"][0]["date"],"2026-10-09")
+            self.assertAlmostEqual(state["trades"][0]["price"],120.0*1.0007,places=4)
+            self.assertIn("HPE",state["holdings"])
+            self.assertEqual(save.call_args.args[1],"READY")
+            self.assertEqual(_fill_queued_open_after_market_data(
+                now=datetime(2026,10,9,10,0,tzinfo=ZoneInfo("America/New_York")),
+                source_factory=lambda **kw:source)["status"],"NO_OPEN_ORDERS")
+            self.assertEqual(len(state["trades"]),1)
+
+    def test_missing_open_quote_never_creates_paper_fill(self):
+        state=_initial()
+        _stage(state,"2026-10-08",{"HPE":5},"INITIAL")
+        source=MagicMock()
+        source._bars_from_chart.return_value=bars(end=date(2026,10,8))
+        # Prior date only; Yahoo has not published today's opening quote.
+        previous=int(datetime(2026,10,8,13,30,tzinfo=timezone.utc).timestamp())
+        source._chart_json.return_value={
+            "timestamp":[previous],
+            "indicators":{"quote":[{"open":[119.0]}]}}
+        with patch("dual_momentum.trial.read_trial",return_value={"state":state}),\
+             patch("dual_momentum.trial._write") as save:
+            response=_fill_queued_open_after_market_data(
+                now=datetime(2026,10,9,9,50,tzinfo=ZoneInfo("America/New_York")),
+                source_factory=lambda **kw:source)
+            self.assertEqual(response["status"],"AWAITING_OPEN_DATA")
+            self.assertEqual(state["cash"],CAPITAL)
+            self.assertEqual(len(state["pending"]),1)
+            self.assertEqual(state["trades"],[])
+            save.assert_not_called()
+
+    def test_missing_prior_execution_session_is_not_backdated(self):
+        state=_initial()
+        _stage(state,"2026-10-08",{"HPE":5},"INITIAL")
+        with patch("dual_momentum.trial.read_trial",return_value={"state":state}),\
+             patch("dual_momentum.trial._write") as save:
+            response=_fill_queued_open_after_market_data(
+                now=datetime(2026,10,12,9,50,tzinfo=ZoneInfo("America/New_York")))
+            self.assertEqual(response["status"],"MISSED_OPEN")
+            self.assertEqual(state["trades"],[])
+            self.assertEqual(state["cash"],CAPITAL)
+            self.assertEqual(state["pending"],[])
+            self.assertEqual(save.call_args.args[1],"MISSED_OPEN")
+
     def test_ephemeral_sqlite_fails_closed_without_market_download(self):
         from dual_momentum.trial import poll
         with patch("dual_momentum.trial.read_trial",return_value={"state":_initial()}), \
