@@ -538,6 +538,14 @@ def _stage(state, asof, desired, reason):
                                  orders=orders)]
 
 
+def _waiting_for_latest_close(now, last_session, latest_spy_date):
+    """A session can be valued only after SPY's completed adjusted close appears."""
+    today=now.date().isoformat()
+    return (START <= now.date() <= END and now.weekday() < 5
+            and (now.hour,now.minute)>=(16,20)
+            and last_session != today and latest_spy_date != today)
+
+
 def _poll_impl():
     now = datetime.now(NY)
     asof_limit = now.date().isoformat() if (now.hour,now.minute)>=(16,20) else (
@@ -552,6 +560,17 @@ def _poll_impl():
         # most recent completed close is unavailable or its adjclose is missing.
         spy_probe = [b for b in _closed_bars(source.price_bars("SPY","2y"))
                      if b.date <= asof_limit]
+        latest_spy=spy_probe[-1].date if spy_probe else None
+        if _waiting_for_latest_close(now, prior.get("last_session"), latest_spy):
+            # This is NOT a zero-P&L day and NOT a successfully valued close.
+            # Wait for Yahoo's completed adjusted session to arrive.
+            prior["data_quality"]={**(prior.get("data_quality") or {}),
+                                   "last_completed_spy":latest_spy}
+            prior["notes"]=[n for n in prior["notes"] if not n.startswith("Close pending")]
+            prior["notes"].append("Close pending for %s: completed SPY adjusted daily bar unavailable; paper NAV/P&L not yet updated" % now.date())
+            _write(prior,"WAITING_FOR_CLOSE")
+            return {"status":"WAITING_FOR_CLOSE","last_completed_spy":latest_spy,
+                    "reason":"Latest completed SPY daily bar not available"}
         if (not prior.get("last_signal") and not prior.get("trades") and
                 not prior.get("equity") and
                 now.date() <= START and
