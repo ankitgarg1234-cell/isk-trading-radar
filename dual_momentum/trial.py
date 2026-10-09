@@ -849,27 +849,43 @@ def _fill_queued_open_after_market_data(now=None, source_factory=LiveDataSource)
     source=source_factory(price_workers=min(8,len(syms)))
     try:
         bars_by_symbol={}
+        # Yahoo's current 1-day chart may include an opening price BEFORE
+        # dividend-adjusted close is populated. Extract only today's open
+        # directly from chart.quote; compute Wilder ATR exclusively from
+        # historical completed daily bars.
+        from types import SimpleNamespace
         def read(symbol):
-            return symbol,source.price_bars(symbol,"2y")
+            chart=source._chart_json(symbol,"2y")
+            full=source._bars_from_chart(chart)
+            previous=[bar for bar in full if bar.date < today]
+            dates=chart.get("timestamp") or []
+            opens=((chart.get("indicators") or {}).get("quote") or [{}])[0].get("open") or []
+            current_open=None
+            for i,ts in enumerate(dates):
+                if datetime.fromtimestamp(float(ts),timezone.utc).date().isoformat()==today:
+                    if i<len(opens) and opens[i] is not None:
+                        current_open=float(opens[i])
+                    break
+            return symbol,previous,current_open
         with ThreadPoolExecutor(max_workers=min(8,len(syms))) as pool:
             futures={pool.submit(read,sym):sym for sym in syms}
             for future in as_completed(futures):
                 sym=futures[future]
                 try:
-                    _,bars=future.result()
+                    _, prior, current_open=future.result()
                 except Exception as exc:
                     return {"status":"AWAITING_OPEN_DATA",
-                            "reason":"Open price not available for %s (%s)"%(sym,type(exc).__name__)}
-                latest=next((b for b in bars if b.date==today),None)
-                prior=[b for b in bars if b.date<today]
-                if latest is None or latest.open is None or float(latest.open)<=0:
+                            "reason":"Open quote unavailable for %s (%s)"%(sym,type(exc).__name__)}
+                if current_open is None or not math.isfinite(current_open) or current_open<=0:
                     return {"status":"AWAITING_OPEN_DATA",
-                            "reason":"Current session open has not reached feed for %s"%sym}
+                            "reason":"Current session opening quote not available for %s"%sym}
                 if any(o["side"]=="BUY" and o["symbol"]==sym for o in scheduled["orders"]):
                     if len(prior)<16 or _atr(prior) is None:
                         return {"status":"AWAITING_OPEN_DATA",
                                 "reason":"Previous-close ATR incomplete for %s"%sym}
-                bars_by_symbol[sym]=bars
+                # Not a completed candle: this lightweight object is used
+                # solely by _execute_pending to access .date and .open.
+                bars_by_symbol[sym]=prior+[SimpleNamespace(date=today,open=current_open)]
         previous_trades=len(state["trades"])
         _execute_pending(state,bars_by_symbol,today)
         trades_added=state["trades"][previous_trades:]
