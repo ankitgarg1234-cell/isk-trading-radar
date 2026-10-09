@@ -1,0 +1,9 @@
+eodhd_ticker,security,listing,country,notes
+NVDA.US,NVIDIA,US primary,US,Validated EODHD naming convention
+MU.US,Micron,US primary,US,US technology
+SAP.XETRA,SAP,German primary,DE,European primary stock
+BP.LSE,BP,UK primary,GB,European primary stock
+TM.US,Toyota,US ADR,JP,ADR is NOT the Japanese primary listing
+VALE.US,Vale,US ADR,BR,ADR is NOT the Brazilian primary listing
+AZN.US,AstraZeneca,US ADR,GB,ADR is NOT the UK primary listing
+ASML.US,ASML,US ADR,NL,ADR is NOT the Dutch primary listing
