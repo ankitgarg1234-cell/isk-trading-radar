@@ -177,3 +177,20 @@ session-filtered CSVs under the ignored `backtest_inputs/` directory. Those file
 still contain provider raw prices: session filtering does not establish complete
 corporate-action, FX or historical-universe readiness, and it does not change
 existing strategy input paths.
+
+### Global strategy input audit (offline)
+
+With the 48 cached monthly universes available, run:
+
+```bash
+PYTHONPYCACHEPREFIX=/workspace/.cache/isk-trading-radar-pycache \
+  /workspace/.venvs/eodhd-validation/bin/python -m research.spgm_strategy_audit
+```
+
+This audits historical GICS verification, ticker observations, dated listing
+verification and identifier/issuer ambiguity without fetching data or importing
+the strategy. Detailed CSVs and source hashes stay under ignored
+`eodhd_output/spgm_proxy/strategy_audit/`. Aggregate results are documented in
+[SPGM_STRATEGY_COMPLETENESS.md](SPGM_STRATEGY_COMPLETENESS.md); the read-only
+strategy audit, source evaluation, acceptance thresholds and proposed price/FX
+specification are in [SPGM_GLOBAL_BLOCKER_RESOLUTION.md](SPGM_GLOBAL_BLOCKER_RESOLUTION.md).
