@@ -811,6 +811,81 @@ def refresh_ranking_only():
         RUN_LOCK.release()
 
 
+
+def _fill_queued_open_after_market_data(now=None, source_factory=LiveDataSource):
+    """Record an earlier-staged modeled MOO order as today's OPEN becomes visible.
+
+    Never submits an order; never uses a preliminary intraday close for NAV or
+    indicator calculations. Requires durable storage (enforced in poll()),
+    order signaled on an earlier trading date, valid bars from this exact day,
+    all required ATR histories, and at least 15 minutes past scheduled open
+    to accommodate delayed quotes. Do not replay missed prior opens.
+    """
+    now = now or datetime.now(NY)
+    state = read_trial()["state"]
+    pending = state.get("pending") or []
+    if not pending:
+        return {"status":"NO_OPEN_ORDERS"}
+    scheduled = pending[0]
+    today = now.date().isoformat()
+    if today < scheduled["fill_after"]:
+        return {"status":"AWAITING_OPEN","fill_after":scheduled["fill_after"]}
+    if today > scheduled["fill_after"]:
+        state["notes"].append("Queued %s opening missed; refusing to backdate execution" %
+                              scheduled["fill_after"])
+        state["pending"]=[]
+        _write(state,"MISSED_OPEN")
+        return {"status":"MISSED_OPEN","fill_after":scheduled["fill_after"]}
+    if not (START <= now.date() <= END) or now.weekday() >= 5:
+        return {"status":"MARKET_NOT_OPEN"}
+    if (now.hour,now.minute) < (9,45):
+        return {"status":"AWAITING_OPEN_DATA","earliest_check":"09:45 America/New_York"}
+    if (now.hour,now.minute) >= (16,20):
+        # The existing completed-session replay owns end-of-day processing.
+        return {"status":"USE_COMPLETED_DAILY_REPLAY"}
+    if scheduled["signal_date"] >= today:
+        raise RuntimeError("Cannot simulate an opening trade without an earlier signal")
+    syms=sorted({o["symbol"] for o in scheduled["orders"]})
+    source=source_factory(price_workers=min(8,len(syms)))
+    try:
+        bars_by_symbol={}
+        def read(symbol):
+            return symbol,source.price_bars(symbol,"2y")
+        with ThreadPoolExecutor(max_workers=min(8,len(syms))) as pool:
+            futures={pool.submit(read,sym):sym for sym in syms}
+            for future in as_completed(futures):
+                sym=futures[future]
+                try:
+                    _,bars=future.result()
+                except Exception as exc:
+                    return {"status":"AWAITING_OPEN_DATA",
+                            "reason":"Open price not available for %s (%s)"%(sym,type(exc).__name__)}
+                latest=next((b for b in bars if b.date==today),None)
+                prior=[b for b in bars if b.date<today]
+                if latest is None or latest.open is None or float(latest.open)<=0:
+                    return {"status":"AWAITING_OPEN_DATA",
+                            "reason":"Current session open has not reached feed for %s"%sym}
+                if any(o["side"]=="BUY" and o["symbol"]==sym for o in scheduled["orders"]):
+                    if len(prior)<16 or _atr(prior) is None:
+                        return {"status":"AWAITING_OPEN_DATA",
+                                "reason":"Previous-close ATR incomplete for %s"%sym}
+                bars_by_symbol[sym]=bars
+        previous_trades=len(state["trades"])
+        _execute_pending(state,bars_by_symbol,today)
+        trades_added=state["trades"][previous_trades:]
+        state["notes"].append("%s: %s next-opening-price fills MODELED from same-day Yahoo daily open; execution recorded at %s NY, not a broker auction confirmation" %
+                              (today,len(trades_added),now.strftime("%H:%M")))
+        state["open_fill_meta"]=dict(session=today,
+                                      booked_at=now.isoformat(),
+                                      source="Yahoo daily-bar open, observed after market open",
+                                      modeled=True)
+        _write(state,"READY")
+        return {"status":"OPEN_FILLED","date":today,"modeled_fills":len(trades_added),
+                "pending_remaining":len(state["pending"])}
+    finally:
+        source.close()
+
+
 def poll():
     if not RUN_LOCK.acquire(blocking=False):
         return {"status":"ALREADY_RUNNING"}
@@ -826,6 +901,19 @@ def poll():
             state["notes"].append(warning)
             _write(state,"STORAGE_BLOCKED",warning)
             return {"status":"STORAGE_BLOCKED","reason":warning}
+        now=datetime.now(NY)
+        # Before completed daily bars exist, settle *previously staged* paper
+        # opening orders from today's observed daily opening prices only.
+        # No intraday stop scans, NAV marks or new ranking decisions here.
+        if (now.hour,now.minute) < (16,20):
+            try:
+                result=_fill_queued_open_after_market_data(now=now)
+                if result["status"] in {"OPEN_FILLED","MISSED_OPEN"}:
+                    print("Paper-trial opening reconcile: %s" % result,flush=True)
+                return result
+            except Exception as exc:
+                return {"status":"OPEN_RECONCILE_ERROR",
+                        "error":"%s: %s"%(type(exc).__name__,exc)}
         _write(saved["state"],"RUNNING")
         try:
             return _poll_impl()
