@@ -132,7 +132,8 @@ def decision_sensitivity(engine, day, at, members, stats, marks, cap, regime, sp
     """
     sessions = [d for d,t in engine.reference if t<=at]
     def decision(rows, exposure):
-        _,weights,selected,_ = engine.k['_calculate_targets'](engine.state,rows,stats,exposure,marks,
+        state=engine._sizing_state(at) if hasattr(engine,'_sizing_state') else engine.state
+        _,weights,selected,_ = engine.k['_calculate_targets'](state,rows,stats,exposure,marks,
             sessions=sessions,spy_r63=spy_r63)
         return dict(selected=selected,weights=weights,equity_cap=exposure)
     baseline = decision(members,cap)

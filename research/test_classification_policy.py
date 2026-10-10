@@ -38,6 +38,17 @@ class ClassificationTests(unittest.TestCase):
             m=member();m[field]='2026-01-01T00:00:00+00:00'
             with self.assertRaises(ValueError):verify_member_metadata(m,AT,EXPLORATORY_CURRENT_GICS)
 
+    def test_exploratory_sectors_cannot_bypass_missing_prices(self):
+        from research.historical_engine import HistoricalEngine,InputUnavailable
+        row=verify_member_metadata(member(),AT,EXPLORATORY_CURRENT_GICS)
+        engine=HistoricalEngine([],{},[],lambda _:[row],[])
+        with self.assertRaisesRegex(InputUnavailable,'signal coverage'):
+            engine._reference_close('2023-09-29',AT)
+
+    def test_unknown_mode_cannot_silently_relax_strict_policy(self):
+        with self.assertRaisesRegex(ValueError,'Unknown'):
+            resolve_sector(member(),AT,'EXPLORATORY')
+
     def test_historical_verified_assignment_preferred(self):
         m=member();m.update(sector='Financials',sector_scheme='GICS',sector_verification='historically_verified',
             sector_source_url='https://example.test/historic',sector_available_at='2023-01-01T00:00:00+00:00',

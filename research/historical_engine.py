@@ -81,10 +81,21 @@ class ShareAction:
     source: str
 
 
+@dataclass(frozen=True)
+class CashDividend:
+    symbol: str
+    ex_at: datetime
+    pay_at: datetime
+    available_at: datetime
+    amount_per_share: float  # Documented source amount, never inferred from TR.
+    currency: str
+    source: str
+
+
 class HistoricalEngine:
     def __init__(self, records, calendars, reference_sessions, members_at,
                  decision_times, *, fx=None, actions=(), initial_capital=10_000.0,
-                 signal_coverage=0.95):
+                 signal_coverage=0.95, cash_dividends=()):
         self.k = load_kernel()
         self.records = tuple(records)
         # Calendar entries are (local ISO session date, UTC open, UTC close).
@@ -98,6 +109,10 @@ class HistoricalEngine:
         self.decisions = set(decision_times)
         self.fx = fx or FXTape()
         self.actions = tuple(actions)
+        self.cash_dividends=tuple(cash_dividends)
+        self.dividend_claims={}
+        self.dividend_payments=[]
+        self.attribution_sectors={}
         if not 0.95 <= signal_coverage <= 1:
             raise ValueError("Cannot weaken universe data-coverage acceptance")
         self.minimum_coverage = signal_coverage
@@ -142,6 +157,13 @@ class HistoricalEngine:
             aware(action.effective_at); aware(action.available_at)
             if action.available_at > action.effective_at or not action.source or not math.isfinite(action.new_shares_per_old) or action.new_shares_per_old <= 0:
                 raise ValueError("Action lacks prior-known ratio/evidence")
+        for dividend in self.cash_dividends:
+            for t in (dividend.ex_at,dividend.pay_at,dividend.available_at):aware(t)
+            if dividend.available_at>dividend.ex_at or dividend.pay_at<dividend.ex_at or not dividend.source or not dividend.currency:
+                raise ValueError('Dividend entitlement/payment evidence incomplete')
+            if not math.isfinite(dividend.amount_per_share) or dividend.amount_per_share<0:
+                raise ValueError('Invalid sourced dividend amount')
+        if len({(d.symbol,d.ex_at,d.currency) for d in self.cash_dividends})!=len(self.cash_dividends):raise ValueError('Duplicate/restated dividend entitlements')
         for _, cutoff in self.reference:
             aware(cutoff)
 
@@ -174,6 +196,30 @@ class HistoricalEngine:
         # accounting for actions. Never apply a second split to the TR series.
         self.applied_actions.append(dict(symbol=a.symbol, effective_at=a.effective_at.isoformat(),
                                          ratio=ratio, source=a.source))
+
+    def _dividend_ex(self,d):
+        shares=self.state['holdings'].get(d.symbol,{}).get('shares',0)
+        # Entitlement is captured before ex-session fills. A later sale does
+        # not delete an already earned claim; a later purchase cannot earn it.
+        self.dividend_claims[d]=shares*d.amount_per_share
+
+    def _dividend_pay(self,d,at):
+        amount=self.dividend_claims.pop(d,0.)
+        value=amount*self.fx.at(d.currency,at) if amount else 0.
+        self.state['cash']+=value
+        if amount:self.dividend_payments.append(dict(symbol=d.symbol,at=at.isoformat(),
+            amount_usd=value,source=d.source,currency=d.currency,native_amount=amount))
+
+    def _receivable_marks(self,at):
+        marks={}
+        for d,amount in self.dividend_claims.items():
+            if amount:marks[d.symbol]=marks.get(d.symbol,0.)+amount*self.fx.at(d.currency,at)
+        return marks
+
+    def _sizing_state(self,at):
+        # Same original target formula with economic NAV as an accounting
+        # input. Receivables never become spendable execution cash.
+        return dict(self.state,cash=self.state['cash']+sum(self._receivable_marks(at).values()))
 
     def _fill(self, order, r):
         b = self.native(r)
@@ -310,6 +356,7 @@ class HistoricalEngine:
 
     def _reference_close(self, day, at):
         members = self.members_at(at)
+        self.attribution_sectors.update({m['symbol']:m['sector'] for m in members if m.get('sector')})
         if any(m.get("sector") not in self.k["ETFS"] for m in members):
             raise InputUnavailable("Unresolved historical GICS; no Unknown bucket")
         if len({m["symbol"] for m in members}) != len(members):
@@ -318,6 +365,8 @@ class HistoricalEngine:
         if at in self.decisions and getattr(self,'classification_observer',None):
             self.classification_observer(day,at,members,stats,marks,cap,regime,spy_r63)
         nav = self.k["_positions_value"](self.state, marks)
+        receivables=self._receivable_marks(at)
+        nav+=sum(receivables.values())
         spy_close=self.history['SPY'][-1].total_return_close if self.history.get('SPY') else None
         if self.spy_anchor is None and spy_close:self.spy_anchor=spy_close
         benchmark=self.initial_capital*spy_close/self.spy_anchor if spy_close and self.spy_anchor else None
@@ -325,15 +374,16 @@ class HistoricalEngine:
         self.state["equity"].append(dict(date=day, nav=round(nav,3), cash=round(self.state["cash"],3),
                                          holdings=len(exposure)))
         self.valuations.append(dict(date=day, at=at.isoformat(), nav=nav, cash=self.state["cash"],
+                                    receivables=receivables,
                                     positions=exposure, shares={s:h["shares"] for s,h in self.state["holdings"].items()},
-                                    sectors={m["symbol"]:m["sector"] for m in members},spy_nav=benchmark))
+                                    sectors=dict(self.attribution_sectors),spy_nav=benchmark))
         if getattr(self,"end_at",None) == at:
             return  # Original trial terminal close freezes; no fresh order.
         if at in self.decisions:
             if self.state["pending"]:
                 return
             quantities, weights, selected, ranks = self.k["_calculate_targets"](
-                self.state, members, stats, cap, marks, sessions=[d for d,t in self.reference if t<=at], spy_r63=spy_r63)
+                self._sizing_state(at), members, stats, cap, marks, sessions=[d for d,t in self.reference if t<=at], spy_r63=spy_r63)
             self._queue(quantities, at, day, "MONTH_END")
             self.state["last_signal"] = dict(asof=day, selected=selected, equity_cap=cap, weights=weights,
                                                raw_ranks={s:ranks.get(s) for s in selected})
@@ -384,6 +434,9 @@ class HistoricalEngine:
             events.setdefault(r.available_at, {"open":[],"close":[],"action":[],"reference":[]})["close"].append(r)
         for a in self.actions:
             events.setdefault(a.effective_at, {"open":[],"close":[],"action":[],"reference":[]})["action"].append(a)
+        for d in self.cash_dividends:
+            events.setdefault(d.ex_at,{"open":[],"close":[],"action":[],"reference":[]}).setdefault('dividend_ex',[]).append(d)
+            events.setdefault(d.pay_at,{"open":[],"close":[],"action":[],"reference":[]}).setdefault('dividend_pay',[]).append(d)
         for day, at in self.reference:
             if start_at <= at <= end_at:
                 events.setdefault(at, {"open":[],"close":[],"action":[],"reference":[]})["reference"].append(day)
@@ -391,6 +444,8 @@ class HistoricalEngine:
             event = events[at]
             for a in event["action"]:
                 self._action(a)
+            for d in event.get('dividend_ex',[]):self._dividend_ex(d)
+            for d in event.get('dividend_pay',[]):self._dividend_pay(d,at)
             opened = {r.symbol:r for r in event["open"]}
             if self.state["pending"]:
                 p = self.state["pending"][0]
@@ -420,5 +475,6 @@ class HistoricalEngine:
             raise ValueError("Ignored output and explicit evidence kind required")
         directory.mkdir(parents=True, exist_ok=True)
         for name, rows in (("daily_nav",self.valuations),("trades",self.state["trades"]),
-                           ("decisions",self.audit),("orders",self.orders),("actions",self.applied_actions)):
+                           ("decisions",self.audit),("orders",self.orders),("actions",self.applied_actions),
+                           ('dividend_payments',self.dividend_payments)):
             (directory/(name+".json")).write_text(json.dumps({"data_kind":data_kind,"rows":rows},indent=2)+"\n")

@@ -7,7 +7,7 @@ from datetime import date, datetime
 from statistics import mean, stdev
 
 
-def analyze(valuations, trades, *, initial_capital, start_date, end_date, data_kind, actions=()):
+def analyze(valuations, trades, *, initial_capital, start_date, end_date, data_kind, actions=(),dividends=()):
     if data_kind not in {"SYNTHETIC_FIXTURE","VALIDATED_HISTORICAL"}:
         raise ValueError("Explicit evidence kind required")
     rows = [r for r in valuations if start_date <= r['date'] <= end_date]
@@ -38,6 +38,7 @@ def analyze(valuations, trades, *, initial_capital, start_date, end_date, data_k
     # proceeds are conservatively timestamped at publication, never guessed.
     selected = [t for t in trades if start_date<=t['date']<=end_date]
     selected.sort(key=lambda t:t['at'])
+    payments=sorted(dividends,key=lambda d:datetime.fromisoformat(d['at']))
     lots, realized = defaultdict(deque),[]
     notional,fees = 0.,0.
     events = [(datetime.fromisoformat(t['at']),1,t) for t in selected]
@@ -67,19 +68,23 @@ def analyze(valuations, trades, *, initial_capital, start_date, end_date, data_k
                 raise ValueError("Attribution requires prior lots / corporate-action-adjusted quantities")
     stocks,sectors = defaultdict(float),defaultdict(float)
     annual_stocks,annual_sectors = defaultdict(lambda:defaultdict(float)),defaultdict(lambda:defaultdict(float))
-    previous, cursor = {},0
+    previous, cursor, dividend_cursor = {},0,0
     for r in rows:
         flows = defaultdict(float)
         while cursor<len(selected) and datetime.fromisoformat(selected[cursor]['at'])<=datetime.fromisoformat(r['at']):
             t = selected[cursor];cursor += 1
             flows[t['symbol']] += (1 if t['side']=='SELL' else -1)*t['shares']*t['price_usd']-t['fee']
-        for symbol in previous.keys() | r['positions'].keys() | flows.keys():
-            pnl = r['positions'].get(symbol,0)-previous.get(symbol,0)+flows[symbol]
+        while dividend_cursor<len(payments) and datetime.fromisoformat(payments[dividend_cursor]['at'])<=datetime.fromisoformat(r['at']):
+            d=payments[dividend_cursor];dividend_cursor+=1;flows[d['symbol']]+=d['amount_usd']
+        assets=dict(r['positions'])
+        for s,v in r.get('receivables',{}).items():assets[s]=assets.get(s,0.)+v
+        for symbol in previous.keys() | assets.keys() | flows.keys():
+            pnl = assets.get(symbol,0)-previous.get(symbol,0)+flows[symbol]
             stocks[symbol] += pnl
             sectors[r['sectors'].get(symbol,'UNRESOLVED')] += pnl
             annual_stocks[r['date'][:4]][symbol] += pnl
             annual_sectors[r['date'][:4]][r['sectors'].get(symbol,'UNRESOLVED')] += pnl
-        previous = r['positions']
+        previous = assets
     residual = rows[-1]['nav']-initial_capital-sum(stocks.values())
     if abs(residual)>max(.01,initial_capital*1e-8):
         raise ValueError("Cash-flow attribution does not reconcile; actions/dividends/opening lots need adapter")
@@ -96,6 +101,7 @@ def analyze(valuations, trades, *, initial_capital, start_date, end_date, data_k
         cash_return_assumption=0.,cash_drag_counterfactual=None,
         stop_closed_lot_pnl=sum(r['pnl'] for r in realized if r['reason']=='MODELED_STOP'),
         stop_counterfactual_impact=None,fees=fees,stock_pnl=dict(stocks),sector_pnl=dict(sectors),
+        dividend_cash_paid=sum(d['amount_usd'] for d in payments),
         attribution_residual=residual,realized_lots=realized,
         annual_stock_pnl={y:dict(v) for y,v in annual_stocks.items()},
         annual_sector_pnl={y:dict(v) for y,v in annual_sectors.items()},

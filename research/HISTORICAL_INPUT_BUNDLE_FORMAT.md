@@ -145,3 +145,16 @@ All membership/listing/price/FX/action/calendar/accounting gates remain.
 The paired runner records static classification coverage before execution and
 computes rule-based sector sensitivity before monthly orders. Outputs are
 segregated by mode so exploratory results cannot overwrite strict results.
+
+## Cash-dividend and material-event accounting
+
+For the continued historical comparison both bundles explicitly declare the
+same `dividend_policy` (`SOURCE_VERIFIED_NET` or
+`SOURCE_VERIFIED_GROSS_NO_WITHHOLDING`). Add sourced `cash_dividends` with
+symbol,ex_at,pay_at,available_at,amount_per_share,currency,source. Ex/payment
+times cannot be invented from a vendor date/amount pair. Receivables accrue
+before ex-session orders and cash is available at actual payment. See
+CORPORATE_ACTION_ACCOUNTING_READINESS.md for conventions and limitations.
+Include complete `material_corporate_events`; unsupported mergers/delistings/
+recoveries fail admission until validated adapters/evidence exist. Neither
+classification mode bypasses those economic accounting failures.

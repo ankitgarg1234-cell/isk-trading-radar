@@ -16,7 +16,7 @@ from zoneinfo import ZoneInfo
 
 from dual_momentum.rules import PriceBar
 from research.backtest_metrics import analyze
-from research.historical_engine import HistoricalEngine, SessionBar, ShareAction, FXObservation, FXTape
+from research.historical_engine import HistoricalEngine, SessionBar, ShareAction, CashDividend, FXObservation, FXTape
 from research.sec_decision_universe import reference_decisions
 from research.spgm_sources import DEFAULT_OUTPUT, ROOT
 from research.spgm_universe import latest_public, construct, evidence_index
@@ -185,9 +185,19 @@ def parse_bundle(path,configuration,mode=STRICT_PIT):
         datetime.fromisoformat(r['available_at']),r['usd_per_unit'],r['source']) for r in data['fx']])
     actions=[ShareAction(r['symbol'],datetime.fromisoformat(r['effective_at']),
         datetime.fromisoformat(r['available_at']),r['new_shares_per_old'],r['source']) for r in data['share_actions']]
+    for event in data.get('material_corporate_events',[]):
+        if event['kind'] not in {'SPLIT','SHARE_REPRESENTATION','CASH_DIVIDEND'}:
+            raise ValueError('Unresolved material merger/delisting/recovery event requires validated adapter: '+event['kind'])
+    dividends=[CashDividend(r['symbol'],datetime.fromisoformat(r['ex_at']),datetime.fromisoformat(r['pay_at']),
+        datetime.fromisoformat(r['available_at']),r['amount_per_share'],r['currency'],r['source']) for r in data.get('cash_dividends',[])]
+    if data.get('dividend_policy') not in {'SOURCE_VERIFIED_NET','SOURCE_VERIFIED_GROSS_NO_WITHHOLDING'}:
+        raise ValueError('Documented cash-dividend accounting policy required')
+    if any(e['kind']=='CASH_DIVIDEND' for e in data.get('material_corporate_events',[])) and not dividends:
+        raise ValueError('Dividend inventory cannot be silently omitted from cash accounting')
     decision_dates={r['signal_date'] for r in reference_decisions() if '2023-09'<=r['selection_month']<='2026-09'}
     decisions=[t for day,t in reference if day in decision_dates]
-    engine=HistoricalEngine(records,calendars,reference,members_at,decisions,fx=fx,actions=actions)
+    engine=HistoricalEngine(records,calendars,reference,members_at,decisions,fx=fx,actions=actions,cash_dividends=dividends)
+    engine.dividend_policy=data.get('dividend_policy','ORIGINAL_LEDGER_NO_EXPLICIT_DIVIDENDS')
     engine.admission_mode=mode
     engine.classification_coverage=classification_audit
     engine.classification_sensitivity=[]
@@ -216,11 +226,14 @@ def resume(manifest_path,mode=STRICT_PIT):
         engine=parse_bundle(path,key,mode)
         engine.run(reference[0][1],reference[-1][1])
         result=analyze(engine.valuations,engine.state['trades'],initial_capital=10000.,
-            start_date=START,end_date=END,data_kind='VALIDATED_HISTORICAL',actions=engine.applied_actions)
+            start_date=START,end_date=END,data_kind='VALIDATED_HISTORICAL',actions=engine.applied_actions,dividends=engine.dividend_payments)
         engines[key]=engine;metrics[key]=result
         result['admission_mode']=mode
         result['classification_coverage']=engine.classification_coverage
         result['classification_sensitivity']=engine.classification_sensitivity
+        result['dividend_policy']=engine.dividend_policy
+    if len({e.dividend_policy for e in engines.values()})!=1:
+        raise ValueError('Paired configurations use different dividend accounting policies')
     # Commit outputs only after both configurations validate and complete.
     for key,engine in engines.items():
         engine.save(OUTPUT/'results'/mode/key,data_kind='VALIDATED_HISTORICAL')
