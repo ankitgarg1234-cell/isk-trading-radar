@@ -120,3 +120,42 @@ modes remain unchanged. No historical backtest or acquisition was performed.
 Validation: 138 research tests passed, including ten new audit regression tests.
 Inventory row/status/flag invariants and original holdings/snapshot checksums
 passed. Stop at this checkpoint for the user's next decision.
+
+## October 10, 2026 — targeted recovery and subscription-decision checkpoint
+
+Starting from 7fd757d, the original 316 PARTIALLY_READY securities remain fixed:
+zero fully ready and 316 still partial. Permitted public demos supplied complete
+2021–September 2026 observed price-date spans for Apple, Amazon and Tesla, with
+1,442 bars each. These are partial repairs, not admitted historical bundles.
+290 exact-identifier/CIK current-GICS backfills pass the existing exploratory
+classification resolver and remain rejected by STRICT_PIT; 26 remain unresolved.
+No classification is newly historically verified.
+
+Sampled catalogues report 313 priority identifier candidates and 2,072 across
+the 4,236-line historical union. Three additional targeted identifier queries
+return only non-US alternatives for Carnival, DuPont and Exxon: combined
+identifier candidates are 316 and 2,075, without proving historical primary
+listings, price depth, share representation or readiness.
+
+SPY now has a partial 244-bar free-plan tape; all eleven sector ETFs still have
+211 prelaunch bars against 253 required. Neither reference input set is ready.
+The configured-account experiment used six API units over ten requests; the
+final verified free-plan account has 14 daily units and 500 extra credits
+remaining. Nine documented public-demo requests consumed zero account units.
+No IBKR, subscriptions, real trades or portfolio backtest were accessed.
+
+Official documentation confirms $19.99 Historian / EOD Historical All-World
+provides long-history prices, FX and split/dividend APIs, while general GICS
+fundamentals and exchange-calendar APIs require other products or free legal
+sources. Additional fully ready securities after purchase remain unknown.
+Listing/clock/adjustment/action/lifecycle/FX/calendar evidence and full-universe
+breadth remain blockers; 316 is below the unchanged 450-valid-signal safeguard.
+
+Reports: SPGM_316_RECOVERY_REPORT.md, SPGM_316_RECOVERY_INVENTORY.csv,
+EODHD_SUBSCRIPTION_DECISION.md and SPGM_DATA_ACQUISITION_ROADMAP.md. All raw
+responses, source documents and detailed evidence remain in ignored
+research/eodhd_output/spgm_proxy/historical_backtest/recovery_316.
+Validation: 150 research regression tests passed, including twelve recovery
+tests; original source hashes and fixed-cohort invariants checked. Production
+strategy and both admission modes are unchanged. Stop for the user's review;
+do not publish an executable bundle or run the historical backtest.

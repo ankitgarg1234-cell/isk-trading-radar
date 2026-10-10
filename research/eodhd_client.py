@@ -9,7 +9,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-ENDPOINT_COSTS = {"user": 0, "exchange-symbol-list": 1, "eod": 1, "splits": 1}
+ENDPOINT_COSTS = {"user": 0, "exchange-symbol-list": 1, "eod": 1, "splits": 1, "id-mapping": 1}
 
 
 class NoRedirect(HTTPRedirectHandler):
