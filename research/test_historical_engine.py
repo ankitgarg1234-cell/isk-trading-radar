@@ -140,6 +140,31 @@ class ExecutionParity(unittest.TestCase):
 
 
 class RankingParity(unittest.TestCase):
+    def test_all_original_regime_cap_boundaries_and_breadth_veto(self):
+        for bear,count,breadth,expected in ((False,2,.50,1.),(False,1,.71,.90),
+            (False,1,.70,.70),(False,1,.50,.70),(False,1,.49,0.),(False,0,.80,0.),
+            (True,2,.50,.50),(True,1,.60,.50),(True,1,.59,.40),(True,1,.50,.40),(True,1,.49,0.)):
+            with self.subTest(bear=bear,count=count,breadth=breadth):
+                k = load_kernel()
+                k['_momentum'] = lambda _:dict(above_ema=not bear,r63=.1)
+                members,stats,etfs = [],{},{}
+                for sec in list(k['ETFS'])[:count or 1]:
+                    etfs[k['ETFS'][sec]] = dict(above_ema=count>0,r63=.2)
+                    for i in range(100):
+                        sym=sec+str(i);members.append(dict(symbol=sym,sector=sec))
+                        stats[sym] = dict(above_ema=i<int(breadth*100))
+                cap,_ = k['_sector_and_cap'](members,stats,etfs,[1,2])
+                self.assertEqual(cap,expected)
+                #89% coverage must veto even when all checked prices are bullish.
+                stats = {m['symbol']:dict(above_ema=True) for m in members if int(m['symbol'].removeprefix(m['sector']))<89}
+                self.assertEqual(k['_sector_and_cap'](members,stats,etfs,[1,2])[0],0.)
+
+    def test_full_synthetic_replay_matches_original_trial(self):
+        from research.parity_harness import synthetic_replay_parity
+        _, result = synthetic_replay_parity()
+        self.assertTrue(all(r['passed'] for r in result['comparisons']))
+        self.assertFalse(result['historical_performance_parity_established'])
+
     def test_known_return_window_and_ema_seed(self):
         k = load_kernel()
         bars = [PriceBar(str(i),100+i,102+i,98+i,100+i,100+i,1.) for i in range(254)]
