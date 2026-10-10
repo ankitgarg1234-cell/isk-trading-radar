@@ -1,0 +1,35 @@
+name: Four-factor multibagger research
+on:
+  push:
+    branches:
+      - research/multibagger-fourfactor
+    paths:
+      - scripts/multibagger_fourfactor_research.py
+      - .github/workflows/fourfactor-multibagger-research.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fourfactor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install analysis dependencies
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install numpy pandas
+      - name: Run point-in-time multibagger four-factor audit
+        run: python scripts/multibagger_fourfactor_research.py
+      - name: Upload research results
+        uses: actions/upload-artifact@v4
+        with:
+          name: fourfactor-multibagger-research
+          path: backtests/results/fourfactor_research/
+          if-no-files-found: error
+          retention-days: 30
