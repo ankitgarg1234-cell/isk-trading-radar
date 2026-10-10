@@ -132,3 +132,16 @@ activate; saving it did not change the observed running network. After that,
 verify ECB automated research/reuse terms before fetching its public SDMX
 reference archive. Publication timing, TWD/other uncovered currencies and
 executable FX remain separate validation requirements.
+
+## Approved exploratory sector exception (continuation after8c3116b)
+
+The preceding sector requirement applies to `STRICT_PIT`, still the default.
+The user now permits `EXPLORATORY_CURRENT_GICS`. Set the same `admission_mode`
+on both bundles and pass `--mode EXPLORATORY_CURRENT_GICS --resume`. See
+[EXPLORATORY_GICS_POLICY.md](EXPLORATORY_GICS_POLICY.md) for source fields,
+identity joins, corrections and mandatory coverage/sensitivity audits.
+Current/retrospective sectors are flagged, never historically verified.
+All membership/listing/price/FX/action/calendar/accounting gates remain.
+The paired runner records static classification coverage before execution and
+computes rule-based sector sensitivity before monthly orders. Outputs are
+segregated by mode so exploratory results cannot overwrite strict results.

@@ -315,6 +315,8 @@ class HistoricalEngine:
         if len({m["symbol"] for m in members}) != len(members):
             raise InputUnavailable("Duplicate/ambiguous listing symbols")
         stats, marks, cap, regime, spy_r63 = self._signals(at, members)
+        if at in self.decisions and getattr(self,'classification_observer',None):
+            self.classification_observer(day,at,members,stats,marks,cap,regime,spy_r63)
         nav = self.k["_positions_value"](self.state, marks)
         spy_close=self.history['SPY'][-1].total_return_close if self.history.get('SPY') else None
         if self.spy_anchor is None and spy_close:self.spy_anchor=spy_close

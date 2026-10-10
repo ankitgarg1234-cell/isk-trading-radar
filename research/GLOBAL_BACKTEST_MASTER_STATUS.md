@@ -54,7 +54,7 @@ the strict checkpoint; subsequent updates supersede their GICS-only blocker.
 | Step | Status | Evidence | Dependencies | Next action | Completion criteria |
 |---|---|---|---|---|---|
 |1: verify checkpoint|COMPLETE|HEAD8c3116b, four requested documents read,104 research tests pass|None|Implement two explicit admission modes|Preserve original datasets and passing strict tests|
-|2: classification policy|IN_PROGRESS|User approval recorded|Documented GICS source and typed identity joins|Implement fallback/corrections/audit/sensitivity|Strict unchanged; exploratory approximations explicit|
+|2: classification policy|COMPLETE|Two modes, provenance/corrections, static48-date coverage and decision stress audits;112 research tests pass|Actual sourced GICS overlays remain unavailable|Collect permitted classification evidence|Strict unchanged; exploratory approximations explicit|
 |3: US inputs|NOT_STARTED|Prior inventory retained|Prior-public membership and warm-up/reference histories|Investigate existing provider sources|Complete comparison inputs|
 |4: IBKR access|NOT_STARTED|No exposed IBKR tool identified|Authorized accessible interface|Inspect bindings/local runtime|Pilot only if access and permission exist|
 |5: listing maps|NOT_STARTED|Prior verification0%|Dated listing/identity evidence|Investigate cached source joins|Preserve primary/ADR distinctions|

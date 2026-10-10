@@ -22,6 +22,8 @@ from research.spgm_sources import DEFAULT_OUTPUT, ROOT
 from research.spgm_universe import latest_public, construct, evidence_index
 from research.spgm_strategy_audit import dated_verified
 from research.strategy_kernel import load_kernel, MANIFEST
+from research.classification_policy import (STRICT_PIT, EXPLORATORY_CURRENT_GICS,
+    MODES, validate_mode, resolve_sector, coverage, decision_sensitivity)
 
 OUTPUT = DEFAULT_OUTPUT/'historical_backtest'
 START,END = '2023-10-01','2026-09-30'
@@ -50,11 +52,14 @@ def reference_timeline():
     return out
 
 
-def verify_member_metadata(member,at):
+def verify_member_metadata(member,at,mode=STRICT_PIT):
+    validate_mode(mode)
     cutoff=at.isoformat()
     if not member.get('symbol') or not member.get('instrument_key'):
         raise ValueError('Missing historical security/listing identity')
-    if member.get('sector_scheme')!='GICS' or not dated_verified(member,'sector',cutoff):
+    if mode==EXPLORATORY_CURRENT_GICS:
+        member=resolve_sector(member,at,mode)
+    elif member.get('sector_scheme')!='GICS' or not dated_verified(member,'sector',cutoff):
         raise ValueError('Historical GICS verification absent/current/future')
     if member.get('sector') not in GICS_SECTORS:
         raise ValueError('Unrecognized GICS sector')
@@ -67,9 +72,11 @@ def verify_member_metadata(member,at):
         raise ValueError('Unresolved issuer/identifier ambiguity')
     if not member.get('country') or member['country'].upper() in {'UNKNOWN','UNRESOLVED'}:
         raise ValueError('Historical country unresolved')
+    return member
 
 
-def cached_readiness():
+def cached_readiness(mode=STRICT_PIT):
+    validate_mode(mode)
     load_kernel()  # Fail on source drift, not an assumed test pass.
     frozen=DEFAULT_OUTPUT/'sec_only_decision_universe'
     manifest=json.loads((frozen/'manifest.json').read_text())
@@ -98,16 +105,23 @@ def cached_readiness():
         ('missing_data_quantified',True,'Monthly/country/security/priority matrices and inventory; no GICS imputations'),
         ('unresolved_security_sensitivity',False,'Cannot bound Top5/rank/sector impact without missing price/classification inputs'),
     ]
-    return {'outcome':'EXTERNALLY_BLOCKED','ready':all(p for _,p,_ in checks),
+    if mode==EXPLORATORY_CURRENT_GICS:
+        checks=[('documented_sector_coverage',False,'Historical GICS optional; documented current fallback coverage audit required (no verified joins in current cache)')
+                if n=='historical_sectors' else (n,p,e) for n,p,e in checks]
+        checks.append(('classification_sensitivity',False,'Static approximation audit and actual decision stresses required; cannot measure ranking sensitivity without prices'))
+    return {'outcome':'EXTERNALLY_BLOCKED','ready':all(p for _,p,_ in checks),'admission_mode':mode,
         'period':{'start':START,'end':END,'initial_capital':10000.},
         'dataset_label':'SPGM HISTORICAL ETF HOLDINGS PROXY',
         'checks':[dict(requirement=n,passed=p,evidence=e) for n,p,e in checks],
         'performance_comparison':None,'account':account,'new_price_requests':0}
 
 
-def parse_bundle(path,configuration):
+def parse_bundle(path,configuration,mode=STRICT_PIT):
+    validate_mode(mode)
     load_kernel()
     data=json.loads(path.read_text())
+    if data.get('admission_mode',STRICT_PIT)!=mode:
+        raise ValueError('Bundle classification mode differs from explicit requested mode')
     if data.get('data_kind')!='HISTORICAL_INPUT' or data.get('configuration')!=configuration:
         raise ValueError('Historical bundle kind/configuration required; synthetic results forbidden')
     if data.get('start')!=START or data.get('end')!=END or data.get('initial_capital')!=10000.:
@@ -129,11 +143,18 @@ def parse_bundle(path,configuration):
         if data.get('dataset_label')!='SPGM HISTORICAL ETF HOLDINGS PROXY':
             raise ValueError('Explicit proxy label required')
     required_keys={}
+    classification_audit=coverage(data['memberships'],mode)
+    if not classification_audit['minimum_coverage_pass']:
+        raise ValueError('Classification coverage below monthly98%/material-country95%')
     for snap in data['memberships']:
         at=datetime.fromisoformat(snap['decision_at'])
         if at in membership:raise ValueError('Duplicate membership cutoff')
-        members=snap['members']
-        for m in members:verify_member_metadata(m,at)
+        members=[]
+        for m in snap['members']:
+            if mode==EXPLORATORY_CURRENT_GICS:
+                for record in ([m['current_gics']] if m.get('current_gics') else [])+m.get('historical_gics_corrections',[]):
+                    supported_file(path.parent,record['evidence_file'],record['sha256'])
+            members.append(verify_member_metadata(m,at,mode))
         if len({m['symbol'] for m in members})!=len(members):raise ValueError('Ambiguous symbol identity')
         if len({m['instrument_key'] for m in members})!=len(members):raise ValueError('Duplicate security mapping')
         if configuration=='SPGM_PROXY':
@@ -166,11 +187,21 @@ def parse_bundle(path,configuration):
         datetime.fromisoformat(r['available_at']),r['new_shares_per_old'],r['source']) for r in data['share_actions']]
     decision_dates={r['signal_date'] for r in reference_decisions() if '2023-09'<=r['selection_month']<='2026-09'}
     decisions=[t for day,t in reference if day in decision_dates]
-    return HistoricalEngine(records,calendars,reference,members_at,decisions,fx=fx,actions=actions)
+    engine=HistoricalEngine(records,calendars,reference,members_at,decisions,fx=fx,actions=actions)
+    engine.admission_mode=mode
+    engine.classification_coverage=classification_audit
+    engine.classification_sensitivity=[]
+    if mode==EXPLORATORY_CURRENT_GICS:
+        def observe(day,at,members,stats,marks,cap,regime,spy_r63):
+            etfs={s:engine.k['_momentum'](engine.history.get(s,[])) for s in engine.k['ETFS'].values()}
+            engine.classification_sensitivity.append(decision_sensitivity(engine,day,at,members,
+                stats|etfs,marks,cap,regime,spy_r63))
+        engine.classification_observer=observe
+    return engine
 
 
-def resume(manifest_path):
-    readiness=cached_readiness()
+def resume(manifest_path,mode=STRICT_PIT):
+    readiness=cached_readiness(mode)
     if not all(c['passed'] for c in readiness['checks'] if c['requirement'] in {'engine_validated','strategy_code_synthetic_parity','original_strategy_preserved'}):
         raise ValueError('Fresh source-matched strategy parity required before historical execution')
     manifest_path=manifest_path.resolve()
@@ -182,22 +213,30 @@ def resume(manifest_path):
     reference=reference_timeline()
     for key,entry in manifest['configurations'].items():
         path=supported_file(manifest_path.parent,entry['file'],entry['sha256'])
-        engine=parse_bundle(path,key)
+        engine=parse_bundle(path,key,mode)
         engine.run(reference[0][1],reference[-1][1])
         result=analyze(engine.valuations,engine.state['trades'],initial_capital=10000.,
             start_date=START,end_date=END,data_kind='VALIDATED_HISTORICAL',actions=engine.applied_actions)
         engines[key]=engine;metrics[key]=result
+        result['admission_mode']=mode
+        result['classification_coverage']=engine.classification_coverage
+        result['classification_sensitivity']=engine.classification_sensitivity
     # Commit outputs only after both configurations validate and complete.
     for key,engine in engines.items():
-        engine.save(OUTPUT/'results'/key,data_kind='VALIDATED_HISTORICAL')
-    (OUTPUT/'results/performance_comparison.json').write_text(json.dumps(metrics,indent=2)+'\n')
+        engine.save(OUTPUT/'results'/mode/key,data_kind='VALIDATED_HISTORICAL')
+    (OUTPUT/'results'/mode/'performance_comparison.json').write_text(json.dumps(metrics,indent=2)+'\n')
     return metrics
 
 
 def write_readiness(result):
     OUTPUT.mkdir(exist_ok=True)
-    (OUTPUT/'readiness_final.json').write_text(json.dumps(result,indent=2)+'\n')
+    directory=OUTPUT/'admission'/result.get('admission_mode',STRICT_PIT)
+    directory.mkdir(parents=True,exist_ok=True)
+    (directory/'readiness_final.json').write_text(json.dumps(result,indent=2)+'\n')
+    if result.get('admission_mode',STRICT_PIT)==STRICT_PIT:
+        (OUTPUT/'readiness_final.json').write_text(json.dumps(result,indent=2)+'\n')
     lines=['# Global backtest final readiness','',
+        'Admission mode: **'+result.get('admission_mode',STRICT_PIT)+'**.','',
         '**'+result['outcome']+'**. Period October1 2023–September30 2026; $10,000.','',
         '**SPGM HISTORICAL ETF HOLDINGS PROXY**; SEC-only lagged membership; unchanged SPY/11 U.S. sector ETF references.','',
         '| Requirement | Status | Evidence |','|---|---|---|']
@@ -210,13 +249,16 @@ def write_readiness(result):
         'Re-run `python -m research.global_backtest_pipeline --resume` after supplying `historical_backtest/input_bundle_manifest.json` and its rights-supported data/evidence files. The loader recomputes metadata timing, exact selection membership, calendar/FX/price validity, signal coverage and accounting reconciliation; a boolean ready flag cannot bypass those checks. A failed admission/replay leaves the comparison blocked.', '',
         'Machine-readable readiness, price inventory, input hashes, synthetic audit and account/request ledger stay ignored. No costed data requests are made by this runner.']
     if result.get('bundle_error'):lines += ['', 'Input admission failure: '+result['bundle_error']]
-    (OUTPUT/'readiness_final.md').write_text('\n'.join(lines)+'\n')
+    (directory/'readiness_final.md').write_text('\n'.join(lines)+'\n')
+    if result.get('admission_mode',STRICT_PIT)==STRICT_PIT:
+        (OUTPUT/'readiness_final.md').write_text('\n'.join(lines)+'\n')
 
 
 def write_completed_analysis(result):
     if not result['ready']:return
     metrics=result['performance_comparison']
     lines=['# Global historical five-stock comparison','',
+        'Admission mode: **'+result.get('admission_mode',STRICT_PIT)+'**. Current-GICS/retrospective labels in exploratory mode are approximations, never historical verification.','',
         '**BACKTEST COMPLETED** using validated supplied input bundles. October1 2023–September30 2026, $10,000;2023 is a partial October–December year.','',
         '**SPGM HISTORICAL ETF HOLDINGS PROXY**, SEC-only lagged membership; not official MSCI ACWI IMI constituents. SPY and all11 original U.S. sector ETF references retained.','',
         '| Metric | S&P500 | SPGM proxy |','|---|---:|---:|']
@@ -241,12 +283,13 @@ def write_completed_analysis(result):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--resume',action='store_true')
+    parser.add_argument('--mode',choices=MODES,default=STRICT_PIT)
     parser.add_argument('--manifest',type=Path,default=OUTPUT/'input_bundle_manifest.json')
     args=parser.parse_args()
-    result=cached_readiness()
+    result=cached_readiness(args.mode)
     if args.resume and args.manifest.exists():
         try:
-            comparison=resume(args.manifest)
+            comparison=resume(args.manifest,args.mode)
             result.update(outcome='BACKTEST_COMPLETED',ready=True,performance_comparison=comparison)
             for c in result['checks']:c.update(passed=True,evidence='Validated historical input admission and paired replay completed; inspect evidence bundle')
         except (ValueError,KeyError,RuntimeError,OSError) as exc:
