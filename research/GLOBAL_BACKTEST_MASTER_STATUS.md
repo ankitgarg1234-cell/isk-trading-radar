@@ -1,5 +1,10 @@
 # Global backtest master status
 
+**Current continuation:** user-approved current-GICS exploratory admission is
+implemented;both readiness modes remain blocked. See the continuation table
+andlatest final report below. The earlier phase table records the strict
+checkpoint,not a requirement to obtain historical GICS for exploratory mode.
+
 Updated 10 October 2026 (Europe/Stockholm). Branch `research/eodhd-acwi-imi-setup`.
 Target: 1 October 2023–30 September 2026, $10,000, unchanged five-stock rules.
 Global configuration: **SPGM HISTORICAL ETF HOLDINGS PROXY**, SEC-only lagged
@@ -62,7 +67,7 @@ the strict checkpoint; subsequent updates supersede their GICS-only blocker.
 |7: actions/inactive securities|BLOCKED|51 series with splits/429 with incomplete dividend records;source-driven receivable/payment adapter and45 focused tests pass|Complete ex/pay/action/merger/delisting evidence and required adapters|Import verified events; unsupported material actions fail admission|No survivor filtering/accounting gaps|
 |8: readiness|COMPLETE|128 research+16 paper tests;synthetic parity6/6;STRICT7/16 andEXPLORATORY7/17 checks pass|Historical data requirements remain external|Import complete rights-permitted bundles|No hidden data failures|
 |9: paired execution|BLOCKED|Explicitresume attempts in both modes returnEXTERNALLY_BLOCKED;performance=null|Exploratory10 failed requirements and complete evidence bundles|Automatically replay paired configurations after admission|Both configurations complete|
-|10: comparison report|NOT_STARTED|No real performance result|Validated paired replay or precise blockers|Report actual outcome|Explicit approximations and resumable checkpoint|
+|10: comparison report|COMPLETE|Updated final report,dual-mode readiness andignored checkpoint;128+16 tests pass|Execution remains externally blocked|Import evidence andrun explicit exploratory resume|Explicit approximations and resumable checkpoint|
 
 Continuation validation:128 research tests and16 isolated paper-trial tests
 pass. Strict has9 failures; exploratory has10 (current-sector coverage and
@@ -82,3 +87,13 @@ checks,not successful investment simulations. The exact continuation is
 after importing the required ignored input manifest and evidence bundles.
 Last successful readiness commit:373b365. No further data-dependent task can
 execute from the currently accessible inputs; final reporting continues.
+
+Final continuation outcome:OUTCOME B — EXTERNALLY BLOCKED. Steps1,2,8,10
+are complete;steps3–7 have completed source/adapter investigations but remain
+blocked on actual historical inputs/access. Step9 is blocked by failed gates.
+128 research+16 paper tests andsix-category synthetic parity pass. No new
+EODHD requests,trades,purchases,raw-data commits or production strategy edits.
+Last successful execution checkpoint:65e4305. Once complete rights-permitted
+inputs pass,explicit exploratory resume proceeds automatically to paired
+execution andcomparison. Saved additive network/start instructions require
+publication;IBKR access/entitlement remains independently unavailable.
