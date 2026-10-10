@@ -58,7 +58,7 @@ the strict checkpoint; subsequent updates supersede their GICS-only blocker.
 |3: US inputs|BLOCKED|US_REFERENCE_INPUTS.md;504 candidates after alias safeguard,448 current issuer-sector matches,3 new regressions pass|Announcement timing, alias reconciliation, complete OHLC/TR/reference exports|Import permitted verified history; continueIBKR investigation|Complete comparison inputs|
 |4: IBKR access|BLOCKED|IBKR_ACCESS_READINESS.md;0 tools/bindings/listeners,0 requests;6 admission/quota tests pass|Authorized read-only endpoint/session and existing market-data entitlement|Connect configured interface or import permitted export|Pilot only if access and permission exist|
 |5: listing maps|BLOCKED|7792 exact-ISIN current candidate security-months,0% verified historical listing;11 mapping/strict tests pass|Historical alias/MIC/currency/units/issuer intervals|Import dated security master|Preserve primary/ADR distinctions|
-|6: global prices/FX|NOT_STARTED|Prior price/FX gaps remain|Permitted history access|Continue independent research|Validated complete data|
+|6: global prices/FX|BLOCKED|539 staged/14 raw series;0 warm-up/reference/FX coverage;10 FX/quota/calendar tests pass;0 EODHD calls|Existing sufficient entitled export/interface and observable FX|Import only permitted missing partitions|Validated complete data|
 |7: actions/inactive securities|NOT_STARTED|Existing regression cases retained|Complete action/recovery evidence|Audit cached actions|No survivor filtering/accounting gaps|
 |8: readiness|NOT_STARTED|Old strict gate fails|Steps2–7|Evaluate both modes|No hidden data failures|
 |9: paired execution|BLOCKED|No complete historical bundles|Readiness passes|Automatically replay after admission|Both configurations complete|
