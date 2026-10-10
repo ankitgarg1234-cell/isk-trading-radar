@@ -97,3 +97,26 @@ Last successful execution checkpoint:65e4305. Once complete rights-permitted
 inputs pass,explicit exploratory resume proceeds automatically to paired
 execution andcomparison. Saved additive network/start instructions require
 publication;IBKR access/entitlement remains independently unavailable.
+
+## October 10, 2026 — audit-only checkpoint
+
+The security-level inventory in `SPGM_DATA_COMPLETENESS_AUDIT.md` supersedes the
+previous aggregate cache inventory for data-availability counts. Across the
+October 2023–September 2026 monthly SEC-only universes: 4,236 distinct security
+lines, 98,838 observations, zero BACKTEST_READY, 316 PARTIALLY_READY,
+2,784 IDENTITY_UNRESOLVED and 1,136 NO_USABLE_PRICE_DATA. All 48 confirmed frozen
+universe files were checksum-checked. The full 68,647,315-byte inventory is
+ignored at `research/eodhd_output/spgm_proxy/historical_backtest/data_completeness/SPGM_DATA_COMPLETENESS_INVENTORY.csv`.
+
+Correction: all eleven sector ETF tapes are present in the legacy cache's
+`sector_etfs` section; they were missed by the earlier `market`-only scan.
+They have 211 prelaunch bars and fail the required 253-bar warm-up. SPY remains
+absent. Current-sector candidates, adjusted-close fields and partial action
+lists are quantified without promoting them to complete or historically
+verified inputs. USD identity conversions are distinguished from verified FX
+tapes; no foreign FX tape is available. Original strategy and both admission
+modes remain unchanged. No historical backtest or acquisition was performed.
+
+Validation: 138 research tests passed, including ten new audit regression tests.
+Inventory row/status/flag invariants and original holdings/snapshot checksums
+passed. Stop at this checkpoint for the user's next decision.
