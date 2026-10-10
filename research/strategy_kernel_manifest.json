@@ -1,0 +1,45 @@
+{
+  "authority": "dual_momentum/trial.py",
+  "functions": {
+    "_next_weekday": "3e5e739b2d8033aae3e864e3baa33445acc8f686da6f09c7cafa6bcebbc8da27",
+    "_atr": "c5aa60a100bb49e3167febc1ab5bc782fba8649dad89691ff318ed5e6b3784b2",
+    "_momentum": "311572c76dcc61f92061f1ad7cd2721a184161e9580c94a227a96bab2802575d",
+    "_sector_and_cap": "e108d765e515f6f14650173dcd5d9f46bdab9aa8cad455768263d110b8f07815",
+    "_positions_value": "9dd434b157a181fc8a93c7ccb2acc29a307ff01e6dc71c58868b2654cb98ed37",
+    "_calculate_targets": "aa79e96e0f21c642ae9592220b7ee763d2d07ac8fa8340ee7b4b572ac45413cf",
+    "_ranking_audit": "e38eec4d1c2e352d98d54e2b0fc802309f8f3d657170c934e4eafb23feb37e65",
+    "_estimate_fee": "5f3db6646e72f53b2474a9ffee78bda4b4bf4e71eb094f25edfd63f41b722604",
+    "_execute_pending": "298662bda6a0541c5725ae8c3340b91b286afe4c2d16dc7acfc1bd495846d23e",
+    "_stop_check": "625277fcbf570b1b01c850c3b20125ca66a52414cc011f132fe37f6e100c6584",
+    "_daily_risk_check": "bbef7d95850e68a4f400c4c9a2260a7acee8faa247a6dbf36d82ff37d8bac9b5",
+    "_stage": "a52b4bd338bba475c04730e1ecb259e27533272db728df938284e17fa2d20598",
+    "_stage_decision": "529c50ffa0f98ef49010b9a243f84229e4628e6d97a3eb0e0ad861c289f7eb1c"
+  },
+  "constants": {
+    "CAPITAL": 10000.0,
+    "TRADING_COST_BPS": 7,
+    "SECTOR_CAP": 0.5,
+    "STOP_MULT": 3.5,
+    "WEIGHTS": [
+      0.3,
+      0.25,
+      0.2,
+      0.15,
+      0.1
+    ],
+    "ETFS": {
+      "Information Technology": "XLK",
+      "Communication Services": "XLC",
+      "Consumer Discretionary": "XLY",
+      "Consumer Staples": "XLP",
+      "Energy": "XLE",
+      "Financials": "XLF",
+      "Health Care": "XLV",
+      "Industrials": "XLI",
+      "Materials": "XLB",
+      "Real Estate": "XLRE",
+      "Utilities": "XLU"
+    }
+  },
+  "atr_source_sha256": "1977801a34a9cc11c3060c92217bbe50fdd9104f63679c3983fe1692d3138468"
+}
