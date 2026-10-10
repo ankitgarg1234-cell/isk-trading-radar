@@ -477,4 +477,8 @@ class HistoricalEngine:
         for name, rows in (("daily_nav",self.valuations),("trades",self.state["trades"]),
                            ("decisions",self.audit),("orders",self.orders),("actions",self.applied_actions),
                            ('dividend_payments',self.dividend_payments)):
-            (directory/(name+".json")).write_text(json.dumps({"data_kind":data_kind,"rows":rows},indent=2)+"\n")
+            (directory/(name+".json")).write_text(json.dumps({"data_kind":data_kind,
+                'admission_mode':getattr(self,'admission_mode','STRICT_PIT'),"rows":rows},indent=2)+"\n")
+        if hasattr(self,'classification_assignments'):
+            (directory/'classification_assignments.json').write_text(json.dumps(dict(
+                data_kind=data_kind,admission_mode=self.admission_mode,rows=self.classification_assignments),indent=2)+'\n')

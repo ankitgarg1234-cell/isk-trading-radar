@@ -60,6 +60,16 @@ the strict checkpoint; subsequent updates supersede their GICS-only blocker.
 |5: listing maps|BLOCKED|7792 exact-ISIN current candidate security-months,0% verified historical listing;11 mapping/strict tests pass|Historical alias/MIC/currency/units/issuer intervals|Import dated security master|Preserve primary/ADR distinctions|
 |6: global prices/FX|BLOCKED|539 staged/14 raw series;0 warm-up/reference/FX coverage;10 FX/quota/calendar tests pass;0 EODHD calls|Existing sufficient entitled export/interface and observable FX|Import only permitted missing partitions|Validated complete data|
 |7: actions/inactive securities|BLOCKED|51 series with splits/429 with incomplete dividend records;source-driven receivable/payment adapter and45 focused tests pass|Complete ex/pay/action/merger/delisting evidence and required adapters|Import verified events; unsupported material actions fail admission|No survivor filtering/accounting gaps|
-|8: readiness|NOT_STARTED|Old strict gate fails|Steps2–7|Evaluate both modes|No hidden data failures|
+|8: readiness|COMPLETE|128 research+16 paper tests;synthetic parity6/6;STRICT7/16 andEXPLORATORY7/17 checks pass|Historical data requirements remain external|Import complete rights-permitted bundles|No hidden data failures|
 |9: paired execution|BLOCKED|No complete historical bundles|Readiness passes|Automatically replay after admission|Both configurations complete|
 |10: comparison report|NOT_STARTED|No real performance result|Validated paired replay or precise blockers|Report actual outcome|Explicit approximations and resumable checkpoint|
+
+Continuation validation:128 research tests and16 isolated paper-trial tests
+pass. Strict has9 failures; exploratory has10 (current-sector coverage and
+measured classification sensitivity replace mandatory historical GICS).
+Neither publishes historical performance. Source-driven dividend accounting
+is now supported; material mergers/delistings without adapters fail. All
+original cache hashes and production strategy files are preserved.
+Latest completed action/accounting milestone:e668d7b. Readiness milestone
+commit is available in Git history; next independent task is final reporting
+and a resumable externally blocked checkpoint.

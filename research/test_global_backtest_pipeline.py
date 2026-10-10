@@ -2,12 +2,23 @@ import unittest
 import tempfile,json
 from pathlib import Path
 from datetime import datetime,timezone
-from research.global_backtest_pipeline import verify_member_metadata,reference_timeline,parse_bundle
+from research.global_backtest_pipeline import verify_member_metadata,reference_timeline,parse_bundle,validate_material_events
 from research.spgm_sources import ROOT
 from research.strategy_kernel import load_kernel
 
 
 class ReadinessTests(unittest.TestCase):
+    def test_material_recovery_flag_cannot_replace_accounting_adapter(self):
+        with self.assertRaisesRegex(ValueError,'adapter'):
+            validate_material_events([dict(kind='CASH_MERGER',resolved=True)],[],[])
+
+    def test_dividend_and_split_inventories_cannot_be_silently_dropped(self):
+        for kind in ['CASH_DIVIDEND','SPLIT']:
+            with self.assertRaises(ValueError):validate_material_events([dict(kind=kind,symbol='A')],[],[])
+
+    def test_absent_material_inventory_does_not_mean_no_actions(self):
+        with self.assertRaisesRegex(ValueError,'inventory'):validate_material_events(None,[],[])
+
     def test_current_sector_cannot_admit_historical_bundle(self):
         row=dict(symbol='A',instrument_key='isin:US0378331005',sector='Information Technology',sector_scheme='GICS')
         with self.assertRaisesRegex(ValueError,'GICS'):

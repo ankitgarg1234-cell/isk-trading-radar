@@ -52,6 +52,23 @@ def reference_timeline():
     return out
 
 
+def validate_material_events(events,actions,dividends):
+    if not isinstance(events,list):raise ValueError('Complete material corporate-event inventory required')
+    for event in events:
+        kind=event['kind']
+        if kind in {'SPLIT','SHARE_REPRESENTATION'}:
+            if not any(a.symbol==event.get('symbol') and a.effective_at.isoformat()==event.get('effective_at')
+                       and a.new_shares_per_old==event.get('new_shares_per_old') for a in actions):
+                raise ValueError('Material split/representation inventory lacks matching source event')
+        elif kind=='CASH_DIVIDEND':
+            if not any(d.symbol==event.get('symbol') and d.ex_at.isoformat()==event.get('ex_at')
+                       and d.pay_at.isoformat()==event.get('pay_at') and d.currency==event.get('currency')
+                       and d.amount_per_share==event.get('amount_per_share') for d in dividends):
+                raise ValueError('Dividend inventory cannot be silently omitted/mismatched in cash accounting')
+        else:
+            raise ValueError('Unresolved material merger/delisting/recovery event requires validated adapter: '+kind)
+
+
 def verify_member_metadata(member,at,mode=STRICT_PIT):
     validate_mode(mode)
     cutoff=at.isoformat()
@@ -107,7 +124,9 @@ def cached_readiness(mode=STRICT_PIT):
     ]
     if mode==EXPLORATORY_CURRENT_GICS:
         checks=[('documented_sector_coverage',False,'Historical GICS optional; documented current fallback coverage audit required (no verified joins in current cache)')
-                if n=='historical_sectors' else (n,p,e) for n,p,e in checks]
+                if n=='historical_sectors' else ('sp500_historical_membership',False,
+                'Prior-public September2023 membership/alias reconciliation absent; sectors may use approved documented current fallback')
+                if n=='sp500_historical_membership_sectors' else (n,p,e) for n,p,e in checks]
         checks.append(('classification_sensitivity',False,'Static approximation audit and actual decision stresses required; cannot measure ranking sensitivity without prices'))
     return {'outcome':'EXTERNALLY_BLOCKED','ready':all(p for _,p,_ in checks),'admission_mode':mode,
         'period':{'start':START,'end':END,'initial_capital':10000.},
@@ -185,15 +204,11 @@ def parse_bundle(path,configuration,mode=STRICT_PIT):
         datetime.fromisoformat(r['available_at']),r['usd_per_unit'],r['source']) for r in data['fx']])
     actions=[ShareAction(r['symbol'],datetime.fromisoformat(r['effective_at']),
         datetime.fromisoformat(r['available_at']),r['new_shares_per_old'],r['source']) for r in data['share_actions']]
-    for event in data.get('material_corporate_events',[]):
-        if event['kind'] not in {'SPLIT','SHARE_REPRESENTATION','CASH_DIVIDEND'}:
-            raise ValueError('Unresolved material merger/delisting/recovery event requires validated adapter: '+event['kind'])
     dividends=[CashDividend(r['symbol'],datetime.fromisoformat(r['ex_at']),datetime.fromisoformat(r['pay_at']),
         datetime.fromisoformat(r['available_at']),r['amount_per_share'],r['currency'],r['source']) for r in data.get('cash_dividends',[])]
     if data.get('dividend_policy') not in {'SOURCE_VERIFIED_NET','SOURCE_VERIFIED_GROSS_NO_WITHHOLDING'}:
         raise ValueError('Documented cash-dividend accounting policy required')
-    if any(e['kind']=='CASH_DIVIDEND' for e in data.get('material_corporate_events',[])) and not dividends:
-        raise ValueError('Dividend inventory cannot be silently omitted from cash accounting')
+    validate_material_events(data.get('material_corporate_events'),actions,dividends)
     decision_dates={r['signal_date'] for r in reference_decisions() if '2023-09'<=r['selection_month']<='2026-09'}
     decisions=[t for day,t in reference if day in decision_dates]
     engine=HistoricalEngine(records,calendars,reference,members_at,decisions,fx=fx,actions=actions,cash_dividends=dividends)
@@ -201,8 +216,13 @@ def parse_bundle(path,configuration,mode=STRICT_PIT):
     engine.admission_mode=mode
     engine.classification_coverage=classification_audit
     engine.classification_sensitivity=[]
+    engine.classification_assignments=[]
     if mode==EXPLORATORY_CURRENT_GICS:
         def observe(day,at,members,stats,marks,cap,regime,spy_r63):
+            engine.classification_assignments.extend(dict(decision_at=at.isoformat(),symbol=m['symbol'],
+                instrument_key=m['instrument_key'],sector=m['sector'],classification_audit=m['classification_audit'],
+                portfolio_date=m.get('portfolio_date'),publication_date=m.get('publication_date'),
+                source_filing=m.get('source_filing'),membership_source_url=m['membership_source_url']) for m in members)
             etfs={s:engine.k['_momentum'](engine.history.get(s,[])) for s in engine.k['ETFS'].values()}
             engine.classification_sensitivity.append(decision_sensitivity(engine,day,at,members,
                 stats|etfs,marks,cap,regime,spy_r63))
@@ -286,11 +306,11 @@ def write_completed_analysis(result):
             lines.append(f"| {period} | {metrics['SP500'][kind].get(period):.4%} | {metrics['SPGM_PROXY'][kind].get(period):.4%} |")
     lines += ['',
         'The underlying daily marks, decisions, raw/risk ranks, weights, orders, stop events, fees and source-backed input evidence are stored under ignored `historical_backtest/results/`. Stock/sector P&L and FIFO-lot outcomes reconcile to NAV. Sharpe/Sortino assume zero risk-free rate; cash earns zero interest, matching the original ledger. Cash drag and stop-rule causal counterfactuals remain unestimated; observed cash fractions and stopped-lot P&L are not causal estimates.', '',
-        'The engine preserves original scoring/selection/caps/stops. Global execution uses native calendars, USD FX and native stop coordinates, including conservative publication-time availability of stop proceeds. See HISTORICAL_ENGINE.md for FX, action and dividend-accounting limitations. A proxy advantage cannot be attributed wholly to selection without separately examining these disclosed execution differences.', '',
+        'The engine preserves original scoring/selection/caps/stops. Global execution uses native calendars, USD FX and native stop coordinates, including conservative publication-time availability of stop proceeds. Both configurations declare the same source-verified net/gross dividend policy, with entitlement receivables and actual payment cash. Approximation assignments and sector stress metrics are retained. A proxy advantage cannot be attributed wholly to selection without separately examining these disclosed execution differences.', '',
         'Synthetic parity is established; matching an original historical five-stock trade record remains unverified. ETF sampling/staleness means this is not an MSCI constituent backtest. Annual/monthly and stock/sector attribution are evidence for leadership analysis; unexecuted counterfactual returns and missed-return causal claims are not manufactured.']
     a,b=metrics['SP500'],metrics['SPGM_PROXY']
     lines += ['',f"Observed proxy minus S&P total-return difference: {b['total_return']-a['total_return']:.4%}; drawdown difference: {b['max_drawdown']-a['max_drawdown']:.4%}. A preference decision must also consider input coverage, proxy sampling, native execution and accounting limitations."]
-    (OUTPUT/'final_report.md').write_text('\n'.join(lines)+'\n')
+    (OUTPUT/'admission'/result.get('admission_mode',STRICT_PIT)/'final_report.md').write_text('\n'.join(lines)+'\n')
 
 
 def main():
