@@ -23,7 +23,7 @@ jobs:
       - name: Install analysis dependencies
         run: |
           python -m pip install -r requirements.txt
-          python -m pip install numpy pandas
+          python -m pip install numpy pandas requests
       - name: Run point-in-time multibagger four-factor audit
         run: python scripts/multibagger_fourfactor_research.py
       - name: Upload research results
