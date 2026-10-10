@@ -17,15 +17,11 @@ def ff(x):
         return a if math.isfinite(a) else None
     except (TypeError,ValueError):return None
 def getprices(src):
-    rows=sorted((r['date'],ff(r.get('close'))) for r in src.get('rows',[]) if ff(r.get('close')) is not None and ff(r.get('close'))>0)
-    ev=sorted((e['date'],ff(e.get('numerator'))/ff(e.get('denominator'))) for e in src.get('splits',[])
-              if ff(e.get('numerator')) and ff(e.get('denominator')))
-    dates=[];prices=[];fac=1.;j=0
-    for dt,p in rows:
-        while j<len(ev) and ev[j][0]<=dt:
-            fac*=ev[j][1];j+=1
-        dates.append(dt);prices.append(p*fac)
-    return dates,np.asarray(prices,dtype=float)
+    # The cached Yahoo chart close is split-adjusted already. Never reapply split factors.
+    rows=sorted((r['date'],ff(r.get('close'))) for r in src.get('rows',[])
+                if ff(r.get('close')) is not None and ff(r.get('close'))>0)
+    return [dt for dt,p in rows],np.asarray([p for dt,p in rows],dtype=float)
+
 def yoy(q):
     if not q:return (None,None,None)
     pe,val,_=q[-1]
@@ -136,7 +132,7 @@ def main():
         'Earnings improvement means NI yoy >20% with positive base or profitable turnaround from nonpositive prior-year NI.',
         'Growth means revenue yoy >20%; no historical consensus estimates or earnings-surprise data.',
         'Volatility annualized 63 sessions >50%; momentum 63-day top 20% among priced eligible names.',
-        'Split-adjusted Yahoo historical closes, dividends excluded; missing delisted securities, survivorship and corporate actions remain.',
+        'Yahoo split-adjusted historical closes without double applying splits; dividends excluded; missing delisted securities, survivorship and corporate actions remain.',
         'Monthly labels overlap heavily; 2024 and 2025 outcome cohorts are highly regime-dependent.',
         'Outcomes 252 stock trading sessions forward; no investable or causal claims.']}
     OUT.mkdir(parents=True,exist_ok=True)
