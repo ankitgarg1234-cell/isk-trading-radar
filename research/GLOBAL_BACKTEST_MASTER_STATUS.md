@@ -16,9 +16,9 @@ portfolios; SPY and the original eleven U.S. sector ETFs remain the references.
 | Phase 6: readiness | COMPLETE |16 formal checks:7 pass,9 fail;104 research tests pass; fresh six-category synthetic parity passes | Historical input requirements remain external | Import complete evidence bundles and run the cache-only automatic resume entrypoint | Gate evaluated honestly; historical execution remains blocked |
 | Phase 7: historical comparison | BLOCKED | No validated complete input bundle | Phase6 passes | Automatically run A/B once ready | Same dates/capital/reference/cost conventions; reproducible audits |
 | Phase 8: attribution | BLOCKED | No qualifying historical results | Phase7 | Analyze actual results only | Requested metrics/2023–26 diagnostics supported by trades |
-| Phase 9: final outputs | IN_PROGRESS | Master checkpoint created | Findings from all feasible phases | Maintain final readiness and outcome reports | Completed comparison or precise externally blocked outcome |
+| Phase 9: final outputs | COMPLETE | GLOBAL_BACKTEST_FINAL_REPORT.md, final readiness, input schema and ignored machine-readable blocked checkpoint | Historical performance remains externally blocked | Resume automatically after complete input admission | OUTCOME B documented without manufactured performance |
 
-Last successful phase5 Git commit: `2efe712`; phase4 `07c03d0`; phase3 `017320c`; phase2 `3347462`; phase1 `74ba9bc`; pre-task `544e5fd` (pushed).
+Last successful phase6 Git commit: `716599e`; phase5 `2efe712`; phase4 `07c03d0`; phase3 `017320c`; phase2 `3347462`; phase1 `74ba9bc`; pre-task `544e5fd` (pushed).
 Backtest readiness: **FAIL**; no real historical performance run authorized by a
 passing gate yet. No real trades. One new EODHD account HTTP check, zero cost
 units; no price/split/symbol/FX requests. Account usage date is stale, so current
@@ -32,3 +32,13 @@ See `HISTORICAL_INPUT_BUNDLE_FORMAT.md` for the exact ignored manifest schema.
 Independent ECB preparation has an offline parser and three regressions, but
 public downloads failed with proxy403. A saved additive environment draft
 includes the two ECB domains; publication and rights/timing checks remain open.
+
+Final outcome: **OUTCOME B — EXTERNALLY BLOCKED**. All independently feasible
+phases are complete.104 research tests and16 existing in-memory paper tests
+pass; six-category synthetic parity passes with current program hashes.
+97 original compressed universe files, holdings/snapshot inputs and16 price
+inventory sources match their prior SHA256s. Historical performance remains
+null. Phase7/8 can resume automatically after the input requirements pass;
+see `GLOBAL_BACKTEST_FINAL_REPORT.md` and the input bundle schema.
+The phase9 report commit is discoverable with `git log -1`; no report
+claims its own commit hash before Git creates it.
