@@ -29,6 +29,18 @@ def small_engine(currency="USD", fx=None):
 
 
 class ExecutionParity(unittest.TestCase):
+    def test_global_coverage_cannot_hide_missing_material_country(self):
+        engine,r=small_engine()
+        members=[dict(symbol=f'S{i}',country='KR' if i<20 else 'US') for i in range(500)]
+        engine.k['_momentum']=lambda _:dict(r63=.1,close=100.)
+        engine.history={'SPY':[r.bar]*254}
+        for i in range(480):
+            symbol=f'S{i+20}'
+            engine.history[symbol]=[r.bar]
+            engine.last_record[symbol]=replace(r,symbol=symbol)
+        with self.assertRaisesRegex(InputUnavailable,'material-country'):
+            engine._signals(r.available_at,members)
+
     def test_us_fill_quantity_cash_fee_cost_and_initial_stop_match_reference(self):
         engine,r = small_engine()
         oracle = copy.deepcopy(engine.state)
@@ -107,6 +119,26 @@ class ExecutionParity(unittest.TestCase):
         self.assertAlmostEqual(engine.state["cash"],250.-100.07*2.-1.)
         self.assertEqual(engine.state["holdings"]["A"]["stop"],86.07)
 
+    def test_later_market_sale_cannot_fund_earlier_market_buy(self):
+        prior,r=small_engine()
+        day=date(2024,1,19)
+        a=replace(r,mic='US',open_at=instant(day,14),close_at=instant(day,21),available_at=instant(day,21))
+        t=replace(r,symbol='T',mic='ASIA',open_at=instant(day,6),close_at=instant(day,13),available_at=instant(day,13))
+        dates=[date.fromisoformat(b.date) for b in prior.history['A']]+[day]
+        calendar={'US':[(str(d),instant(d,14),instant(d,21)) for d in dates],
+                  'ASIA':[(str(d),instant(d,6),instant(d,13)) for d in dates]}
+        engine=HistoricalEngine([a,t],calendar,[],lambda _:[],[])
+        engine.history={'A':prior.history['A'].copy(),'T':prior.history['A'].copy()}
+        engine.state['cash']=50.
+        engine.state['holdings']['A']=dict(shares=2,cost=100.,peak=100.,stop=50.,opened='2024-01-02')
+        engine.state['pending']=[dict(signal_date='2024-01-18',signal_at=instant(date(2024,1,18),22).isoformat(),
+            orders=[dict(symbol='T',side='BUY',shares=1,reason='fixture',scheduled_at=t.open_at.isoformat()),
+                    dict(symbol='A',side='SELL',shares=1,reason='fixture',scheduled_at=a.open_at.isoformat())])]
+        engine.run(instant(day,0),instant(day,23))
+        self.assertEqual([(x['symbol'],x['side']) for x in engine.state['trades']],[('A','SELL')])
+        self.assertNotIn('T',engine.state['holdings'])
+        self.assertAlmostEqual(engine.state['cash'],148.93)
+
     def test_future_and_stale_fx_rejected(self):
         t = instant(date(2024,1,19),9)
         fx = FXTape([FXObservation("KRW",t-timedelta(hours=1),t+timedelta(hours=1),.001,"synthetic")])
@@ -125,6 +157,13 @@ class ExecutionParity(unittest.TestCase):
         r = replace(r,bar=replace(r.bar,open=130.,high=133.,low=127.,close=130.,total_return_close=130.))
         engine._completed(r)
         self.assertEqual(engine.history["A"][-1].close,130.)
+
+    def test_missing_intermediate_session_does_not_compress_momentum_window(self):
+        engine,r=small_engine()
+        engine.history['A'].pop()
+        engine._completed(r)
+        with self.assertRaisesRegex(InputUnavailable,'intermediate'):
+            engine._signals(r.available_at,[dict(symbol='A',sector='Information Technology')])
 
     def test_preopen_orders_follow_venue_calendar_and_missing_open_expires(self):
         engine,r = small_engine()

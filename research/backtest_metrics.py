@@ -66,6 +66,7 @@ def analyze(valuations, trades, *, initial_capital, start_date, end_date, data_k
             if left>1e-9:
                 raise ValueError("Attribution requires prior lots / corporate-action-adjusted quantities")
     stocks,sectors = defaultdict(float),defaultdict(float)
+    annual_stocks,annual_sectors = defaultdict(lambda:defaultdict(float)),defaultdict(lambda:defaultdict(float))
     previous, cursor = {},0
     for r in rows:
         flows = defaultdict(float)
@@ -76,6 +77,8 @@ def analyze(valuations, trades, *, initial_capital, start_date, end_date, data_k
             pnl = r['positions'].get(symbol,0)-previous.get(symbol,0)+flows[symbol]
             stocks[symbol] += pnl
             sectors[r['sectors'].get(symbol,'UNRESOLVED')] += pnl
+            annual_stocks[r['date'][:4]][symbol] += pnl
+            annual_sectors[r['date'][:4]][r['sectors'].get(symbol,'UNRESOLVED')] += pnl
         previous = r['positions']
     residual = rows[-1]['nav']-initial_capital-sum(stocks.values())
     if abs(residual)>max(.01,initial_capital*1e-8):
@@ -93,4 +96,7 @@ def analyze(valuations, trades, *, initial_capital, start_date, end_date, data_k
         cash_return_assumption=0.,cash_drag_counterfactual=None,
         stop_closed_lot_pnl=sum(r['pnl'] for r in realized if r['reason']=='MODELED_STOP'),
         stop_counterfactual_impact=None,fees=fees,stock_pnl=dict(stocks),sector_pnl=dict(sectors),
-        attribution_residual=residual,realized_lots=realized)
+        attribution_residual=residual,realized_lots=realized,
+        annual_stock_pnl={y:dict(v) for y,v in annual_stocks.items()},
+        annual_sector_pnl={y:dict(v) for y,v in annual_sectors.items()},
+        spy_total_return=rows[-1]['spy_nav']/initial_capital-1 if rows[-1].get('spy_nav') else None)

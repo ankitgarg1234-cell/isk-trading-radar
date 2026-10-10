@@ -5,6 +5,7 @@ import ast
 import copy
 import json
 import math
+import hashlib
 from datetime import date, datetime, timedelta, timezone
 
 from dual_momentum.rules import PriceBar
@@ -87,7 +88,9 @@ def synthetic_replay_parity():
     return engine,{"data_kind":"SYNTHETIC_FIXTURE","comparisons":comparisons,
                    "historical_performance_parity_established":False,
                    "stock_signals":500,"reference_etfs":12,"replay_sessions":4,
-                   "decision_events":2,"stop_events":sum(t['kind']=='MODELED_STOP' for t in actual['trades'])}
+                   "decision_events":2,"stop_events":sum(t['kind']=='MODELED_STOP' for t in actual['trades']),
+                   "program_sha256":{name:hashlib.sha256((REPO/'research'/name).read_bytes()).hexdigest()
+                       for name in ('historical_engine.py','strategy_kernel.py','strategy_kernel_manifest.json','parity_harness.py')}}
 
 
 def main():

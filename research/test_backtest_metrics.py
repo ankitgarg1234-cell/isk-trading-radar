@@ -20,3 +20,13 @@ class MetricsTests(unittest.TestCase):
         rows = [dict(date='2024-01-02',at='2024-01-02T17:00:00+00:00',nav=1010.,cash=1010.,positions={},sectors={})]
         with self.assertRaisesRegex(ValueError,'reconcile'):
             analyze(rows,[],initial_capital=1000.,start_date='2024-01-02',end_date='2024-01-02',data_kind='SYNTHETIC_FIXTURE')
+
+    def test_split_adjusts_lots_without_creating_profit(self):
+        rows=[dict(date='2024-01-02',at='2024-01-02T17:00:00+00:00',nav=999.,cash=899.,positions={'A':100.},sectors={'A':'Technology'}),
+              dict(date='2024-01-03',at='2024-01-03T17:00:00+00:00',nav=1058.,cash=1058.,positions={},sectors={'A':'Technology'})]
+        trades=[dict(date='2024-01-02',at='2024-01-02T09:00:00+00:00',symbol='A',side='BUY',shares=1,price_usd=100.,fee=1.,kind='MODELED_NEXT_OPEN'),
+                dict(date='2024-01-03',at='2024-01-03T12:00:00+00:00',symbol='A',side='SELL',shares=2,price_usd=80.,fee=1.,kind='MODELED_NEXT_OPEN')]
+        actions=[dict(symbol='A',effective_at='2024-01-03T09:00:00+00:00',ratio=2.)]
+        r=analyze(rows,trades,initial_capital=1000.,start_date='2024-01-02',end_date='2024-01-03',data_kind='SYNTHETIC_FIXTURE',actions=actions)
+        self.assertEqual(r['stock_pnl']['A'],58.)
+        self.assertAlmostEqual(r['realized_lots'][0]['pnl'],58.)

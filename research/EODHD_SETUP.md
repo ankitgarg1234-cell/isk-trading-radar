@@ -194,3 +194,29 @@ the strategy. Detailed CSVs and source hashes stay under ignored
 [SPGM_STRATEGY_COMPLETENESS.md](SPGM_STRATEGY_COMPLETENESS.md); the read-only
 strategy audit, source evaluation, acceptance thresholds and proposed price/FX
 specification are in [SPGM_GLOBAL_BLOCKER_RESOLUTION.md](SPGM_GLOBAL_BLOCKER_RESOLUTION.md).
+
+### Historical five-stock A/B continuation (offline)
+
+The isolated engine, source-pinned synthetic parity and cache-only readiness
+runner are described in [HISTORICAL_ENGINE.md](HISTORICAL_ENGINE.md) and
+[HISTORICAL_INPUT_BUNDLE_FORMAT.md](HISTORICAL_INPUT_BUNDLE_FORMAT.md). Run:
+
+```bash
+PYTHONPYCACHEPREFIX=/workspace/.cache/isk-trading-radar-pycache \
+ /workspace/.venvs/eodhd-validation/bin/python -m research.parity_harness
+PYTHONPYCACHEPREFIX=/workspace/.cache/isk-trading-radar-pycache \
+ /workspace/.venvs/eodhd-validation/bin/python -m research.global_backtest_pipeline --resume
+```
+
+At the verified checkpoint the result is `EXTERNALLY_BLOCKED`, with nine failed
+input requirements and no historical performance figures. No authenticated
+market-data request is made by either command. The pipeline verifies input
+checksums, historical metadata timing, exact SEC-only daily membership and
+replay validity before publishing paired outputs. Current EODHD Free history
+and a stale usage date do not authorize a costed historical download.
+
+The environment configuration draft preserves existing setup/network settings
+and adds `www.ecb.europa.eu` and `data-api.ecb.europa.eu` plus these continuation
+steps. Review/save and publish in environment settings to activate that draft.
+Current-instance public ECB attempts failed with proxy403; the offline SDMX
+parser is tested, but no archive or publication-time verification was obtained.

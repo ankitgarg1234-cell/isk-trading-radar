@@ -23,6 +23,10 @@ were reproduced. No parameters are optimized. The450-signal guard remains and
 an additional95% full-universe data acceptance gate prevents a global data
 collapse from passing it. Unknown sectors veto the run. All eleven ETFs must
 be supplied as a readiness condition; ETF/SPY input histories are unchanged.
+Missing intermediate exchange sessions veto a signal rather than compressing
+the 63/126/252-session windows. An opening purchase also requires the actual
+previous completed local session for ATR. The audit includes a SPY TR benchmark
+anchored at the initial prelaunch reference mark; it is not portfolio NAV.
 
 The scheduler corrects weekday-only holiday handling with explicit calendar
 openings. Sells precede buys **at the same timestamp**; later U.S. sells cannot
@@ -52,7 +56,8 @@ No generic extreme return is repaired or treated as a split.
 `backtest_metrics.py` computes returns, CAGR, drawdown, volatility, zero-risk-free
 Sharpe/Sortino, monthly/annual returns, realized FIFO-lot win/holding statistics,
 annualized one-way turnover, cash exposure, fees and reconciled stock/sector
-cash-flow P&L. Share actions transform lot quantities/costs. Cash-drag and stop
+cash-flow P&L. Share actions transform lot quantities/costs. Annual stock/sector
+contributions are also reconciled across year boundaries. Cash-drag and stop
 counterfactual effects are deliberately null until paired simulations exist:
 realized stopped-lot P&L is not the causal benefit of the stop rule.
 

@@ -92,6 +92,7 @@ class HistoricalEngine:
         self.calendar_closes = {mic:sorted((close,day) for day,_,close in sessions)
                                 for mic,sessions in calendars.items()}
         self.calendar_close_times = {mic:[t for t,_ in rows] for mic,rows in self.calendar_closes.items()}
+        self.calendar_indices = {mic:{day:i for i,(_,day) in enumerate(rows)} for mic,rows in self.calendar_closes.items()}
         self.reference = tuple(sorted(reference_sessions))  # (session date, decision timestamp)
         self.members_at = members_at
         self.decisions = set(decision_times)
@@ -100,8 +101,11 @@ class HistoricalEngine:
         if not 0.95 <= signal_coverage <= 1:
             raise ValueError("Cannot weaken universe data-coverage acceptance")
         self.minimum_coverage = signal_coverage
+        self.initial_capital = float(initial_capital)
+        self.spy_anchor = None
         self.history = {}
         self.last_record = {}
+        self.history_gaps = set()
         self.audit = []
         self.valuations = []
         self.orders = []
@@ -187,6 +191,11 @@ class HistoricalEngine:
             if not h["shares"]:
                 del self.state["holdings"][r.symbol]
         else:
+            history=self.history.get(r.symbol,[])
+            expected=[day for day,_,close in self.calendars[r.mic] if close<r.open_at]
+            if expected and (not history or history[-1].date!=max(expected)):
+                self.state['notes'].append(r.symbol+': incomplete previous session; opening order expired')
+                return
             atr = self.k["_atr"](self.history.get(r.symbol, []))
             if atr is None:
                 self.state["notes"].append(r.symbol+": missing previous-close ATR; order expired")
@@ -213,6 +222,9 @@ class HistoricalEngine:
         b = self.native(r)
         tr = r.bar.total_return_close * self.fx.at(r.currency, r.close_at)
         b = replace(b, total_return_close=tr)
+        previous=self.history.get(r.symbol,[])
+        if previous and self.calendar_indices[r.mic][b.date]!=self.calendar_indices[r.mic][previous[-1].date]+1:
+            self.history_gaps.add(r.symbol)
         self.history.setdefault(r.symbol, []).append(b)
         self.last_record[r.symbol] = r
         h = self.state["holdings"].get(r.symbol)
@@ -242,6 +254,8 @@ class HistoricalEngine:
         needed = {m["symbol"] for m in members} | set(self.k["ETFS"].values()) | {"SPY"} | set(self.state["holdings"])
         stats, marks = {}, {}
         for symbol in needed:
+            if symbol in self.history_gaps:
+                raise InputUnavailable(symbol+': missing intermediate actual trading session; no compressed lookback')
             r = self.last_record.get(symbol)
             if not r:
                 continue
@@ -260,6 +274,12 @@ class HistoricalEngine:
         stock_stats = {s: stats[s] for s in universe if s in stats}
         if len(stock_stats)/max(1, len(universe)) < self.minimum_coverage:
             raise InputUnavailable("Complete-universe signal coverage below95%")
+        countries={}
+        for m in members:
+            countries.setdefault(m.get('country','Unknown'),[]).append(m['symbol'])
+        for country,symbols in countries.items():
+            if len(symbols)/max(1,len(universe))>=.01 and sum(s in stock_stats for s in symbols)/len(symbols)<.90:
+                raise InputUnavailable(country+': material-country signal coverage below90%')
         if len(stock_stats) < 450:
             raise InputUnavailable("Original450-signal safeguard failed")
         if any(s not in stats for s in self.k["ETFS"].values()):
@@ -296,12 +316,15 @@ class HistoricalEngine:
             raise InputUnavailable("Duplicate/ambiguous listing symbols")
         stats, marks, cap, regime, spy_r63 = self._signals(at, members)
         nav = self.k["_positions_value"](self.state, marks)
+        spy_close=self.history['SPY'][-1].total_return_close if self.history.get('SPY') else None
+        if self.spy_anchor is None and spy_close:self.spy_anchor=spy_close
+        benchmark=self.initial_capital*spy_close/self.spy_anchor if spy_close and self.spy_anchor else None
         exposure = {s: h["shares"]*marks[s] for s, h in self.state["holdings"].items()}
         self.state["equity"].append(dict(date=day, nav=round(nav,3), cash=round(self.state["cash"],3),
                                          holdings=len(exposure)))
         self.valuations.append(dict(date=day, at=at.isoformat(), nav=nav, cash=self.state["cash"],
                                     positions=exposure, shares={s:h["shares"] for s,h in self.state["holdings"].items()},
-                                    sectors={m["symbol"]:m["sector"] for m in members}))
+                                    sectors={m["symbol"]:m["sector"] for m in members},spy_nav=benchmark))
         if getattr(self,"end_at",None) == at:
             return  # Original trial terminal close freezes; no fresh order.
         if at in self.decisions:

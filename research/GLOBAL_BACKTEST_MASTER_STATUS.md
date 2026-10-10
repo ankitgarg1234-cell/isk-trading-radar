@@ -13,18 +13,22 @@ portfolios; SPY and the original eleven U.S. sector ETFs remain the references.
 | Phase 3: exact-time SEC-only universe | COMPLETE |48 exact-time SEC-only universes frozen;128,469 confirmed security-months;36 target month ends plus prelaunch September29 2023; two calendar/status regressions pass | Sector/listing/tradability still unresolved | Inventory and apply global data gates | Prior-public SEC-only membership frozen at every decision |
 | Phase 4: historical sectors/listings | BLOCKED | HISTORICAL_DATA_BLOCKERS.md; SEC-only GICS/listings0% over128,469 observations; country/sector/priority matrices saved; licensed manuals require login | Rights-permitted dated GICS and global security-master extract with knowledge timing | Import an authorized historical extract; never substitute current sectors | Existing98% country/sector coverage gates met without imputation |
 | Phase 5: historical price/FX assembly | BLOCKED | HISTORICAL_PRICE_INVENTORY.md;539 staged/14 EODHD raw series; max211 prelaunch bars; references/FX missing; three cache-resumption/quota regressions pass | Verified mappings, sufficient existing history entitlement and observable FX | Supply permitted historical exports; resume only missing costed partitions under current confirmed quota | Warm-up, complete used OHLC/TR/actions/calendars/FX |
-| Phase 6: readiness | IN_PROGRESS | Engine and parity pass; membership frozen; sectors/listings/prices/FX fail | Rights-permitted validated inputs | Build formal gates and automatic resume entrypoint | All critical checks pass; otherwise fail closed |
+| Phase 6: readiness | COMPLETE |16 formal checks:7 pass,9 fail;104 research tests pass; fresh six-category synthetic parity passes | Historical input requirements remain external | Import complete evidence bundles and run the cache-only automatic resume entrypoint | Gate evaluated honestly; historical execution remains blocked |
 | Phase 7: historical comparison | BLOCKED | No validated complete input bundle | Phase6 passes | Automatically run A/B once ready | Same dates/capital/reference/cost conventions; reproducible audits |
 | Phase 8: attribution | BLOCKED | No qualifying historical results | Phase7 | Analyze actual results only | Requested metrics/2023–26 diagnostics supported by trades |
 | Phase 9: final outputs | IN_PROGRESS | Master checkpoint created | Findings from all feasible phases | Maintain final readiness and outcome reports | Completed comparison or precise externally blocked outcome |
 
-Last successful phase4 Git commit: `07c03d0`; phase3 `017320c`; phase2 `3347462`; phase1 `74ba9bc`; pre-task `544e5fd` (pushed).
+Last successful phase5 Git commit: `2efe712`; phase4 `07c03d0`; phase3 `017320c`; phase2 `3347462`; phase1 `74ba9bc`; pre-task `544e5fd` (pushed).
 Backtest readiness: **FAIL**; no real historical performance run authorized by a
 passing gate yet. No real trades. One new EODHD account HTTP check, zero cost
 units; no price/split/symbol/FX requests. Account usage date is stale, so current
 remaining allowance is treated as unknown.
 
-Next executable action: formal readiness and resumable historical A/B runner;
-complete outcome reports without manufacturing performance figures. Rights-
-permitted dated classification/listing and long-history price/FX exports are
-the external dependencies for execution.
+Next executable action: supply rights-permitted dated classifications/listings,
+S&P historical membership, long-history prices/actions/calendars and observable
+FX; refresh parity and run `python -m research.global_backtest_pipeline --resume`.
+The runner automatically executes both configurations after input admission.
+See `HISTORICAL_INPUT_BUNDLE_FORMAT.md` for the exact ignored manifest schema.
+Independent ECB preparation has an offline parser and three regressions, but
+public downloads failed with proxy403. A saved additive environment draft
+includes the two ECB domains; publication and rights/timing checks remain open.
