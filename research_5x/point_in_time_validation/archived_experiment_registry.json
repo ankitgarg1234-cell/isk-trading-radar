@@ -1,0 +1,1010 @@
+[
+  {
+    "id": "ARCHIVE-001",
+    "spec": {
+      "candidate": "growth_margin5",
+      "phase": "baseline",
+      "rule": "rebalance",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "baseline"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-002",
+    "spec": {
+      "candidate": "growth_margin5",
+      "phase": "entry_delay",
+      "rule": "rebalance",
+      "delay": 1,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "additional_delay_1"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-003",
+    "spec": {
+      "candidate": "growth_margin5",
+      "phase": "entry_delay",
+      "rule": "rebalance",
+      "delay": 5,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "additional_delay_5"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-004",
+    "spec": {
+      "candidate": "growth_margin5",
+      "phase": "entry_delay",
+      "rule": "rebalance",
+      "delay": 20,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "additional_delay_20"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-005",
+    "spec": {
+      "candidate": "growth_margin5",
+      "phase": "holding_rule",
+      "rule": "retain_rank35",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "retain_rank35_20bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-006",
+    "spec": {
+      "candidate": "growth_margin5",
+      "phase": "holding_rule",
+      "rule": "retain_rank35",
+      "delay": 0,
+      "bps": 100,
+      "exclude": [],
+      "scenario": "retain_rank35_100bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-007",
+    "spec": {
+      "candidate": "growth_margin5",
+      "phase": "holding_rule",
+      "rule": "preserve_weights",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "preserve_weights_20bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-008",
+    "spec": {
+      "candidate": "growth_margin5",
+      "phase": "holding_rule",
+      "rule": "preserve_weights",
+      "delay": 0,
+      "bps": 100,
+      "exclude": [],
+      "scenario": "preserve_weights_100bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-009",
+    "spec": {
+      "candidate": "growth_margin5",
+      "phase": "holding_rule",
+      "rule": "retain_and_preserve",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "retain_and_preserve_20bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-010",
+    "spec": {
+      "candidate": "growth_margin5",
+      "phase": "holding_rule",
+      "rule": "retain_and_preserve",
+      "delay": 0,
+      "bps": 100,
+      "exclude": [],
+      "scenario": "retain_and_preserve_100bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-011",
+    "spec": {
+      "candidate": "growth_margin5",
+      "phase": "correlated_exclusion",
+      "rule": "rebalance",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [
+        "SNDK",
+        "WDC",
+        "STX",
+        "MU"
+      ],
+      "scenario": "storage_memory_cluster"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-012",
+    "spec": {
+      "candidate": "growth_margin5",
+      "phase": "correlated_exclusion",
+      "rule": "rebalance",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [
+        "WDC",
+        "SNDK",
+        "PLTR"
+      ],
+      "scenario": "own_top3_together"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-013",
+    "spec": {
+      "candidate": "growth_margin5",
+      "phase": "correlated_exclusion",
+      "rule": "rebalance",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [
+        "AAPL",
+        "ACN",
+        "ADBE",
+        "ADI",
+        "ADSK",
+        "AKAM",
+        "AMAT",
+        "AMD",
+        "ANET",
+        "APH",
+        "AVGO",
+        "CDNS",
+        "CDW",
+        "CIEN",
+        "COHR",
+        "CRM",
+        "CRWD",
+        "CSCO",
+        "CTSH",
+        "DDOG",
+        "DELL",
+        "FFIV",
+        "FICO",
+        "FLEX",
+        "FSLR",
+        "FTNT",
+        "GDDY",
+        "GEN",
+        "GLW",
+        "HPE",
+        "HPQ",
+        "IBM",
+        "INTC",
+        "INTU",
+        "IT",
+        "JBL",
+        "KEYS",
+        "KLAC",
+        "LITE",
+        "LRCX",
+        "MCHP",
+        "MPWR",
+        "MRVL",
+        "MSFT",
+        "MSI",
+        "MU",
+        "NOW",
+        "NTAP",
+        "NVDA",
+        "NXPI",
+        "ON",
+        "ORCL",
+        "P",
+        "PANW",
+        "PLTR",
+        "PTC",
+        "Q",
+        "QCOM",
+        "ROP",
+        "SMCI",
+        "SNDK",
+        "SNPS",
+        "STX",
+        "SWKS",
+        "TDY",
+        "TEL",
+        "TER",
+        "TRMB",
+        "TXN",
+        "TYL",
+        "VRSN",
+        "WDAY",
+        "WDC",
+        "ZBRA"
+      ],
+      "scenario": "current_technology_sector"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-014",
+    "spec": {
+      "candidate": "growth_momentum10",
+      "phase": "baseline",
+      "rule": "rebalance",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "baseline"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-015",
+    "spec": {
+      "candidate": "growth_momentum10",
+      "phase": "entry_delay",
+      "rule": "rebalance",
+      "delay": 1,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "additional_delay_1"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-016",
+    "spec": {
+      "candidate": "growth_momentum10",
+      "phase": "entry_delay",
+      "rule": "rebalance",
+      "delay": 5,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "additional_delay_5"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-017",
+    "spec": {
+      "candidate": "growth_momentum10",
+      "phase": "entry_delay",
+      "rule": "rebalance",
+      "delay": 20,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "additional_delay_20"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-018",
+    "spec": {
+      "candidate": "growth_momentum10",
+      "phase": "holding_rule",
+      "rule": "retain_rank35",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "retain_rank35_20bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-019",
+    "spec": {
+      "candidate": "growth_momentum10",
+      "phase": "holding_rule",
+      "rule": "retain_rank35",
+      "delay": 0,
+      "bps": 100,
+      "exclude": [],
+      "scenario": "retain_rank35_100bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-020",
+    "spec": {
+      "candidate": "growth_momentum10",
+      "phase": "holding_rule",
+      "rule": "preserve_weights",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "preserve_weights_20bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-021",
+    "spec": {
+      "candidate": "growth_momentum10",
+      "phase": "holding_rule",
+      "rule": "preserve_weights",
+      "delay": 0,
+      "bps": 100,
+      "exclude": [],
+      "scenario": "preserve_weights_100bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-022",
+    "spec": {
+      "candidate": "growth_momentum10",
+      "phase": "holding_rule",
+      "rule": "retain_and_preserve",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "retain_and_preserve_20bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-023",
+    "spec": {
+      "candidate": "growth_momentum10",
+      "phase": "holding_rule",
+      "rule": "retain_and_preserve",
+      "delay": 0,
+      "bps": 100,
+      "exclude": [],
+      "scenario": "retain_and_preserve_100bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-024",
+    "spec": {
+      "candidate": "growth_momentum10",
+      "phase": "correlated_exclusion",
+      "rule": "rebalance",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [
+        "SNDK",
+        "WDC",
+        "STX",
+        "MU"
+      ],
+      "scenario": "storage_memory_cluster"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-025",
+    "spec": {
+      "candidate": "growth_momentum10",
+      "phase": "correlated_exclusion",
+      "rule": "rebalance",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [
+        "SNDK",
+        "WDC",
+        "STX"
+      ],
+      "scenario": "own_top3_together"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-026",
+    "spec": {
+      "candidate": "growth_momentum10",
+      "phase": "correlated_exclusion",
+      "rule": "rebalance",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [
+        "AAPL",
+        "ACN",
+        "ADBE",
+        "ADI",
+        "ADSK",
+        "AKAM",
+        "AMAT",
+        "AMD",
+        "ANET",
+        "APH",
+        "AVGO",
+        "CDNS",
+        "CDW",
+        "CIEN",
+        "COHR",
+        "CRM",
+        "CRWD",
+        "CSCO",
+        "CTSH",
+        "DDOG",
+        "DELL",
+        "FFIV",
+        "FICO",
+        "FLEX",
+        "FSLR",
+        "FTNT",
+        "GDDY",
+        "GEN",
+        "GLW",
+        "HPE",
+        "HPQ",
+        "IBM",
+        "INTC",
+        "INTU",
+        "IT",
+        "JBL",
+        "KEYS",
+        "KLAC",
+        "LITE",
+        "LRCX",
+        "MCHP",
+        "MPWR",
+        "MRVL",
+        "MSFT",
+        "MSI",
+        "MU",
+        "NOW",
+        "NTAP",
+        "NVDA",
+        "NXPI",
+        "ON",
+        "ORCL",
+        "P",
+        "PANW",
+        "PLTR",
+        "PTC",
+        "Q",
+        "QCOM",
+        "ROP",
+        "SMCI",
+        "SNDK",
+        "SNPS",
+        "STX",
+        "SWKS",
+        "TDY",
+        "TEL",
+        "TER",
+        "TRMB",
+        "TXN",
+        "TYL",
+        "VRSN",
+        "WDAY",
+        "WDC",
+        "ZBRA"
+      ],
+      "scenario": "current_technology_sector"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-027",
+    "spec": {
+      "candidate": "momentum10_inverse_vol",
+      "phase": "baseline",
+      "rule": "rebalance",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "baseline"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-028",
+    "spec": {
+      "candidate": "momentum10_inverse_vol",
+      "phase": "entry_delay",
+      "rule": "rebalance",
+      "delay": 1,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "additional_delay_1"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-029",
+    "spec": {
+      "candidate": "momentum10_inverse_vol",
+      "phase": "entry_delay",
+      "rule": "rebalance",
+      "delay": 5,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "additional_delay_5"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-030",
+    "spec": {
+      "candidate": "momentum10_inverse_vol",
+      "phase": "entry_delay",
+      "rule": "rebalance",
+      "delay": 20,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "additional_delay_20"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-031",
+    "spec": {
+      "candidate": "momentum10_inverse_vol",
+      "phase": "holding_rule",
+      "rule": "retain_rank35",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "retain_rank35_20bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-032",
+    "spec": {
+      "candidate": "momentum10_inverse_vol",
+      "phase": "holding_rule",
+      "rule": "retain_rank35",
+      "delay": 0,
+      "bps": 100,
+      "exclude": [],
+      "scenario": "retain_rank35_100bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-033",
+    "spec": {
+      "candidate": "momentum10_inverse_vol",
+      "phase": "correlated_exclusion",
+      "rule": "rebalance",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [
+        "SNDK",
+        "WDC",
+        "STX",
+        "MU"
+      ],
+      "scenario": "storage_memory_cluster"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-034",
+    "spec": {
+      "candidate": "momentum10_inverse_vol",
+      "phase": "correlated_exclusion",
+      "rule": "rebalance",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [
+        "SNDK",
+        "DELL",
+        "WDC"
+      ],
+      "scenario": "own_top3_together"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-035",
+    "spec": {
+      "candidate": "momentum10_inverse_vol",
+      "phase": "correlated_exclusion",
+      "rule": "rebalance",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [
+        "AAPL",
+        "ACN",
+        "ADBE",
+        "ADI",
+        "ADSK",
+        "AKAM",
+        "AMAT",
+        "AMD",
+        "ANET",
+        "APH",
+        "AVGO",
+        "CDNS",
+        "CDW",
+        "CIEN",
+        "COHR",
+        "CRM",
+        "CRWD",
+        "CSCO",
+        "CTSH",
+        "DDOG",
+        "DELL",
+        "FFIV",
+        "FICO",
+        "FLEX",
+        "FSLR",
+        "FTNT",
+        "GDDY",
+        "GEN",
+        "GLW",
+        "HPE",
+        "HPQ",
+        "IBM",
+        "INTC",
+        "INTU",
+        "IT",
+        "JBL",
+        "KEYS",
+        "KLAC",
+        "LITE",
+        "LRCX",
+        "MCHP",
+        "MPWR",
+        "MRVL",
+        "MSFT",
+        "MSI",
+        "MU",
+        "NOW",
+        "NTAP",
+        "NVDA",
+        "NXPI",
+        "ON",
+        "ORCL",
+        "P",
+        "PANW",
+        "PLTR",
+        "PTC",
+        "Q",
+        "QCOM",
+        "ROP",
+        "SMCI",
+        "SNDK",
+        "SNPS",
+        "STX",
+        "SWKS",
+        "TDY",
+        "TEL",
+        "TER",
+        "TRMB",
+        "TXN",
+        "TYL",
+        "VRSN",
+        "WDAY",
+        "WDC",
+        "ZBRA"
+      ],
+      "scenario": "current_technology_sector"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-036",
+    "spec": {
+      "candidate": "compression_momentum10",
+      "phase": "baseline",
+      "rule": "rebalance",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "baseline"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-037",
+    "spec": {
+      "candidate": "compression_momentum10",
+      "phase": "entry_delay",
+      "rule": "rebalance",
+      "delay": 1,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "additional_delay_1"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-038",
+    "spec": {
+      "candidate": "compression_momentum10",
+      "phase": "entry_delay",
+      "rule": "rebalance",
+      "delay": 5,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "additional_delay_5"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-039",
+    "spec": {
+      "candidate": "compression_momentum10",
+      "phase": "entry_delay",
+      "rule": "rebalance",
+      "delay": 20,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "additional_delay_20"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-040",
+    "spec": {
+      "candidate": "compression_momentum10",
+      "phase": "holding_rule",
+      "rule": "retain_rank35",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "retain_rank35_20bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-041",
+    "spec": {
+      "candidate": "compression_momentum10",
+      "phase": "holding_rule",
+      "rule": "retain_rank35",
+      "delay": 0,
+      "bps": 100,
+      "exclude": [],
+      "scenario": "retain_rank35_100bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-042",
+    "spec": {
+      "candidate": "compression_momentum10",
+      "phase": "holding_rule",
+      "rule": "preserve_weights",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "preserve_weights_20bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-043",
+    "spec": {
+      "candidate": "compression_momentum10",
+      "phase": "holding_rule",
+      "rule": "preserve_weights",
+      "delay": 0,
+      "bps": 100,
+      "exclude": [],
+      "scenario": "preserve_weights_100bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-044",
+    "spec": {
+      "candidate": "compression_momentum10",
+      "phase": "holding_rule",
+      "rule": "retain_and_preserve",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [],
+      "scenario": "retain_and_preserve_20bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-045",
+    "spec": {
+      "candidate": "compression_momentum10",
+      "phase": "holding_rule",
+      "rule": "retain_and_preserve",
+      "delay": 0,
+      "bps": 100,
+      "exclude": [],
+      "scenario": "retain_and_preserve_100bps"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-046",
+    "spec": {
+      "candidate": "compression_momentum10",
+      "phase": "correlated_exclusion",
+      "rule": "rebalance",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [
+        "SNDK",
+        "WDC",
+        "STX",
+        "MU"
+      ],
+      "scenario": "storage_memory_cluster"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-047",
+    "spec": {
+      "candidate": "compression_momentum10",
+      "phase": "correlated_exclusion",
+      "rule": "rebalance",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [
+        "WDC",
+        "STX",
+        "TER"
+      ],
+      "scenario": "own_top3_together"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  },
+  {
+    "id": "ARCHIVE-048",
+    "spec": {
+      "candidate": "compression_momentum10",
+      "phase": "correlated_exclusion",
+      "rule": "rebalance",
+      "delay": 0,
+      "bps": 20,
+      "exclude": [
+        "AAPL",
+        "ACN",
+        "ADBE",
+        "ADI",
+        "ADSK",
+        "AKAM",
+        "AMAT",
+        "AMD",
+        "ANET",
+        "APH",
+        "AVGO",
+        "CDNS",
+        "CDW",
+        "CIEN",
+        "COHR",
+        "CRM",
+        "CRWD",
+        "CSCO",
+        "CTSH",
+        "DDOG",
+        "DELL",
+        "FFIV",
+        "FICO",
+        "FLEX",
+        "FSLR",
+        "FTNT",
+        "GDDY",
+        "GEN",
+        "GLW",
+        "HPE",
+        "HPQ",
+        "IBM",
+        "INTC",
+        "INTU",
+        "IT",
+        "JBL",
+        "KEYS",
+        "KLAC",
+        "LITE",
+        "LRCX",
+        "MCHP",
+        "MPWR",
+        "MRVL",
+        "MSFT",
+        "MSI",
+        "MU",
+        "NOW",
+        "NTAP",
+        "NVDA",
+        "NXPI",
+        "ON",
+        "ORCL",
+        "P",
+        "PANW",
+        "PLTR",
+        "PTC",
+        "Q",
+        "QCOM",
+        "ROP",
+        "SMCI",
+        "SNDK",
+        "SNPS",
+        "STX",
+        "SWKS",
+        "TDY",
+        "TEL",
+        "TER",
+        "TRMB",
+        "TXN",
+        "TYL",
+        "VRSN",
+        "WDAY",
+        "WDC",
+        "ZBRA"
+      ],
+      "scenario": "current_technology_sector"
+    },
+    "status": "PREVIOUS_RETROSPECTIVE_RESULT_ONLY",
+    "new_run": false
+  }
+]

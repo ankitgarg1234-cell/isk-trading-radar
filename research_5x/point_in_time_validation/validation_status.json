@@ -1,0 +1,23 @@
+{
+  "status": "BLOCKED",
+  "blocking_gates": [
+    "exact_original_control",
+    "broad_2022_2023_inputs",
+    "membership_vintages",
+    "delistings_and_mergers",
+    "split_spinoff_economics",
+    "dividend_payable_dates",
+    "fundamental_publication_timestamps",
+    "accounting_vintages",
+    "historical_industries",
+    "common_execution_liquidity",
+    "adaptive_training_inputs",
+    "unambiguous_strategy_registry",
+    "complete_benchmark_inputs"
+  ],
+  "strategy_simulations_executed": 0,
+  "classification": "Insufficient data",
+  "untouched_2022_2025": false,
+  "note": "Passing declared gates never constitutes a simulated or independently validated result; this program has no strategy execution engine.",
+  "source_snapshots_verified": 27
+}

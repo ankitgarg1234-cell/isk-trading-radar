@@ -1,0 +1,1 @@
+strategy,account_id,signal_timestamp,execution_timestamp,security_id,ticker,side,shares,raw_price,commission,slippage,gross,cash_after,reason

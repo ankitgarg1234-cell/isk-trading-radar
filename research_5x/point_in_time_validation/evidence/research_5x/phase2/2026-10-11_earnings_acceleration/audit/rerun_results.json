@@ -1,0 +1,41 @@
+{
+  "name": "growth_margin5",
+  "start": "2025-06-02",
+  "end": "2026-06-02",
+  "cost_bps_per_side": 20,
+  "net_return_pct": 410.81807571243286,
+  "cagr_pct": 411.3889864625629,
+  "max_dd_pct": -17.99519606906851,
+  "annual_returns_pct": {
+    "2025": 87.65425293899534,
+    "2026": 172.21236274271655
+  },
+  "worst_complete_calendar_year_pct": null,
+  "rolling12_max_pct": 410.81807571243286,
+  "rolling12_median_pct": 410.81807571243286,
+  "rolling12_loss_frequency_pct": 0.0,
+  "rolling12_5x_count": 1,
+  "average_exposure_pct": 89.84002772545541,
+  "trade_count": 23,
+  "traded_notional_over_initial": 6.843079033660889,
+  "annual_oneway_turnover_over_avg_equity": 1.6486042599735886,
+  "total_cost_dollars": 136.8615806732178,
+  "stale_held_marks": 0,
+  "max_trade_adv_fraction_pct": 0.0005192458506710002,
+  "top3_share_positive_pnl_pct": 87.49494912577748,
+  "pnl_by_ticker": {
+    "MU": 14193.512311645507,
+    "WDC": 11682.704356002807,
+    "STX": 10203.475177520751,
+    "LRCX": 2099.790278778076,
+    "ADI": 1178.6615875244142,
+    "LITE": 800.2681708984373,
+    "PLTR": 635.556022705078,
+    "AMD": 442.34596865844765,
+    "ANET": -63.244606933593786,
+    "SNDK": -91.26169555664092
+  },
+  "corporate_distributions": [],
+  "accounting_residual_dollars": 0.0,
+  "suppressed_delayed_entries": []
+}

@@ -1,0 +1,32 @@
+{
+  "status": "PASS_ARITHMETIC_ONLY",
+  "start": "2025-06-02",
+  "end": "2026-06-02",
+  "sessions": 252,
+  "trades": 23,
+  "ending_nav": 51081.807571243284,
+  "return_pct": 410.81807571243286,
+  "max_drawdown_pct": -17.99519606906851,
+  "cost_dollars": 136.8615806732178,
+  "cash_dividends": 78.64,
+  "ending_cash": 7312.927810501098,
+  "average_equity_exposure_pct": 89.84002772545543,
+  "minimum_equity_exposure_pct": 0.0,
+  "maximum_position_weight_pct": 30.351330340030646,
+  "maximum_storage_memory_cluster_weight_pct": 78.53840755697303,
+  "top3_share_positive_pnl_pct": 87.49494912577748,
+  "pnl_by_ticker": {
+    "MU": 14193.512311645507,
+    "AMD": 442.3459686584474,
+    "WDC": 11682.704356002807,
+    "STX": 10203.475177520751,
+    "ANET": -63.244606933593786,
+    "LRCX": 2099.790278778076,
+    "PLTR": 635.556022705078,
+    "ADI": 1178.6615875244142,
+    "LITE": 800.2681708984373,
+    "SNDK": -91.26169555664092
+  },
+  "maximum_residual_dollars": 0.0,
+  "limitations": "Published quotes/events and trade quantities are inputs. No independent prices, signal selection or PIT data certification. Window extends into 2026, outside requested evaluation."
+}

@@ -1,0 +1,232 @@
+{
+  "research_date": "2026-10-11",
+  "generated_utc": "2026-10-11T10:37:18.224897+00:00",
+  "pass": true,
+  "auditor_source_sha256": "c61a591f993582c2af63ba4a38d8e4a50d32b9f0e83f72435f2ce2f284f5828c",
+  "runtime": {
+    "python": "3.12.14",
+    "pandas": "2.2.3",
+    "numpy": "2.3.5"
+  },
+  "archive": {
+    "archive_sha256": "1315b523195777aea09edb40cf2c1534d81652886d7110f9dcb0c02ca3ab0af8",
+    "archive_bytes": 42781816,
+    "embedded_manifest_files_verified": 1144,
+    "crc_pass": true,
+    "required_inputs": [
+      {
+        "path": "research_repository/backtests/staged/wf3_prices.json.gz",
+        "sha256": "6ab928b5ab5a1226dfecbccd9b50e444766aba9c00f6ce4f372801cbaaab2793",
+        "bytes": 11559438,
+        "embedded_and_workspace_match": true
+      },
+      {
+        "path": "research_repository/backtests/staged/wf3_valuein_fundamentals.json.gz",
+        "sha256": "a066363bd896bb583478adcb6590f5094042ef47158b357b2cde3d2c1aff6893",
+        "bytes": 1669093,
+        "embedded_and_workspace_match": true
+      },
+      {
+        "path": "research_5x/data/spy.json",
+        "sha256": "a4f5aa969a0179439a836572cfac109c0ca18ca09a67d338a2bd6e3550fa37e6",
+        "bytes": 133598,
+        "embedded_and_workspace_match": true
+      },
+      {
+        "path": "research_5x/continuation/2026-10-11/fresh_hit/replay20_curve.csv",
+        "sha256": "b19b5b113b488f44348b40699666fcaf1145760fea94fb820513fa425c81c410",
+        "bytes": 21073,
+        "embedded_and_workspace_match": true
+      },
+      {
+        "path": "research_5x/continuation/2026-10-11/fresh_hit/replay20_trades.csv",
+        "sha256": "6c6b662620ae54961db8b9261a334b327226d319cbf7895a7c0fa32ccfb619d3",
+        "bytes": 2170,
+        "embedded_and_workspace_match": true
+      },
+      {
+        "path": "research_5x/continuation/2026-10-11/fresh_hit/replay20_signals.csv",
+        "sha256": "612fb5ce231a6774105281186e94cfa94a333991dfe975f648428b2f72ca2719",
+        "bytes": 906,
+        "embedded_and_workspace_match": true
+      },
+      {
+        "path": "research_5x/continuation/2026-10-11/fresh_hit/results.json",
+        "sha256": "7fd75a037e3114348d25354f91f208ac663191d5fdb610b6c9e201c694d9bc85",
+        "bytes": 28952,
+        "embedded_and_workspace_match": true
+      },
+      {
+        "path": "research_5x/code/run_research.py",
+        "sha256": "a46271c5436a9fdec93af55705623a270c2888b0124814cf90af873d54ecf7b5",
+        "bytes": 31786,
+        "embedded_and_workspace_match": true
+      },
+      {
+        "path": "research_5x/code/continuation_engine.py",
+        "sha256": "bb4d9845bbc58493f8f83f7e57c171e874e0d20cbc048cf6fbb42cb6f3f686d1",
+        "bytes": 5297,
+        "embedded_and_workspace_match": true
+      },
+      {
+        "path": "research_5x/code/run_continuation.py",
+        "sha256": "468e41562d5b5f8ec90f139ae069dd63db89e96c8ac86e52c64e2642eb057095",
+        "bytes": 10558,
+        "embedded_and_workspace_match": true
+      },
+      {
+        "path": "research_repository/scripts/wf3_offline_valuein.py",
+        "sha256": "521d6327ba932bde5e548b1b44cc2469afbb69c31e0428f13e2260678468b6d8",
+        "bytes": 16867,
+        "embedded_and_workspace_match": true
+      }
+    ]
+  },
+  "independent_cash_share_replay": {
+    "starting_cash": 10000.0,
+    "ending_equity": 51081.807571243284,
+    "ending_cash": 7312.927810501098,
+    "net_return_pct": 410.81807571243286,
+    "max_dd_pct": -17.99519606906851,
+    "dd_peak_date": "2025-11-10",
+    "dd_trough_date": "2025-11-21",
+    "sessions": 252,
+    "transactions": 23,
+    "buy_transactions": 11,
+    "sell_transactions": 12,
+    "signals": 12,
+    "first_buy": "2025-07-01",
+    "cash_dividend_dollars": 78.64,
+    "cost_dollars": 136.8615806732178,
+    "traded_notional": 68430.79033660889,
+    "held_corporate_actions": [],
+    "stale_held_marks": 0,
+    "pnl_by_ticker": {
+      "MU": 14193.512311645507,
+      "WDC": 11682.704356002807,
+      "STX": 10203.475177520751,
+      "LRCX": 2099.790278778076,
+      "ADI": 1178.6615875244142,
+      "LITE": 800.2681708984373,
+      "PLTR": 635.556022705078,
+      "AMD": 442.3459686584474,
+      "ANET": -63.244606933593786,
+      "SNDK": -91.26169555664092
+    },
+    "max_absolute_residuals": {
+      "daily_equity": 0.0,
+      "daily_cash": 0.0,
+      "daily_exposure": 0.0,
+      "daily_positions": 0.0,
+      "daily_cumulative_cost": 1.4210854715202004e-14,
+      "daily_pnl_identity": 7.275957614183426e-12,
+      "trade_shares": 0.0,
+      "trade_nominal_open": 0.0,
+      "trade_gross": 0.0,
+      "trade_cost": 4.440892098500626e-16,
+      "trade_cash_after": 0.0
+    },
+    "terminal_holdings": {
+      "STX": 13.0,
+      "MU": 11.0,
+      "ADI": 10.0,
+      "LITE": 7.0,
+      "SNDK": 5.0
+    },
+    "cash_event_count": 38
+  },
+  "exact_frozen_engine_rerun": {
+    "pass": true,
+    "all_result_fields_compared": true,
+    "all_curve_trade_signal_cells_compared": true,
+    "absolute_tolerance": 1e-07,
+    "no_parameters_changed": true,
+    "source_features_rebuilt_from_frozen_prices_and_fundamentals": true
+  },
+  "mutation_tests": [
+    {
+      "test": "cash_after_mutation",
+      "pass": true,
+      "detected": "Transaction 0 cash_after: -1.0 != 0"
+    },
+    {
+      "test": "open_quote_mutation",
+      "pass": true,
+      "detected": "Transaction 0 nominal_open: -1.0 != 0"
+    },
+    {
+      "test": "quantity_mutation",
+      "pass": true,
+      "detected": "Transaction 0 shares: -1.0 != 0"
+    },
+    {
+      "test": "daily_nav_mutation",
+      "pass": true,
+      "detected": "2025-07-07 equity: -1.0 != 0"
+    },
+    {
+      "test": "daily_cash_mutation",
+      "pass": true,
+      "detected": "2025-07-07 cash: -1.0 != 0"
+    },
+    {
+      "test": "execution_timing_mutation",
+      "pass": true,
+      "detected": "Not next-session execution"
+    }
+  ],
+  "original_files_and_archive_unchanged": true,
+  "maximum_drawdown_attribution": {
+    "peak_equity": 18589.23743132019,
+    "trough_equity": 15244.067707809449,
+    "net_change": -3345.169723510742,
+    "issuer_net_changes": [
+      {
+        "ticker": "AMD",
+        "peak_date": "2025-11-10",
+        "trough_date": "2025-11-21",
+        "net_pnl_change_dollars": 0.0
+      },
+      {
+        "ticker": "ANET",
+        "peak_date": "2025-11-10",
+        "trough_date": "2025-11-21",
+        "net_pnl_change_dollars": -317.2799072265625
+      },
+      {
+        "ticker": "MU",
+        "peak_date": "2025-11-10",
+        "trough_date": "2025-11-21",
+        "net_pnl_change_dollars": -734.880126953125
+      },
+      {
+        "ticker": "PLTR",
+        "peak_date": "2025-11-10",
+        "trough_date": "2025-11-21",
+        "net_pnl_change_dollars": -542.6399230957031
+      },
+      {
+        "ticker": "STX",
+        "peak_date": "2025-11-10",
+        "trough_date": "2025-11-21",
+        "net_pnl_change_dollars": -734.4998016357422
+      },
+      {
+        "ticker": "WDC",
+        "peak_date": "2025-11-10",
+        "trough_date": "2025-11-21",
+        "net_pnl_change_dollars": -1015.8699645996094
+      }
+    ]
+  },
+  "limitations": [
+    "Arithmetic reproducibility is conditional on frozen vendor data, not certification of market reality.",
+    "Future vendor split factors restore nominal units; unusual ratios and underlying source adjustment completeness remain source risks.",
+    "No held split or spinoff event occurs in the winning account; none can establish general corporate-action correctness.",
+    "Dividends credited on ex-date rather than payable date; cash-funding realism remains limited by missing payable dates.",
+    "Per-side20bps execution is a prescribed accounting assumption; daily-open quotes, not order-book fill evidence.",
+    "Terminal holdings marked without actual liquidation; hypothetical cost deduction does not test terminal gap execution.",
+    "Membership proxy, missing delisted outcomes and source-certified fundamental comparability remain unresolved.",
+    "These historical inputs were reused; this is reproduction, not independent statistical holdout validation."
+  ]
+}

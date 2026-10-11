@@ -1,0 +1,112 @@
+[
+  {
+    "start": "2024-01-02",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2024-01-02_trades.csv",
+    "source_sha256": "7bf63c9bac6b5bdc0c72b204724058c2f89c867d805db7b2a8053ef52f773310"
+  },
+  {
+    "start": "2024-02-01",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2024-02-01_trades.csv",
+    "source_sha256": "1be14a666d5c1c33762bdd38e6a3968d861bb6516b51d1013163fcf7e85b027a"
+  },
+  {
+    "start": "2024-03-01",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2024-03-01_trades.csv",
+    "source_sha256": "d63d7f571bc9f8d5d8bf17c3d3789dae5e07a2e0f282f8fe174c911a63c5eb5c"
+  },
+  {
+    "start": "2024-04-01",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2024-04-01_trades.csv",
+    "source_sha256": "b8fbfaa34923d4c85868a45840fc3b87fe74ac9f73d282eb9ad55b19ee2104d9"
+  },
+  {
+    "start": "2024-05-01",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2024-05-01_trades.csv",
+    "source_sha256": "7ece44a4569b3f00f583ce12ba3c1b4e530a5fdb3303c9a1b9339a25c0480b08"
+  },
+  {
+    "start": "2024-06-03",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2024-06-03_trades.csv",
+    "source_sha256": "a2f4db201bcafa002ec9a84ad794faa96e708ca8bc8e1e63588a5b0be479bb52"
+  },
+  {
+    "start": "2024-07-01",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2024-07-01_trades.csv",
+    "source_sha256": "b5b05ddea7fbccd1f741e5e1f736194e675efe4ad933465f544b71a6c73e30fd"
+  },
+  {
+    "start": "2024-08-01",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2024-08-01_trades.csv",
+    "source_sha256": "f5d02ed8e8339317d1b7c424e8801c487b959969c931eb3d5b255f493aa5f7d9"
+  },
+  {
+    "start": "2024-09-03",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2024-09-03_trades.csv",
+    "source_sha256": "d007bcd6f73c975d0a0f9c52f640e85a94e49971d3977ef9f0ba767bf89adcf7"
+  },
+  {
+    "start": "2024-10-01",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2024-10-01_trades.csv",
+    "source_sha256": "2e764db6692161ff6d25652be9b6fae5385cb682c4f79727dd6bff915730dc0d"
+  },
+  {
+    "start": "2024-11-01",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2024-11-01_trades.csv",
+    "source_sha256": "d248f53a6fde30b4e8c2cdd8c2023d0ae73a48bc59481308c29576f26c8b2eb2"
+  },
+  {
+    "start": "2024-12-02",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2024-12-02_trades.csv",
+    "source_sha256": "f29f52ad3e75fd00d9a00401a301994da1548b3902165a1c3d770fc278b76abb"
+  },
+  {
+    "start": "2025-01-02",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2025-01-02_trades.csv",
+    "source_sha256": "39ab4efb9d533fa07cca0106576a01e666115ccb7a7bde0d22cd075a2dda0f29"
+  },
+  {
+    "start": "2025-02-03",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2025-02-03_trades.csv",
+    "source_sha256": "a08142dc02edbf803a31fac5dd4961e6d39817b165c15e3677953bd65f604f04"
+  },
+  {
+    "start": "2025-03-03",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2025-03-03_trades.csv",
+    "source_sha256": "9dd37339495079ab05a43e6e274c7ed927b729d77f2610ba69bc63f49f81d6fb"
+  },
+  {
+    "start": "2025-04-01",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2025-04-01_trades.csv",
+    "source_sha256": "179a21691d5da6b618cfa1f458e47bc267a4bd3fce001bc23faa7bd3e03b41d9"
+  },
+  {
+    "start": "2025-05-01",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2025-05-01_trades.csv",
+    "source_sha256": "c9ebcc3221bd347410875436d341fdcb3153f83cf9ae9a29de60c9348696f7c2"
+  },
+  {
+    "start": "2025-06-02",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2025-06-02_trades.csv",
+    "source_sha256": "867c871913c656475ea81ad9504099e49100281436cc5609c0f564b59144a7f2"
+  },
+  {
+    "start": "2025-07-01",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2025-07-01_trades.csv",
+    "source_sha256": "0799e9ea9b38a6e5e706ed6132d1a4df17d52e164181fb1a3e0128d43fe66062"
+  },
+  {
+    "start": "2025-08-01",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2025-08-01_trades.csv",
+    "source_sha256": "bfdd9f74bb224ebc448f39dab71196eb3acb821907a875619ab501e68dd072ad"
+  },
+  {
+    "start": "2025-09-02",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2025-09-02_trades.csv",
+    "source_sha256": "29f7f93037221b6390e419d3b467bf0b4524665c05a93c0395bd904ae059ab87"
+  },
+  {
+    "start": "2025-10-01",
+    "source_path": "research_5x/continuation/2026-10-11/experiments/fresh_accounts/growth_margin5__rebalance__2025-10-01_trades.csv",
+    "source_sha256": "5dce3143915f364155a47acbd95630d226e2552b6de88235bd4c9bfa083e8cf6"
+  }
+]

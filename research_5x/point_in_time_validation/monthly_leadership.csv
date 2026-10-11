@@ -1,0 +1,289 @@
+month,strategy,status,archive_panel_coverage,signal_timestamp,price_available_at,fundamental_available_at,membership_available_at,industry_available_at,sector_ranks,improving_industries,stock_ranks,emerging_leaders,deteriorating_holdings,allocation,retention,exit,actual_decision,subsequent_return_pct,reason
+2022-01,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2022-01,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2022-01,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2022-01,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2022-01,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2022-01,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2022-02,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2022-02,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2022-02,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2022-02,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2022-02,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2022-02,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2022-03,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2022-03,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2022-03,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2022-03,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2022-03,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2022-03,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2022-04,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2022-04,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2022-04,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2022-04,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2022-04,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2022-04,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2022-05,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2022-05,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2022-05,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2022-05,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2022-05,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2022-05,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2022-06,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2022-06,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2022-06,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2022-06,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2022-06,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2022-06,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2022-07,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2022-07,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2022-07,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2022-07,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2022-07,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2022-07,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2022-08,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2022-08,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2022-08,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2022-08,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2022-08,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2022-08,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2022-09,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2022-09,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2022-09,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2022-09,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2022-09,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2022-09,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2022-10,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2022-10,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2022-10,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2022-10,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2022-10,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2022-10,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2022-11,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2022-11,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2022-11,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2022-11,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2022-11,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2022-11,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2022-12,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2022-12,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2022-12,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2022-12,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2022-12,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2022-12,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2023-01,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2023-01,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2023-01,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2023-01,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2023-01,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2023-01,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2023-02,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2023-02,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2023-02,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2023-02,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2023-02,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2023-02,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2023-03,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2023-03,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2023-03,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2023-03,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2023-03,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2023-03,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2023-04,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2023-04,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2023-04,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2023-04,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2023-04,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2023-04,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2023-05,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2023-05,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2023-05,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2023-05,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2023-05,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2023-05,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2023-06,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2023-06,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2023-06,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2023-06,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2023-06,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2023-06,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2023-07,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2023-07,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2023-07,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2023-07,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2023-07,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2023-07,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2023-08,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2023-08,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2023-08,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2023-08,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2023-08,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2023-08,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2023-09,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2023-09,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2023-09,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2023-09,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2023-09,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2023-09,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2023-10,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2023-10,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2023-10,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2023-10,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2023-10,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2023-10,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2023-11,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2023-11,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2023-11,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2023-11,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2023-11,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2023-11,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2023-12,A,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2023-12,B,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2023-12,C,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2023-12,D,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2023-12,E,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2023-12,F,NOT_RUN_BLOCKED,absent,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2024-01,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2024-01,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2024-01,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2024-01,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2024-01,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2024-01,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2024-02,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2024-02,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2024-02,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2024-02,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2024-02,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2024-02,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2024-03,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2024-03,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2024-03,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2024-03,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2024-03,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2024-03,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2024-04,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2024-04,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2024-04,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2024-04,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2024-04,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2024-04,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2024-05,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2024-05,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2024-05,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2024-05,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2024-05,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2024-05,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2024-06,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2024-06,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2024-06,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2024-06,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2024-06,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2024-06,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2024-07,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2024-07,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2024-07,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2024-07,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2024-07,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2024-07,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2024-08,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2024-08,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2024-08,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2024-08,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2024-08,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2024-08,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2024-09,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2024-09,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2024-09,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2024-09,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2024-09,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2024-09,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2024-10,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2024-10,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2024-10,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2024-10,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2024-10,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2024-10,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2024-11,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2024-11,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2024-11,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2024-11,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2024-11,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2024-11,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2024-12,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2024-12,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2024-12,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2024-12,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2024-12,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2024-12,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2025-01,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2025-01,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2025-01,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2025-01,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2025-01,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2025-01,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2025-02,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2025-02,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2025-02,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2025-02,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2025-02,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2025-02,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2025-03,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2025-03,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2025-03,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2025-03,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2025-03,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2025-03,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2025-04,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2025-04,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2025-04,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2025-04,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2025-04,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2025-04,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2025-05,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2025-05,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2025-05,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2025-05,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2025-05,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2025-05,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2025-06,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2025-06,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2025-06,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2025-06,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2025-06,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2025-06,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2025-07,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2025-07,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2025-07,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2025-07,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2025-07,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2025-07,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2025-08,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2025-08,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2025-08,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2025-08,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2025-08,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2025-08,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2025-09,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2025-09,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2025-09,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2025-09,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2025-09,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2025-09,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2025-10,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2025-10,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2025-10,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2025-10,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2025-10,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2025-10,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2025-11,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2025-11,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2025-11,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2025-11,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2025-11,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2025-11,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+2025-12,A,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+2025-12,B,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+2025-12,C,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+2025-12,D,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,No historical industry map or separate complete training inputs; original control missing
+2025-12,E,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,D not developed/frozen; retention policy undefined
+2025-12,F,NOT_RUN_BLOCKED,proxy_only,,,,,,,,,,,,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"

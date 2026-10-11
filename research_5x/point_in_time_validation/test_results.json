@@ -1,0 +1,9 @@
+{
+  "tests": 6,
+  "failures": 0,
+  "errors": 0,
+  "pass": true,
+  "deliberate_corruptions_caught": 6,
+  "strategy_validation": "BLOCKED",
+  "scope": "Source provenance, archived capital-accounting arithmetic, and no-fabricated-result guards only; not investment strategy validation"
+}

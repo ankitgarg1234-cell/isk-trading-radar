@@ -1,0 +1,31 @@
+strategy,account_type,start,end,status,max_drawdown_pct,peak_date,trough_date,recovery_date,reason
+A,independent_calendar,2022-01-01,2022-12-31,NOT_RUN_BLOCKED,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+A,independent_calendar,2023-01-01,2023-12-31,NOT_RUN_BLOCKED,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+A,independent_calendar,2024-01-01,2024-12-31,NOT_RUN_BLOCKED,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+A,independent_calendar,2025-01-01,2025-12-31,NOT_RUN_BLOCKED,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+A,continuous_four_year,2022-01-01,2025-12-31,NOT_RUN_BLOCKED,,,,,Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches
+B,independent_calendar,2022-01-01,2022-12-31,NOT_RUN_BLOCKED,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+B,independent_calendar,2023-01-01,2023-12-31,NOT_RUN_BLOCKED,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+B,independent_calendar,2024-01-01,2024-12-31,NOT_RUN_BLOCKED,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+B,independent_calendar,2025-01-01,2025-12-31,NOT_RUN_BLOCKED,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+B,continuous_four_year,2022-01-01,2025-12-31,NOT_RUN_BLOCKED,,,,,Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified
+C,independent_calendar,2022-01-01,2022-12-31,NOT_RUN_BLOCKED,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+C,independent_calendar,2023-01-01,2023-12-31,NOT_RUN_BLOCKED,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+C,independent_calendar,2024-01-01,2024-12-31,NOT_RUN_BLOCKED,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+C,independent_calendar,2025-01-01,2025-12-31,NOT_RUN_BLOCKED,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+C,continuous_four_year,2022-01-01,2025-12-31,NOT_RUN_BLOCKED,,,,,Multiple different retention variants; no authoritative choice; inherits B data blockers
+D,independent_calendar,2022-01-01,2022-12-31,NOT_RUN_BLOCKED,,,,,No historical industry map or separate complete training inputs; original control missing
+D,independent_calendar,2023-01-01,2023-12-31,NOT_RUN_BLOCKED,,,,,No historical industry map or separate complete training inputs; original control missing
+D,independent_calendar,2024-01-01,2024-12-31,NOT_RUN_BLOCKED,,,,,No historical industry map or separate complete training inputs; original control missing
+D,independent_calendar,2025-01-01,2025-12-31,NOT_RUN_BLOCKED,,,,,No historical industry map or separate complete training inputs; original control missing
+D,continuous_four_year,2022-01-01,2025-12-31,NOT_RUN_BLOCKED,,,,,No historical industry map or separate complete training inputs; original control missing
+E,independent_calendar,2022-01-01,2022-12-31,NOT_RUN_BLOCKED,,,,,D not developed/frozen; retention policy undefined
+E,independent_calendar,2023-01-01,2023-12-31,NOT_RUN_BLOCKED,,,,,D not developed/frozen; retention policy undefined
+E,independent_calendar,2024-01-01,2024-12-31,NOT_RUN_BLOCKED,,,,,D not developed/frozen; retention policy undefined
+E,independent_calendar,2025-01-01,2025-12-31,NOT_RUN_BLOCKED,,,,,D not developed/frozen; retention policy undefined
+E,continuous_four_year,2022-01-01,2025-12-31,NOT_RUN_BLOCKED,,,,,D not developed/frozen; retention policy undefined
+F,independent_calendar,2022-01-01,2022-12-31,NOT_RUN_BLOCKED,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+F,independent_calendar,2023-01-01,2023-12-31,NOT_RUN_BLOCKED,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+F,independent_calendar,2024-01-01,2024-12-31,NOT_RUN_BLOCKED,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+F,independent_calendar,2025-01-01,2025-12-31,NOT_RUN_BLOCKED,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+F,continuous_four_year,2022-01-01,2025-12-31,NOT_RUN_BLOCKED,,,,,"Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"

@@ -1,0 +1,245 @@
+[
+  {
+    "path": "evidence/research_5x/code/run_research.py",
+    "original_path": "research_5x/code/run_research.py",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "a166ab0c6b30a32476f1c00208e18a0825347b3f",
+    "sha256": "a46271c5436a9fdec93af55705623a270c2888b0124814cf90af873d54ecf7b5",
+    "bytes": 31786,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/code/run_research.py"
+  },
+  {
+    "path": "evidence/research_5x/code/continuation_engine.py",
+    "original_path": "research_5x/code/continuation_engine.py",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "0a995d0622f6acba1566c19271824526015fbb06",
+    "sha256": "bb4d9845bbc58493f8f83f7e57c171e874e0d20cbc048cf6fbb42cb6f3f686d1",
+    "bytes": 5297,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/code/continuation_engine.py"
+  },
+  {
+    "path": "evidence/scripts/wf3_offline_valuein.py",
+    "original_path": "scripts/wf3_offline_valuein.py",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "92570e9aff3827ddaf73fc807119274391610bcb",
+    "sha256": "521d6327ba932bde5e548b1b44cc2469afbb69c31e0428f13e2260678468b6d8",
+    "bytes": 16867,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/scripts/wf3_offline_valuein.py"
+  },
+  {
+    "path": "evidence/scripts/adaptive_market_state_backtest.py",
+    "original_path": "scripts/adaptive_market_state_backtest.py",
+    "commit": "c4bb696e61acf5d77ea6a18aada4cd58e998f83f",
+    "git_blob_sha": "2811706b4acb34b1f04d177ac37491d11a7c458f",
+    "sha256": "ed681c27c83c1925adf589f5df017119c9eacb4397a844520d470e70f11352ad",
+    "bytes": 58585,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/c4bb696e61acf5d77ea6a18aada4cd58e998f83f/scripts/adaptive_market_state_backtest.py"
+  },
+  {
+    "path": "evidence/scripts/reconcile_frozen_baseline.py",
+    "original_path": "scripts/reconcile_frozen_baseline.py",
+    "commit": "c4bb696e61acf5d77ea6a18aada4cd58e998f83f",
+    "git_blob_sha": "658ecd6719c8a1d33034cccdd8c9d864d418b01f",
+    "sha256": "d369315f14828a9af22628207eb1938a35c5a51918d9950f29d908bc1684f673",
+    "bytes": 5717,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/c4bb696e61acf5d77ea6a18aada4cd58e998f83f/scripts/reconcile_frozen_baseline.py"
+  },
+  {
+    "path": "evidence/scripts/sector_first_explicit_backtest.py",
+    "original_path": "scripts/sector_first_explicit_backtest.py",
+    "commit": "c4bb696e61acf5d77ea6a18aada4cd58e998f83f",
+    "git_blob_sha": "3da70cc8e68bdfe8e63236877538d0526e762c5e",
+    "sha256": "503cfe8442c8605d4ab6b84ede474661c19fc1c03d71b55a26581ca4617deef8",
+    "bytes": 27091,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/c4bb696e61acf5d77ea6a18aada4cd58e998f83f/scripts/sector_first_explicit_backtest.py"
+  },
+  {
+    "path": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/README.md",
+    "original_path": "research_5x/phase2/2026-10-11_earnings_acceleration/README.md",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "01d9d53f8a72c2ebc198f0c9fa122c94e3d576ac",
+    "sha256": "47f48b16cd4a256c50190ef0f29a90e6b3fcefe9ec83fff2ce20b74256cdea02",
+    "bytes": 5237,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/phase2/2026-10-11_earnings_acceleration/README.md"
+  },
+  {
+    "path": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/PROTOCOL.md",
+    "original_path": "research_5x/phase2/2026-10-11_earnings_acceleration/PROTOCOL.md",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "119edf1c1bb16c1447ba42635f5665e09bd0e97f",
+    "sha256": "bdb334529edeed758f001d2e74da2933ae9f32ddba800277102169bfa38e7011",
+    "bytes": 4246,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/phase2/2026-10-11_earnings_acceleration/PROTOCOL.md"
+  },
+  {
+    "path": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/audit/findings.md",
+    "original_path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/findings.md",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "a16008944db16ae1b723be20b79ee0478a7ced50",
+    "sha256": "1850e0e61b13c7d0ac0b7f2ea3c769e327a7cfda58025e6a96f1cc1c959bc320",
+    "bytes": 2968,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/phase2/2026-10-11_earnings_acceleration/audit/findings.md"
+  },
+  {
+    "path": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/VALIDATION_STATUS.json",
+    "original_path": "research_5x/phase2/2026-10-11_earnings_acceleration/VALIDATION_STATUS.json",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "ecedcfa32ef057a516d3962549e7edf59bac987a",
+    "sha256": "08d597610e6c9a711582ce46f9e8dcd0238a212e2da37408d6d625b12fae2953",
+    "bytes": 801,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/phase2/2026-10-11_earnings_acceleration/VALIDATION_STATUS.json"
+  },
+  {
+    "path": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/panel/inventory.json",
+    "original_path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/inventory.json",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "caa1c0e9b7a03958d63ab3cc9c845ea27494d6a3",
+    "sha256": "8a58b82872ac55160f802a09d1a5b1026d0a1e64e68c7a3bb501bcac328556d4",
+    "bytes": 791,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/phase2/2026-10-11_earnings_acceleration/panel/inventory.json"
+  },
+  {
+    "path": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/retention/protocol.json",
+    "original_path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/protocol.json",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "23d793f11e07bdce7264f06f1226faeea8132b6c",
+    "sha256": "802be6e35beb7e63f371151e883618ae47c84e68d9f87c53c30315637d6a8365",
+    "bytes": 1424,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/phase2/2026-10-11_earnings_acceleration/retention/protocol.json"
+  },
+  {
+    "path": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/retention/continuous_comparison.csv",
+    "original_path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/continuous_comparison.csv",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "7fcb0792e08f547a7ca90fe351a316cf26d9e976",
+    "sha256": "973fb2c56ed204b99b9341c1bf22109132e5bd104a6dd545d7c43f21d6fb63a4",
+    "bytes": 1964,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/phase2/2026-10-11_earnings_acceleration/retention/continuous_comparison.csv"
+  },
+  {
+    "path": "evidence/backtests/results/adaptive_market_state_2022_2026.md",
+    "original_path": "backtests/results/adaptive_market_state_2022_2026.md",
+    "commit": "c4bb696e61acf5d77ea6a18aada4cd58e998f83f",
+    "git_blob_sha": "ba67e54fdb034db57a2187576685ba18cbc79c33",
+    "sha256": "8546a2d18f4ba98fe73f42f859277dbc00e78dbcb7f9137520d0441d69955882",
+    "bytes": 6774,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/c4bb696e61acf5d77ea6a18aada4cd58e998f83f/backtests/results/adaptive_market_state_2022_2026.md"
+  },
+  {
+    "path": "evidence/backtests/results/adaptive_2023_diagnostic.md",
+    "original_path": "backtests/results/adaptive_2023_diagnostic.md",
+    "commit": "c4bb696e61acf5d77ea6a18aada4cd58e998f83f",
+    "git_blob_sha": "7931e9e0c4edd5a6e3bf2144c0ed20ef9d53670f",
+    "sha256": "93cf05164ca3f908a26351096ac445b46e42d74ad8825cadce68f75d4eb4d3b9",
+    "bytes": 14882,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/c4bb696e61acf5d77ea6a18aada4cd58e998f83f/backtests/results/adaptive_2023_diagnostic.md"
+  },
+  {
+    "path": "evidence/backtests/results/frozen_baseline_reconciliation.json",
+    "original_path": "backtests/results/frozen_baseline_reconciliation.json",
+    "commit": "c4bb696e61acf5d77ea6a18aada4cd58e998f83f",
+    "git_blob_sha": "c321b2a0d8f5fcf2b3900bd9a774595b12ff2628",
+    "sha256": "b3beafcb98db04f6e7832637c0fd16ef62b0c5f95c123d74bfa0791370a4da2c",
+    "bytes": 1743,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/c4bb696e61acf5d77ea6a18aada4cd58e998f83f/backtests/results/frozen_baseline_reconciliation.json"
+  },
+  {
+    "path": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/audit/daily_holdings.csv",
+    "original_path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/daily_holdings.csv",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "a772a8cbde7f1b9e5a8e663ccb6cacf62d80c649",
+    "sha256": "3b2d388e68fb791ff3b7693ce449265a9ec6bf96c04bc161a1f27946ce62230e",
+    "bytes": 78351,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/phase2/2026-10-11_earnings_acceleration/audit/daily_holdings.csv"
+  },
+  {
+    "path": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/audit/daily_reconciliation.csv",
+    "original_path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/daily_reconciliation.csv",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "2237336d7968c189a89019eb5be762c16053ca36",
+    "sha256": "6ba2cb7455d674557fe4d4acb014381ab012ee960995c78b37f550cdaeae51e9",
+    "bytes": 64329,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/phase2/2026-10-11_earnings_acceleration/audit/daily_reconciliation.csv"
+  },
+  {
+    "path": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/audit/trade_checks.csv",
+    "original_path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/trade_checks.csv",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "1c6bfc41490e59dfd217d7a3751b1cb4737638f6",
+    "sha256": "bee557b1b479cc4997e20c92a0dcfe5b9dc4df89369f4926172b47da0704f8f5",
+    "bytes": 4868,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/phase2/2026-10-11_earnings_acceleration/audit/trade_checks.csv"
+  },
+  {
+    "path": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/audit/cash_events.csv",
+    "original_path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/cash_events.csv",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "4854383a56d4d52fae9ccaa05e68d047c2d0fabe",
+    "sha256": "2ddfb45b3799641ba662016bc7795b62ccacbeb8cee25819b425b9bd7a44c772",
+    "bytes": 3381,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/phase2/2026-10-11_earnings_acceleration/audit/cash_events.csv"
+  },
+  {
+    "path": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/audit/summary.json",
+    "original_path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/summary.json",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "c9add70e33059ccc9a7e3b9c5d78b22854f33557",
+    "sha256": "b3f23a0db8a8ca535dec3c1156d73faacfd2aa73a859e384b6e5dc3225583d49",
+    "bytes": 8034,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/phase2/2026-10-11_earnings_acceleration/audit/summary.json"
+  },
+  {
+    "path": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/audit/rerun_results.json",
+    "original_path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/rerun_results.json",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "462e690983bdb326fc62303b9c730d3f52b5306c",
+    "sha256": "bc725c7c290c76b54d7d1e9cab91250fd05fe249304288dcadd235d3d203ca47",
+    "bytes": 1307,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/phase2/2026-10-11_earnings_acceleration/audit/rerun_results.json"
+  },
+  {
+    "path": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/panel/first_observed_case_signals.csv",
+    "original_path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/first_observed_case_signals.csv",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "367e862e1ee7b80f2302671f1d364e0911c64545",
+    "sha256": "66fce71f38a28da55fa557a9f747e24bf7498200e3970629238b2ba2894fbc14",
+    "bytes": 7347,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/phase2/2026-10-11_earnings_acceleration/panel/first_observed_case_signals.csv"
+  },
+  {
+    "path": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/retention/summary.csv",
+    "original_path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/summary.csv",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "26613041308d6d54f2761446d3a847e38668d548",
+    "sha256": "d564c760de0bdb94f12ff7f513448dc38c4e89a57e09660eacc4006188feab4a",
+    "bytes": 2831,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/phase2/2026-10-11_earnings_acceleration/retention/summary.csv"
+  },
+  {
+    "path": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/retention/accounts.csv",
+    "original_path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/accounts.csv",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "5b6a6003a660a94864a1015f297eab8ee5122d68",
+    "sha256": "93611471fc484169e26406e53e214ddedf1dc21e368dc4ce6195febd65890c98",
+    "bytes": 81568,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/phase2/2026-10-11_earnings_acceleration/retention/accounts.csv"
+  },
+  {
+    "path": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/retention/frozen_initial_orders_lineage.json",
+    "original_path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/frozen_initial_orders_lineage.json",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "6e68a930fe21f273f79311e4e2bd7e442bfa499f",
+    "sha256": "bfe697c1562c801b272d1a1030ea1d281f00dc29b2b6770b003c411a005f8844",
+    "bytes": 5678,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/phase2/2026-10-11_earnings_acceleration/retention/frozen_initial_orders_lineage.json"
+  },
+  {
+    "path": "evidence/research_5x/continuation/2026-10-11/experiments/results.json",
+    "original_path": "research_5x/continuation/2026-10-11/experiments/results.json",
+    "commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+    "git_blob_sha": "8381ab0322c2ab657479a8f2772072cc95a3b3ec",
+    "sha256": "38558fe4cf1162130c0f5c09998f1facd7f9ce0059bc06fa8929276dc12a5525",
+    "bytes": 294606,
+    "url": "https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/4ea44011e3911227f9be2266d5dcb6c078b8722a/research_5x/continuation/2026-10-11/experiments/results.json"
+  }
+]

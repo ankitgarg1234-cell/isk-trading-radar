@@ -1,0 +1,18 @@
+{
+  "reproducible_arithmetic": true,
+  "winner_account_independent": true,
+  "holding_ablations_checked_accounts": 264,
+  "primary_release_events": 30,
+  "all_factors_original_source_certified": false,
+  "point_in_time_membership_certified": false,
+  "delisting_proceeds_complete": false,
+  "historical_consensus_available": false,
+  "untouched_holdout": false,
+  "future_5x_probability_estimable": false,
+  "repeatable_5x_established": false,
+  "historical_unlevered_5x_observed": true,
+  "historical_source_limits": "Vendorprice/actioneconomics and some accountingvintages unresolved; currentsector/sizeproxy controls.",
+  "deployment_changed": false,
+  "real_trades": false,
+  "remaining_scope": "Furtherdatareconstruction and independentperiodvalidation required, not completed bythismilestone."
+}

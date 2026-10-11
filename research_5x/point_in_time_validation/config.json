@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "status": "BLOCKED",
+  "classification": "Insufficient data",
+  "research_date": "2026-10-11",
+  "repository": "ankitgarg1234-cell/isk-trading-radar",
+  "base_commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+  "evaluation": {
+    "years": [
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "starting_capital": 10000,
+    "independent_calendar_accounts": true,
+    "continuous_start": "2022-01-01",
+    "continuous_end": "2025-12-31",
+    "target_annual_return_pct": 80,
+    "stretch_annual_return_pct": 400
+  },
+  "strategies": [
+    {
+      "id": "A",
+      "name": "Original 75/25 momentum-leadership rotation",
+      "rule_status": "unrecovered_original",
+      "archived_candidate": "reconstructed 75/25; expressly fails original reconciliation",
+      "blocking_reason": "Original frozen source/inputs/trade/NAV ledger missing; reconstructed control mismatches"
+    },
+    {
+      "id": "B",
+      "name": "Growth + Earnings + Margin",
+      "rule_status": "recovered_candidate",
+      "archived_candidate": "growth_margin5",
+      "parameters": {
+        "n": 5,
+        "score": "r63",
+        "filter": "growth_margin"
+      },
+      "blocking_reason": "Incomplete 2022–2023 universe and fundamentals; timestamps/actions/membership uncertified"
+    },
+    {
+      "id": "C",
+      "name": "Growth + Earnings + Margin + Winner Retention",
+      "rule_status": "ambiguous_archived_variants",
+      "archived_candidate": "retain_rank35; preserve_weights; retain_and_preserve",
+      "blocking_reason": "Multiple different retention variants; no authoritative choice; inherits B data blockers"
+    },
+    {
+      "id": "D",
+      "name": "Adaptive Sector/Industry Leadership",
+      "rule_status": "not_trained_or_frozen",
+      "archived_candidate": "Market-state controller and sector-first replay are distinct existing strategies",
+      "blocking_reason": "No historical industry map or separate complete training inputs; original control missing"
+    },
+    {
+      "id": "E",
+      "name": "Adaptive Leadership + Winner Retention",
+      "rule_status": "not_trained_or_frozen",
+      "archived_candidate": null,
+      "blocking_reason": "D not developed/frozen; retention policy undefined"
+    },
+    {
+      "id": "F",
+      "name": "SPY buy-and-hold",
+      "rule_status": "execution_policy_pending_common_freeze",
+      "archived_candidate": "whole shares; cash dividends; first open; 20 bps",
+      "blocking_reason": "Complete certified 2022–2025 raw prices, corporate actions and payable-date cash flows not available in this evidence bundle"
+    }
+  ],
+  "gates": [
+    {
+      "id": "exact_original_control",
+      "pass": false,
+      "evidence": "evidence/backtests/results/frozen_baseline_reconciliation.json",
+      "reason": "Original daily/trade reference missing; annual results and drawdown differ"
+    },
+    {
+      "id": "broad_2022_2023_inputs",
+      "pass": false,
+      "evidence": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/README.md",
+      "reason": "Earlier-price probe is 12 selected live series; not historical S&P universe"
+    },
+    {
+      "id": "membership_vintages",
+      "pass": false,
+      "evidence": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/VALIDATION_STATUS.json",
+      "reason": "Historical membership certification explicitly false"
+    },
+    {
+      "id": "delistings_and_mergers",
+      "pass": false,
+      "evidence": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/VALIDATION_STATUS.json",
+      "reason": "Delisting proceeds incomplete; failed symbols must not be silently excluded"
+    },
+    {
+      "id": "split_spinoff_economics",
+      "pass": false,
+      "evidence": "evidence/research_5x/code/run_research.py",
+      "reason": "Nonstandard synthetic adjustments and distribution/cash-in-lieu reconstruction uncertified"
+    },
+    {
+      "id": "dividend_payable_dates",
+      "pass": false,
+      "evidence": "evidence/research_5x/code/run_research.py",
+      "reason": "Cash dividends credited on ex-date, not payable date"
+    },
+    {
+      "id": "fundamental_publication_timestamps",
+      "pass": false,
+      "evidence": "evidence/scripts/wf3_offline_valuein.py",
+      "reason": "Eligibility checks filing_date, not accepted_at; no full signal-to-original-fact lineage"
+    },
+    {
+      "id": "accounting_vintages",
+      "pass": false,
+      "evidence": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/VALIDATION_STATUS.json",
+      "reason": "All factors original-source certification explicitly false"
+    },
+    {
+      "id": "historical_industries",
+      "pass": false,
+      "evidence": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/PROTOCOL.md",
+      "reason": "Current sector and size proxies; historical industry classification unavailable"
+    },
+    {
+      "id": "common_execution_liquidity",
+      "pass": false,
+      "evidence": "evidence/research_5x/code/run_research.py",
+      "reason": "Daily bars, heterogeneous archived 7/20 bps costs; no common validated execution model"
+    },
+    {
+      "id": "adaptive_training_inputs",
+      "pass": false,
+      "evidence": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/PROTOCOL.md",
+      "reason": "Separate full pre-2022 training inputs unavailable; no fitting authorized by valid inputs"
+    },
+    {
+      "id": "unambiguous_strategy_registry",
+      "pass": false,
+      "evidence": "evidence/research_5x/code/continuation_engine.py",
+      "reason": "Original A unreconciled; C has multiple retention policies; D/E not developed"
+    },
+    {
+      "id": "complete_benchmark_inputs",
+      "pass": false,
+      "evidence": "evidence/research_5x/phase2/2026-10-11_earnings_acceleration/README.md",
+      "reason": "Broad January 2022–December 2025 SPY action/payable-date archive not provided"
+    }
+  ],
+  "research_integrity": {
+    "untouched_2022_2025": false,
+    "chronological_plan": {
+      "training": "2010–2018 (proposed; incomplete data)",
+      "validation": "2019–2021 (proposed; incomplete data)",
+      "retrospective_evaluation": "2022–2025 (already examined)",
+      "prospective_holdout": "First unobserved session after final complete rule/data freeze; no test endpoint selected from returns"
+    },
+    "historical_consensus": "unavailable; omit expectation signals rather than fabricate them",
+    "threshold_changes": "Any changes after evaluation must receive a new exploratory experiment ID",
+    "winner_exclusions": "Hindsight sensitivity only"
+  },
+  "planned_execution": {
+    "status": "proposed_not_frozen",
+    "signal": "Pre-open timestamp using prices through the preceding completed session and publications strictly before signal timestamp",
+    "january_entry": "Use prior December information once fully available; do not silently wait a month",
+    "base_fee_bps": 10,
+    "base_slippage_bps": 10,
+    "cash_interest": 0,
+    "leverage": 1,
+    "shares": "whole shares; distributions tracked separately",
+    "dividends": "Receivable on ex-date; cash on actual payable date",
+    "terminal": "Mark ending holdings; separate liquidation sensitivity",
+    "membership": "Effective and announcement timestamps; stable issuer/security identifiers",
+    "comparison": "Identical assumptions A–F"
+  },
+  "not_a_backtest": true
+}
