@@ -1,0 +1,52 @@
+{
+  "acquired_raw_header_responses": 0,
+  "acquired_raw_responses": 1,
+  "acquired_raw_xbrl_responses": 1,
+  "new_full_case_certifications": 0,
+  "note": "Failed requests remain evidence; reruns reuse saved records without unbounded retries",
+  "records": [
+    {
+      "accession": "0001164727-24-000061",
+      "automatic_case_certification": false,
+      "cik": "0001164727",
+      "error": "RuntimeError: curl: (56) Exceeded the maximum allowed file size (2000000) with 2000000 bytes\n",
+      "network_retry_count": 0,
+      "retrieved_at_utc": "2026-10-11T19:54:53.688810+00:00",
+      "signal_date": "2025-03-31",
+      "status": "TRANSPORT_FAILED",
+      "ticker": "NEM",
+      "transport": "system-curl",
+      "url": "https://www.sec.gov/Archives/edgar/data/1164727/000116472724000061/nem-20240930_htm.xml"
+    },
+    {
+      "accession": "0000059478-24-000245",
+      "automatic_case_certification": false,
+      "cik": "0000059478",
+      "error": "RuntimeError: curl: (56) Exceeded the maximum allowed file size (2000000) with 2000000 bytes\n",
+      "network_retry_count": 0,
+      "retrieved_at_utc": "2026-10-11T19:54:54.902461+00:00",
+      "signal_date": "2025-02-28",
+      "status": "TRANSPORT_FAILED",
+      "ticker": "LLY",
+      "transport": "system-curl",
+      "url": "https://www.sec.gov/Archives/edgar/data/59478/000005947824000245/lly-20240930_htm.xml"
+    },
+    {
+      "accession": "0001410636-24-000187",
+      "automatic_case_certification": false,
+      "cik": "0001410636",
+      "http_status": 200,
+      "network_retry_count": 0,
+      "raw_path": "d8743f978240df5702e244f5102327a6309ef57adcae24ab3ecf1d691f6dc2ec.html",
+      "response_bytes": 1604194,
+      "response_sha256": "d8743f978240df5702e244f5102327a6309ef57adcae24ab3ecf1d691f6dc2ec",
+      "retrieved_at_utc": "2026-10-11T19:54:55.890272+00:00",
+      "signal_date": "2025-03-31",
+      "status": "ACQUIRED_PENDING_REVIEW",
+      "ticker": "AWK",
+      "transport": "system-curl",
+      "url": "https://www.sec.gov/Archives/edgar/data/1410636/000141063624000187/awk-20240930_htm.xml"
+    }
+  ],
+  "requested_accessions": 3
+}

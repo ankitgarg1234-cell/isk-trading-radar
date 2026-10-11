@@ -1,0 +1,251 @@
+{
+  "acceptance_normalization_discrepancies": 2,
+  "awk_original_accession": {
+    "accession": "0001410636-24-000187",
+    "affected_backlog_case_dates": [
+      "2025-03-31",
+      "2025-04-30"
+    ],
+    "consolidated_original_quarter_facts": [
+      {
+        "consolidated": true,
+        "context_id": "c-6",
+        "period_end": "2023-09-30",
+        "period_start": "2023-07-01",
+        "qualified_tag": "{http://fasb.org/us-gaap/2024}NetIncomeLoss",
+        "tag": "NetIncomeLoss",
+        "unit": "USD",
+        "value": 323000000
+      },
+      {
+        "consolidated": true,
+        "context_id": "c-5",
+        "period_end": "2024-09-30",
+        "period_start": "2024-07-01",
+        "qualified_tag": "{http://fasb.org/us-gaap/2024}NetIncomeLoss",
+        "tag": "NetIncomeLoss",
+        "unit": "USD",
+        "value": 350000000
+      },
+      {
+        "consolidated": true,
+        "context_id": "c-6",
+        "period_end": "2023-09-30",
+        "period_start": "2023-07-01",
+        "qualified_tag": "{http://fasb.org/us-gaap/2024}OperatingIncomeLoss",
+        "tag": "OperatingIncomeLoss",
+        "unit": "USD",
+        "value": 478000000
+      },
+      {
+        "consolidated": true,
+        "context_id": "c-5",
+        "period_end": "2024-09-30",
+        "period_start": "2024-07-01",
+        "qualified_tag": "{http://fasb.org/us-gaap/2024}OperatingIncomeLoss",
+        "tag": "OperatingIncomeLoss",
+        "unit": "USD",
+        "value": 543000000
+      },
+      {
+        "consolidated": true,
+        "context_id": "c-6",
+        "period_end": "2023-09-30",
+        "period_start": "2023-07-01",
+        "qualified_tag": "{http://fasb.org/us-gaap/2024}RegulatedAndUnregulatedOperatingRevenue",
+        "tag": "RegulatedAndUnregulatedOperatingRevenue",
+        "unit": "USD",
+        "value": 1167000000
+      },
+      {
+        "consolidated": true,
+        "context_id": "c-5",
+        "period_end": "2024-09-30",
+        "period_start": "2024-07-01",
+        "qualified_tag": "{http://fasb.org/us-gaap/2024}RegulatedAndUnregulatedOperatingRevenue",
+        "tag": "RegulatedAndUnregulatedOperatingRevenue",
+        "unit": "USD",
+        "value": 1323000000
+      },
+      {
+        "consolidated": true,
+        "context_id": "c-6",
+        "period_end": "2023-09-30",
+        "period_start": "2023-07-01",
+        "qualified_tag": "{http://fasb.org/us-gaap/2024}RevenueFromContractWithCustomerIncludingAssessedTax",
+        "tag": "RevenueFromContractWithCustomerIncludingAssessedTax",
+        "unit": "USD",
+        "value": 1170000000
+      },
+      {
+        "consolidated": true,
+        "context_id": "c-5",
+        "period_end": "2024-09-30",
+        "period_start": "2024-07-01",
+        "qualified_tag": "{http://fasb.org/us-gaap/2024}RevenueFromContractWithCustomerIncludingAssessedTax",
+        "tag": "RevenueFromContractWithCustomerIncludingAssessedTax",
+        "unit": "USD",
+        "value": 1328000000
+      },
+      {
+        "consolidated": true,
+        "context_id": "c-6",
+        "period_end": "2023-09-30",
+        "period_start": "2023-07-01",
+        "qualified_tag": "{http://fasb.org/us-gaap/2024}RevenueNotFromContractWithCustomerOther",
+        "tag": "RevenueNotFromContractWithCustomerOther",
+        "unit": "USD",
+        "value": -3000000
+      },
+      {
+        "consolidated": true,
+        "context_id": "c-5",
+        "period_end": "2024-09-30",
+        "period_start": "2024-07-01",
+        "qualified_tag": "{http://fasb.org/us-gaap/2024}RevenueNotFromContractWithCustomerOther",
+        "tag": "RevenueNotFromContractWithCustomerOther",
+        "unit": "USD",
+        "value": -5000000
+      }
+    ],
+    "observed_frozen_gate_diagnostic": {
+      "all_three_observed_gates_fail": true,
+      "complete_latest_filing_selection_certified": false,
+      "margin_delta_pp": 0.08335810759608209,
+      "net_income_yoy": 0.08359133126934992,
+      "revenue_yoy": 0.13367609254498714
+    },
+    "response_sha256": "d8743f978240df5702e244f5102327a6309ef57adcae24ab3ecf1d691f6dc2ec",
+    "revenue_value_reconciliations": [
+      {
+        "archive_used_value": "1323000000.0",
+        "exact_value_match": true,
+        "original_accession_tag": "us-gaap:RegulatedAndUnregulatedOperatingRevenue",
+        "original_accession_value": 1323000000,
+        "period_end": "2024-09-30",
+        "signal_date": "2025-03-31",
+        "status": "FACT_VALUE_RECONCILED_SEMANTIC_MAPPING_PENDING_TWO_REVIEWS",
+        "strict_case_certified": false
+      },
+      {
+        "archive_used_value": "1167000000.0",
+        "exact_value_match": true,
+        "original_accession_tag": "us-gaap:RegulatedAndUnregulatedOperatingRevenue",
+        "original_accession_value": 1167000000,
+        "period_end": "2023-09-30",
+        "signal_date": "2025-03-31",
+        "status": "FACT_VALUE_RECONCILED_SEMANTIC_MAPPING_PENDING_TWO_REVIEWS",
+        "strict_case_certified": false
+      },
+      {
+        "archive_used_value": "1323000000.0",
+        "exact_value_match": true,
+        "original_accession_tag": "us-gaap:RegulatedAndUnregulatedOperatingRevenue",
+        "original_accession_value": 1323000000,
+        "period_end": "2024-09-30",
+        "signal_date": "2025-04-30",
+        "status": "FACT_VALUE_RECONCILED_SEMANTIC_MAPPING_PENDING_TWO_REVIEWS",
+        "strict_case_certified": false
+      },
+      {
+        "archive_used_value": "1167000000.0",
+        "exact_value_match": true,
+        "original_accession_tag": "us-gaap:RegulatedAndUnregulatedOperatingRevenue",
+        "original_accession_value": 1167000000,
+        "period_end": "2023-09-30",
+        "signal_date": "2025-04-30",
+        "status": "FACT_VALUE_RECONCILED_SEMANTIC_MAPPING_PENDING_TWO_REVIEWS",
+        "strict_case_certified": false
+      }
+    ],
+    "source_url": "https://www.sec.gov/Archives/edgar/data/1410636/000141063624000187/awk-20240930_htm.xml",
+    "unique_revenue_periods_reconciled": 2
+  },
+  "header_checks": [
+    {
+      "acceptance_raw": "20241024161313",
+      "acceptance_utc_under_declared_ny_convention": "2024-10-24T20:13:13+00:00",
+      "acceptance_utc_under_literal_fixed_est_alternative": "2024-10-24T21:13:13+00:00",
+      "accession": "0001164727-24-000061",
+      "both_timestamps_precede_signal": true,
+      "cached_minus_interpreted_seconds": 0,
+      "cached_sec_accepted_at": "2024-10-24T20:13:13.000Z",
+      "cik": "0001164727",
+      "filing_date_raw": "20241024",
+      "form": "10-Q",
+      "initial_acquisition_record_time_note": "retrieved_at_utc in original request records denotes request start, not first historical public availability",
+      "proves_first_public_availability": false,
+      "response_sha256": "a38e9873c1c613d758bfce6256af0d89588ffc73d5ab5e0efd5ffc437c375844",
+      "signal_date": "2025-03-31",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1164727/000116472724000061/0001164727-24-000061-index-headers.html",
+      "strict_case_certified": false,
+      "ticker": "NEM",
+      "timezone_interpretation_is_inference": true,
+      "timezone_reference_url": "https://www.sec.gov/files/about/webmaster-faq.htm"
+    },
+    {
+      "acceptance_raw": "20241030115410",
+      "acceptance_utc_under_declared_ny_convention": "2024-10-30T15:54:10+00:00",
+      "acceptance_utc_under_literal_fixed_est_alternative": "2024-10-30T16:54:10+00:00",
+      "accession": "0000059478-24-000245",
+      "both_timestamps_precede_signal": true,
+      "cached_minus_interpreted_seconds": 14400,
+      "cached_sec_accepted_at": "2024-10-30T19:54:10.000Z",
+      "cik": "0000059478",
+      "filing_date_raw": "20241030",
+      "form": "10-Q",
+      "initial_acquisition_record_time_note": "retrieved_at_utc in original request records denotes request start, not first historical public availability",
+      "proves_first_public_availability": false,
+      "response_sha256": "3d67640f2b200cf1fdf1990b87d3f7bcc29603b00f7d74915715f8048ee1cf5b",
+      "signal_date": "2025-02-28",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/59478/000005947824000245/0000059478-24-000245-index-headers.html",
+      "strict_case_certified": false,
+      "ticker": "LLY",
+      "timezone_interpretation_is_inference": true,
+      "timezone_reference_url": "https://www.sec.gov/files/about/webmaster-faq.htm"
+    },
+    {
+      "acceptance_raw": "20241030163027",
+      "acceptance_utc_under_declared_ny_convention": "2024-10-30T20:30:27+00:00",
+      "acceptance_utc_under_literal_fixed_est_alternative": "2024-10-30T21:30:27+00:00",
+      "accession": "0001410636-24-000187",
+      "both_timestamps_precede_signal": true,
+      "cached_minus_interpreted_seconds": 14400,
+      "cached_sec_accepted_at": "2024-10-31T00:30:27.000Z",
+      "cik": "0001410636",
+      "filing_date_raw": "20241030",
+      "form": "10-Q",
+      "initial_acquisition_record_time_note": "retrieved_at_utc in original request records denotes request start, not first historical public availability",
+      "proves_first_public_availability": false,
+      "response_sha256": "f19d4e2f271dbff19e454e3a52e202129c4e83652183f3a1dd70526d91044ad0",
+      "signal_date": "2025-03-31",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1410636/000141063624000187/0001410636-24-000187-index-headers.html",
+      "strict_case_certified": false,
+      "ticker": "AWK",
+      "timezone_interpretation_is_inference": true,
+      "timezone_reference_url": "https://www.sec.gov/files/about/webmaster-faq.htm"
+    }
+  ],
+  "header_proves_public_availability": false,
+  "new_full_case_certifications": 0,
+  "original_headers_acquired": 3,
+  "original_xbrl_instances_acquired": 1,
+  "remaining_full_case_certifications": 943,
+  "timezone_policy_is_inference": true,
+  "unresolved_primary_instance_acquisitions": [
+    {
+      "accession": "0001164727-24-000061",
+      "error": "RuntimeError: curl: (56) Exceeded the maximum allowed file size (2000000) with 2000000 bytes\n",
+      "status": "TRANSPORT_FAILED",
+      "ticker": "NEM",
+      "url": "https://www.sec.gov/Archives/edgar/data/1164727/000116472724000061/nem-20240930_htm.xml"
+    },
+    {
+      "accession": "0000059478-24-000245",
+      "error": "RuntimeError: curl: (56) Exceeded the maximum allowed file size (2000000) with 2000000 bytes\n",
+      "status": "TRANSPORT_FAILED",
+      "ticker": "LLY",
+      "url": "https://www.sec.gov/Archives/edgar/data/59478/000005947824000245/lly-20240930_htm.xml"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "acquired_raw_header_responses": 3,
+  "acquired_raw_responses": 3,
+  "acquired_raw_xbrl_responses": 0,
+  "new_full_case_certifications": 0,
+  "note": "Failed requests remain evidence; reruns reuse saved records without unbounded retries",
+  "records": [
+    {
+      "accession": "0001164727-24-000061",
+      "automatic_case_certification": false,
+      "cik": "0001164727",
+      "http_status": 200,
+      "network_retry_count": 0,
+      "raw_path": "a38e9873c1c613d758bfce6256af0d89588ffc73d5ab5e0efd5ffc437c375844.html",
+      "response_bytes": 28299,
+      "response_sha256": "a38e9873c1c613d758bfce6256af0d89588ffc73d5ab5e0efd5ffc437c375844",
+      "retrieved_at_utc": "2026-10-11T19:53:43.037912+00:00",
+      "signal_date": "2025-03-31",
+      "status": "ACQUIRED_PENDING_REVIEW",
+      "ticker": "NEM",
+      "transport": "system-curl",
+      "url": "https://www.sec.gov/Archives/edgar/data/1164727/000116472724000061/0001164727-24-000061-index-headers.html"
+    },
+    {
+      "accession": "0000059478-24-000245",
+      "automatic_case_certification": false,
+      "cik": "0000059478",
+      "http_status": 200,
+      "network_retry_count": 0,
+      "raw_path": "3d67640f2b200cf1fdf1990b87d3f7bcc29603b00f7d74915715f8048ee1cf5b.html",
+      "response_bytes": 18075,
+      "response_sha256": "3d67640f2b200cf1fdf1990b87d3f7bcc29603b00f7d74915715f8048ee1cf5b",
+      "retrieved_at_utc": "2026-10-11T19:53:43.835762+00:00",
+      "signal_date": "2025-02-28",
+      "status": "ACQUIRED_PENDING_REVIEW",
+      "ticker": "LLY",
+      "transport": "system-curl",
+      "url": "https://www.sec.gov/Archives/edgar/data/59478/000005947824000245/0000059478-24-000245-index-headers.html"
+    },
+    {
+      "accession": "0001410636-24-000187",
+      "automatic_case_certification": false,
+      "cik": "0001410636",
+      "http_status": 200,
+      "network_retry_count": 0,
+      "raw_path": "f19d4e2f271dbff19e454e3a52e202129c4e83652183f3a1dd70526d91044ad0.html",
+      "response_bytes": 24974,
+      "response_sha256": "f19d4e2f271dbff19e454e3a52e202129c4e83652183f3a1dd70526d91044ad0",
+      "retrieved_at_utc": "2026-10-11T19:53:44.631626+00:00",
+      "signal_date": "2025-03-31",
+      "status": "ACQUIRED_PENDING_REVIEW",
+      "ticker": "AWK",
+      "transport": "system-curl",
+      "url": "https://www.sec.gov/Archives/edgar/data/1410636/000141063624000187/0001410636-24-000187-index-headers.html"
+    }
+  ],
+  "requested_accessions": 3
+}

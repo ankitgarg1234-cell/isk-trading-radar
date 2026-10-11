@@ -1,0 +1,13 @@
+{
+  "accession": "0001164727-24-000061",
+  "automatic_case_certification": false,
+  "cik": "0001164727",
+  "error": "RuntimeError: curl: (56) Exceeded the maximum allowed file size (2000000) with 2000000 bytes\n",
+  "network_retry_count": 0,
+  "retrieved_at_utc": "2026-10-11T19:54:53.688810+00:00",
+  "signal_date": "2025-03-31",
+  "status": "TRANSPORT_FAILED",
+  "ticker": "NEM",
+  "transport": "system-curl",
+  "url": "https://www.sec.gov/Archives/edgar/data/1164727/000116472724000061/nem-20240930_htm.xml"
+}

@@ -1,0 +1,11 @@
+{
+  "frozen_config.json": "72483dae54bbdf6ffaaf4d353feda5036a20339cdfae7a0fbda9a668862826dc",
+  "pit_data_coverage.csv": "6c2fb13ea086657067187de68bbb6ba3025598b0acea1b52bd29d01d1990e937",
+  "potentially_displacing_competitors.csv": "187e960f8fa01e4aaa6a65c76939bd1b1978826e12bc71cd037a53b7a1fdc5a6",
+  "public_source_manifest.csv": "fa8a90a2f8c2c321469a2daee084f611940513f468eb260051d9402e10f52157",
+  "sec_minimal_evidence.json.gz": "33c57972e561c6ee19adb97f526467f0175ca53bce452289e0fa67740542e98c",
+  "security_identifier_map.json": "65d7d2d03923fcbd9e8e766e5874c3af49fccbb7b2638ee7dce1eabd20dd92a2",
+  "signal_audit.csv.gz": "694986aa28212af5bff0c76007fe94d3628ed5208027beb0ba0115293dda0712",
+  "stock_selection_audit.csv": "5909c4c43e17bbdaa0676ffe306cadf0689b13e09edd05bd8882271e619b0fe0",
+  "strategy_frozen_spec.md": "528f35a2ef4ae4feb36edb24a03f8bb7cc524c7a7cb8c7d88a7e57be188dc3a3"
+}

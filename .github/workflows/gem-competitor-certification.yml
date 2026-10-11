@@ -1,0 +1,41 @@
+name: GEM V1 offline competitor certification
+
+on:
+  push:
+    branches: [research/gem-competitor-certification-2026-10-11]
+    paths:
+      - 'research_5x/gem_competitor_certification/**'
+      - 'tests/gem_certification/**'
+      - '.github/workflows/gem-competitor-certification.yml'
+  pull_request:
+    branches: [research/gem-2025-2026-validation-2026-10-11]
+    paths:
+      - 'research_5x/gem_competitor_certification/**'
+      - 'tests/gem_certification/**'
+      - '.github/workflows/gem-competitor-certification.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gem-competitor-certification-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        python: ['3.12', '3.14']
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Test frozen backlog and independent evidence contracts
+        run: python -m unittest discover -s tests/gem_certification -v
