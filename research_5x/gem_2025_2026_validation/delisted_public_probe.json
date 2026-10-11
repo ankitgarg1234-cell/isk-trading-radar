@@ -1,0 +1,62 @@
+[
+  {
+    "ticker": "ANSS",
+    "url": "https://stooq.com/q/d/l/?s=anss.us&d1=20240101&d2=20261009&i=d",
+    "result": "REQUEST_FAILED",
+    "error": "HTTP Error 404: Not Found"
+  },
+  {
+    "ticker": "CTRA",
+    "url": "https://stooq.com/q/d/l/?s=ctra.us&d1=20240101&d2=20261009&i=d",
+    "result": "REQUEST_FAILED",
+    "error": "HTTP Error 404: Not Found"
+  },
+  {
+    "ticker": "DAY",
+    "url": "https://stooq.com/q/d/l/?s=day.us&d1=20240101&d2=20261009&i=d",
+    "result": "REQUEST_FAILED",
+    "error": "HTTP Error 404: Not Found"
+  },
+  {
+    "ticker": "DFS",
+    "url": "https://stooq.com/q/d/l/?s=dfs.us&d1=20240101&d2=20261009&i=d",
+    "result": "REQUEST_FAILED",
+    "error": "HTTP Error 404: Not Found"
+  },
+  {
+    "ticker": "HES",
+    "url": "https://stooq.com/q/d/l/?s=hes.us&d1=20240101&d2=20261009&i=d",
+    "result": "REQUEST_FAILED",
+    "error": "HTTP Error 404: Not Found"
+  },
+  {
+    "ticker": "HOLX",
+    "url": "https://stooq.com/q/d/l/?s=holx.us&d1=20240101&d2=20261009&i=d",
+    "result": "REQUEST_FAILED",
+    "error": "HTTP Error 404: Not Found"
+  },
+  {
+    "ticker": "IPG",
+    "url": "https://stooq.com/q/d/l/?s=ipg.us&d1=20240101&d2=20261009&i=d",
+    "result": "REQUEST_FAILED",
+    "error": "HTTP Error 404: Not Found"
+  },
+  {
+    "ticker": "JNPR",
+    "url": "https://stooq.com/q/d/l/?s=jnpr.us&d1=20240101&d2=20261009&i=d",
+    "result": "REQUEST_FAILED",
+    "error": "HTTP Error 404: Not Found"
+  },
+  {
+    "ticker": "K",
+    "url": "https://stooq.com/q/d/l/?s=k.us&d1=20240101&d2=20261009&i=d",
+    "result": "REQUEST_FAILED",
+    "error": "HTTP Error 404: Not Found"
+  },
+  {
+    "ticker": "WBA",
+    "url": "https://stooq.com/q/d/l/?s=wba.us&d1=20240101&d2=20261009&i=d",
+    "result": "REQUEST_FAILED",
+    "error": "HTTP Error 404: Not Found"
+  }
+]

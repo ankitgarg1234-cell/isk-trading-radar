@@ -1,0 +1,60 @@
+{
+  "version": "gem-exact-archive-v1",
+  "frozen_utc": "2026-10-11",
+  "configuration": {
+    "name": "growth_margin5",
+    "n": 5,
+    "score": "r63",
+    "filter": "growth_margin"
+  },
+  "cost_bps_per_side": 20,
+  "retention_variants": [
+    {
+      "name": "retain_rank35",
+      "retain_rank35": true,
+      "preserve_weights": false,
+      "holding_rule": "retain_rank35"
+    },
+    {
+      "name": "preserve_weights",
+      "retain_rank35": false,
+      "preserve_weights": true,
+      "holding_rule": "preserve_weights"
+    },
+    {
+      "name": "retain_and_preserve",
+      "retain_rank35": true,
+      "preserve_weights": true,
+      "holding_rule": "retain_and_preserve"
+    }
+  ],
+  "robustness": {
+    "bps": [
+      20,
+      100
+    ],
+    "additional_delay_sessions": [
+      1,
+      5,
+      20
+    ],
+    "exclusions": "largest original-account profit contributor and strongest verified industry; hindsight only; no arbitrary cluster substituted for industry"
+  },
+  "first_entry_policy": "Cash from first trading day; first NEW month-end signal executes next session. No inherited December basket or warm-start substitution.",
+  "industry_attribution": "unavailable until historical industry identity verified",
+  "engines": [
+    {
+      "path": "research_5x/code/run_research.py",
+      "sha256": "a46271c5436a9fdec93af55705623a270c2888b0124814cf90af873d54ecf7b5"
+    },
+    {
+      "path": "research_5x/code/continuation_engine.py",
+      "sha256": "bb4d9845bbc58493f8f83f7e57c171e874e0d20cbc048cf6fbb42cb6f3f686d1"
+    },
+    {
+      "path": "scripts/wf3_offline_valuein.py",
+      "sha256": "521d6327ba932bde5e548b1b44cc2469afbb69c31e0428f13e2260678468b6d8"
+    }
+  ],
+  "posture": "Retrospective; reproduced accounting does not imply PIT certification; SEC repair is separate data-reconstruction diagnostic, not threshold optimization."
+}

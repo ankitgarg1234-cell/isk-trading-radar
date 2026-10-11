@@ -1,0 +1,63 @@
+{
+  "status": "PASS_ACCOUNTING_CONFIGURATION_ONLY",
+  "checks": {
+    "net_return_pct": {
+      "expected": 413.53100105918895,
+      "reproduced": 413.53100105918895,
+      "difference": 0.0
+    },
+    "max_dd_pct": {
+      "expected": -29.240345976845706,
+      "reproduced": -29.240345976845706,
+      "difference": 0.0
+    },
+    "rolling12_max_pct": {
+      "expected": 275.5434121855358,
+      "reproduced": 275.5434121855358,
+      "difference": 0.0
+    },
+    "rolling12_median_pct": {
+      "expected": 88.11853914512922,
+      "reproduced": 88.11853914512922,
+      "difference": 0.0
+    },
+    "total_cost_dollars": {
+      "expected": 1202.9050719985964,
+      "reproduced": 1202.9050719985964,
+      "difference": 0.0
+    },
+    "trade_count": {
+      "expected": 193,
+      "reproduced": 193,
+      "difference": 0.0
+    }
+  },
+  "source_sha256": "a46271c5436a9fdec93af55705623a270c2888b0124814cf90af873d54ecf7b5",
+  "original_configuration": {
+    "name": "growth_margin5",
+    "n": 5,
+    "score": "r63",
+    "filter": "growth_margin"
+  },
+  "original_start": "2024-01-02",
+  "original_end": "2026-10-01",
+  "original_inputs": [
+    {
+      "path": "backtests/staged/wf3_prices.json.gz",
+      "sha256": "6ab928b5ab5a1226dfecbccd9b50e444766aba9c00f6ce4f372801cbaaab2793"
+    },
+    {
+      "path": "backtests/staged/wf3_valuein_fundamentals.json.gz",
+      "sha256": "a066363bd896bb583478adcb6590f5094042ef47158b357b2cde3d2c1aff6893"
+    },
+    {
+      "path": "research_5x/data/spy.json",
+      "sha256": "a4f5aa969a0179439a836572cfac109c0ca18ca09a67d338a2bd6e3550fa37e6"
+    }
+  ],
+  "pit_certified": false,
+  "versions": {
+    "pandas": "2.2.3",
+    "numpy": "2.3.5"
+  }
+}

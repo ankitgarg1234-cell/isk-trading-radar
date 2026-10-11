@@ -1,0 +1,22 @@
+{
+  "audited_input_uses": 52821,
+  "signal_security_records": 10563,
+  "status_counts": {
+    "VERIFIED_SAME_ACCESSION_QUARTER": 52562,
+    "MISSING_SEC_DIRECT_QUARTER": 189,
+    "VALUE_MISMATCH": 42,
+    "ACCEPTANCE_UNVERIFIED_OR_AFTER_SIGNAL": 28
+  },
+  "ticker_signal_all_used_facts_verified": 9689,
+  "ticker_signal_with_used_facts": 9778,
+  "missing_input_records": 5457,
+  "all_signals_certified": false,
+  "certification_blockers": [
+    "Missing price/financial competitors can change rankings",
+    "Historical membership/identifiers not fully primary-verified",
+    "Some exact original-accession values unresolved or disagree with archive",
+    "Payable-date dividends and nonstandard corporate-action economics unresolved",
+    "Historical industries missing"
+  ],
+  "public_sources_downloaded": 1007
+}

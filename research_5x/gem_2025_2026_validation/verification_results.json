@@ -1,0 +1,11 @@
+{
+  "status": "PASS_OFFLINE_INTEGRITY_NOT_PIT_CERTIFICATION",
+  "archive_metrics": 6,
+  "reconciled_baseline_accounts": 15,
+  "verified_minimal_source_input_uses": 52562,
+  "qualified_input_uses": 1638,
+  "pit_certified": false,
+  "engine_hashes_unchanged": true,
+  "monthly_compounding_reconciles": true,
+  "ytd_not_annualized": true
+}

@@ -1,0 +1,2712 @@
+{
+  "A": {
+    "cik": "0001090872",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AAPL": {
+    "cik": "0000320193",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ABBV": {
+    "cik": "0001551152",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ABNB": {
+    "cik": "0001559720",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ABT": {
+    "cik": "0000001800",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ACGL": {
+    "cik": "0000947484",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ACN": {
+    "cik": "0001467373",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ADBE": {
+    "cik": "0000796343",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ADI": {
+    "cik": "0000006281",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ADM": {
+    "cik": "0000007084",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ADP": {
+    "cik": "0000008670",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ADSK": {
+    "cik": "0000769397",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AEE": {
+    "cik": "0001002910",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "AEP": {
+    "cik": "0000004904",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "AES": {
+    "cik": "0000874761",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AFL": {
+    "cik": "0000004977",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AIG": {
+    "cik": "0000005272",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AIZ": {
+    "cik": "0001267238",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AJG": {
+    "cik": "0000354190",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AKAM": {
+    "cik": "0001086222",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ALB": {
+    "cik": "0000915913",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ALGN": {
+    "cik": "0001097149",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ALL": {
+    "cik": "0000899051",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ALLE": {
+    "cik": "0001579241",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AMAT": {
+    "cik": "0000006951",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AMCR": {
+    "cik": "0001748790",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AMD": {
+    "cik": "0000002488",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AME": {
+    "cik": "0001037868",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AMGN": {
+    "cik": "0000318154",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AMP": {
+    "cik": "0000820027",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AMT": {
+    "cik": "0001053507",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AMZN": {
+    "cik": "0001018724",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ANET": {
+    "cik": "0001596532",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ANSS": {
+    "cik": null,
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "AON": {
+    "cik": "0000315293",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AOS": {
+    "cik": "0000091142",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "APA": {
+    "cik": "0001841666",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": [
+      "0000006769",
+      "0001841666"
+    ]
+  },
+  "APD": {
+    "cik": "0000002969",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "APH": {
+    "cik": "0000820313",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "APO": {
+    "cik": "0001858681",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "APP": {
+    "cik": "0001751008",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "APTV": {
+    "cik": "0001521332",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ARE": {
+    "cik": "0001035443",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ARES": {
+    "cik": "0001176948",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ATO": {
+    "cik": "0000731802",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AVB": {
+    "cik": "0000915912",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AVGO": {
+    "cik": "0001730168",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AVY": {
+    "cik": "0000008818",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AWK": {
+    "cik": "0001410636",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AXON": {
+    "cik": "0001069183",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AXP": {
+    "cik": "0000004962",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "AZO": {
+    "cik": "0000866787",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BA": {
+    "cik": "0000012927",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BAC": {
+    "cik": "0000070858",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BALL": {
+    "cik": "0000009389",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BAX": {
+    "cik": "0000010456",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BBY": {
+    "cik": "0000764478",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BDX": {
+    "cik": "0000010795",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BE": {
+    "cik": "0001664703",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BEN": {
+    "cik": "0000038777",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BF-B": {
+    "cik": "0000014693",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "BG": {
+    "cik": "0001996862",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": [
+      "0001144519",
+      "0001996862"
+    ]
+  },
+  "BIIB": {
+    "cik": "0000875045",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BKNG": {
+    "cik": "0001075531",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BKR": {
+    "cik": "0001701605",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BLDR": {
+    "cik": "0001316835",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BLK": {
+    "cik": "0002012383",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": [
+      "0001364742",
+      "0002012383"
+    ]
+  },
+  "BMY": {
+    "cik": "0000014272",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BNY": {
+    "cik": "0001390777",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BR": {
+    "cik": "0001383312",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BRK-B": {
+    "cik": "0001067983",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BRO": {
+    "cik": "0000079282",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BSX": {
+    "cik": "0000885725",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BWA": {
+    "cik": "0000908255",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BX": {
+    "cik": "0001393818",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "BXP": {
+    "cik": "0001037540",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "C": {
+    "cik": "0000831001",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CAG": {
+    "cik": "0000023217",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CAH": {
+    "cik": "0000721371",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CARR": {
+    "cik": "0001783180",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CASY": {
+    "cik": "0000726958",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CAT": {
+    "cik": "0000018230",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CB": {
+    "cik": "0000896159",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CBOE": {
+    "cik": "0001374310",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CBRE": {
+    "cik": "0001138118",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CCI": {
+    "cik": "0001051470",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CCL": {
+    "cik": "0000815097",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CDNS": {
+    "cik": "0000813672",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CDW": {
+    "cik": "0001402057",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CE": {
+    "cik": "0001306830",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CEG": {
+    "cik": "0001868275",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "CF": {
+    "cik": "0001324404",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CFG": {
+    "cik": "0000759944",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CHD": {
+    "cik": "0000313927",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CHRW": {
+    "cik": "0001043277",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CHTR": {
+    "cik": "0001091667",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CI": {
+    "cik": "0001739940",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CIEN": {
+    "cik": "0000936395",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CINF": {
+    "cik": "0000020286",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CL": {
+    "cik": "0000021665",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CLX": {
+    "cik": "0000021076",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CMCSA": {
+    "cik": "0001166691",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CME": {
+    "cik": "0001156375",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CMG": {
+    "cik": "0001058090",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CMI": {
+    "cik": "0000026172",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CMS": {
+    "cik": "0000811156",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "CNC": {
+    "cik": "0001071739",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CNP": {
+    "cik": "0001130310",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "COF": {
+    "cik": "0000927628",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "COHR": {
+    "cik": "0000820318",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "COIN": {
+    "cik": "0001679788",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "COO": {
+    "cik": "0000711404",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "COP": {
+    "cik": "0001163165",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "COR": {
+    "cik": "0001140859",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "COST": {
+    "cik": "0000909832",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CPAY": {
+    "cik": "0001175454",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CPB": {
+    "cik": "0000016732",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CPRT": {
+    "cik": "0000900075",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CPT": {
+    "cik": "0000906345",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CRH": {
+    "cik": "0000849395",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CRL": {
+    "cik": "0001100682",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CRM": {
+    "cik": "0001108524",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CRWD": {
+    "cik": "0001535527",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CSCO": {
+    "cik": "0000858877",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CSGP": {
+    "cik": "0001057352",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CSX": {
+    "cik": "0000277948",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CTAS": {
+    "cik": "0000723254",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CTRA": {
+    "cik": null,
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "CTSH": {
+    "cik": "0001058290",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CTVA": {
+    "cik": "0001755672",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "CVNA": {
+    "cik": "0001690820",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CVS": {
+    "cik": "0000064803",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CVX": {
+    "cik": "0000093410",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "CZR": {
+    "cik": "0001590895",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "D": {
+    "cik": "0000715957",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "DAL": {
+    "cik": "0000027904",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DASH": {
+    "cik": "0001792789",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DAY": {
+    "cik": null,
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "DD": {
+    "cik": "0001666700",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DDOG": {
+    "cik": "0001561550",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DE": {
+    "cik": "0000315189",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DECK": {
+    "cik": "0000910521",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DELL": {
+    "cik": "0001571996",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DFS": {
+    "cik": null,
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "DG": {
+    "cik": "0000029534",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DGX": {
+    "cik": "0001022079",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DHI": {
+    "cik": "0000882184",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DHR": {
+    "cik": "0000313616",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DIS": {
+    "cik": "0001744489",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DLR": {
+    "cik": "0001297996",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DLTR": {
+    "cik": "0000935703",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DOC": {
+    "cik": "0000765880",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DOV": {
+    "cik": "0000029905",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DOW": {
+    "cik": "0001751788",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "DPZ": {
+    "cik": "0001286681",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DRI": {
+    "cik": "0000940944",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DTE": {
+    "cik": "0000936340",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "DUK": {
+    "cik": "0001326160",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "DVA": {
+    "cik": "0000927066",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DVN": {
+    "cik": "0001090012",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "DXCM": {
+    "cik": "0001093557",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "EA": {
+    "cik": "0000712515",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "EBAY": {
+    "cik": "0001065088",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ECHO": {
+    "cik": "0001415404",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ECL": {
+    "cik": "0000031462",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ED": {
+    "cik": "0001047862",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "EFX": {
+    "cik": "0000033185",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "EG": {
+    "cik": "0001095073",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "EIX": {
+    "cik": "0000827052",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "EL": {
+    "cik": "0001001250",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ELV": {
+    "cik": "0001156039",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "EME": {
+    "cik": "0000105634",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "EMN": {
+    "cik": "0000915389",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "EMR": {
+    "cik": "0000032604",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ENPH": {
+    "cik": "0001463101",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "EOG": {
+    "cik": "0000821189",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "EPAM": {
+    "cik": "0001352010",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "EQIX": {
+    "cik": "0001101239",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "EQT": {
+    "cik": "0000033213",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ERIE": {
+    "cik": "0000922621",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ES": {
+    "cik": "0000072741",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "ESS": {
+    "cik": "0000920522",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ETN": {
+    "cik": "0001551182",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ETR": {
+    "cik": "0000065984",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "EVRG": {
+    "cik": "0001711269",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "EW": {
+    "cik": "0001099800",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "EXC": {
+    "cik": "0001109357",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "EXE": {
+    "cik": "0000895126",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "EXPD": {
+    "cik": "0000746515",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "EXPE": {
+    "cik": "0001324424",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "EXR": {
+    "cik": "0001289490",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "F": {
+    "cik": "0000037996",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FANG": {
+    "cik": "0001539838",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FAST": {
+    "cik": "0000815556",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FCX": {
+    "cik": "0000831259",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FDS": {
+    "cik": "0001013237",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FDX": {
+    "cik": "0001048911",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FDXF": {
+    "cik": "0002082247",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FE": {
+    "cik": "0001031296",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FERG": {
+    "cik": "0002011641",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FFIV": {
+    "cik": "0001048695",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FICO": {
+    "cik": "0000814547",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FIS": {
+    "cik": "0001136893",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FISV": {
+    "cik": "0000798354",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FITB": {
+    "cik": "0000035527",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FIX": {
+    "cik": "0001035983",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FLEX": {
+    "cik": "0000866374",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FMC": {
+    "cik": "0000037785",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FOX": {
+    "cik": "0001754301",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "FOXA": {
+    "cik": "0001754301",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FRT": {
+    "cik": "0000034903",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FSLR": {
+    "cik": "0001274494",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FTNT": {
+    "cik": "0001262039",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "FTV": {
+    "cik": "0001659166",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GD": {
+    "cik": "0000040533",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GDDY": {
+    "cik": "0001609711",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GE": {
+    "cik": "0000040545",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GEHC": {
+    "cik": "0001932393",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GEN": {
+    "cik": "0000849399",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GEV": {
+    "cik": "0001996810",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GILD": {
+    "cik": "0000882095",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GIS": {
+    "cik": "0000040704",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GL": {
+    "cik": "0000320335",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GLW": {
+    "cik": "0000024741",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GM": {
+    "cik": "0001467858",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GNRC": {
+    "cik": "0001474735",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GOOG": {
+    "cik": "0001652044",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "GOOGL": {
+    "cik": "0001652044",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GPC": {
+    "cik": "0000040987",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GPN": {
+    "cik": "0001123360",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GRMN": {
+    "cik": "0001121788",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GS": {
+    "cik": "0000886982",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "GWW": {
+    "cik": "0000277135",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HAL": {
+    "cik": "0000045012",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HAS": {
+    "cik": "0000046080",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HBAN": {
+    "cik": "0000049196",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HCA": {
+    "cik": "0000860730",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HD": {
+    "cik": "0000354950",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HES": {
+    "cik": null,
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "HIG": {
+    "cik": "0000874766",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HII": {
+    "cik": "0001501585",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HLT": {
+    "cik": "0001585689",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HOLX": {
+    "cik": null,
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "HON": {
+    "cik": "0000773840",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HONA": {
+    "cik": "0002089271",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HOOD": {
+    "cik": "0001783879",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HPE": {
+    "cik": "0001645590",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HPQ": {
+    "cik": "0000047217",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HRL": {
+    "cik": "0000048465",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HSIC": {
+    "cik": "0001000228",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HST": {
+    "cik": "0001070750",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HSY": {
+    "cik": "0000047111",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HUBB": {
+    "cik": "0000048898",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HUM": {
+    "cik": "0000049071",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "HWM": {
+    "cik": "0000004281",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "IBKR": {
+    "cik": "0001381197",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "IBM": {
+    "cik": "0000051143",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ICE": {
+    "cik": "0001571949",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "IDXX": {
+    "cik": "0000874716",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "IEX": {
+    "cik": "0000832101",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "IFF": {
+    "cik": "0000051253",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ILMN": {
+    "cik": "0001110803",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "INCY": {
+    "cik": "0000879169",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "INTC": {
+    "cik": "0000050863",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "INTU": {
+    "cik": "0000896878",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "INVH": {
+    "cik": "0001687229",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "IP": {
+    "cik": "0000051434",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "IPG": {
+    "cik": null,
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "IQV": {
+    "cik": "0001478242",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "IR": {
+    "cik": "0001699150",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": [
+      "0001466258",
+      "0001699150"
+    ]
+  },
+  "IRM": {
+    "cik": "0001020569",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ISRG": {
+    "cik": "0001035267",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "IT": {
+    "cik": "0000749251",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ITW": {
+    "cik": "0000049826",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "IVZ": {
+    "cik": "0000914208",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "J": {
+    "cik": "0000052988",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "JBHT": {
+    "cik": "0000728535",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "JBL": {
+    "cik": "0000898293",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "JCI": {
+    "cik": "0000833444",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "JKHY": {
+    "cik": "0000779152",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "JNJ": {
+    "cik": "0000200406",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "JNPR": {
+    "cik": null,
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "JPM": {
+    "cik": "0000019617",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "K": {
+    "cik": null,
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "KDP": {
+    "cik": "0001418135",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "KEY": {
+    "cik": "0000091576",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "KEYS": {
+    "cik": "0001601046",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "KHC": {
+    "cik": "0001637459",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "KIM": {
+    "cik": "0000879101",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "KKR": {
+    "cik": "0001404912",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "KLAC": {
+    "cik": "0000319201",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "KMB": {
+    "cik": "0000055785",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "KMI": {
+    "cik": "0001506307",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "KMX": {
+    "cik": "0001170010",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "KO": {
+    "cik": "0000021344",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "KR": {
+    "cik": "0000056873",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "KVUE": {
+    "cik": "0001944048",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "L": {
+    "cik": "0000060086",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LDOS": {
+    "cik": "0001336920",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LEN": {
+    "cik": "0000920760",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LH": {
+    "cik": "0000920148",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LHX": {
+    "cik": "0000202058",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LII": {
+    "cik": "0001069202",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LIN": {
+    "cik": "0001707925",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LITE": {
+    "cik": "0001633978",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LKQ": {
+    "cik": "0001065696",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LLY": {
+    "cik": "0000059478",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LMT": {
+    "cik": "0000936468",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LNT": {
+    "cik": "0000352541",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "LOW": {
+    "cik": "0000060667",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LRCX": {
+    "cik": "0000707549",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LULU": {
+    "cik": "0001397187",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LUV": {
+    "cik": "0000092380",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LVS": {
+    "cik": "0001300514",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LW": {
+    "cik": "0001679273",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LYB": {
+    "cik": "0001489393",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "LYV": {
+    "cik": "0001335258",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MA": {
+    "cik": "0001141391",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MAA": {
+    "cik": "0000912595",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "MAR": {
+    "cik": "0001048286",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MAS": {
+    "cik": "0000062996",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MCD": {
+    "cik": "0000063908",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MCHP": {
+    "cik": "0000827054",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MCK": {
+    "cik": "0000927653",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MCO": {
+    "cik": "0001059556",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MDLZ": {
+    "cik": "0001103982",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MDT": {
+    "cik": "0001613103",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MET": {
+    "cik": "0001099219",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "META": {
+    "cik": "0001326801",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MGM": {
+    "cik": "0000789570",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MHK": {
+    "cik": "0000851968",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MKC": {
+    "cik": "0000063754",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MKTX": {
+    "cik": "0001278021",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MLM": {
+    "cik": "0000916076",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MMM": {
+    "cik": "0000066740",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MNST": {
+    "cik": "0000865752",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MO": {
+    "cik": "0000764180",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MOH": {
+    "cik": "0001179929",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MOS": {
+    "cik": "0001285785",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MPC": {
+    "cik": "0001510295",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MPWR": {
+    "cik": "0001280452",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MRK": {
+    "cik": "0000310158",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MRNA": {
+    "cik": "0001682852",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MRSH": {
+    "cik": "0000062709",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MRVL": {
+    "cik": "0001835632",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MS": {
+    "cik": "0000895421",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MSCI": {
+    "cik": "0001408198",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MSFT": {
+    "cik": "0000789019",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MSI": {
+    "cik": "0000068505",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MTB": {
+    "cik": "0000036270",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MTCH": {
+    "cik": "0000891103",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MTD": {
+    "cik": "0001037646",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "MU": {
+    "cik": "0000723125",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NCLH": {
+    "cik": "0001513761",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NDAQ": {
+    "cik": "0001120193",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NDSN": {
+    "cik": "0000072331",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NEE": {
+    "cik": "0000753308",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "NEM": {
+    "cik": "0001164727",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NFLX": {
+    "cik": "0001065280",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NI": {
+    "cik": "0001111711",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NKE": {
+    "cik": "0000320187",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NOC": {
+    "cik": "0001133421",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NOW": {
+    "cik": "0001373715",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NRG": {
+    "cik": "0001013871",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NSC": {
+    "cik": "0000702165",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NTAP": {
+    "cik": "0001002047",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NTRS": {
+    "cik": "0000073124",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NUE": {
+    "cik": "0000073309",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NVDA": {
+    "cik": "0001045810",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NVR": {
+    "cik": "0000906163",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NWS": {
+    "cik": "0001564708",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "NWSA": {
+    "cik": "0001564708",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "NXPI": {
+    "cik": "0001413447",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "O": {
+    "cik": "0000726728",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ODFL": {
+    "cik": "0000878927",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "OKE": {
+    "cik": "0001039684",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "OMC": {
+    "cik": "0000029989",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ON": {
+    "cik": "0001097864",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ORCL": {
+    "cik": "0001341439",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ORLY": {
+    "cik": "0000898173",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "OTIS": {
+    "cik": "0001781335",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "OXY": {
+    "cik": "0000797468",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "P": {
+    "cik": "0001474432",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PANW": {
+    "cik": "0001327567",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PAYC": {
+    "cik": "0001590955",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PAYX": {
+    "cik": "0000723531",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PCAR": {
+    "cik": "0000075362",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PCG": {
+    "cik": "0001004980",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "PEG": {
+    "cik": "0000788784",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "PEP": {
+    "cik": "0000077476",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PFE": {
+    "cik": "0000078003",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PFG": {
+    "cik": "0001126328",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PG": {
+    "cik": "0000080424",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PGR": {
+    "cik": "0000080661",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PH": {
+    "cik": "0000076334",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PHM": {
+    "cik": "0000822416",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PKG": {
+    "cik": "0000075677",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PLD": {
+    "cik": "0001045609",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PLTR": {
+    "cik": "0001321655",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PM": {
+    "cik": "0001413329",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PNC": {
+    "cik": "0000713676",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PNR": {
+    "cik": "0000077360",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PNW": {
+    "cik": "0000764622",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "PODD": {
+    "cik": "0001145197",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "POOL": {
+    "cik": "0000945841",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PPG": {
+    "cik": "0000079879",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PPL": {
+    "cik": "0000922224",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "PRU": {
+    "cik": "0001137774",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PSA": {
+    "cik": "0001393311",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PSKY": {
+    "cik": "0002041610",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PSX": {
+    "cik": "0001534701",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PTC": {
+    "cik": "0000857005",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PWR": {
+    "cik": "0001050915",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "PYPL": {
+    "cik": "0001633917",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "Q": {
+    "cik": "0002058873",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "QCOM": {
+    "cik": "0000804328",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "RCL": {
+    "cik": "0000884887",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "RDDT": {
+    "cik": "0001713445",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "REG": {
+    "cik": "0000910606",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "REGN": {
+    "cik": "0000872589",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "RF": {
+    "cik": "0001281761",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "RJF": {
+    "cik": "0000720005",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "RL": {
+    "cik": "0001037038",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "RMD": {
+    "cik": "0000943819",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ROK": {
+    "cik": "0001024478",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ROL": {
+    "cik": "0000084839",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ROP": {
+    "cik": "0000882835",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ROST": {
+    "cik": "0000745732",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "RSG": {
+    "cik": "0001060391",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "RTX": {
+    "cik": "0000101829",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "RVTY": {
+    "cik": "0000031791",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SATS": {
+    "cik": null,
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "SBAC": {
+    "cik": "0001034054",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SBUX": {
+    "cik": "0000829224",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SCHW": {
+    "cik": "0000316709",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SHW": {
+    "cik": "0000089800",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SJM": {
+    "cik": "0000091419",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SLB": {
+    "cik": "0000087347",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SMCI": {
+    "cik": "0001375365",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SNA": {
+    "cik": "0000091440",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SNDK": {
+    "cik": "0002023554",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SNPS": {
+    "cik": "0000883241",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SO": {
+    "cik": "0000092122",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "SOLS": {
+    "cik": "0002064953",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SOLV": {
+    "cik": "0001964738",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SPG": {
+    "cik": "0001063761",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "SPGI": {
+    "cik": "0000064040",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SRE": {
+    "cik": "0001032208",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "STE": {
+    "cik": "0001757898",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "STLD": {
+    "cik": "0001022671",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "STT": {
+    "cik": "0000093751",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "STX": {
+    "cik": "0001137789",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "STZ": {
+    "cik": "0000016918",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SW": {
+    "cik": "0002005951",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SWK": {
+    "cik": "0000093556",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SWKS": {
+    "cik": "0000004127",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SYF": {
+    "cik": "0001601712",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SYK": {
+    "cik": "0000310764",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "SYY": {
+    "cik": "0000096021",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "T": {
+    "cik": "0000732717",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TAP": {
+    "cik": "0000024545",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "TDG": {
+    "cik": "0001260221",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TDY": {
+    "cik": "0001094285",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TECH": {
+    "cik": "0000842023",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TEL": {
+    "cik": "0001385157",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TER": {
+    "cik": "0000097210",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TFC": {
+    "cik": "0000092230",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TFX": {
+    "cik": "0000096943",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TGT": {
+    "cik": "0000027419",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TJX": {
+    "cik": "0000109198",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TKO": {
+    "cik": "0001973266",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TMO": {
+    "cik": "0000097745",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TMUS": {
+    "cik": "0001283699",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TPL": {
+    "cik": "0001811074",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TPR": {
+    "cik": "0001116132",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TRGP": {
+    "cik": "0001389170",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TRMB": {
+    "cik": "0000864749",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TROW": {
+    "cik": "0001113169",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TRV": {
+    "cik": "0000086312",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TSCO": {
+    "cik": "0000916365",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TSLA": {
+    "cik": "0001318605",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TSN": {
+    "cik": "0000100493",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TT": {
+    "cik": "0001466258",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TTD": {
+    "cik": "0001671933",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TTWO": {
+    "cik": "0000946581",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TXN": {
+    "cik": "0000097476",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TXT": {
+    "cik": "0000217346",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "TYL": {
+    "cik": "0000860731",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "UAL": {
+    "cik": "0000100517",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "UBER": {
+    "cik": "0001543151",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "UDR": {
+    "cik": "0000074208",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "UHS": {
+    "cik": "0000352915",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ULTA": {
+    "cik": "0001403568",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "UNH": {
+    "cik": "0000731766",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "UNP": {
+    "cik": "0000100885",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "UPS": {
+    "cik": "0001090727",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "URI": {
+    "cik": "0001067701",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "USB": {
+    "cik": "0000036104",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "V": {
+    "cik": "0001403161",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "VEEV": {
+    "cik": "0001393052",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "VICI": {
+    "cik": "0001705696",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "VLO": {
+    "cik": "0001035002",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "VLTO": {
+    "cik": "0001967680",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "VMC": {
+    "cik": "0001396009",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "VMRK": {
+    "cik": "0000906107",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "VRSK": {
+    "cik": "0001442145",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "VRSN": {
+    "cik": "0001014473",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "VRT": {
+    "cik": "0001674101",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "VRTX": {
+    "cik": "0000875320",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "VST": {
+    "cik": "0001692819",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "VTR": {
+    "cik": "0000740260",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "VTRS": {
+    "cik": "0001792044",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "VZ": {
+    "cik": "0000732712",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "WAB": {
+    "cik": "0000943452",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "WAT": {
+    "cik": "0001000697",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "WBA": {
+    "cik": null,
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": []
+  },
+  "WBD": {
+    "cik": "0001437107",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "WDAY": {
+    "cik": "0001327811",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "WDC": {
+    "cik": "0000106040",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "WEC": {
+    "cik": "0000783325",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "WELL": {
+    "cik": "0000766704",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "WFC": {
+    "cik": "0000072971",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "WM": {
+    "cik": "0000823768",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "WMB": {
+    "cik": "0000107263",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "WMT": {
+    "cik": "0000104169",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "WRB": {
+    "cik": "0000011544",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "WSM": {
+    "cik": "0000719955",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "WST": {
+    "cik": "0000105770",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "WTW": {
+    "cik": "0001140536",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "WY": {
+    "cik": "0000106535",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "WYNN": {
+    "cik": "0001174922",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "XEL": {
+    "cik": "0000072903",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "XOM": {
+    "cik": "0002115436",
+    "mapping_source": "current SEC ticker index; identity aid only, never membership admission",
+    "ambiguous_ciks": [
+      "0000034088",
+      "0002115436"
+    ]
+  },
+  "XYL": {
+    "cik": "0001524472",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "XYZ": {
+    "cik": "0001512673",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "YUM": {
+    "cik": "0001041061",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ZBH": {
+    "cik": "0001136869",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ZBRA": {
+    "cik": "0000877212",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  },
+  "ZTS": {
+    "cik": "0001555280",
+    "mapping_source": "frozen accession records",
+    "ambiguous_ciks": []
+  }
+}
