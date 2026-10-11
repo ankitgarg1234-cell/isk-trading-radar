@@ -1,0 +1,420 @@
+{
+  "research_status": "Original-source accounting case evidence; no predictive certification or independent validation",
+  "retrieved_date": "2026-10-11",
+  "currency": "USD",
+  "units": "millions",
+  "definitions": {
+    "net_income": "Consolidated income including NCI, the income line used by the consolidated cash-flow statement",
+    "net_income_parent": "Attributable to common stockholders, retained separately; not the default CFO denominator",
+    "gross_capex": "Cash purchases of PPE, unnetted; missing if a source combines intangible purchases",
+    "sbc_cashflow": "Cash-flow statement noncash share compensation addback; differs from some issuer non-GAAP expense bridges",
+    "company_fcf": "Issuer-specific non-GAAP measure; never silently substituted for CFO minus gross PPE purchases"
+  },
+  "reports": [
+    {
+      "id": "NVDA_FY24Q4",
+      "ticker": "NVDA",
+      "period_start": "2023-10-30",
+      "period_end": "2024-01-28",
+      "window": "quarter",
+      "release": "2024-02-21",
+      "signal_dates": [
+        "2024-04-30"
+      ],
+      "sources": [
+        "NVDA_Q4_release",
+        "NVDA_FY24_10K"
+      ],
+      "revenue": 22103,
+      "gross_profit": 16791,
+      "operating_income": 13615,
+      "net_income": 12285,
+      "net_income_parent": 12285,
+      "cfo": 11499,
+      "gross_capex": null,
+      "combined_ppe_intangible_spend": 253,
+      "financing_asset_principal": 29,
+      "sbc_cashflow": 993,
+      "adjusted_operating_income": 14749,
+      "adjusted_net_income_parent": 12839,
+      "company_fcf": 11217,
+      "interest_expense": 63,
+      "prior_revenue": 6051,
+      "prior_gross_profit": 3833,
+      "prior_operating_income": 1257,
+      "notes": "Original Q4 directly disclosed. Gross PPE alone is unavailable because source combines PPE and intangible purchases. Company FCF also subtracts financing principal. No pure PPE FCF is certified."
+    },
+    {
+      "id": "ZBRA_2024Q3",
+      "ticker": "ZBRA",
+      "period_start": "2024-06-30",
+      "period_end": "2024-09-28",
+      "window": "quarter",
+      "release": "2024-10-29",
+      "signal_dates": [
+        "2024-10-31",
+        "2024-11-29"
+      ],
+      "sources": [
+        "ZBRA_Q3_release",
+        "ZBRA_Q2_release",
+        "ZBRA_Q3_10Q"
+      ],
+      "revenue": 1255,
+      "gross_profit": 613,
+      "operating_income": 191,
+      "net_income": 137,
+      "net_income_parent": 137,
+      "cfo": 294,
+      "gross_capex": 17,
+      "sbc_cashflow": 20,
+      "sbc_nongaap_bridge": 27,
+      "adjusted_operating_income": null,
+      "implied_adjusted_operating_income": 252,
+      "adjusted_net_income_parent": 181,
+      "company_fcf": 277,
+      "interest_expense": null,
+      "prior_revenue": 956,
+      "prior_gross_profit": 427,
+      "prior_operating_income": -12,
+      "cash_derivation": {
+        "cfo_ytd": 707,
+        "cfo_prior_ytd": 413,
+        "capex_ytd": 41,
+        "capex_prior_ytd": 24,
+        "sbc_ytd": 68,
+        "sbc_prior_ytd": 48,
+        "same_fiscal_start": "2024-01-01",
+        "prior_end": "2024-06-29"
+      },
+      "notes": "Q3 cash derived from original Q3/Q2 YTD; not nine-month cash divided by quarterly earnings. Non-GAAP implied OI=adjusted GP616 minus adjusted Opex364; not a separately reported GAAP measure. Nine-month CFO includes86 swap receipts, all already present in Q2; Q3 subtraction therefore removes these receipts. Prior-year restructuring cost58 versus current4 partly inflates YoY OI improvement. Interest line is expense net of income;31 is not certified as gross interest expense.",
+      "interest_expense_net": 31
+    },
+    {
+      "id": "PLTR_2025Q1",
+      "ticker": "PLTR",
+      "period_start": "2025-01-01",
+      "period_end": "2025-03-31",
+      "window": "quarter",
+      "release": "2025-05-05",
+      "signal_dates": [
+        "2025-06-30"
+      ],
+      "sources": [
+        "PLTR_Q1_release",
+        "PLTR_Q1_10Q"
+      ],
+      "revenue": 883.855,
+      "gross_profit": 710.885,
+      "operating_income": 176.048,
+      "net_income": 217.717,
+      "net_income_parent": 214.031,
+      "cfo": 310.263,
+      "gross_capex": 6.184,
+      "sbc_cashflow": 155.339,
+      "adjusted_operating_income": 390.71,
+      "adjusted_net_income_parent": 334.405,
+      "company_fcf": 370.377,
+      "payroll_tax_oi_addback": 59.323,
+      "payroll_tax_fcf_addback": 66.298,
+      "interest_expense": null,
+      "interest_income": 50.441,
+      "prior_revenue": 634.338,
+      "prior_gross_profit": 518.082,
+      "prior_operating_income": 80.881,
+      "notes": "Reported consolidated NI217.717 differs parent NI214.031. Adjusted OI excludes recurring SBC and payroll taxes; issuer FCF adds back cash payroll taxes. Protocol FCF304.079 is lower than issuer370.377."
+    },
+    {
+      "id": "PLTR_2025Q2",
+      "ticker": "PLTR",
+      "period_start": "2025-04-01",
+      "period_end": "2025-06-30",
+      "window": "quarter",
+      "release": "2025-08-04",
+      "signal_dates": [
+        "2025-09-30"
+      ],
+      "sources": [
+        "PLTR_Q2_release",
+        "PLTR_Q2_10Q",
+        "PLTR_Q1_10Q"
+      ],
+      "revenue": 1003.697,
+      "gross_profit": 810.763,
+      "operating_income": 269.317,
+      "net_income": 328.572,
+      "net_income_parent": 326.727,
+      "cfo": 539.251,
+      "gross_capex": 7.634,
+      "sbc_cashflow": 159.971,
+      "adjusted_operating_income": 464.385,
+      "adjusted_net_income_parent": 404.551,
+      "company_fcf": 568.769,
+      "payroll_tax_oi_addback": 35.097,
+      "payroll_tax_fcf_addback": 37.152,
+      "interest_expense": null,
+      "interest_income": 56.255,
+      "prior_revenue": 678.134,
+      "prior_gross_profit": 549.572,
+      "prior_operating_income": 105.339,
+      "cash_derivation": {
+        "cfo_ytd": 849.514,
+        "cfo_prior_ytd": 310.263,
+        "capex_ytd": 13.818,
+        "capex_prior_ytd": 6.184,
+        "sbc_ytd": 315.31,
+        "sbc_prior_ytd": 155.339,
+        "same_fiscal_start": "2025-01-01",
+        "prior_end": "2025-03-31"
+      },
+      "notes": "Quarter CFO539.251 and capex7.634 directly disclosed in release reconciliation and corroborated by YTD subtraction. Protocol FCF531.617 versus issuer568.769; difference37.152 is cash payroll tax addback."
+    },
+    {
+      "id": "NOW_2023Q4",
+      "ticker": "NOW",
+      "period_start": "2023-10-01",
+      "period_end": "2023-12-31",
+      "window": "quarter",
+      "release": "2024-01-24",
+      "signal_dates": [
+        "2024-02-29"
+      ],
+      "sources": [
+        "NOW_Q4_SEC_release",
+        "NOW_FY23_10K"
+      ],
+      "revenue": 2437,
+      "gross_profit": 1921,
+      "operating_income": 270,
+      "net_income": 295,
+      "net_income_parent": 295,
+      "cfo": 1605,
+      "gross_capex": 261,
+      "sbc_cashflow": 413,
+      "adjusted_operating_income": 717,
+      "adjusted_net_income_parent": 643,
+      "company_fcf": 1344,
+      "interest_expense": null,
+      "prior_revenue": 1940,
+      "prior_gross_profit": 1525,
+      "prior_operating_income": 155,
+      "valuation_allowance_release": 65,
+      "notes": "Direct original Q4 cash and statements available in SEC exhibit; blocked IR PDF is not used for byte-level lineage. Recurring SBC413 accounts for most447 adjusted OI uplift. Q4 NI includes65 valuation allowance release. High Q4 CFO includes1302 deferred-revenue cash contribution; subscription billing seasonality prevents unqualified cross-industry comparison."
+    },
+    {
+      "id": "SNPS_FY24Q1",
+      "ticker": "SNPS",
+      "period_start": "2023-11-01",
+      "period_end": "2024-01-31",
+      "actual_fiscal_end": "2024-02-03",
+      "window": "quarter",
+      "release": "2024-02-21",
+      "signal_dates": [
+        "2024-02-29"
+      ],
+      "sources": [
+        "SNPS_Q1_release",
+        "SNPS_Q1_10Q"
+      ],
+      "revenue": 1649.23,
+      "gross_profit": 1320.055,
+      "operating_income": 359.62,
+      "net_income": 446.207,
+      "net_income_parent": 449.112,
+      "cfo": -87.79,
+      "gross_capex": 40.391,
+      "sbc_cashflow": 180.652,
+      "sbc_nongaap_bridge": 180.288,
+      "adjusted_operating_income": null,
+      "adjusted_segment_operating_income_rounded": 638.4,
+      "adjusted_net_income_parent": 553.672,
+      "company_fcf": null,
+      "interest_expense": null,
+      "prior_revenue": 1361.34,
+      "prior_gross_profit": 1076.986,
+      "prior_operating_income": 255.932,
+      "strategic_investment_gain": 55.077,
+      "notes": "Source displays January31 for fiscal quarter actually ending February3 and14 weeks vs13 prior year. Includes Software Integrity. Negative CFO despite positive consolidated NI446.207; parent NI449.112 differs due NCI loss. Total adjusted segment OI638.4 excludes consolidated managed costs and is not interchangeable with a GAAP consolidated OI line."
+    },
+    {
+      "id": "CCL_2023Q4_original",
+      "ticker": "CCL",
+      "period_start": "2023-09-01",
+      "period_end": "2023-11-30",
+      "window": "quarter",
+      "release": "2023-12-21",
+      "signal_dates": [
+        "2024-01-31"
+      ],
+      "sources": [
+        "CCL_Q4_release",
+        "CCL_FY23_10K"
+      ],
+      "revenue": 5397,
+      "gross_profit": null,
+      "operating_income": 384,
+      "net_income": -48,
+      "net_income_parent": -48,
+      "cfo": 915,
+      "gross_capex": 675,
+      "sbc_cashflow": null,
+      "adjusted_operating_income": null,
+      "adjusted_net_income_parent": -90,
+      "company_fcf": 240,
+      "interest_expense": 466,
+      "prior_revenue": 3839,
+      "prior_gross_profit": null,
+      "prior_operating_income": -1135,
+      "notes": "Quarter cash915 explicitly disclosed in original release. Annual cash is later4281 versus release4273; no retrofitting Q4=923 without a same-vintage nine-month bridge. CFO/NI excluded since NI<=0. Carnival Corporation and plc combined scope; market-cap proxy may omit plc economic equity, so valuation/size is audit-only."
+    },
+    {
+      "id": "RCL_2023Q3",
+      "ticker": "RCL",
+      "period_start": "2023-07-01",
+      "period_end": "2023-09-30",
+      "window": "quarter",
+      "release": "2023-10-26",
+      "signal_dates": [
+        "2024-01-31"
+      ],
+      "sources": [
+        "RCL_Q3_release",
+        "RCL_Q3_10Q"
+      ],
+      "revenue": 4160.453,
+      "gross_profit": 1658.12,
+      "operating_income": 1265.104,
+      "net_income": 1010.678,
+      "net_income_parent": 1009.076,
+      "cfo": null,
+      "gross_capex": null,
+      "sbc_cashflow": null,
+      "adjusted_operating_income": null,
+      "adjusted_net_income_parent": null,
+      "company_fcf": null,
+      "interest_expense": 340.62,
+      "prior_revenue": 2993.075,
+      "prior_gross_profit": null,
+      "prior_operating_income": 298.425,
+      "notes": "Latest release before January30 is Q3, not February1 Q4. Release cash is nine-month; exact quarter cash unavailable without original Q2 bridge. Nine-month data are preserved separately, never divided by quarter NI. Cruise gross margin includes cruise expense and depreciation, differing from software/manufacturing gross profit conventions."
+    }
+  ],
+  "supplemental_windows": [
+    {
+      "id": "NVDA_FY24_annual",
+      "ticker": "NVDA",
+      "period_start": "2023-01-30",
+      "period_end": "2024-01-28",
+      "window": "annual",
+      "release": "2024-02-21",
+      "sources": [
+        "NVDA_Q4_release",
+        "NVDA_FY24_10K"
+      ],
+      "revenue": 60922,
+      "gross_profit": 44301,
+      "operating_income": 32972,
+      "net_income": 29760,
+      "cfo": 28090,
+      "gross_capex": null,
+      "combined_ppe_intangible_spend": 1069,
+      "sbc_cashflow": 3549,
+      "notes": "Original annual release agrees with annual filing for disclosed annual revenue, OI, NI and CFO. PPE/intangible combined spending prevents pure capex certification."
+    },
+    {
+      "id": "NOW_FY23_annual",
+      "ticker": "NOW",
+      "period_start": "2023-01-01",
+      "period_end": "2023-12-31",
+      "window": "annual",
+      "release": "2024-01-24",
+      "sources": [
+        "NOW_Q4_SEC_release",
+        "NOW_FY23_10K"
+      ],
+      "revenue": 8971,
+      "gross_profit": 7050,
+      "operating_income": 762,
+      "net_income": 1731,
+      "cfo": 3398,
+      "gross_capex": 694,
+      "sbc_cashflow": 1604,
+      "company_fcf": 2728,
+      "valuation_allowance_release": 1050,
+      "notes": "Annual CFO\u2212gross capex2704 differs issuer2728 by24 acquisition cost addback. Annual GAAP NI includes1050 tax valuation allowance release; release and annual values agree."
+    },
+    {
+      "id": "CCL_FY23_original",
+      "ticker": "CCL",
+      "period_start": "2022-12-01",
+      "period_end": "2023-11-30",
+      "window": "annual",
+      "release": "2023-12-21",
+      "sources": [
+        "CCL_Q4_release"
+      ],
+      "revenue": 21593,
+      "gross_profit": null,
+      "operating_income": 1956,
+      "net_income": -74,
+      "cfo": 4273,
+      "gross_capex": 3284,
+      "sbc_cashflow": null,
+      "company_fcf": 2146,
+      "export_credits": 1157,
+      "interest_expense": 2066,
+      "notes": "Original FY23 release FCF includes export credits:4273\u22123284+1157=2146. Protocol FCF989. Keep this vintage distinct."
+    },
+    {
+      "id": "CCL_FY23_filed",
+      "ticker": "CCL",
+      "period_start": "2022-12-01",
+      "period_end": "2023-11-30",
+      "window": "annual",
+      "release": "2024-01-26",
+      "sources": [
+        "CCL_FY23_10K"
+      ],
+      "revenue": 21593,
+      "gross_profit": null,
+      "operating_income": 1956,
+      "net_income": -74,
+      "cfo": 4281,
+      "gross_capex": 3284,
+      "sbc_cashflow": 53,
+      "interest_expense": 2066,
+      "notes": "Original annual10K available January30 cutoff; CFO4281 differs earlier release4273 by8. No documented cause certified here. Default annual protocol FCF997, not release989 or adjusted2146."
+    },
+    {
+      "id": "RCL_2023YTD9",
+      "ticker": "RCL",
+      "period_start": "2023-01-01",
+      "period_end": "2023-09-30",
+      "window": "nine_months",
+      "release": "2023-10-26",
+      "sources": [
+        "RCL_Q3_release",
+        "RCL_Q3_10Q"
+      ],
+      "revenue": 10568.581,
+      "gross_profit": 3597.017,
+      "operating_income": 2308.298,
+      "net_income": 1425.078,
+      "net_income_parent": 1419.927,
+      "cfo": 3361.005,
+      "gross_capex": 1328.643,
+      "sbc_cashflow": 79.315,
+      "interest_expense": 1055.519,
+      "customer_deposit_cash_contribution": 864.332,
+      "notes": "Cash and denominator both nine-month and consolidated. Customer deposits substantially contribute to cash generation. No quarter cash inference."
+    }
+  ],
+  "open_items": [
+    "Complete historical sector/industry classification is unresolved; current Information Technology proxy mixes storage, software, GPUs, enterprise devices and EDA.",
+    "First-ever profitability/recovery dates and consecutive-release milestones require full earlier original release sequences; not established from a latest-report snapshot.",
+    "No historical analyst consensus, forward valuation vintages, institutional flow or causal loss attribution is reconstructed.",
+    "NVDA pure PPE spending unavailable in combined line; RCL exact Q3 cash/SBC needs original Q2 bridge; CCL exact Q4 SBC and annual-vintage Q4 cash bridge unresolved.",
+    "ZBRA cash-flow SBC versus issuer adjustment expense differs and is retained as an accounting-definition issue rather than forced equality.",
+    "Numeric facts tie to original source vintages, but these selected matching case packets do not certify broad cohort coverage or independent-cycle results."
+  ]
+}

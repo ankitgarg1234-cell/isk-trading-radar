@@ -1,0 +1,805 @@
+{
+  "branch": "research/phase3-accounting-quality-validation",
+  "parent_sha": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+  "base_tree_sha": "062c5ff08998c9cb039a08d27a8cebda0e564b7d",
+  "files": [
+    {
+      "path": "research_5x/phase3/DATA_COVERAGE.md",
+      "bytes": 7496,
+      "sha256": "34457603da650834d17f17af27828e4de71b1c1fcc0c5e56778443093c8fd22a",
+      "git_blob_sha": "dc5e0869830f6762e725b0e46209a1c5b1c8e0ea"
+    },
+    {
+      "path": "research_5x/phase3/DECISION_LOG.md",
+      "bytes": 3534,
+      "sha256": "39d10b2a2965d3d4c2d7c820a062d2b96f143af270d563dfd40e7ca909fe043a",
+      "git_blob_sha": "c7e56143083d3f1335f624356f4abb546f500dd7"
+    },
+    {
+      "path": "research_5x/phase3/EXPERIMENT_QUEUE.csv",
+      "bytes": 1625,
+      "sha256": "4fc32efa97ce4e7b5d5c887c17efec2f06ed51f3f55c78d6a4b612f3cd879292",
+      "git_blob_sha": "19c4cdcab3294e732dc952f0ccee53db098e8838"
+    },
+    {
+      "path": "research_5x/phase3/PROTOCOL.md",
+      "bytes": 9638,
+      "sha256": "d526756251394191a9c262f990e03af78be58844f0add4596cf29e9c9d87610e",
+      "git_blob_sha": "a9b4244aa5b24e06ef2c158c13fbdcf91d8052b8"
+    },
+    {
+      "path": "research_5x/phase3/README.md",
+      "bytes": 3685,
+      "sha256": "73bbbe5b7739005fe13d7cbab18e0c2fb755e03f92dc4a47596d28b4e36ea9a6",
+      "git_blob_sha": "79acf5ce856575780e2d8f09d8aa524fb57e659d"
+    },
+    {
+      "path": "research_5x/phase3/VALIDATION_STATUS.json",
+      "bytes": 3489,
+      "sha256": "d7f75e420f25c7574d873f008d822f13c2d193e5670ddf4b23edee0b7d0ef8bd",
+      "git_blob_sha": "0efe737a41f4adb351b120bbeadb6e3065c3cf9b"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/all_66_company_coverage.csv",
+      "bytes": 6968,
+      "sha256": "50a17365615f40cbdb8fbf54d332b28d4433a8b23e8dca4093e75a10cf552e80",
+      "git_blob_sha": "ed2eaf1880d7e417bda306e2f0dd6427cfc92137"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/all_qualified_with_labels.csv",
+      "bytes": 262574,
+      "sha256": "4ff138eed74323c9b9e6daa517468f57fbb15a6393dd862b86a5d55445251294",
+      "git_blob_sha": "8e93a36c4224a34395caba728c32b2fc43c64fe0"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/cik_map.csv",
+      "bytes": 1871,
+      "sha256": "cd49bd3c817c58d88d998e38154cfa62c6022ad5c6e45554ec58e6fab98ad746",
+      "git_blob_sha": "eef986f4d8b2c9fabe2fd41c5e65c6f2a6e1d4cb"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/cohort_inventory.json",
+      "bytes": 296,
+      "sha256": "12559b1313c5353fe5c219e77fee81fef650af4b306f0fcd90286277fdddd323",
+      "git_blob_sha": "eee825dbe3aabcdfc28aec35037ad5794734d5a9"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/cohort_summary.csv",
+      "bytes": 1549,
+      "sha256": "fb31cfb989bacbdc0135b524f116de73677fb5a7554c2c3a1ea50f4793034a8a",
+      "git_blob_sha": "14a017ebf23219372d30402bf94ec5358a987110"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/company_accounting_comparison.csv",
+      "bytes": 7056,
+      "sha256": "691c958d88acce1ebf473fd092f7b1727a1281ccfc54b3c71fd1f30b4ed88a78",
+      "git_blob_sha": "5321000b9a741e905a624e8a4db2be66876daebb"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/company_coverage.csv",
+      "bytes": 755,
+      "sha256": "683335d2563a06327dc9848b0c0673d357217c9b714c6dc04318daf7edf75ae4",
+      "git_blob_sha": "784ae719572c51e81f295bc865d5fce4cfa55d59"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/descriptive_uncertainty.csv",
+      "bytes": 630,
+      "sha256": "c9c01d88e72b6476888f1e38b3def2c4fe8887316da1d065de59b0fb22d28873",
+      "git_blob_sha": "c2fdb7a3950bcc36e8b7608b94a2ceb0236c027c"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/earliest_mature_company_signals.csv",
+      "bytes": 29194,
+      "sha256": "2ea34f31518f90e03fa6bb90ad2cafd56fdb90dbac64fd1eada42edf9acef9f2",
+      "git_blob_sha": "d77984823e7164097389c2566d56ab6d9c89782a"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/failure_attribution.csv",
+      "bytes": 48548,
+      "sha256": "e80d71012779ac7a5a36f5ec08866ac134e89279da3b9a300d507cf189d0041d",
+      "git_blob_sha": "2341fa4d12bdfe76cebf8578663259113ce76610"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/first_company_signals.csv",
+      "bytes": 46562,
+      "sha256": "1aa85447a966a7eda578d3e396f7f00fd54af70f9f67d6e166598b8325c29640",
+      "git_blob_sha": "7124e1e67efcb1928518eb1e92897d05ff7c5200"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/failures/ISSUER_AUDITS.md",
+      "bytes": 10665,
+      "sha256": "e5ceaba15074cccff983581524966606d999ff9aceae7d6e375916ca1c9e028e",
+      "git_blob_sha": "a44d67357a2f400b24d45661ea059f4ed551abb8"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/failures/README.md",
+      "bytes": 2612,
+      "sha256": "e19c4f0a1908d2bf21ca939f5a57fbb56f9497c57299bf1c6b0e9f337ec35cf7",
+      "git_blob_sha": "e4081e4fa44a46cccaaffede157661778da7b7f5"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/failures/additional_sources.json",
+      "bytes": 2712,
+      "sha256": "fb4ace6c8da94ea1f96938489bde0dc02459090046c95dc3a55144e77f7de639",
+      "git_blob_sha": "6ecde42a339c3f4c8fd9489d1150b10c1bc99adf"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/failures/annual_Q4_reconciliation.csv",
+      "bytes": 11623,
+      "sha256": "f1024f7c606e4854e2b57a5c09fbfe96adb0886b0ee5740b3ea035b5e3e6bf88",
+      "git_blob_sha": "719229c6a8aa75f7f115a5bae3eb91a450fb29e5"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/failures/build_failure_audits.py",
+      "bytes": 22455,
+      "sha256": "68d33415291eb87dccaa6d12f72604dc478b7d1c0fcdeef9d21f5974eb4de829",
+      "git_blob_sha": "fe281e894f05cc8102220f9a2c6a7c2e8dcb2fbe"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/failures/case_metrics.csv",
+      "bytes": 6342,
+      "sha256": "beff17601f2fdc0b5a68bd7b8324e9777cc13b4125f6e0e552fe12d15b7401d0",
+      "git_blob_sha": "9055ec85aac4c60ae30a80f09cb35d24a6115b5b"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/failures/case_metrics.json",
+      "bytes": 12547,
+      "sha256": "19a527511008f2d4fb7562b9764c215b692b56862167e224f1d3a7988b2e9164",
+      "git_blob_sha": "0b1795581215f32d7f37b8ed22c321e7226735c6"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/failures/collect_filing_indices.py",
+      "bytes": 2166,
+      "sha256": "59ed53512d29a72d4db0eaa8d4cd909ed9dc392d1eedb6ba84f22bcc86dba8c6",
+      "git_blob_sha": "1d9055b592747cb7d4abaca0021040ef94fc61fd"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/failures/coverage.json",
+      "bytes": 1951,
+      "sha256": "2172c1b15d4b09a7c9b21a7176db1f20789ce4809407003b95d7017c1f05a7f3",
+      "git_blob_sha": "efded0ee15fee63e4637080f473cd7b936512c81"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/failures/download_manifest.json",
+      "bytes": 29755,
+      "sha256": "57eac16c4f15e1d46139486cd632c7eabd090592e550df39327be1504b64a029",
+      "git_blob_sha": "7bcd9fbeee0ae3a0e1c6ea9105f2699ead4e28be"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/failures/download_sources.py",
+      "bytes": 2799,
+      "sha256": "b358e6e8ec382e76833594f4f394f19827c981f397b71fabe41f119c318fb648",
+      "git_blob_sha": "a45df7d9c4058bff7b0ef479b344c4a050f253f2"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/failures/failure_attribution.csv",
+      "bytes": 5286,
+      "sha256": "494e1da39f031e9fb70ea207280debf8c42ec505a74969492b4aca10247e2cc9",
+      "git_blob_sha": "86588896a3cd3aef191c0c0b8eb362990f29ace8"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/failures/filing_indices.json",
+      "bytes": 7654,
+      "sha256": "9d6c5b205f23b7ab972da8037c18e96fb9a44385447e41f7b82b0067c4612cb1",
+      "git_blob_sha": "1785478e18401e6b1aa539154039841d0d84318c"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/failures/metric_lineage.csv",
+      "bytes": 16852,
+      "sha256": "3be883193306849a23ae3b7a0b2b1d4ecc03bed70b0dcf3a4e4eb432719146d0",
+      "git_blob_sha": "cf83965d9031e5c4b40323a77935c8226dc4a903"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/failures/source_index.csv",
+      "bytes": 20949,
+      "sha256": "3fb921df7d23dae5c4dd771169988ce4616bc8ee11bd4c76b614980821c34329",
+      "git_blob_sha": "c81b06c6e418130e8e09b9d5be0a356e27e2f741"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/failures/test_failure_audits.py",
+      "bytes": 3285,
+      "sha256": "94c4283c7c5502e4cdb244095411f24bce2a2b6fb14d513a55b5fe6fa1d7d227",
+      "git_blob_sha": "a55db2722ae2106a5536cbd362c9cc06bdd25467"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/failures/validation_checks.json",
+      "bytes": 18085,
+      "sha256": "046059356f55932fe3a1520ed7e3bcf4cec8f8d2133e59741cb45fba32eb1c0d",
+      "git_blob_sha": "09ec5ed5d50ae43d264ab8521199f28eb2c94a9c"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/matched_peers/FINDINGS.md",
+      "bytes": 17655,
+      "sha256": "70a1fc9dcff5c0f9950c555448e677c68cb4316435942875cccd5449750ccef7",
+      "git_blob_sha": "f51ca2a783bd71dc2f85c8c02cab715df5dccbc9"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/matched_peers/build_packet.py",
+      "bytes": 20999,
+      "sha256": "f0e0c9126e884cdbff1d486354875619986352b246186801c7d33378129f30a9",
+      "git_blob_sha": "161e9dc38818a9390aecde8cfd32e392338db9d6"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/matched_peers/collect_sources.py",
+      "bytes": 5184,
+      "sha256": "0dff977e221fa01cf68373ed1465a06f14d2a57cb41e1c4b06fb1fd6079d0355",
+      "git_blob_sha": "aabcb633186c0c46f7772ba0b6dfe17ae96fb04d"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/matched_peers/curated_evidence.json",
+      "bytes": 15602,
+      "sha256": "f32aa98e45e65076ffb7e19dcffaf49dc14b51209a038e7f44c4ba174a1de8c7",
+      "git_blob_sha": "878c5efd127c01d6667a5d700854fe9fe03282bc"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/matched_peers/download_manifest.json",
+      "bytes": 28310,
+      "sha256": "0a4503a6e2cbefa50cc68f5051e71d1d36fb057ba240e9f37d54bfc2f2710f9a",
+      "git_blob_sha": "15e87a074533d5a408eba7df25141da5dd495a1e"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/matched_peers/extract_original_facts.py",
+      "bytes": 2894,
+      "sha256": "9ea69ca0f9971a672016e91da3a053bdc3738f3d132cb66b2029954d3fa602e5",
+      "git_blob_sha": "31651cd1c952ff6ed02a3174d66e37d50db4aaf4"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/matched_peers/failure_attribution.csv",
+      "bytes": 3693,
+      "sha256": "87bdf366026a1d211547b99f816e18c00a1f252f172e196c976dee62dd93c335",
+      "git_blob_sha": "7152de74bba14de4e5e70ba76364d2387eb4b788"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/matched_peers/matched_pair_diagnostics.csv",
+      "bytes": 2541,
+      "sha256": "f35083dfb130e0f8ca24950c001cd77ae6f40ffc859e5cbc1a15e24474fa9ecb",
+      "git_blob_sha": "d71198648e1c16f475d8ca1c503722955dde8992"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/matched_peers/metric_lineage.csv",
+      "bytes": 41132,
+      "sha256": "1cdbda6c80cb42d832b231afbd896db7bcae3b2b36df4042dc7d96931f113fff",
+      "git_blob_sha": "4e24dcb4d7bd09f0c55e5994bda8bfa62bb3c422"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/matched_peers/missing_data_coverage.csv",
+      "bytes": 10059,
+      "sha256": "82c8abbb54bb7611397e6595b07ce4162e38cfb7a69c42c78c3e60ef8d6e5445",
+      "git_blob_sha": "52b1236a34631d9efd1638a5684702681cc2e00e"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/matched_peers/normalized_metrics.csv",
+      "bytes": 11253,
+      "sha256": "7c399d730c168de2eb72bc8715353b94fd96c1dc575794accca8f9bcd445ca59",
+      "git_blob_sha": "65ad4e4a37706537e17e5b959113549674c3596d"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/matched_peers/signal_case_matrix.csv",
+      "bytes": 3244,
+      "sha256": "cabcfd33e0c9eaf17f55fea8581abf101d4c34e3a5739463ce74fe51b96ca4c1",
+      "git_blob_sha": "d36d198741b384614fc79259f6fe9ea0e3895bfa"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/matched_peers/source_lineage.csv",
+      "bytes": 15174,
+      "sha256": "5322dac6eb78390b36baf147b80dbbd4db1c035880d159e08f20bcbe6f7398aa",
+      "git_blob_sha": "a0ed41ed79a87040256a94024aabb028bf1857eb"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/matched_peers/test_case_audit.py",
+      "bytes": 5655,
+      "sha256": "01291f6d35dbf82276afefb509e9efc2aba1bf846e2b457605e8b4a852e6b22d",
+      "git_blob_sha": "c66f7452a2df6f6241c49513ce8f6dde1de696cf"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/matched_peers/unit_test_results.json",
+      "bytes": 200,
+      "sha256": "13fc66c26e481a50f639d9c3eddd46f9ca20cf18978c4bb440ffbd7c4b3739ef",
+      "git_blob_sha": "46a7372625eb5234e3ec0f7cc396e3f29d29af04"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/matched_peers/verification_results.json",
+      "bytes": 14074,
+      "sha256": "75161dae4e4495b4e331dfb33a1f8923297136a0b482914657db728a4d1b56bb",
+      "git_blob_sha": "e916972708fe97d3482fda2dea6e8bfbbcc0971b"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/memory/MU.md",
+      "bytes": 5028,
+      "sha256": "29f38bbb9783bf6fe3ffa9ff09fbdd62272c67780220817f071fb7bcbe473bda",
+      "git_blob_sha": "4847c401cfcb388831496833c9f50d912389e38b"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/memory/README.md",
+      "bytes": 2264,
+      "sha256": "6564bc9bc1af756136aa9b30cf8e6cf2078d57bdb1e7fd815502847bd74ea999",
+      "git_blob_sha": "925359379b0455fe5d7398b3dc5c8de98966cc49"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/memory/STX.md",
+      "bytes": 4359,
+      "sha256": "79212f9881d8b44d2fe0f82325e591fc0805189cef7a0eb5ef89ab0d624b6213",
+      "git_blob_sha": "de4b3d305e839ec66696f05a75bf96dcaa62b785"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/memory/WDC.md",
+      "bytes": 4105,
+      "sha256": "edff06b0e7d233e1b378cd0556d502e8c2736743508c6e0a2d01361da1a340a3",
+      "git_blob_sha": "d9b71ab83318dcf7410cfc5107b72aa4afe60990"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/memory/build_audit.py",
+      "bytes": 27560,
+      "sha256": "36b182a78b4068529c2a07a0af8c8b79dcd2d20ad1807ae10424d6d0b49653a4",
+      "git_blob_sha": "6a2816170682ef654a431c3ff91a326e1aaee90f"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/memory/download_manifest.json",
+      "bytes": 7604,
+      "sha256": "d41ee1c95d0c415894bb3b16003e539b63dfecc5bcac16d2aa199d56dbe019f4",
+      "git_blob_sha": "79a5d4500e6557549b3764ec54fbccca7524294a"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/memory/inherited_release_inventory.csv",
+      "bytes": 11281,
+      "sha256": "738e9a6acbc9f4e17d45dd9d76ab9547a7b054e3229356543c41225c74abee4d",
+      "git_blob_sha": "d21657fa5f0b4080b876fcdeb329ace70c2dc6a0"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/memory/quality_metrics.csv",
+      "bytes": 13293,
+      "sha256": "9f4a29351b4686da7188d4077cabde5ab21bed5af4369ef63dd6420c1b7098b9",
+      "git_blob_sha": "822b62f880b23699459b85d025a16e74f1c028e7"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/memory/retain_documents.py",
+      "bytes": 2907,
+      "sha256": "6e6f406c852b6bce9c3c6d8793031003af1a57c905b5c888188a9af9c6be30ba",
+      "git_blob_sha": "5f355a65c207b9dac53d30b292d7ea9b7997eb13"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/memory/snapshot_verification.json",
+      "bytes": 977,
+      "sha256": "9423bd84796741d05a15d8f8200940f598c9a80c80090a1bf0b7d1d63f700d53",
+      "git_blob_sha": "bf7bba6629f4d91e50ffa161740ced3709f9756b"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/memory/source_evidence.json",
+      "bytes": 68682,
+      "sha256": "540c2c7a59585982178a0bcbc1c755b53d2c83634f2f2a8d580646a94c1f5cf0",
+      "git_blob_sha": "b88aa4968724822df832f78779966bec376fb363"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/memory/source_lineage.csv",
+      "bytes": 8666,
+      "sha256": "a582ff6c31b2e449f44a8499ecfbafc35bf5cd8e3b4a35d60881714c91e66b3b",
+      "git_blob_sha": "a30bb956994fa3dfc36e84a21949a63fe7897a57"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/memory/timestamp_conflicts.csv",
+      "bytes": 1026,
+      "sha256": "dd3c771c336f85b717edfa78e06b45e388a4f1d13a8c826e84297023d8569e68",
+      "git_blob_sha": "ba8b8b29b18773d1b9c9881490940022322414c5"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/issuer_audits/memory/verification_checks.json",
+      "bytes": 9400,
+      "sha256": "bca9fa2f17c7b48bf2717ecace7c5079dffaf54e86a5a768b22bc2091ddd7a43",
+      "git_blob_sha": "84123231b3031be056d3ca5a93b9811f507fda26"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/match_summary.csv",
+      "bytes": 515,
+      "sha256": "04dfbf0ccbb42731113921b72ef0574c14b636b01d85fe3aad90d101d43d100b",
+      "git_blob_sha": "af774014d1f9721c080c9d32cc7aee976f6a37e8"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/mature_cohorts.csv",
+      "bytes": 138963,
+      "sha256": "a3c3e02af01286e197ce5601cdd2ca09c4a3734368c0b1bb88acf76a4967f568",
+      "git_blob_sha": "92f34abee07dfba123f054f4dda09af3dcd78ed2"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/missingness_coverage.csv",
+      "bytes": 33620,
+      "sha256": "576ccb5a1c4b08254c7e660fe4c3df596a1ea230a27d31a10c77d2e3840a753e",
+      "git_blob_sha": "1219f481d001026c228bc67ef62520560285dc99"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/original_accession_lineage.csv",
+      "bytes": 26356,
+      "sha256": "0413b78bf9123273ec8983ff27a9b16d4cdd410d1ec6fa50bb64c02921093ee6",
+      "git_blob_sha": "49989c2c2ee8ac8941377584f1a814e86451c12a"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/raw_snapshot_manifest.json",
+      "bytes": 21783,
+      "sha256": "fd8dd79c171abf6bfe657116f9b190d3ee802c76ecb501a7886567f86ad111bb",
+      "git_blob_sha": "38bfe9224e9171480de9074b100391dbf5e9894d"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/relaxed_eligible_pairs.csv",
+      "bytes": 28922,
+      "sha256": "c8ce1385c1f3143ba4985bd9eaee2f7003915f1068bd24ad2aa4cb7757c4d17a",
+      "git_blob_sha": "f055c3eeee237d8d3f1e60c1d5445dccd5f59e26"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/relaxed_first_company_pairs.csv",
+      "bytes": 2640,
+      "sha256": "ade20d91bcaa9b8fd63355064d626b2fe552b14172f97ae59a739eed896dc7ab",
+      "git_blob_sha": "f699df65ec6db8d596850e2c40b08a6c9c69c5c8"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/relaxed_first_company_unmatched.csv",
+      "bytes": 1954,
+      "sha256": "09581ad7ba6c89ee001e21c9037359b3f190a15d2252c45b2d9fcf47ab11c979",
+      "git_blob_sha": "35385efc21c8d0c3a7a94c2079bc0ee571b2e0b6"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/relaxed_nearest_pairs.csv",
+      "bytes": 15777,
+      "sha256": "93d878bd1f0977b193033b90f27c4436c46d89a4f38ff06d0a6d34525cad4c97",
+      "git_blob_sha": "290775433cd1d1867d14bfbd9d4cdef71908797b"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/relaxed_unmatched.csv",
+      "bytes": 7160,
+      "sha256": "f714cd244db912fda7071b0ccd21de79897236a04f2b8d91562c20abd74ad373",
+      "git_blob_sha": "9862de968a150bfa87abe5461e1e8e3ce20187b9"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/sec_fact_lineage.csv.gz",
+      "bytes": 47144,
+      "sha256": "5c0029cf9236c3eddd40dc824ce0b9ff0c0a755ad0c1c88743b106324d986ce3",
+      "git_blob_sha": "88e60c53dca7d6b5db367e4cdc35bc7eefff7bc8"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/sec_metrics_staging.csv",
+      "bytes": 208335,
+      "sha256": "ca34d8ab61a72e99f59bd8636edf14af56854ca8011716aecda00f0a717ee57b",
+      "git_blob_sha": "5223cdc8d05784e891df4e7819e17f6999ec2b40"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/sec_retrieval_inventory.json",
+      "bytes": 31601,
+      "sha256": "673aff59df7a25acafd08195c52c0c1633f16b1f781ead9adc4cad77536c2bfa",
+      "git_blob_sha": "f0aa271a797086b8cb12d5c4537da712252d8570"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/strict_eligible_pairs.csv",
+      "bytes": 29499,
+      "sha256": "0912849086b6c01579527132b24f704aa4720d7103ff1463cc9539e9ab70da97",
+      "git_blob_sha": "a965150745395ec3190b9b0296aa0ced2ce82e0c"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/strict_first_company_pairs.csv",
+      "bytes": 3837,
+      "sha256": "35c0b0290cf66dfffd7535be0a2740c735b831b02273e58651826d3f838e6bc7",
+      "git_blob_sha": "b6d4b5d62424bdd15aa8a060364438d059207066"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/strict_first_company_unmatched.csv",
+      "bytes": 1857,
+      "sha256": "dc1a9b40adcd98cb36424a6abede61858c2079d187ae31f9a46a964f008e48df",
+      "git_blob_sha": "1e51bd6eb1a405baf630bdcf8ba6d8e4a80cbb2f"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/strict_nearest_pairs.csv",
+      "bytes": 14609,
+      "sha256": "31ea2ef8cb3d2a73acff76f31c8f8f66bef96c0171d067e31429b5ebd491c160",
+      "git_blob_sha": "4f8916dffcf61fc4995a05fce906194f25f254cd"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/strict_unmatched.csv",
+      "bytes": 7376,
+      "sha256": "6245f4c219832dba5d40c4af764949fda426b7c1a941ba24a3bc122ff8cc0c06",
+      "git_blob_sha": "0d63adc8cc8f717ae3c691c7fe024cd129232e1b"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/timestamp_conflicts.csv",
+      "bytes": 64635,
+      "sha256": "8006b858838126f5bf999e565a88a5d513e61b723be5495586e302d89bc67730",
+      "git_blob_sha": "424724321369cf117ec8eae5c6aef653c3ad7ceb"
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/uncertainty_limits.json",
+      "bytes": 370,
+      "sha256": "e123854f597d2976db3695cb19f32cccce5d7165d44ca4026950def3f3b1407e",
+      "git_blob_sha": "f4596d6d297a1b2f54a3cbda0dff09498d83c17b"
+    },
+    {
+      "path": "research_5x/phase3/code/build_cohorts.py",
+      "bytes": 5363,
+      "sha256": "90583beee6ce1a2a46b7331d9c23576bb9b957d49945853cb0cf78064f3677f9",
+      "git_blob_sha": "67c0b37a01274f2381f1d11b3d3272bef9847029"
+    },
+    {
+      "path": "research_5x/phase3/code/build_phase3.py",
+      "bytes": 24711,
+      "sha256": "0af7dceffdefd24561d51db76e6ee5ca16704dd78eb0ff4e1061c5a4739e3eb0",
+      "git_blob_sha": "f0063ebfb02d73bb1acfc880fd1e5db0245d89f7"
+    },
+    {
+      "path": "research_5x/phase3/code/check_portable_export.py",
+      "bytes": 3357,
+      "sha256": "dc44b84432876bf2142a12b92a49ea0b12890d63ea5a7ed740022c224dcabf0f",
+      "git_blob_sha": "1663685a7fbfb4a0a1d4f2f578758eeceb20ce1a"
+    },
+    {
+      "path": "research_5x/phase3/code/cohort_uncertainty.py",
+      "bytes": 2479,
+      "sha256": "742190365c31e6a15d213365ecf71ac4e5860f6dd63f6d80dec0f8635f726bbb",
+      "git_blob_sha": "27161dedb30708ce0c5fb39cc1eb00602457ac45"
+    },
+    {
+      "path": "research_5x/phase3/code/prepare_publication.py",
+      "bytes": 2650,
+      "sha256": "ab7e5c4b8614059042642969fedb72ac2dee0071c459510045605f4f7fcf9376",
+      "git_blob_sha": "15587542b3ec15be42ccc0e79475d75ea76f08ee"
+    },
+    {
+      "path": "research_5x/phase3/code/qa_phase3.cjs",
+      "bytes": 1961,
+      "sha256": "567de6ae0a87b2841efdd88ad3a4fb09cf8a8daab221f535abfde43be58319a1",
+      "git_blob_sha": "3f629b910f25f6b9cf5ea04fb31619a5f3e533f4"
+    },
+    {
+      "path": "research_5x/phase3/code/retrieve_sec.py",
+      "bytes": 3177,
+      "sha256": "70bc70005faa0de13833637ebc5bb3a8d5ec21743103ffafdfc9f76fc20fb1c5",
+      "git_blob_sha": "81d6ac182a792b93fc770b06ed6fdc3e3fd5c183"
+    },
+    {
+      "path": "research_5x/phase3/code/stage_accounting.py",
+      "bytes": 14776,
+      "sha256": "8469c53fa0a6314314713c334816a90852ed328a261ad368668cbc888644bf87",
+      "git_blob_sha": "37ffda44a39cb0b3aa6e26c71f748b01d3e3b46d"
+    },
+    {
+      "path": "research_5x/phase3/code/test_phase3.py",
+      "bytes": 6006,
+      "sha256": "9ab6ac22fb075ce30ed3d153129a00ceb677681bc9d8ef9d1d10d01a66581ef0",
+      "git_blob_sha": "e986a43c283e2bb90b6f4ad6a29d9cd4cc9a2964"
+    },
+    {
+      "path": "research_5x/phase3/code/unpack_sources.py",
+      "bytes": 1225,
+      "sha256": "6d92c9bf076bf5a7ab8c703d7dc5fbeb572f8b471262fb5c16d5c1a4a4456abf",
+      "git_blob_sha": "a055f7268b630c15c4e6ee3c0c2355ec481653dd"
+    },
+    {
+      "path": "research_5x/phase3/code/verify_phase3.py",
+      "bytes": 1828,
+      "sha256": "49cf27779e39f784f572c059ff2bc9f7542d0da74434a3d612776189507849e3",
+      "git_blob_sha": "839f4f7b670ded753380a976cefac25915df4ae5"
+    },
+    {
+      "path": "research_5x/phase3/entry_timing/STATUS.md",
+      "bytes": 974,
+      "sha256": "90e7894c95af30dc1a08dae78f7719ccb5da4a7c2fe991aa0ad25162217e5e84",
+      "git_blob_sha": "d996c76223a87c7eb3e8bfdc010938419e69e2e9"
+    },
+    {
+      "path": "research_5x/phase3/figures/cash_failure_cases.png",
+      "bytes": 61562,
+      "sha256": "4bd213ee62e38c28a10e0f91dff1f8ed0279a71c846be8d8ba5a9ca7344b8fb3",
+      "git_blob_sha": "a2b546922cb0818bf8777735121c2c0e24f9f986"
+    },
+    {
+      "path": "research_5x/phase3/figures/cohort_outcomes.png",
+      "bytes": 60418,
+      "sha256": "ba22b03cc7cdd155210bc9a9b4bae182a828e07373b107266a174505dc9c0512",
+      "git_blob_sha": "fc95f946a10ec32f0a670cee3ffbb26b059ccc0a"
+    },
+    {
+      "path": "research_5x/phase3/figures/match_coverage.png",
+      "bytes": 48460,
+      "sha256": "27148430e6005487bab97c0db4c642df3181390a328d396bffc77bca4538069f",
+      "git_blob_sha": "f6ce3e490304b4f521926d5a2ba8d47a01f0ea1a"
+    },
+    {
+      "path": "research_5x/phase3/figures/prior_retention_tradeoff.png",
+      "bytes": 68865,
+      "sha256": "993a5c8c8f013147a8c4220204e5b3edbded3e307b24413802a31a122116e32a",
+      "git_blob_sha": "d32bbe4e85aa0b6a86a4d4a96fa9c348f4182268"
+    },
+    {
+      "path": "research_5x/phase3/frozen_inputs/all_qualified.csv",
+      "bytes": 247992,
+      "sha256": "51e9ead69dc634bb016d4499a7ac9bea7dc493cf602dd4e5c09c9a47d32d39d7",
+      "git_blob_sha": "76d377485845eea1e37e2247eb8c73924c539e54"
+    },
+    {
+      "path": "research_5x/phase3/frozen_inputs/frozen_acceptance_map.json",
+      "bytes": 60822,
+      "sha256": "ec938ba33bb08e3fac0f1798cbfd32551a5fecd8b316525bfb8048a040de584e",
+      "git_blob_sha": "ca904fc70ba2376fd1d0287e136392690e7ba4dd"
+    },
+    {
+      "path": "research_5x/phase3/frozen_inputs/source_copies.json",
+      "bytes": 2452,
+      "sha256": "ac2332f97160c40919d548badd0e2d1d7c5c94958d36526b8ede0da48b0a8abc",
+      "git_blob_sha": "3bd083e3100c80380a96e8624ce14302d9fe768b"
+    },
+    {
+      "path": "research_5x/phase3/protocol_freeze.json",
+      "bytes": 158,
+      "sha256": "5309b2ecd4ac9be0d58fe0d51b0031762c5933936a8df7d974b6a17211affa55",
+      "git_blob_sha": "dc551be03154ecd7a925dc78778e4f03ac1192b2"
+    },
+    {
+      "path": "research_5x/phase3/research_report.html",
+      "bytes": 351594,
+      "sha256": "92034521ad176a14ce29d724cee717a33127673cacc99a982f92007393dae728",
+      "git_blob_sha": "30fa31590ee6ff1a6b1e43b69c0814c64a1cc3ff"
+    },
+    {
+      "path": "research_5x/phase3/retention/STATUS.md",
+      "bytes": 1440,
+      "sha256": "6fd7917bc499df55a41b88e8a0f308da2c0b5d938e2d351405ff561cb81f8817",
+      "git_blob_sha": "aebb63dfe47cbe60f16058ac457e82a0851a68fb"
+    },
+    {
+      "path": "research_5x/phase3/retention/prior_evidence_references.csv",
+      "bytes": 943,
+      "sha256": "9d5d94c3a15ad03407e878d84c65edd3234c2aa0949fd8a0d94d67cd2f22d0a1",
+      "git_blob_sha": "19e5c2182bc37f7b6716a8a1150569807e283ae6"
+    },
+    {
+      "path": "research_5x/phase3/retention/prior_phase2/accounts.csv",
+      "bytes": 81568,
+      "sha256": "93611471fc484169e26406e53e214ddedf1dc21e368dc4ce6195febd65890c98",
+      "git_blob_sha": "5b6a6003a660a94864a1015f297eab8ee5122d68"
+    },
+    {
+      "path": "research_5x/phase3/retention/prior_phase2/continuous_comparison.csv",
+      "bytes": 1964,
+      "sha256": "973fb2c56ed204b99b9341c1bf22109132e5bd104a6dd545d7c43f21d6fb63a4",
+      "git_blob_sha": "7fcb0792e08f547a7ca90fe351a316cf26d9e976"
+    },
+    {
+      "path": "research_5x/phase3/retention/prior_phase2/curves.csv.gz",
+      "bytes": 1240813,
+      "sha256": "a8e1697e69378f272f15aeba81932b72bde979b5e6b9ca3c38a864a6dd351d7e",
+      "git_blob_sha": "66d8a7e6dff78b9162a568cf5ec455dbe04519a5"
+    },
+    {
+      "path": "research_5x/phase3/retention/prior_phase2/empirical_frequencies.csv",
+      "bytes": 25666,
+      "sha256": "c151438bb612202e8769609502c8cfec2f404a86c5ce1671d9397da672c894a5",
+      "git_blob_sha": "e62584eb764dc648fb42fa29062514ebad55bb27"
+    },
+    {
+      "path": "research_5x/phase3/retention/prior_phase2/paired_differences.csv",
+      "bytes": 831,
+      "sha256": "6062459c05b5189153f2ffd8b785b46fb19af274094775f0114f788999b0b996",
+      "git_blob_sha": "bed85caf342375325c5e189484a2347da7746ce9"
+    },
+    {
+      "path": "research_5x/phase3/retention/prior_phase2/spy_accounts.csv",
+      "bytes": 1356,
+      "sha256": "c6c29e62e59a56c7df3327455454921de48c2be2488766ee70a13eb6a990f19c",
+      "git_blob_sha": "cda0b5ac973daeb7b041709f873bec58bc027884"
+    },
+    {
+      "path": "research_5x/phase3/retention/prior_phase2/summary.csv",
+      "bytes": 2831,
+      "sha256": "d564c760de0bdb94f12ff7f513448dc38c4e89a57e09660eacc4006188feab4a",
+      "git_blob_sha": "26613041308d6d54f2761446d3a847e38668d548"
+    },
+    {
+      "path": "research_5x/phase3/retention/prior_phase2/trades.csv.gz",
+      "bytes": 67349,
+      "sha256": "1b9f8bb9446598a31d077c4a56c708c5f9db9c1a5e9413235b1cee39244102a2",
+      "git_blob_sha": "717c0c4e1f6272115ba118a4186ff97c02c14615"
+    },
+    {
+      "path": "research_5x/phase3/source_bundles/manifest.json",
+      "bytes": 42092,
+      "sha256": "5148b730f397930d4a53c47f8228ebcfb05a9829f6edd48759d24796623329db",
+      "git_blob_sha": "42f97c9a073cc96aed05d57a810024914cf59e6a"
+    },
+    {
+      "path": "research_5x/phase3/source_bundles/preserved_sources_01.zip",
+      "bytes": 2375451,
+      "sha256": "647b569cc07c7ccd7de08adfbf23d0a8c1a66432bb944121f7ac197fc91389c0",
+      "git_blob_sha": "bc98feecd33283639a60edd617f01f024eeca297"
+    },
+    {
+      "path": "research_5x/phase3/source_bundles/preserved_sources_02.zip",
+      "bytes": 2271924,
+      "sha256": "483c9467d353e8fb7f597f81fd21920a57cfc662e29a395dff689ea517d916ed",
+      "git_blob_sha": "3ed415b061806967cae37c6a7ac15edc15aa088f"
+    },
+    {
+      "path": "research_5x/phase3/source_bundles/preserved_sources_03.zip",
+      "bytes": 2376868,
+      "sha256": "6e92268e1cb16907987f84d89b23632f2b833f03bec3f4754042df42c9fb9cc1",
+      "git_blob_sha": "abfbc1669b3ed7cf2686d3bd6ca73d5d3cb6d184"
+    },
+    {
+      "path": "research_5x/phase3/source_bundles/preserved_sources_04.zip",
+      "bytes": 2423209,
+      "sha256": "68b2e2d3094bea16507dffcb5577ffb289cb4e3c061e169611ebafa83cfc0538",
+      "git_blob_sha": "a37d2f465206506344084efe93560b46ccd849e5"
+    },
+    {
+      "path": "research_5x/phase3/source_bundles/preserved_sources_05.zip",
+      "bytes": 2318784,
+      "sha256": "c08a03fe69b395f1ddbf51c67d0793c0aee643d98f95090482f33d6d98974fd6",
+      "git_blob_sha": "e6b970e7c14fbb503a341400894c58b390605359"
+    },
+    {
+      "path": "research_5x/phase3/source_bundles/preserved_sources_06.zip",
+      "bytes": 2432691,
+      "sha256": "e3ecafb35bf2b65c3d7c23ead85c401212f5c6f50ed8f324e836b8bbf9fa6fa3",
+      "git_blob_sha": "347b02c5c738764d76c661285fcedefa153861e3"
+    },
+    {
+      "path": "research_5x/phase3/source_bundles/preserved_sources_07.zip",
+      "bytes": 311124,
+      "sha256": "6b3c4f868d8f7451d998bf77dd2dfdf4759195e0d9c71a3fa444a4645dd4b4bd",
+      "git_blob_sha": "fc0336d223034b5ed77d53b447ec93e0dbfa345c"
+    },
+    {
+      "path": "research_5x/phase3/validation/PROSPECTIVE_PROTOCOL.md",
+      "bytes": 2884,
+      "sha256": "029805e937ee68d5d2400cdd23beab7409255d42080bdca5d24c71b691cc7568",
+      "git_blob_sha": "43c7b1636abbdcd730c48f8386cb903603a30521"
+    },
+    {
+      "path": "research_5x/phase3/validation/phase2_preservation.json",
+      "bytes": 30683,
+      "sha256": "22dc9da367c14ee7a9647be26c4e5fb01b2ed3a8162381debc1f660f620a4181",
+      "git_blob_sha": "cfdc14e5398380c83138c60dd1c62fd7c9890bd4"
+    },
+    {
+      "path": "research_5x/phase3/validation/runtime_versions.json",
+      "bytes": 291,
+      "sha256": "6bd67b661c2c4332da0471cfb6636db2aa45e3e47357938a0c68b81757ad84c6",
+      "git_blob_sha": "bc8cb78b3a27a7ff3b79131df89297813659d2be"
+    },
+    {
+      "path": "research_5x/phase3/validation/verification.json",
+      "bytes": 32488,
+      "sha256": "7aba3e654d7a54dbeb7cf9cdac25c7501d73af01021b61b0ad3067cced7e22e1",
+      "git_blob_sha": "928420a0e8ef21562e7b2aebeb0f628e3ae6394c"
+    },
+    {
+      "path": "research_5x/phase3/visual_qa/checks.json",
+      "bytes": 3408,
+      "sha256": "59353e4da6c05ea3d6f2d568c55a621e6055c9f8ec3dd642705fe2de89a503c1",
+      "git_blob_sha": "83e7014451536c863fb89c20b3eb320858dcc80a"
+    },
+    {
+      "path": "research_5x/phase3/visual_qa/cohort.png",
+      "bytes": 152421,
+      "sha256": "16b0aa2d00d783aceb4a08cd078ea38b06cf45e352ed76c61ce740d6887ece52",
+      "git_blob_sha": "71613df3656b2839674005b90e3e3d77e53d1791"
+    },
+    {
+      "path": "research_5x/phase3/visual_qa/decision.png",
+      "bytes": 186526,
+      "sha256": "533c43577348b516ef9fa7ac2a27c819b2d9f9541e1ae051059954c58d83a8d8",
+      "git_blob_sha": "ef0a0d7706a7b786c48954f841bad56de864b2e8"
+    },
+    {
+      "path": "research_5x/phase3/visual_qa/finding.png",
+      "bytes": 211386,
+      "sha256": "a0ebf0ed9bde93894fa39f850e9b8604eae1f03d4dda8a15eee0943693581f52",
+      "git_blob_sha": "9f2d8578309e4c8cf6a38222733d55de98d49e66"
+    },
+    {
+      "path": "research_5x/phase3/visual_qa/mobile.png",
+      "bytes": 89436,
+      "sha256": "9f1b1fca62cf92dc5c59e78635a95a0f7aa59c0736b6e30c3705f715ebdd5194",
+      "git_blob_sha": "4635cb7ce247cf88ed31fb8f80bfd0fdf7fc1af0"
+    },
+    {
+      "path": "research_5x/phase3/visual_qa/opening.png",
+      "bytes": 208453,
+      "sha256": "ebb4cef83e7a44c4f62ce50ede47d91e692a40192eed8255d7bf709a8a1a5340",
+      "git_blob_sha": "3b798f77f057f97b981cfe5a17c0b9b42c78cb31"
+    }
+  ]
+}

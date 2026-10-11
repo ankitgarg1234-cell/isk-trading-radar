@@ -1,0 +1,7 @@
+{
+  "tests_run": 8,
+  "failures": 0,
+  "errors": 0,
+  "passed": true,
+  "purpose": "original accounting vintage, scope, sign, duration, timestamps and missingness integrity; no strategy validation"
+}

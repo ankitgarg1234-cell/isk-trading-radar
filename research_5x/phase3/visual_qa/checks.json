@@ -1,0 +1,120 @@
+[
+  {
+    "width": 1440,
+    "bodyWidth": 1440,
+    "viewWidth": 1440,
+    "tables": 7,
+    "images": [
+      {
+        "complete": true,
+        "width": 1615
+      },
+      {
+        "complete": true,
+        "width": 1615
+      },
+      {
+        "complete": true,
+        "width": 1615
+      },
+      {
+        "complete": true,
+        "width": 1615
+      }
+    ],
+    "links": [
+      "#finding",
+      "#cohort",
+      "#coverage",
+      "#prior",
+      "#decision",
+      "#record",
+      "accounting_quality/issuer_audits/memory/MU.md",
+      "accounting_quality/issuer_audits/memory/STX.md",
+      "accounting_quality/issuer_audits/memory/WDC.md",
+      "accounting_quality/issuer_audits/failures/ISSUER_AUDITS.md",
+      "accounting_quality/issuer_audits/failures/annual_Q4_reconciliation.csv",
+      "accounting_quality/issuer_audits/matched_peers/FINDINGS.md",
+      "accounting_quality/issuer_audits/matched_peers/normalized_metrics.csv",
+      "accounting_quality/company_accounting_comparison.csv",
+      "accounting_quality/failure_attribution.csv",
+      "accounting_quality/strict_unmatched.csv",
+      "accounting_quality/relaxed_unmatched.csv",
+      "DATA_COVERAGE.md",
+      "accounting_quality/timestamp_conflicts.csv",
+      "accounting_quality/missingness_coverage.csv",
+      "validation/PROSPECTIVE_PROTOCOL.md",
+      "retention/prior_phase2/curves.csv.gz",
+      "retention/prior_phase2/trades.csv.gz",
+      "retention/STATUS.md",
+      "PROTOCOL.md",
+      "DECISION_LOG.md",
+      "EXPERIMENT_QUEUE.csv",
+      "VALIDATION_STATUS.json",
+      "README.md",
+      "validation/verification.json"
+    ],
+    "missingLocalLinks": [],
+    "pageErrors": [],
+    "pass": true
+  },
+  {
+    "width": 390,
+    "bodyWidth": 390,
+    "viewWidth": 390,
+    "tables": 7,
+    "images": [
+      {
+        "complete": true,
+        "width": 1615
+      },
+      {
+        "complete": true,
+        "width": 1615
+      },
+      {
+        "complete": true,
+        "width": 1615
+      },
+      {
+        "complete": true,
+        "width": 1615
+      }
+    ],
+    "links": [
+      "#finding",
+      "#cohort",
+      "#coverage",
+      "#prior",
+      "#decision",
+      "#record",
+      "accounting_quality/issuer_audits/memory/MU.md",
+      "accounting_quality/issuer_audits/memory/STX.md",
+      "accounting_quality/issuer_audits/memory/WDC.md",
+      "accounting_quality/issuer_audits/failures/ISSUER_AUDITS.md",
+      "accounting_quality/issuer_audits/failures/annual_Q4_reconciliation.csv",
+      "accounting_quality/issuer_audits/matched_peers/FINDINGS.md",
+      "accounting_quality/issuer_audits/matched_peers/normalized_metrics.csv",
+      "accounting_quality/company_accounting_comparison.csv",
+      "accounting_quality/failure_attribution.csv",
+      "accounting_quality/strict_unmatched.csv",
+      "accounting_quality/relaxed_unmatched.csv",
+      "DATA_COVERAGE.md",
+      "accounting_quality/timestamp_conflicts.csv",
+      "accounting_quality/missingness_coverage.csv",
+      "validation/PROSPECTIVE_PROTOCOL.md",
+      "retention/prior_phase2/curves.csv.gz",
+      "retention/prior_phase2/trades.csv.gz",
+      "retention/STATUS.md",
+      "PROTOCOL.md",
+      "DECISION_LOG.md",
+      "EXPERIMENT_QUEUE.csv",
+      "VALIDATION_STATUS.json",
+      "README.md",
+      "validation/verification.json"
+    ],
+    "missingLocalLinks": [],
+    "pageErrors": [],
+    "pass": true
+  }
+]

@@ -1,0 +1,5 @@
+{
+  "seed": 73011,
+  "interpretation": "Conditional descriptive bootstrap intervals only; 21 reused signal cohorts and two start years cannot estimate independent cycle uncertainty. Cross-issuer/date dependencies persist in any one resampling scheme. No future-probability or causal interpretation.",
+  "quality_incremental_tests": "not_run_until_Gate1_certification"
+}

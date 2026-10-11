@@ -1,0 +1,144 @@
+report_id,ticker,window,metric,available,missing_reason
+NVDA_FY24Q4,NVDA,quarter,revenue,True,
+NVDA_FY24Q4,NVDA,quarter,gross_profit,True,
+NVDA_FY24Q4,NVDA,quarter,operating_income,True,
+NVDA_FY24Q4,NVDA,quarter,net_income,True,
+NVDA_FY24Q4,NVDA,quarter,cfo,True,
+NVDA_FY24Q4,NVDA,quarter,gross_capex,False,Cash purchase line combines PPE and intangible assets; no pure PPE split certified.
+NVDA_FY24Q4,NVDA,quarter,sbc_cashflow,True,
+NVDA_FY24Q4,NVDA,quarter,adjusted_operating_income,True,
+NVDA_FY24Q4,NVDA,quarter,adjusted_net_income_parent,True,
+NVDA_FY24Q4,NVDA,quarter,company_fcf,True,
+NVDA_FY24Q4,NVDA,quarter,interest_expense,True,
+ZBRA_2024Q3,ZBRA,quarter,revenue,True,
+ZBRA_2024Q3,ZBRA,quarter,gross_profit,True,
+ZBRA_2024Q3,ZBRA,quarter,operating_income,True,
+ZBRA_2024Q3,ZBRA,quarter,net_income,True,
+ZBRA_2024Q3,ZBRA,quarter,cfo,True,
+ZBRA_2024Q3,ZBRA,quarter,gross_capex,True,
+ZBRA_2024Q3,ZBRA,quarter,sbc_cashflow,True,
+ZBRA_2024Q3,ZBRA,quarter,adjusted_operating_income,False,Adjusted consolidated OI not directly reported; implied GP minus Opex retained separately.
+ZBRA_2024Q3,ZBRA,quarter,adjusted_net_income_parent,True,
+ZBRA_2024Q3,ZBRA,quarter,company_fcf,True,
+ZBRA_2024Q3,ZBRA,quarter,interest_expense,False,Reported interest expense is net of income; no gross expense split certified.
+PLTR_2025Q1,PLTR,quarter,revenue,True,
+PLTR_2025Q1,PLTR,quarter,gross_profit,True,
+PLTR_2025Q1,PLTR,quarter,operating_income,True,
+PLTR_2025Q1,PLTR,quarter,net_income,True,
+PLTR_2025Q1,PLTR,quarter,cfo,True,
+PLTR_2025Q1,PLTR,quarter,gross_capex,True,
+PLTR_2025Q1,PLTR,quarter,sbc_cashflow,True,
+PLTR_2025Q1,PLTR,quarter,adjusted_operating_income,True,
+PLTR_2025Q1,PLTR,quarter,adjusted_net_income_parent,True,
+PLTR_2025Q1,PLTR,quarter,company_fcf,True,
+PLTR_2025Q1,PLTR,quarter,interest_expense,False,"Not certified from retrieved original sources for this window; missing, not zero."
+PLTR_2025Q2,PLTR,quarter,revenue,True,
+PLTR_2025Q2,PLTR,quarter,gross_profit,True,
+PLTR_2025Q2,PLTR,quarter,operating_income,True,
+PLTR_2025Q2,PLTR,quarter,net_income,True,
+PLTR_2025Q2,PLTR,quarter,cfo,True,
+PLTR_2025Q2,PLTR,quarter,gross_capex,True,
+PLTR_2025Q2,PLTR,quarter,sbc_cashflow,True,
+PLTR_2025Q2,PLTR,quarter,adjusted_operating_income,True,
+PLTR_2025Q2,PLTR,quarter,adjusted_net_income_parent,True,
+PLTR_2025Q2,PLTR,quarter,company_fcf,True,
+PLTR_2025Q2,PLTR,quarter,interest_expense,False,"Not certified from retrieved original sources for this window; missing, not zero."
+NOW_2023Q4,NOW,quarter,revenue,True,
+NOW_2023Q4,NOW,quarter,gross_profit,True,
+NOW_2023Q4,NOW,quarter,operating_income,True,
+NOW_2023Q4,NOW,quarter,net_income,True,
+NOW_2023Q4,NOW,quarter,cfo,True,
+NOW_2023Q4,NOW,quarter,gross_capex,True,
+NOW_2023Q4,NOW,quarter,sbc_cashflow,True,
+NOW_2023Q4,NOW,quarter,adjusted_operating_income,True,
+NOW_2023Q4,NOW,quarter,adjusted_net_income_parent,True,
+NOW_2023Q4,NOW,quarter,company_fcf,True,
+NOW_2023Q4,NOW,quarter,interest_expense,False,"Not certified from retrieved original sources for this window; missing, not zero."
+SNPS_FY24Q1,SNPS,quarter,revenue,True,
+SNPS_FY24Q1,SNPS,quarter,gross_profit,True,
+SNPS_FY24Q1,SNPS,quarter,operating_income,True,
+SNPS_FY24Q1,SNPS,quarter,net_income,True,
+SNPS_FY24Q1,SNPS,quarter,cfo,True,
+SNPS_FY24Q1,SNPS,quarter,gross_capex,True,
+SNPS_FY24Q1,SNPS,quarter,sbc_cashflow,True,
+SNPS_FY24Q1,SNPS,quarter,adjusted_operating_income,False,Adjusted segment OI excludes consolidated managed costs; not a comparable consolidated measure.
+SNPS_FY24Q1,SNPS,quarter,adjusted_net_income_parent,True,
+SNPS_FY24Q1,SNPS,quarter,company_fcf,False,"Not certified from retrieved original sources for this window; missing, not zero."
+SNPS_FY24Q1,SNPS,quarter,interest_expense,False,"Not certified from retrieved original sources for this window; missing, not zero."
+CCL_2023Q4_original,CCL,quarter,revenue,True,
+CCL_2023Q4_original,CCL,quarter,gross_profit,False,Gross profit not normalized from differing cruise cost/depreciation conventions.
+CCL_2023Q4_original,CCL,quarter,operating_income,True,
+CCL_2023Q4_original,CCL,quarter,net_income,True,
+CCL_2023Q4_original,CCL,quarter,cfo,True,
+CCL_2023Q4_original,CCL,quarter,gross_capex,True,
+CCL_2023Q4_original,CCL,quarter,sbc_cashflow,False,No same-window SBC certified from this source; annual filing SBC retained only in its annual filed row.
+CCL_2023Q4_original,CCL,quarter,adjusted_operating_income,False,"Not certified from retrieved original sources for this window; missing, not zero."
+CCL_2023Q4_original,CCL,quarter,adjusted_net_income_parent,True,
+CCL_2023Q4_original,CCL,quarter,company_fcf,True,
+CCL_2023Q4_original,CCL,quarter,interest_expense,True,
+RCL_2023Q3,RCL,quarter,revenue,True,
+RCL_2023Q3,RCL,quarter,gross_profit,True,
+RCL_2023Q3,RCL,quarter,operating_income,True,
+RCL_2023Q3,RCL,quarter,net_income,True,
+RCL_2023Q3,RCL,quarter,cfo,False,Latest release cash is nine months; original Q2 same-vintage subtraction bridge not obtained.
+RCL_2023Q3,RCL,quarter,gross_capex,False,Exact quarter capex requires original Q2 bridge; nine-month capex is separate.
+RCL_2023Q3,RCL,quarter,sbc_cashflow,False,Exact quarter SBC requires original Q2 bridge; nine-month SBC is separate.
+RCL_2023Q3,RCL,quarter,adjusted_operating_income,False,"Not certified from retrieved original sources for this window; missing, not zero."
+RCL_2023Q3,RCL,quarter,adjusted_net_income_parent,False,"Not certified from retrieved original sources for this window; missing, not zero."
+RCL_2023Q3,RCL,quarter,company_fcf,False,"Not certified from retrieved original sources for this window; missing, not zero."
+RCL_2023Q3,RCL,quarter,interest_expense,True,
+NVDA_FY24_annual,NVDA,annual,revenue,True,
+NVDA_FY24_annual,NVDA,annual,gross_profit,True,
+NVDA_FY24_annual,NVDA,annual,operating_income,True,
+NVDA_FY24_annual,NVDA,annual,net_income,True,
+NVDA_FY24_annual,NVDA,annual,cfo,True,
+NVDA_FY24_annual,NVDA,annual,gross_capex,False,Cash purchase line combines PPE and intangible assets; no pure PPE split certified.
+NVDA_FY24_annual,NVDA,annual,sbc_cashflow,True,
+NVDA_FY24_annual,NVDA,annual,adjusted_operating_income,False,"Not certified from retrieved original sources for this window; missing, not zero."
+NVDA_FY24_annual,NVDA,annual,adjusted_net_income_parent,False,"Not certified from retrieved original sources for this window; missing, not zero."
+NVDA_FY24_annual,NVDA,annual,company_fcf,False,"Not certified from retrieved original sources for this window; missing, not zero."
+NVDA_FY24_annual,NVDA,annual,interest_expense,False,"Not certified from retrieved original sources for this window; missing, not zero."
+NOW_FY23_annual,NOW,annual,revenue,True,
+NOW_FY23_annual,NOW,annual,gross_profit,True,
+NOW_FY23_annual,NOW,annual,operating_income,True,
+NOW_FY23_annual,NOW,annual,net_income,True,
+NOW_FY23_annual,NOW,annual,cfo,True,
+NOW_FY23_annual,NOW,annual,gross_capex,True,
+NOW_FY23_annual,NOW,annual,sbc_cashflow,True,
+NOW_FY23_annual,NOW,annual,adjusted_operating_income,False,"Not certified from retrieved original sources for this window; missing, not zero."
+NOW_FY23_annual,NOW,annual,adjusted_net_income_parent,False,"Not certified from retrieved original sources for this window; missing, not zero."
+NOW_FY23_annual,NOW,annual,company_fcf,True,
+NOW_FY23_annual,NOW,annual,interest_expense,False,"Not certified from retrieved original sources for this window; missing, not zero."
+CCL_FY23_original,CCL,annual,revenue,True,
+CCL_FY23_original,CCL,annual,gross_profit,False,Gross profit not normalized from differing cruise cost/depreciation conventions.
+CCL_FY23_original,CCL,annual,operating_income,True,
+CCL_FY23_original,CCL,annual,net_income,True,
+CCL_FY23_original,CCL,annual,cfo,True,
+CCL_FY23_original,CCL,annual,gross_capex,True,
+CCL_FY23_original,CCL,annual,sbc_cashflow,False,No same-window SBC certified from this source; annual filing SBC retained only in its annual filed row.
+CCL_FY23_original,CCL,annual,adjusted_operating_income,False,"Not certified from retrieved original sources for this window; missing, not zero."
+CCL_FY23_original,CCL,annual,adjusted_net_income_parent,False,"Not certified from retrieved original sources for this window; missing, not zero."
+CCL_FY23_original,CCL,annual,company_fcf,True,
+CCL_FY23_original,CCL,annual,interest_expense,True,
+CCL_FY23_filed,CCL,annual,revenue,True,
+CCL_FY23_filed,CCL,annual,gross_profit,False,Gross profit not normalized from differing cruise cost/depreciation conventions.
+CCL_FY23_filed,CCL,annual,operating_income,True,
+CCL_FY23_filed,CCL,annual,net_income,True,
+CCL_FY23_filed,CCL,annual,cfo,True,
+CCL_FY23_filed,CCL,annual,gross_capex,True,
+CCL_FY23_filed,CCL,annual,sbc_cashflow,True,
+CCL_FY23_filed,CCL,annual,adjusted_operating_income,False,"Not certified from retrieved original sources for this window; missing, not zero."
+CCL_FY23_filed,CCL,annual,adjusted_net_income_parent,False,"Not certified from retrieved original sources for this window; missing, not zero."
+CCL_FY23_filed,CCL,annual,company_fcf,False,"Not certified from retrieved original sources for this window; missing, not zero."
+CCL_FY23_filed,CCL,annual,interest_expense,True,
+RCL_2023YTD9,RCL,nine_months,revenue,True,
+RCL_2023YTD9,RCL,nine_months,gross_profit,True,
+RCL_2023YTD9,RCL,nine_months,operating_income,True,
+RCL_2023YTD9,RCL,nine_months,net_income,True,
+RCL_2023YTD9,RCL,nine_months,cfo,True,
+RCL_2023YTD9,RCL,nine_months,gross_capex,True,
+RCL_2023YTD9,RCL,nine_months,sbc_cashflow,True,
+RCL_2023YTD9,RCL,nine_months,adjusted_operating_income,False,"Not certified from retrieved original sources for this window; missing, not zero."
+RCL_2023YTD9,RCL,nine_months,adjusted_net_income_parent,False,"Not certified from retrieved original sources for this window; missing, not zero."
+RCL_2023YTD9,RCL,nine_months,company_fcf,False,"Not certified from retrieved original sources for this window; missing, not zero."
+RCL_2023YTD9,RCL,nine_months,interest_expense,True,

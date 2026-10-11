@@ -1,0 +1,9 @@
+path,evidence
+retention/prior_phase2/accounts.csv,immutable Phase2 dependent portfolio accounts; no Phase3 policy evaluation
+retention/prior_phase2/continuous_comparison.csv,immutable Phase2 dependent portfolio accounts; no Phase3 policy evaluation
+retention/prior_phase2/curves.csv.gz,immutable Phase2 dependent portfolio accounts; no Phase3 policy evaluation
+retention/prior_phase2/empirical_frequencies.csv,immutable Phase2 dependent portfolio accounts; no Phase3 policy evaluation
+retention/prior_phase2/paired_differences.csv,immutable Phase2 dependent portfolio accounts; no Phase3 policy evaluation
+retention/prior_phase2/spy_accounts.csv,immutable Phase2 dependent portfolio accounts; no Phase3 policy evaluation
+retention/prior_phase2/summary.csv,immutable Phase2 dependent portfolio accounts; no Phase3 policy evaluation
+retention/prior_phase2/trades.csv.gz,immutable Phase2 dependent portfolio accounts; no Phase3 policy evaluation

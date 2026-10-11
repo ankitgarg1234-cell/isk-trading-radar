@@ -1,0 +1,281 @@
+group,metric,observations,values_present,coverage_pct,issuers_present,certified_predictive_rows,note
+all,cfo_ytd_usd,188,185,98.40425531914893,38,0,Present API value does not certify original release/period/scope.
+all,net_income_ytd_usd,188,185,98.40425531914893,38,0,Present API value does not certify original release/period/scope.
+all,revenue_ytd_usd,188,185,98.40425531914893,38,0,Present API value does not certify original release/period/scope.
+all,gross_ppe_capex_ytd_usd,188,163,86.70212765957447,33,0,Present API value does not certify original release/period/scope.
+all,sbc_ytd_usd,188,185,98.40425531914893,38,0,Present API value does not certify original release/period/scope.
+all,cfo_quarter_usd,188,185,98.40425531914893,38,0,Present API value does not certify original release/period/scope.
+all,gross_ppe_capex_quarter_usd,188,163,86.70212765957447,33,0,Present API value does not certify original release/period/scope.
+all,sbc_quarter_usd,188,185,98.40425531914893,38,0,Present API value does not certify original release/period/scope.
+outcome:exceptional,cfo_ytd_usd,39,39,100.0,9,0,Present API value does not certify original release/period/scope.
+outcome:exceptional,net_income_ytd_usd,39,39,100.0,9,0,Present API value does not certify original release/period/scope.
+outcome:exceptional,revenue_ytd_usd,39,39,100.0,9,0,Present API value does not certify original release/period/scope.
+outcome:exceptional,gross_ppe_capex_ytd_usd,39,34,87.17948717948718,8,0,Present API value does not certify original release/period/scope.
+outcome:exceptional,sbc_ytd_usd,39,39,100.0,9,0,Present API value does not certify original release/period/scope.
+outcome:exceptional,cfo_quarter_usd,39,39,100.0,9,0,Present API value does not certify original release/period/scope.
+outcome:exceptional,gross_ppe_capex_quarter_usd,39,34,87.17948717948718,8,0,Present API value does not certify original release/period/scope.
+outcome:exceptional,sbc_quarter_usd,39,39,100.0,9,0,Present API value does not certify original release/period/scope.
+outcome:flat_modest,cfo_ytd_usd,60,59,98.33333333333333,20,0,Present API value does not certify original release/period/scope.
+outcome:flat_modest,net_income_ytd_usd,60,59,98.33333333333333,20,0,Present API value does not certify original release/period/scope.
+outcome:flat_modest,revenue_ytd_usd,60,59,98.33333333333333,20,0,Present API value does not certify original release/period/scope.
+outcome:flat_modest,gross_ppe_capex_ytd_usd,60,50,83.33333333333334,16,0,Present API value does not certify original release/period/scope.
+outcome:flat_modest,sbc_ytd_usd,60,59,98.33333333333333,20,0,Present API value does not certify original release/period/scope.
+outcome:flat_modest,cfo_quarter_usd,60,59,98.33333333333333,20,0,Present API value does not certify original release/period/scope.
+outcome:flat_modest,gross_ppe_capex_quarter_usd,60,50,83.33333333333334,16,0,Present API value does not certify original release/period/scope.
+outcome:flat_modest,sbc_quarter_usd,60,59,98.33333333333333,20,0,Present API value does not certify original release/period/scope.
+outcome:material_loser,cfo_ytd_usd,22,20,90.9090909090909,11,0,Present API value does not certify original release/period/scope.
+outcome:material_loser,net_income_ytd_usd,22,20,90.9090909090909,11,0,Present API value does not certify original release/period/scope.
+outcome:material_loser,revenue_ytd_usd,22,20,90.9090909090909,11,0,Present API value does not certify original release/period/scope.
+outcome:material_loser,gross_ppe_capex_ytd_usd,22,20,90.9090909090909,11,0,Present API value does not certify original release/period/scope.
+outcome:material_loser,sbc_ytd_usd,22,20,90.9090909090909,11,0,Present API value does not certify original release/period/scope.
+outcome:material_loser,cfo_quarter_usd,22,20,90.9090909090909,11,0,Present API value does not certify original release/period/scope.
+outcome:material_loser,gross_ppe_capex_quarter_usd,22,20,90.9090909090909,11,0,Present API value does not certify original release/period/scope.
+outcome:material_loser,sbc_quarter_usd,22,20,90.9090909090909,11,0,Present API value does not certify original release/period/scope.
+outcome:moderate,cfo_ytd_usd,54,54,100.0,17,0,Present API value does not certify original release/period/scope.
+outcome:moderate,net_income_ytd_usd,54,54,100.0,17,0,Present API value does not certify original release/period/scope.
+outcome:moderate,revenue_ytd_usd,54,54,100.0,17,0,Present API value does not certify original release/period/scope.
+outcome:moderate,gross_ppe_capex_ytd_usd,54,47,87.03703703703704,16,0,Present API value does not certify original release/period/scope.
+outcome:moderate,sbc_ytd_usd,54,54,100.0,17,0,Present API value does not certify original release/period/scope.
+outcome:moderate,cfo_quarter_usd,54,54,100.0,17,0,Present API value does not certify original release/period/scope.
+outcome:moderate,gross_ppe_capex_quarter_usd,54,47,87.03703703703704,16,0,Present API value does not certify original release/period/scope.
+outcome:moderate,sbc_quarter_usd,54,54,100.0,17,0,Present API value does not certify original release/period/scope.
+outcome:severe_loser,cfo_ytd_usd,13,13,100.0,8,0,Present API value does not certify original release/period/scope.
+outcome:severe_loser,net_income_ytd_usd,13,13,100.0,8,0,Present API value does not certify original release/period/scope.
+outcome:severe_loser,revenue_ytd_usd,13,13,100.0,8,0,Present API value does not certify original release/period/scope.
+outcome:severe_loser,gross_ppe_capex_ytd_usd,13,12,92.3076923076923,7,0,Present API value does not certify original release/period/scope.
+outcome:severe_loser,sbc_ytd_usd,13,13,100.0,8,0,Present API value does not certify original release/period/scope.
+outcome:severe_loser,cfo_quarter_usd,13,13,100.0,8,0,Present API value does not certify original release/period/scope.
+outcome:severe_loser,gross_ppe_capex_quarter_usd,13,12,92.3076923076923,7,0,Present API value does not certify original release/period/scope.
+outcome:severe_loser,sbc_quarter_usd,13,13,100.0,8,0,Present API value does not certify original release/period/scope.
+sector:Communication Services,cfo_ytd_usd,12,12,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Communication Services,net_income_ytd_usd,12,12,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Communication Services,revenue_ytd_usd,12,12,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Communication Services,gross_ppe_capex_ytd_usd,12,11,91.66666666666666,1,0,Present API value does not certify original release/period/scope.
+sector:Communication Services,sbc_ytd_usd,12,12,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Communication Services,cfo_quarter_usd,12,12,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Communication Services,gross_ppe_capex_quarter_usd,12,11,91.66666666666666,1,0,Present API value does not certify original release/period/scope.
+sector:Communication Services,sbc_quarter_usd,12,12,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Consumer Discretionary,cfo_ytd_usd,36,33,91.66666666666666,6,0,Present API value does not certify original release/period/scope.
+sector:Consumer Discretionary,net_income_ytd_usd,36,33,91.66666666666666,6,0,Present API value does not certify original release/period/scope.
+sector:Consumer Discretionary,revenue_ytd_usd,36,33,91.66666666666666,6,0,Present API value does not certify original release/period/scope.
+sector:Consumer Discretionary,gross_ppe_capex_ytd_usd,36,33,91.66666666666666,6,0,Present API value does not certify original release/period/scope.
+sector:Consumer Discretionary,sbc_ytd_usd,36,33,91.66666666666666,6,0,Present API value does not certify original release/period/scope.
+sector:Consumer Discretionary,cfo_quarter_usd,36,33,91.66666666666666,6,0,Present API value does not certify original release/period/scope.
+sector:Consumer Discretionary,gross_ppe_capex_quarter_usd,36,33,91.66666666666666,6,0,Present API value does not certify original release/period/scope.
+sector:Consumer Discretionary,sbc_quarter_usd,36,33,91.66666666666666,6,0,Present API value does not certify original release/period/scope.
+sector:Energy,cfo_ytd_usd,4,4,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Energy,net_income_ytd_usd,4,4,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Energy,revenue_ytd_usd,4,4,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Energy,gross_ppe_capex_ytd_usd,4,4,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Energy,sbc_ytd_usd,4,4,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Energy,cfo_quarter_usd,4,4,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Energy,gross_ppe_capex_quarter_usd,4,4,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Energy,sbc_quarter_usd,4,4,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Financials,cfo_ytd_usd,9,9,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Financials,net_income_ytd_usd,9,9,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Financials,revenue_ytd_usd,9,9,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Financials,gross_ppe_capex_ytd_usd,9,9,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Financials,sbc_ytd_usd,9,9,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Financials,cfo_quarter_usd,9,9,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Financials,gross_ppe_capex_quarter_usd,9,9,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Financials,sbc_quarter_usd,9,9,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Health Care,cfo_ytd_usd,12,12,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Health Care,net_income_ytd_usd,12,12,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Health Care,revenue_ytd_usd,12,12,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Health Care,gross_ppe_capex_ytd_usd,12,12,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Health Care,sbc_ytd_usd,12,12,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Health Care,cfo_quarter_usd,12,12,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Health Care,gross_ppe_capex_quarter_usd,12,12,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Health Care,sbc_quarter_usd,12,12,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Industrials,cfo_ytd_usd,13,13,100.0,4,0,Present API value does not certify original release/period/scope.
+sector:Industrials,net_income_ytd_usd,13,13,100.0,4,0,Present API value does not certify original release/period/scope.
+sector:Industrials,revenue_ytd_usd,13,13,100.0,4,0,Present API value does not certify original release/period/scope.
+sector:Industrials,gross_ppe_capex_ytd_usd,13,11,84.61538461538461,3,0,Present API value does not certify original release/period/scope.
+sector:Industrials,sbc_ytd_usd,13,13,100.0,4,0,Present API value does not certify original release/period/scope.
+sector:Industrials,cfo_quarter_usd,13,13,100.0,4,0,Present API value does not certify original release/period/scope.
+sector:Industrials,gross_ppe_capex_quarter_usd,13,11,84.61538461538461,3,0,Present API value does not certify original release/period/scope.
+sector:Industrials,sbc_quarter_usd,13,13,100.0,4,0,Present API value does not certify original release/period/scope.
+sector:Information Technology,cfo_ytd_usd,100,100,100.0,18,0,Present API value does not certify original release/period/scope.
+sector:Information Technology,net_income_ytd_usd,100,100,100.0,18,0,Present API value does not certify original release/period/scope.
+sector:Information Technology,revenue_ytd_usd,100,100,100.0,18,0,Present API value does not certify original release/period/scope.
+sector:Information Technology,gross_ppe_capex_ytd_usd,100,81,81.0,15,0,Present API value does not certify original release/period/scope.
+sector:Information Technology,sbc_ytd_usd,100,100,100.0,18,0,Present API value does not certify original release/period/scope.
+sector:Information Technology,cfo_quarter_usd,100,100,100.0,18,0,Present API value does not certify original release/period/scope.
+sector:Information Technology,gross_ppe_capex_quarter_usd,100,81,81.0,15,0,Present API value does not certify original release/period/scope.
+sector:Information Technology,sbc_quarter_usd,100,100,100.0,18,0,Present API value does not certify original release/period/scope.
+sector:Unknown,cfo_ytd_usd,2,2,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Unknown,net_income_ytd_usd,2,2,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Unknown,revenue_ytd_usd,2,2,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Unknown,gross_ppe_capex_ytd_usd,2,2,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Unknown,sbc_ytd_usd,2,2,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Unknown,cfo_quarter_usd,2,2,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Unknown,gross_ppe_capex_quarter_usd,2,2,100.0,2,0,Present API value does not certify original release/period/scope.
+sector:Unknown,sbc_quarter_usd,2,2,100.0,2,0,Present API value does not certify original release/period/scope.
+date:2024-01-31,cfo_ytd_usd,12,11,91.66666666666666,11,0,Present API value does not certify original release/period/scope.
+date:2024-01-31,net_income_ytd_usd,12,11,91.66666666666666,11,0,Present API value does not certify original release/period/scope.
+date:2024-01-31,revenue_ytd_usd,12,11,91.66666666666666,11,0,Present API value does not certify original release/period/scope.
+date:2024-01-31,gross_ppe_capex_ytd_usd,12,9,75.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-01-31,sbc_ytd_usd,12,11,91.66666666666666,11,0,Present API value does not certify original release/period/scope.
+date:2024-01-31,cfo_quarter_usd,12,11,91.66666666666666,11,0,Present API value does not certify original release/period/scope.
+date:2024-01-31,gross_ppe_capex_quarter_usd,12,9,75.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-01-31,sbc_quarter_usd,12,11,91.66666666666666,11,0,Present API value does not certify original release/period/scope.
+date:2024-02-29,cfo_ytd_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-02-29,net_income_ytd_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-02-29,revenue_ytd_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-02-29,gross_ppe_capex_ytd_usd,10,7,70.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-02-29,sbc_ytd_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-02-29,cfo_quarter_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-02-29,gross_ppe_capex_quarter_usd,10,7,70.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-02-29,sbc_quarter_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-03-28,cfo_ytd_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-03-28,net_income_ytd_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-03-28,revenue_ytd_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-03-28,gross_ppe_capex_ytd_usd,10,7,70.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-03-28,sbc_ytd_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-03-28,cfo_quarter_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-03-28,gross_ppe_capex_quarter_usd,10,7,70.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-03-28,sbc_quarter_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-04-30,cfo_ytd_usd,8,8,100.0,8,0,Present API value does not certify original release/period/scope.
+date:2024-04-30,net_income_ytd_usd,8,8,100.0,8,0,Present API value does not certify original release/period/scope.
+date:2024-04-30,revenue_ytd_usd,8,8,100.0,8,0,Present API value does not certify original release/period/scope.
+date:2024-04-30,gross_ppe_capex_ytd_usd,8,7,87.5,7,0,Present API value does not certify original release/period/scope.
+date:2024-04-30,sbc_ytd_usd,8,8,100.0,8,0,Present API value does not certify original release/period/scope.
+date:2024-04-30,cfo_quarter_usd,8,8,100.0,8,0,Present API value does not certify original release/period/scope.
+date:2024-04-30,gross_ppe_capex_quarter_usd,8,7,87.5,7,0,Present API value does not certify original release/period/scope.
+date:2024-04-30,sbc_quarter_usd,8,8,100.0,8,0,Present API value does not certify original release/period/scope.
+date:2024-05-31,cfo_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-05-31,net_income_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-05-31,revenue_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-05-31,gross_ppe_capex_ytd_usd,7,6,85.71428571428571,6,0,Present API value does not certify original release/period/scope.
+date:2024-05-31,sbc_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-05-31,cfo_quarter_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-05-31,gross_ppe_capex_quarter_usd,7,6,85.71428571428571,6,0,Present API value does not certify original release/period/scope.
+date:2024-05-31,sbc_quarter_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-06-28,cfo_ytd_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2024-06-28,net_income_ytd_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2024-06-28,revenue_ytd_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2024-06-28,gross_ppe_capex_ytd_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-06-28,sbc_ytd_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2024-06-28,cfo_quarter_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2024-06-28,gross_ppe_capex_quarter_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-06-28,sbc_quarter_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2024-07-31,cfo_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-07-31,net_income_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-07-31,revenue_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-07-31,gross_ppe_capex_ytd_usd,7,5,71.42857142857143,5,0,Present API value does not certify original release/period/scope.
+date:2024-07-31,sbc_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-07-31,cfo_quarter_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-07-31,gross_ppe_capex_quarter_usd,7,5,71.42857142857143,5,0,Present API value does not certify original release/period/scope.
+date:2024-07-31,sbc_quarter_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-08-30,cfo_ytd_usd,5,5,100.0,5,0,Present API value does not certify original release/period/scope.
+date:2024-08-30,net_income_ytd_usd,5,5,100.0,5,0,Present API value does not certify original release/period/scope.
+date:2024-08-30,revenue_ytd_usd,5,5,100.0,5,0,Present API value does not certify original release/period/scope.
+date:2024-08-30,gross_ppe_capex_ytd_usd,5,4,80.0,4,0,Present API value does not certify original release/period/scope.
+date:2024-08-30,sbc_ytd_usd,5,5,100.0,5,0,Present API value does not certify original release/period/scope.
+date:2024-08-30,cfo_quarter_usd,5,5,100.0,5,0,Present API value does not certify original release/period/scope.
+date:2024-08-30,gross_ppe_capex_quarter_usd,5,4,80.0,4,0,Present API value does not certify original release/period/scope.
+date:2024-08-30,sbc_quarter_usd,5,5,100.0,5,0,Present API value does not certify original release/period/scope.
+date:2024-09-30,cfo_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-09-30,net_income_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-09-30,revenue_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-09-30,gross_ppe_capex_ytd_usd,7,6,85.71428571428571,6,0,Present API value does not certify original release/period/scope.
+date:2024-09-30,sbc_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-09-30,cfo_quarter_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-09-30,gross_ppe_capex_quarter_usd,7,6,85.71428571428571,6,0,Present API value does not certify original release/period/scope.
+date:2024-09-30,sbc_quarter_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-10-31,cfo_ytd_usd,13,13,100.0,13,0,Present API value does not certify original release/period/scope.
+date:2024-10-31,net_income_ytd_usd,13,13,100.0,13,0,Present API value does not certify original release/period/scope.
+date:2024-10-31,revenue_ytd_usd,13,13,100.0,13,0,Present API value does not certify original release/period/scope.
+date:2024-10-31,gross_ppe_capex_ytd_usd,13,12,92.3076923076923,12,0,Present API value does not certify original release/period/scope.
+date:2024-10-31,sbc_ytd_usd,13,13,100.0,13,0,Present API value does not certify original release/period/scope.
+date:2024-10-31,cfo_quarter_usd,13,13,100.0,13,0,Present API value does not certify original release/period/scope.
+date:2024-10-31,gross_ppe_capex_quarter_usd,13,12,92.3076923076923,12,0,Present API value does not certify original release/period/scope.
+date:2024-10-31,sbc_quarter_usd,13,13,100.0,13,0,Present API value does not certify original release/period/scope.
+date:2024-11-29,cfo_ytd_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2024-11-29,net_income_ytd_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2024-11-29,revenue_ytd_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2024-11-29,gross_ppe_capex_ytd_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-11-29,sbc_ytd_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2024-11-29,cfo_quarter_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2024-11-29,gross_ppe_capex_quarter_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2024-11-29,sbc_quarter_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2024-12-31,cfo_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-12-31,net_income_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-12-31,revenue_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-12-31,gross_ppe_capex_ytd_usd,7,6,85.71428571428571,6,0,Present API value does not certify original release/period/scope.
+date:2024-12-31,sbc_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-12-31,cfo_quarter_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2024-12-31,gross_ppe_capex_quarter_usd,7,6,85.71428571428571,6,0,Present API value does not certify original release/period/scope.
+date:2024-12-31,sbc_quarter_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2025-01-31,cfo_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2025-01-31,net_income_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2025-01-31,revenue_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2025-01-31,gross_ppe_capex_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2025-01-31,sbc_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2025-01-31,cfo_quarter_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2025-01-31,gross_ppe_capex_quarter_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2025-01-31,sbc_quarter_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2025-02-28,cfo_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2025-02-28,net_income_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2025-02-28,revenue_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2025-02-28,gross_ppe_capex_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2025-02-28,sbc_ytd_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2025-02-28,cfo_quarter_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2025-02-28,gross_ppe_capex_quarter_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2025-02-28,sbc_quarter_usd,7,7,100.0,7,0,Present API value does not certify original release/period/scope.
+date:2025-03-31,cfo_ytd_usd,5,5,100.0,5,0,Present API value does not certify original release/period/scope.
+date:2025-03-31,net_income_ytd_usd,5,5,100.0,5,0,Present API value does not certify original release/period/scope.
+date:2025-03-31,revenue_ytd_usd,5,5,100.0,5,0,Present API value does not certify original release/period/scope.
+date:2025-03-31,gross_ppe_capex_ytd_usd,5,5,100.0,5,0,Present API value does not certify original release/period/scope.
+date:2025-03-31,sbc_ytd_usd,5,5,100.0,5,0,Present API value does not certify original release/period/scope.
+date:2025-03-31,cfo_quarter_usd,5,5,100.0,5,0,Present API value does not certify original release/period/scope.
+date:2025-03-31,gross_ppe_capex_quarter_usd,5,5,100.0,5,0,Present API value does not certify original release/period/scope.
+date:2025-03-31,sbc_quarter_usd,5,5,100.0,5,0,Present API value does not certify original release/period/scope.
+date:2025-04-30,cfo_ytd_usd,3,3,100.0,3,0,Present API value does not certify original release/period/scope.
+date:2025-04-30,net_income_ytd_usd,3,3,100.0,3,0,Present API value does not certify original release/period/scope.
+date:2025-04-30,revenue_ytd_usd,3,3,100.0,3,0,Present API value does not certify original release/period/scope.
+date:2025-04-30,gross_ppe_capex_ytd_usd,3,3,100.0,3,0,Present API value does not certify original release/period/scope.
+date:2025-04-30,sbc_ytd_usd,3,3,100.0,3,0,Present API value does not certify original release/period/scope.
+date:2025-04-30,cfo_quarter_usd,3,3,100.0,3,0,Present API value does not certify original release/period/scope.
+date:2025-04-30,gross_ppe_capex_quarter_usd,3,3,100.0,3,0,Present API value does not certify original release/period/scope.
+date:2025-04-30,sbc_quarter_usd,3,3,100.0,3,0,Present API value does not certify original release/period/scope.
+date:2025-05-30,cfo_ytd_usd,9,9,100.0,9,0,Present API value does not certify original release/period/scope.
+date:2025-05-30,net_income_ytd_usd,9,9,100.0,9,0,Present API value does not certify original release/period/scope.
+date:2025-05-30,revenue_ytd_usd,9,9,100.0,9,0,Present API value does not certify original release/period/scope.
+date:2025-05-30,gross_ppe_capex_ytd_usd,9,8,88.88888888888889,8,0,Present API value does not certify original release/period/scope.
+date:2025-05-30,sbc_ytd_usd,9,9,100.0,9,0,Present API value does not certify original release/period/scope.
+date:2025-05-30,cfo_quarter_usd,9,9,100.0,9,0,Present API value does not certify original release/period/scope.
+date:2025-05-30,gross_ppe_capex_quarter_usd,9,8,88.88888888888889,8,0,Present API value does not certify original release/period/scope.
+date:2025-05-30,sbc_quarter_usd,9,9,100.0,9,0,Present API value does not certify original release/period/scope.
+date:2025-06-30,cfo_ytd_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2025-06-30,net_income_ytd_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2025-06-30,revenue_ytd_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2025-06-30,gross_ppe_capex_ytd_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2025-06-30,sbc_ytd_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2025-06-30,cfo_quarter_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2025-06-30,gross_ppe_capex_quarter_usd,10,9,90.0,9,0,Present API value does not certify original release/period/scope.
+date:2025-06-30,sbc_quarter_usd,10,10,100.0,10,0,Present API value does not certify original release/period/scope.
+date:2025-07-31,cfo_ytd_usd,14,14,100.0,14,0,Present API value does not certify original release/period/scope.
+date:2025-07-31,net_income_ytd_usd,14,14,100.0,14,0,Present API value does not certify original release/period/scope.
+date:2025-07-31,revenue_ytd_usd,14,14,100.0,14,0,Present API value does not certify original release/period/scope.
+date:2025-07-31,gross_ppe_capex_ytd_usd,14,13,92.85714285714286,13,0,Present API value does not certify original release/period/scope.
+date:2025-07-31,sbc_ytd_usd,14,14,100.0,14,0,Present API value does not certify original release/period/scope.
+date:2025-07-31,cfo_quarter_usd,14,14,100.0,14,0,Present API value does not certify original release/period/scope.
+date:2025-07-31,gross_ppe_capex_quarter_usd,14,13,92.85714285714286,13,0,Present API value does not certify original release/period/scope.
+date:2025-07-31,sbc_quarter_usd,14,14,100.0,14,0,Present API value does not certify original release/period/scope.
+date:2025-08-29,cfo_ytd_usd,13,13,100.0,13,0,Present API value does not certify original release/period/scope.
+date:2025-08-29,net_income_ytd_usd,13,13,100.0,13,0,Present API value does not certify original release/period/scope.
+date:2025-08-29,revenue_ytd_usd,13,13,100.0,13,0,Present API value does not certify original release/period/scope.
+date:2025-08-29,gross_ppe_capex_ytd_usd,13,12,92.3076923076923,12,0,Present API value does not certify original release/period/scope.
+date:2025-08-29,sbc_ytd_usd,13,13,100.0,13,0,Present API value does not certify original release/period/scope.
+date:2025-08-29,cfo_quarter_usd,13,13,100.0,13,0,Present API value does not certify original release/period/scope.
+date:2025-08-29,gross_ppe_capex_quarter_usd,13,12,92.3076923076923,12,0,Present API value does not certify original release/period/scope.
+date:2025-08-29,sbc_quarter_usd,13,13,100.0,13,0,Present API value does not certify original release/period/scope.
+date:2025-09-30,cfo_ytd_usd,14,14,100.0,14,0,Present API value does not certify original release/period/scope.
+date:2025-09-30,net_income_ytd_usd,14,14,100.0,14,0,Present API value does not certify original release/period/scope.
+date:2025-09-30,revenue_ytd_usd,14,14,100.0,14,0,Present API value does not certify original release/period/scope.
+date:2025-09-30,gross_ppe_capex_ytd_usd,14,12,85.71428571428571,12,0,Present API value does not certify original release/period/scope.
+date:2025-09-30,sbc_ytd_usd,14,14,100.0,14,0,Present API value does not certify original release/period/scope.
+date:2025-09-30,cfo_quarter_usd,14,14,100.0,14,0,Present API value does not certify original release/period/scope.
+date:2025-09-30,gross_ppe_capex_quarter_usd,14,12,85.71428571428571,12,0,Present API value does not certify original release/period/scope.
+date:2025-09-30,sbc_quarter_usd,14,14,100.0,14,0,Present API value does not certify original release/period/scope.

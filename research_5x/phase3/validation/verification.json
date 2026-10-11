@@ -1,0 +1,656 @@
+{
+  "verified_at": "2026-10-11T19:01:33.019434+00:00",
+  "suite_results": [
+    {
+      "suite": "code/test_phase3.py",
+      "exit_code": 0,
+      "output": "...............\n----------------------------------------------------------------------\nRan 15 tests in 0.483s\n\nOK\n"
+    },
+    {
+      "suite": "accounting_quality/issuer_audits/failures/test_failure_audits.py",
+      "exit_code": 0,
+      "output": ".......\n----------------------------------------------------------------------\nRan 7 tests in 0.030s\n\nOK\n"
+    },
+    {
+      "suite": "accounting_quality/issuer_audits/matched_peers/test_case_audit.py",
+      "exit_code": 0,
+      "output": "test_CCL_annual_vintages (__main__.OriginalAuditTests.test_CCL_annual_vintages) ... ok\ntest_cash_duration_never_spliced (__main__.OriginalAuditTests.test_cash_duration_never_spliced) ... ok\ntest_combined_capex_not_pure_PPE (__main__.OriginalAuditTests.test_combined_capex_not_pure_PPE) ... ok\ntest_consolidated_cash_earnings_scopes (__main__.OriginalAuditTests.test_consolidated_cash_earnings_scopes) ... ok\ntest_negative_cash_not_missing_or_positive (__main__.OriginalAuditTests.test_negative_cash_not_missing_or_positive) ... ok\ntest_net_interest_not_gross_expense (__main__.OriginalAuditTests.test_net_interest_not_gross_expense) ... ok\ntest_original_index_clock_beats_API (__main__.OriginalAuditTests.test_original_index_clock_beats_API) ... ok\ntest_source_failure_and_repeated_cases_retained (__main__.OriginalAuditTests.test_source_failure_and_repeated_cases_retained) ... ok\n\n----------------------------------------------------------------------\nRan 8 tests in 0.025s\n\nOK\n"
+    }
+  ],
+  "all_test_suites_pass": true,
+  "phase2_readonly_hash_checks": 105,
+  "phase2_preserved": true,
+  "phase2_checks": [
+    {
+      "path": "research_5x/code/continuation_engine.py",
+      "expected": "bb4d9845bbc58493f8f83f7e57c171e874e0d20cbc048cf6fbb42cb6f3f686d1",
+      "actual": "bb4d9845bbc58493f8f83f7e57c171e874e0d20cbc048cf6fbb42cb6f3f686d1",
+      "pass": true
+    },
+    {
+      "path": "research_5x/code/run_research.py",
+      "expected": "a46271c5436a9fdec93af55705623a270c2888b0124814cf90af873d54ecf7b5",
+      "actual": "a46271c5436a9fdec93af55705623a270c2888b0124814cf90af873d54ecf7b5",
+      "pass": true
+    },
+    {
+      "path": "research_5x/continuation/2026-10-11/experiments/continuous_summary.csv",
+      "expected": "1abc553fc5b6e50e0861cf7634d2ee2cbd440cdc599a23e9de08954ed51be9db",
+      "actual": "1abc553fc5b6e50e0861cf7634d2ee2cbd440cdc599a23e9de08954ed51be9db",
+      "pass": true
+    },
+    {
+      "path": "research_5x/continuation/2026-10-11/experiments/results.json",
+      "expected": "38558fe4cf1162130c0f5c09998f1facd7f9ce0059bc06fa8929276dc12a5525",
+      "actual": "38558fe4cf1162130c0f5c09998f1facd7f9ce0059bc06fa8929276dc12a5525",
+      "pass": true
+    },
+    {
+      "path": "research_5x/continuation/2026-10-11/fresh_hit/replay20_curve.csv",
+      "expected": "b19b5b113b488f44348b40699666fcaf1145760fea94fb820513fa425c81c410",
+      "actual": "b19b5b113b488f44348b40699666fcaf1145760fea94fb820513fa425c81c410",
+      "pass": true
+    },
+    {
+      "path": "research_5x/continuation/2026-10-11/fresh_hit/replay20_signals.csv",
+      "expected": "612fb5ce231a6774105281186e94cfa94a333991dfe975f648428b2f72ca2719",
+      "actual": "612fb5ce231a6774105281186e94cfa94a333991dfe975f648428b2f72ca2719",
+      "pass": true
+    },
+    {
+      "path": "research_5x/continuation/2026-10-11/fresh_hit/replay20_trades.csv",
+      "expected": "6c6b662620ae54961db8b9261a334b327226d319cbf7895a7c0fa32ccfb619d3",
+      "actual": "6c6b662620ae54961db8b9261a334b327226d319cbf7895a7c0fa32ccfb619d3",
+      "pass": true
+    },
+    {
+      "path": "research_5x/continuation/2026-10-11/fresh_hit/results.json",
+      "expected": "7fd75a037e3114348d25354f91f208ac663191d5fdb610b6c9e201c694d9bc85",
+      "actual": "7fd75a037e3114348d25354f91f208ac663191d5fdb610b6c9e201c694d9bc85",
+      "pass": true
+    },
+    {
+      "path": "research_5x/data/spy.json",
+      "expected": "a4f5aa969a0179439a836572cfac109c0ca18ca09a67d338a2bd6e3550fa37e6",
+      "actual": "a4f5aa969a0179439a836572cfac109c0ca18ca09a67d338a2bd6e3550fa37e6",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/DECISION_LOG.md",
+      "expected": "2033069763ec626d5d68fd996d19b01f4b3bd71f07de91cb1276d16a2d522e18",
+      "actual": "2033069763ec626d5d68fd996d19b01f4b3bd71f07de91cb1276d16a2d522e18",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/EXPERIMENT_QUEUE.csv",
+      "expected": "9c7d491b87ab3febb0db233576bf5de4499a081a80f20669973fef39441445d2",
+      "actual": "9c7d491b87ab3febb0db233576bf5de4499a081a80f20669973fef39441445d2",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/PROTOCOL.md",
+      "expected": "bdb334529edeed758f001d2e74da2933ae9f32ddba800277102169bfa38e7011",
+      "actual": "bdb334529edeed758f001d2e74da2933ae9f32ddba800277102169bfa38e7011",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/README.md",
+      "expected": "47f48b16cd4a256c50190ef0f29a90e6b3fcefe9ec83fff2ce20b74256cdea02",
+      "actual": "47f48b16cd4a256c50190ef0f29a90e6b3fcefe9ec83fff2ce20b74256cdea02",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/VALIDATION_STATUS.json",
+      "expected": "08d597610e6c9a711582ce46f9e8dcd0238a212e2da37408d6d625b12fae2953",
+      "actual": "08d597610e6c9a711582ce46f9e8dcd0238a212e2da37408d6d625b12fae2953",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/cash_events.csv",
+      "expected": "2ddfb45b3799641ba662016bc7795b62ccacbeb8cee25819b425b9bd7a44c772",
+      "actual": "2ddfb45b3799641ba662016bc7795b62ccacbeb8cee25819b425b9bd7a44c772",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/daily_holdings.csv",
+      "expected": "3b2d388e68fb791ff3b7693ce449265a9ec6bf96c04bc161a1f27946ce62230e",
+      "actual": "3b2d388e68fb791ff3b7693ce449265a9ec6bf96c04bc161a1f27946ce62230e",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/daily_issuer_pnl.csv",
+      "expected": "ac87c2fd4319dbbdf39964ad3b70bd18e976d3dbc0e0ce12cee2c7a1dc0dd3b8",
+      "actual": "ac87c2fd4319dbbdf39964ad3b70bd18e976d3dbc0e0ce12cee2c7a1dc0dd3b8",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/daily_reconciliation.csv",
+      "expected": "6ba2cb7455d674557fe4d4acb014381ab012ee960995c78b37f550cdaeae51e9",
+      "actual": "6ba2cb7455d674557fe4d4acb014381ab012ee960995c78b37f550cdaeae51e9",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/drawdown_attribution.csv",
+      "expected": "4a9c267c179b9f9145ca26855a04f1cdff54bd5cf7e2d410224d3213770333f6",
+      "actual": "4a9c267c179b9f9145ca26855a04f1cdff54bd5cf7e2d410224d3213770333f6",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/findings.md",
+      "expected": "1850e0e61b13c7d0ac0b7f2ea3c769e327a7cfda58025e6a96f1cc1c959bc320",
+      "actual": "1850e0e61b13c7d0ac0b7f2ea3c769e327a7cfda58025e6a96f1cc1c959bc320",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/input_verification.json",
+      "expected": "3fce1125cafcd0d8b622710dad86a351efdb868934c16336601ce288e85507b4",
+      "actual": "3fce1125cafcd0d8b622710dad86a351efdb868934c16336601ce288e85507b4",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/rerun_curve.csv",
+      "expected": "b19b5b113b488f44348b40699666fcaf1145760fea94fb820513fa425c81c410",
+      "actual": "b19b5b113b488f44348b40699666fcaf1145760fea94fb820513fa425c81c410",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/rerun_results.json",
+      "expected": "bc725c7c290c76b54d7d1e9cab91250fd05fe249304288dcadd235d3d203ca47",
+      "actual": "bc725c7c290c76b54d7d1e9cab91250fd05fe249304288dcadd235d3d203ca47",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/rerun_signals.csv",
+      "expected": "612fb5ce231a6774105281186e94cfa94a333991dfe975f648428b2f72ca2719",
+      "actual": "612fb5ce231a6774105281186e94cfa94a333991dfe975f648428b2f72ca2719",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/rerun_trades.csv",
+      "expected": "6c6b662620ae54961db8b9261a334b327226d319cbf7895a7c0fa32ccfb619d3",
+      "actual": "6c6b662620ae54961db8b9261a334b327226d319cbf7895a7c0fa32ccfb619d3",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/summary.json",
+      "expected": "b3f23a0db8a8ca535dec3c1156d73faacfd2aa73a859e384b6e5dc3225583d49",
+      "actual": "b3f23a0db8a8ca535dec3c1156d73faacfd2aa73a859e384b6e5dc3225583d49",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/trade_checks.csv",
+      "expected": "bee557b1b479cc4997e20c92a0dcfe5b9dc4df89369f4926172b47da0704f8f5",
+      "actual": "bee557b1b479cc4997e20c92a0dcfe5b9dc4df89369f4926172b47da0704f8f5",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/audit/vendor_action_inventory.csv",
+      "expected": "eb4d64d0e66958d589e5b2a11de09e27fd5c362184f4e93e4d986863cc371b9b",
+      "actual": "eb4d64d0e66958d589e5b2a11de09e27fd5c362184f4e93e4d986863cc371b9b",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/history/earlier_prices.zip",
+      "expected": "c9ff4da3d0817fd4b71d5d98bd8197f6fd14beab92db08dcae334d57bb4e7492",
+      "actual": "c9ff4da3d0817fd4b71d5d98bd8197f6fd14beab92db08dcae334d57bb4e7492",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/ADI_timeline.csv",
+      "expected": "2fa5030c09c725b686378c9a7c38e6ccb9ee9100abd790c67c30799c7fb562a0",
+      "actual": "2fa5030c09c725b686378c9a7c38e6ccb9ee9100abd790c67c30799c7fb562a0",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/AMD_timeline.csv",
+      "expected": "d0aa3d783697862ef3498d47a9e9e4d00e7907dc8950a3a38e5be7b96cb86c51",
+      "actual": "d0aa3d783697862ef3498d47a9e9e4d00e7907dc8950a3a38e5be7b96cb86c51",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/ANET_timeline.csv",
+      "expected": "823de7cb117e4598ff08a9443e230305e8539d37e719831ab1f2e4cba648759d",
+      "actual": "823de7cb117e4598ff08a9443e230305e8539d37e719831ab1f2e4cba648759d",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/LITE_timeline.csv",
+      "expected": "0d39a6f7c8a4efd748120aefc0efcf0d805843bb1275d2087b5494ec1401764b",
+      "actual": "0d39a6f7c8a4efd748120aefc0efcf0d805843bb1275d2087b5494ec1401764b",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/LRCX_timeline.csv",
+      "expected": "adb694a32d9b973f8dfcf787fbb4b502f01cc1c05ce4b6d94d094a7ae2077356",
+      "actual": "adb694a32d9b973f8dfcf787fbb4b502f01cc1c05ce4b6d94d094a7ae2077356",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/MU_timeline.csv",
+      "expected": "534127b2586a2533986f6551a2bf699b9a690e794644c99e1c3127b1450c7115",
+      "actual": "534127b2586a2533986f6551a2bf699b9a690e794644c99e1c3127b1450c7115",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/PLTR_timeline.csv",
+      "expected": "d3d5cd354000a6c22c2ba2d16c6dd28de3ed61400372666499cd6afad0ce452d",
+      "actual": "d3d5cd354000a6c22c2ba2d16c6dd28de3ed61400372666499cd6afad0ce452d",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/SNDK_timeline.csv",
+      "expected": "f7baa12a4d233f878b4ad69e6bf5cba7eb3d6c6ec098a36f74d1b5bccdc22e91",
+      "actual": "f7baa12a4d233f878b4ad69e6bf5cba7eb3d6c6ec098a36f74d1b5bccdc22e91",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/STX_timeline.csv",
+      "expected": "faf8a61f6e1bd821982ecf625de8e9a40504d4fa0a62c2523be25b0b96fde8e6",
+      "actual": "faf8a61f6e1bd821982ecf625de8e9a40504d4fa0a62c2523be25b0b96fde8e6",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/WDC_timeline.csv",
+      "expected": "1b070e374e56710d1475e8f656d99390fe96bb18622affb49fb245f73f888ba5",
+      "actual": "1b070e374e56710d1475e8f656d99390fe96bb18622affb49fb245f73f888ba5",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/acceptance_timing_check.json",
+      "expected": "2fe56e06836281b3660be6e8218521f9cb14145bc2106516f060060ebea40d2d",
+      "actual": "2fe56e06836281b3660be6e8218521f9cb14145bc2106516f060060ebea40d2d",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/all_qualified.csv",
+      "expected": "51e9ead69dc634bb016d4499a7ac9bea7dc493cf602dd4e5c09c9a47d32d39d7",
+      "actual": "51e9ead69dc634bb016d4499a7ac9bea7dc493cf602dd4e5c09c9a47d32d39d7",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/continuous_correlations.csv",
+      "expected": "d200c3bc4ebe7c307d85bf3f2ea6266dcf5390f655954ab191795d6c51d55a2c",
+      "actual": "d200c3bc4ebe7c307d85bf3f2ea6266dcf5390f655954ab191795d6c51d55a2c",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/dependence_diagnostics.csv",
+      "expected": "53c13597e717cb4cd4a985b5608b16a205c583bbb80e973e59a625995cb95157",
+      "actual": "53c13597e717cb4cd4a985b5608b16a205c583bbb80e973e59a625995cb95157",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/earnings_continuous_correlations.csv",
+      "expected": "c67bd83bd419b6edcd9396465ec82f13b857e2239a70f7ac201497c53a385cde",
+      "actual": "c67bd83bd419b6edcd9396465ec82f13b857e2239a70f7ac201497c53a385cde",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/first_observed_case_signals.csv",
+      "expected": "66fce71f38a28da55fa557a9f747e24bf7498200e3970629238b2ba2894fbc14",
+      "actual": "66fce71f38a28da55fa557a9f747e24bf7498200e3970629238b2ba2894fbc14",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/inventory.json",
+      "expected": "8a58b82872ac55160f802a09d1a5b1026d0a1e64e68c7a3bb501bcac328556d4",
+      "actual": "8a58b82872ac55160f802a09d1a5b1026d0a1e64e68c7a3bb501bcac328556d4",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/matched_june2025.csv",
+      "expected": "18256f8501ef03aabfe65673490379b9bf2906f5b51fafbaa864286db9d70ca6",
+      "actual": "18256f8501ef03aabfe65673490379b9bf2906f5b51fafbaa864286db9d70ca6",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/qualified_failures.csv",
+      "expected": "79b8d4871710b5bad7377e0a5647d6044afb1b2fe227d3f07fe7d5582ececbae",
+      "actual": "79b8d4871710b5bad7377e0a5647d6044afb1b2fe227d3f07fe7d5582ececbae",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/released_fact_lineage.csv.gz",
+      "expected": "de2489e7ebbde069626d2e7448910abafbdd5cda91f2fd3e6ae101095a6bac50",
+      "actual": "de2489e7ebbde069626d2e7448910abafbdd5cda91f2fd3e6ae101095a6bac50",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/released_quarter_observables.csv",
+      "expected": "9591e2cde9e69c2deee57b857d765c46c4b63894c8696cff5617efc012a85e8b",
+      "actual": "9591e2cde9e69c2deee57b857d765c46c4b63894c8696cff5617efc012a85e8b",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/released_quarter_validation.json",
+      "expected": "f38100c4646fe4d0603e474fb88ca3eb52cabef0287054962b47bcbc5606e5b9",
+      "actual": "f38100c4646fe4d0603e474fb88ca3eb52cabef0287054962b47bcbc5606e5b9",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/screen_results.csv",
+      "expected": "e621623973dbd98be3c5491ca838a7fe9ed311fd66584923d4a103069fd1b77b",
+      "actual": "e621623973dbd98be3c5491ca838a7fe9ed311fd66584923d4a103069fd1b77b",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/portable_layout_test.json",
+      "expected": "2ce3b8df3ed4366c38571263926ef71e002124d4f31f21822c79accf497efc69",
+      "actual": "2ce3b8df3ed4366c38571263926ef71e002124d4f31f21822c79accf497efc69",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/research_report.html",
+      "expected": "a122fe10379da9098d57ebe5efcc2be45da4f49d4790138f8b7255cd58414737",
+      "actual": "a122fe10379da9098d57ebe5efcc2be45da4f49d4790138f8b7255cd58414737",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/accounts.csv",
+      "expected": "93611471fc484169e26406e53e214ddedf1dc21e368dc4ce6195febd65890c98",
+      "actual": "93611471fc484169e26406e53e214ddedf1dc21e368dc4ce6195febd65890c98",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/continuous_comparison.csv",
+      "expected": "973fb2c56ed204b99b9341c1bf22109132e5bd104a6dd545d7c43f21d6fb63a4",
+      "actual": "973fb2c56ed204b99b9341c1bf22109132e5bd104a6dd545d7c43f21d6fb63a4",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/curves.csv.gz",
+      "expected": "a8e1697e69378f272f15aeba81932b72bde979b5e6b9ca3c38a864a6dd351d7e",
+      "actual": "a8e1697e69378f272f15aeba81932b72bde979b5e6b9ca3c38a864a6dd351d7e",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/empirical_frequencies.csv",
+      "expected": "c151438bb612202e8769609502c8cfec2f404a86c5ce1671d9397da672c894a5",
+      "actual": "c151438bb612202e8769609502c8cfec2f404a86c5ce1671d9397da672c894a5",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/frontier.csv",
+      "expected": "d3756f1cf294ced19af7bfb85f87e5bfc814da6dba393dd759f24cb5955814b2",
+      "actual": "d3756f1cf294ced19af7bfb85f87e5bfc814da6dba393dd759f24cb5955814b2",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/frozen_initial_orders.csv",
+      "expected": "ed2f99bccd7696786a7951d5b70b38529aa9945c92f899171c3f332154040fb7",
+      "actual": "ed2f99bccd7696786a7951d5b70b38529aa9945c92f899171c3f332154040fb7",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/frozen_initial_orders_lineage.json",
+      "expected": "bfe697c1562c801b272d1a1030ea1d281f00dc29b2b6770b003c411a005f8844",
+      "actual": "bfe697c1562c801b272d1a1030ea1d281f00dc29b2b6770b003c411a005f8844",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/held_action_coverage.csv",
+      "expected": "0062ad8b51cb3f21666f0bf86a09b9c3d07ba9a0642c83615e181bec2d9c25ed",
+      "actual": "0062ad8b51cb3f21666f0bf86a09b9c3d07ba9a0642c83615e181bec2d9c25ed",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/holdings.csv.gz",
+      "expected": "1671b0f322cd17f0afd82703526974f47325fcbd1b93dfc4a9a2df0f31279568",
+      "actual": "1671b0f322cd17f0afd82703526974f47325fcbd1b93dfc4a9a2df0f31279568",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/paired_differences.csv",
+      "expected": "6062459c05b5189153f2ffd8b785b46fb19af274094775f0114f788999b0b996",
+      "actual": "6062459c05b5189153f2ffd8b785b46fb19af274094775f0114f788999b0b996",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/prior_continuous_summary.csv",
+      "expected": "7de18ba880aa2c6625b5e5bc158efe2ff856d8fac9dab62c026b6f78b16d0e5b",
+      "actual": "7de18ba880aa2c6625b5e5bc158efe2ff856d8fac9dab62c026b6f78b16d0e5b",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/protocol.json",
+      "expected": "802be6e35beb7e63f371151e883618ae47c84e68d9f87c53c30315637d6a8365",
+      "actual": "802be6e35beb7e63f371151e883618ae47c84e68d9f87c53c30315637d6a8365",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/signals.csv.gz",
+      "expected": "5adf77e75e368a79dbe06ea3cb47980acbde7769e2d28b458b78e3d4f1314bff",
+      "actual": "5adf77e75e368a79dbe06ea3cb47980acbde7769e2d28b458b78e3d4f1314bff",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/spy_accounts.csv",
+      "expected": "c6c29e62e59a56c7df3327455454921de48c2be2488766ee70a13eb6a990f19c",
+      "actual": "c6c29e62e59a56c7df3327455454921de48c2be2488766ee70a13eb6a990f19c",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/summary.csv",
+      "expected": "d564c760de0bdb94f12ff7f513448dc38c4e89a57e09660eacc4006188feab4a",
+      "actual": "d564c760de0bdb94f12ff7f513448dc38c4e89a57e09660eacc4006188feab4a",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/trades.csv.gz",
+      "expected": "1b9f8bb9446598a31d077c4a56c708c5f9db9c1a5e9413235b1cee39244102a2",
+      "actual": "1b9f8bb9446598a31d077c4a56c708c5f9db9c1a5e9413235b1cee39244102a2",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/transformed_simulate.py",
+      "expected": "8857fbeb8be16043d56665f84ae22610b32f397e3762b49ba12c763b1c86847b",
+      "actual": "8857fbeb8be16043d56665f84ae22610b32f397e3762b49ba12c763b1c86847b",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/verification.json",
+      "expected": "9acfab423e74306498f620f43fea3488ec3558de3355daa47ec3adb549730f6a",
+      "actual": "9acfab423e74306498f620f43fea3488ec3558de3355daa47ec3adb549730f6a",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/sources/memory/build_evidence.py",
+      "expected": "c4fb61d522dafaec456c9968b5d7a7353de9083d3db0d987ec26e24f3b3c46fe",
+      "actual": "c4fb61d522dafaec456c9968b5d7a7353de9083d3db0d987ec26e24f3b3c46fe",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/sources/memory/findings.md",
+      "expected": "6b1fcdc95eb9375036f0d91f22589252823223e474f2dd34f6d2368de4cfb1d7",
+      "actual": "6b1fcdc95eb9375036f0d91f22589252823223e474f2dd34f6d2368de4cfb1d7",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/sources/memory/quarter_timeline.csv",
+      "expected": "3ac702f913a9bbc1b75d386c63429d4a4f275d810139d858fc5042bcf12cbe09",
+      "actual": "3ac702f913a9bbc1b75d386c63429d4a4f275d810139d858fc5042bcf12cbe09",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/sources/memory/source_evidence.json",
+      "expected": "7270580d97cf71f3a521d18b0dadf10f6cf790abb2e223c60ca9aa4599f3fd1f",
+      "actual": "7270580d97cf71f3a521d18b0dadf10f6cf790abb2e223c60ca9aa4599f3fd1f",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/sources/memory/validation_checks.json",
+      "expected": "7df1d22e97f1c38fe71c1e1c05e111e1dd7b74c5d0d8569e7dd746cb01a3c56f",
+      "actual": "7df1d22e97f1c38fe71c1e1c05e111e1dd7b74c5d0d8569e7dd746cb01a3c56f",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/sources/wdc/build_evidence.py",
+      "expected": "4fe7b6b9acb29c212679bf95aab3117af34c1d486d8d6f436a01195a92ea660b",
+      "actual": "4fe7b6b9acb29c212679bf95aab3117af34c1d486d8d6f436a01195a92ea660b",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/sources/wdc/findings.md",
+      "expected": "e33967a82dca1ce2f276523d334d25ebfac6f5af87e0e6f3085a547957420832",
+      "actual": "e33967a82dca1ce2f276523d334d25ebfac6f5af87e0e6f3085a547957420832",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/sources/wdc/guidance_vs_actual.csv",
+      "expected": "6ad42002641aba0c6928634becfc27d1b577ba49e2db4000cc174f00291dabf7",
+      "actual": "6ad42002641aba0c6928634becfc27d1b577ba49e2db4000cc174f00291dabf7",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/sources/wdc/quarter_timeline.csv",
+      "expected": "ee85212f3a66acb69f955a779e258abd541a87603d5726d1b8292438619a15f2",
+      "actual": "ee85212f3a66acb69f955a779e258abd541a87603d5726d1b8292438619a15f2",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/sources/wdc/source_evidence.json",
+      "expected": "6f0a2806b35791eb6dca961d59e62a18c0665d3ff77a22073ca06273f2ccd9c1",
+      "actual": "6f0a2806b35791eb6dca961d59e62a18c0665d3ff77a22073ca06273f2ccd9c1",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/sources/wdc/validation_checks.json",
+      "expected": "1721eac707309e667b5ef5aafffaace86018afe74ea2895c9fd12d5d6c574c1a",
+      "actual": "1721eac707309e667b5ef5aafffaace86018afe74ea2895c9fd12d5d6c574c1a",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/stages/case_nav.csv.gz",
+      "expected": "a837047da80b7871a6f27b110c4af01fdba11efad69b8bf27e8507eec5f8470e",
+      "actual": "a837047da80b7871a6f27b110c4af01fdba11efad69b8bf27e8507eec5f8470e",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/stages/case_trades.csv",
+      "expected": "271272fd3b91d646e64fe954d7b99ad0ecb112c904be0904ee9fb91454d76f7d",
+      "actual": "271272fd3b91d646e64fe954d7b99ad0ecb112c904be0904ee9fb91454d76f7d",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/stages/release_entry_outcomes.csv",
+      "expected": "b6f98873fbd764b8f6a0669a782d27aaf37e857132fe28c6a9c98dadb78b177e",
+      "actual": "b6f98873fbd764b8f6a0669a782d27aaf37e857132fe28c6a9c98dadb78b177e",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/stages/status.json",
+      "expected": "2306bf8b187f118b0857af4036cbdc2eb0d90c02e9967b7f85461730705ac516",
+      "actual": "2306bf8b187f118b0857af4036cbdc2eb0d90c02e9967b7f85461730705ac516",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/verification.json",
+      "expected": "97b03eeff071ddbb091015c5289dab8ca06f57212b91a97466f76f949a4d5583",
+      "actual": "97b03eeff071ddbb091015c5289dab8ca06f57212b91a97466f76f949a4d5583",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/2026-10-11_earnings_acceleration/visual_qa/checks.json",
+      "expected": "8c3051532fa06059e0b6f7719ed1340179c71b046ce854154f03848e96802c3a",
+      "actual": "8c3051532fa06059e0b6f7719ed1340179c71b046ce854154f03848e96802c3a",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/code/add_comparisons.py",
+      "expected": "9ad622ff83ec1957a7409fa60debcbc78cf8b8d0a6841a0935c43d354762488a",
+      "actual": "9ad622ff83ec1957a7409fa60debcbc78cf8b8d0a6841a0935c43d354762488a",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/code/analyze_acceleration.py",
+      "expected": "25141588fbc4920868054ee7be852bc7cde1c16e96638bbec9e7f8337fa80cae",
+      "actual": "25141588fbc4920868054ee7be852bc7cde1c16e96638bbec9e7f8337fa80cae",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/code/audit_winning_account.py",
+      "expected": "c61a591f993582c2af63ba4a38d8e4a50d32b9f0e83f72435f2ce2f284f5828c",
+      "actual": "c61a591f993582c2af63ba4a38d8e4a50d32b9f0e83f72435f2ce2f284f5828c",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/code/build_phase2_report.py",
+      "expected": "41b012e424583381a49624bd83c2ec6625963b1f8b4a1be1c70a4576aba6644a",
+      "actual": "41b012e424583381a49624bd83c2ec6625963b1f8b4a1be1c70a4576aba6644a",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/code/expand_public_history.py",
+      "expected": "4ebcee32349a011b2bfb3f4b1eb67dc8a4a33008413edcdd630208d233f644c3",
+      "actual": "4ebcee32349a011b2bfb3f4b1eb67dc8a4a33008413edcdd630208d233f644c3",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/code/phase2_bootstrap.py",
+      "expected": "caca19af45d34ca282f05223db783d724b7c13bd31ac7aadf06a3a81d528634c",
+      "actual": "caca19af45d34ca282f05223db783d724b7c13bd31ac7aadf06a3a81d528634c",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/code/polish_phase2.py",
+      "expected": "2d2cd3278d96d90d288f8ab863ce82d42799699ae6bb9d249dca1527946783e2",
+      "actual": "2d2cd3278d96d90d288f8ab863ce82d42799699ae6bb9d249dca1527946783e2",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/code/prepare_publication.py",
+      "expected": "6e238cf41172ba785e0d9e4f3fd2a0e809e7fae92638dabcead13e6e66924a60",
+      "actual": "6e238cf41172ba785e0d9e4f3fd2a0e809e7fae92638dabcead13e6e66924a60",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/code/qa_phase2.cjs",
+      "expected": "a2bffdf3bc969938bfca19e592208bd18462992d832bbf10227ea5ff552424c0",
+      "actual": "a2bffdf3bc969938bfca19e592208bd18462992d832bbf10227ea5ff552424c0",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/code/quarter_observables.py",
+      "expected": "e4a932a0c8b827eaac61ea95bcac4c4dbdcc62ffaba02f0ac2089d6ab40d1c1d",
+      "actual": "e4a932a0c8b827eaac61ea95bcac4c4dbdcc62ffaba02f0ac2089d6ab40d1c1d",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/code/release_stage_returns.py",
+      "expected": "70fc72dcc06f9ad55071eacea86537b70bb957e6b7dd26918f696a2e0dbcd620",
+      "actual": "70fc72dcc06f9ad55071eacea86537b70bb957e6b7dd26918f696a2e0dbcd620",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/code/replay_published_winner.py",
+      "expected": "be40aeab41deec3cdee8b208fbffcbf0458a461208c95193c4ee1f16a0339c5e",
+      "actual": "be40aeab41deec3cdee8b208fbffcbf0458a461208c95193c4ee1f16a0339c5e",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/code/retention_ablation.py",
+      "expected": "10417889fdfb93d309a9abf47a9a3845b75d670fd6556f7a10058598d1dd4b57",
+      "actual": "10417889fdfb93d309a9abf47a9a3845b75d670fd6556f7a10058598d1dd4b57",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/code/test_portable_layout.py",
+      "expected": "c28d24b67add36d6adbcdaed13a6308e4ff9556601306175f4a987d32d7ff52f",
+      "actual": "c28d24b67add36d6adbcdaed13a6308e4ff9556601306175f4a987d32d7ff52f",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase2/code/verify_phase2.py",
+      "expected": "85600541544a98cc35af4357ca330e109ab5e061c0da01427adbafe0a73e29a1",
+      "actual": "85600541544a98cc35af4357ca330e109ab5e061c0da01427adbafe0a73e29a1",
+      "pass": true
+    },
+    {
+      "path": "research_5x/results/monthly_features_labels.csv.gz",
+      "expected": "e26a4358bc3ebaed360b4c44439d9ac35d29a64acbbfc5f7a053d1d0f84fc51d",
+      "actual": "e26a4358bc3ebaed360b4c44439d9ac35d29a64acbbfc5f7a053d1d0f84fc51d",
+      "pass": true
+    }
+  ],
+  "checks_scope": "Regression/data-integrity checks only, not predictive or independent-cycle validation."
+}

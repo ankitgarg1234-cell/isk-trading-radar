@@ -1,0 +1,40 @@
+ticker,mature_observations,first_signal,last_mature_signal,mean_forward_price_return_pct,median_forward_price_return_pct,negative_labels,material_labels,severe_labels,observations,filings,cfo_present,capex_present,sbc_present,source_certified_rows,original_case_packet,whole_company_monthly_certification,coverage_note
+ADI,4,2025-06-30,2025-09-30,57.566221032176415,62.2618592186891,0,0,0,4,2,4,4,4,0,False,not_completed,API staging only; original company accounting-quality audit missing
+AMD,3,2025-05-30,2025-07-31,275.683614887565,281.1698577502286,0,0,0,3,1,3,3,3,0,False,not_completed,API staging only; original company accounting-quality audit missing
+ANET,5,2024-01-31,2025-09-30,36.575852227250884,38.601237844790795,0,0,0,5,3,5,3,5,0,False,not_completed,API staging only; original company accounting-quality audit missing
+APH,3,2025-07-31,2025-09-30,47.2373312487226,49.898945214836196,0,0,0,3,1,3,3,3,0,False,not_completed,API staging only; original company accounting-quality audit missing
+APP,1,2025-09-30,2025-09-30,-60.84977786053143,-60.84977786053143,1,1,1,1,1,1,0,1,0,True,not_completed,Continuing income versus consolidated cash; Apps scope bridge
+AXON,4,2024-01-31,2024-04-30,102.33750930875274,86.62073011546335,0,0,0,4,2,4,4,4,0,False,not_completed,API staging only; original company accounting-quality audit missing
+CBOE,2,2025-08-29,2025-09-30,21.699262771055636,21.699262771055636,0,0,0,2,1,2,2,2,0,False,not_completed,API staging only; original company accounting-quality audit missing
+CCL,2,2024-01-31,2024-02-29,50.64732482953468,50.64732482953468,0,0,0,2,1,2,2,2,0,True,not_completed,Targeted original case evidence; full monthly scope/vintage audit incomplete
+CRWD,2,2024-06-28,2024-10-31,54.657782057963345,54.657782057963345,0,0,0,2,2,2,2,2,0,False,not_completed,API staging only; original company accounting-quality audit missing
+DASH,7,2025-03-31,2025-09-30,-19.363625840785677,-19.880119880119878,7,5,1,7,3,7,7,7,0,True,not_completed,Targeted original case evidence; full monthly scope/vintage audit incomplete
+DECK,2,2024-09-30,2024-10-31,-42.73185757640289,-42.73185757640289,2,2,2,2,1,2,2,2,0,True,not_completed,October release precedes matching cash filing
+DXCM,1,2024-04-30,2024-04-30,-35.92903435305741,-35.92903435305741,1,1,1,1,1,1,1,1,0,True,not_completed,Targeted original case evidence; full monthly scope/vintage audit incomplete
+EQT,3,2025-05-30,2025-07-31,-3.727819138159474,-0.81625386218197,3,1,0,3,2,3,3,3,0,False,not_completed,API staging only; original company accounting-quality audit missing
+EXE,1,2025-07-31,2025-07-31,-9.65832719515843,-9.65832719515843,1,0,0,1,1,1,1,1,0,False,not_completed,API staging only; original company accounting-quality audit missing
+FSLR,6,2024-01-31,2024-09-30,-16.54303847696754,-19.723682014284886,5,4,1,6,4,6,6,6,0,True,not_completed,Targeted original case evidence; full monthly scope/vintage audit incomplete
+GRMN,12,2024-05-31,2025-09-30,13.659061794837376,11.648172628902095,3,0,0,12,4,12,12,12,0,False,not_completed,API staging only; original company accounting-quality audit missing
+LRCX,5,2025-05-30,2025-09-30,234.0553598377383,210.63896744780814,0,0,0,5,2,5,0,5,0,False,not_completed,API staging only; original company accounting-quality audit missing
+LVS,3,2024-01-31,2024-03-28,-16.57574478701025,-17.29640540352003,3,2,0,3,2,0,0,0,0,False,not_completed,API staging only; original company accounting-quality audit missing
+MCO,7,2024-07-31,2025-02-28,2.0147880496473354,1.59717169521775,3,0,0,7,3,7,7,7,0,False,not_completed,API staging only; original company accounting-quality audit missing
+META,11,2024-01-31,2025-09-30,30.19571699573324,30.577600559880143,2,1,0,11,5,11,11,11,0,False,not_completed,API staging only; original company accounting-quality audit missing
+MPWR,3,2025-05-30,2025-07-31,105.53538810210125,89.0177736876377,0,0,0,3,1,3,3,3,0,False,not_completed,API staging only; original company accounting-quality audit missing
+MU,11,2024-03-28,2025-09-30,349.4556463292069,139.06075646520134,4,3,0,11,5,11,11,11,0,True,not_completed,Patent/inventory-cost profit and gross/adjusted FCF bridge
+NCLH,4,2024-01-31,2024-04-30,11.81000714428237,0.3906559717817906,2,0,0,4,2,4,4,4,0,False,not_completed,API staging only; original company accounting-quality audit missing
+NOW,8,2024-01-31,2025-01-31,-2.041250102346828,0.7899202131365302,4,3,2,8,4,8,8,8,0,True,not_completed,Targeted original case evidence; full monthly scope/vintage audit incomplete
+NVDA,11,2024-01-31,2024-12-31,42.24176461636227,40.084894275300655,0,0,0,11,5,11,0,11,0,True,not_completed,Combined PPE/intangibles; pure gross-PPE FCF missing
+PANW,1,2024-01-31,2024-01-31,7.9968024654228405,7.9968024654228405,0,0,0,1,1,1,0,1,0,False,not_completed,API staging only; original company accounting-quality audit missing
+PLTR,13,2024-09-30,2025-09-30,101.56847766395182,73.36317050762786,2,1,0,13,5,13,13,13,0,True,not_completed,Targeted original case evidence; full monthly scope/vintage audit incomplete
+PODD,11,2024-01-31,2025-02-28,33.64442263569938,38.327642509498425,2,1,0,11,5,11,11,11,0,False,not_completed,API staging only; original company accounting-quality audit missing
+PTC,2,2025-08-29,2025-09-30,-28.140315075065566,-28.140315075065566,2,2,0,2,1,2,2,2,0,False,not_completed,API staging only; original company accounting-quality audit missing
+QRVO,1,2024-08-30,2024-08-30,-20.441800471285777,-20.441800471285777,1,1,0,1,1,1,1,1,0,False,not_completed,API staging only; original company accounting-quality audit missing
+RCL,6,2024-01-31,2024-06-28,81.2431950083193,81.96041506730623,0,0,0,6,3,6,6,6,0,True,not_completed,Targeted original case evidence; full monthly scope/vintage audit incomplete
+RTX,4,2024-10-31,2025-03-31,51.312517482751716,51.14636523920747,0,0,0,4,2,4,4,4,0,False,not_completed,API staging only; original company accounting-quality audit missing
+SNPS,2,2024-02-29,2024-03-28,-23.037747541859193,-23.037747541859193,2,2,0,2,1,2,2,2,0,True,not_completed,Targeted original case evidence; full monthly scope/vintage audit incomplete
+STX,8,2024-10-31,2025-09-30,361.6389760749316,344.2004823989172,0,0,0,8,4,8,8,8,0,True,not_completed,Divestiture gain versus operating cash classification
+TTD,1,2025-07-31,2025-07-31,-78.95584242211872,-78.95584242211872,1,1,1,1,1,1,1,1,0,True,not_completed,Targeted original case evidence; full monthly scope/vintage audit incomplete
+UBER,3,2025-02-28,2025-04-30,-2.796204741297743,-1.5783715567462098,2,0,0,3,1,3,3,3,0,False,not_completed,API staging only; original company accounting-quality audit missing
+WDC,9,2024-05-31,2025-09-30,393.79654812972984,285.27403545285534,1,0,0,9,5,9,9,9,0,True,not_completed,HDD income/Flash cash; original/revised Q4 scope/vintage bridge
+XYL,2,2024-07-31,2024-09-30,9.09797465268522,9.09797465268522,0,0,0,2,1,2,0,2,0,False,not_completed,API staging only; original company accounting-quality audit missing
+ZBRA,4,2024-10-31,2025-01-31,-35.80452558150615,-35.43330232268998,4,4,4,4,1,4,4,4,0,True,not_completed,Targeted original case evidence; full monthly scope/vintage audit incomplete

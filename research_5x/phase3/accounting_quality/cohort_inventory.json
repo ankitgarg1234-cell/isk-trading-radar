@@ -1,0 +1,11 @@
+{
+  "qualified": 379,
+  "mature": 188,
+  "censored": 191,
+  "mature_issuers": 39,
+  "all_issuers": 66,
+  "first_observed_mature": 39,
+  "earliest_mature_issuers": 39,
+  "phase2_input_sha256": "51e9ead69dc634bb016d4499a7ac9bea7dc493cf602dd4e5c09c9a47d32d39d7",
+  "matching_uses_outcomes": false
+}

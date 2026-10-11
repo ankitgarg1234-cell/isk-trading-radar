@@ -1,0 +1,682 @@
+{
+  "status": "PASS_BOUNDED_CASE_INTEGRITY; BLOCKED_BROAD_ACCOUNTING_GATE",
+  "checks_passed": 128,
+  "checks_failed": 0,
+  "successful_original_sources": 37,
+  "download_attempts": 57,
+  "preserved_failure_attempts": 20,
+  "source_clock_conflicts": 10,
+  "audited_distinct_companies": 7,
+  "unique_latest_quarter_reports": 8,
+  "signal_cases": 9,
+  "pair_dates": 7,
+  "latest_quarter_metric_coverage_count": {
+    "revenue": 8,
+    "gross_profit": 7,
+    "operating_income": 8,
+    "net_income": 8,
+    "cfo": 7,
+    "gross_capex": 6,
+    "sbc_cashflow": 6,
+    "adjusted_operating_income": 4,
+    "adjusted_net_income_parent": 7,
+    "company_fcf": 6,
+    "interest_expense": 3
+  },
+  "coverage_denominator": 8,
+  "signal_case_outcome_counts": {
+    "exceptional": 1,
+    "flat_modest": 3,
+    "material_loser": 1,
+    "moderate": 2,
+    "severe_loser": 2
+  },
+  "selected_case_first_observed_signal_count": 4,
+  "selected_case_earliest_mature_signal_count": 4,
+  "incremental_factor_test": "UNTESTED: broad original-source accounting coverage gate failed",
+  "independent_validation": "BLOCKED: reused 2024-2026 development sample and incomplete historical universe",
+  "session_calendar_source": "https://query1.finance.yahoo.com/v8/finance/chart/SPY?period1=1669593600&period2=1790899200&interval=1d&events=div%2Csplits",
+  "session_calendar_raw_sha256": "a4f5aa969a0179439a836572cfac109c0ca18ca09a67d338a2bd6e3550fa37e6",
+  "checks": [
+    {
+      "check": "hash_NVDA_Q4_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_NVDA_Q4_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_NVDA_FY24_10K",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_NVDA_FY24_10K",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_ZBRA_Q3_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_ZBRA_Q3_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_ZBRA_Q2_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_ZBRA_Q2_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_ZBRA_Q3_10Q",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_ZBRA_Q3_10Q",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_PLTR_Q1_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_PLTR_Q1_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_PLTR_Q1_10Q",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_PLTR_Q1_10Q",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_PLTR_Q2_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_PLTR_Q2_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_PLTR_Q2_10Q",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_PLTR_Q2_10Q",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_NOW_FY23_10K",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_NOW_FY23_10K",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_SNPS_Q1_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_SNPS_Q1_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_SNPS_Q1_10Q",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_SNPS_Q1_10Q",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_CCL_Q4_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_CCL_Q4_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_CCL_FY23_10K",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_CCL_FY23_10K",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_RCL_Q3_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_RCL_Q3_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_RCL_Q3_10Q",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_RCL_Q3_10Q",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_NOW_Q4_SEC_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_NOW_Q4_SEC_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_NVDA_Q4_SEC_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_NVDA_Q4_SEC_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_ZBRA_Q3_SEC_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_ZBRA_Q3_SEC_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_SNPS_Q1_SEC_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_SNPS_Q1_SEC_release",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_NVDA_Q4_SEC_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_NVDA_Q4_SEC_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_NVDA_FY24_10K_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_NVDA_FY24_10K_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_ZBRA_Q3_SEC_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_ZBRA_Q3_SEC_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_ZBRA_Q2_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_ZBRA_Q2_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_ZBRA_Q3_10Q_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_ZBRA_Q3_10Q_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_PLTR_Q1_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_PLTR_Q1_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_PLTR_Q1_10Q_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_PLTR_Q1_10Q_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_PLTR_Q2_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_PLTR_Q2_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_PLTR_Q2_10Q_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_PLTR_Q2_10Q_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_NOW_Q4_SEC_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_NOW_Q4_SEC_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_NOW_FY23_10K_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_NOW_FY23_10K_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_SNPS_Q1_SEC_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_SNPS_Q1_SEC_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_SNPS_Q1_10Q_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_SNPS_Q1_10Q_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_CCL_Q4_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_CCL_Q4_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_CCL_FY23_10K_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_CCL_FY23_10K_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_RCL_Q3_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_RCL_Q3_release_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "hash_RCL_Q3_10Q_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "bytes_RCL_Q3_10Q_index",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "sources_NVDA_FY24Q4",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "sources_ZBRA_2024Q3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "same_vintage_difference_ZBRA_2024Q3_cfo",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "same_vintage_difference_ZBRA_2024Q3_gross_capex",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "same_vintage_difference_ZBRA_2024Q3_sbc_cashflow",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "subtraction_duration_ZBRA_2024Q3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "sources_PLTR_2025Q1",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "sources_PLTR_2025Q2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "same_vintage_difference_PLTR_2025Q2_cfo",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "same_vintage_difference_PLTR_2025Q2_gross_capex",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "same_vintage_difference_PLTR_2025Q2_sbc_cashflow",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "subtraction_duration_PLTR_2025Q2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "sources_NOW_2023Q4",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "sources_SNPS_FY24Q1",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "sources_CCL_2023Q4_original",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "sources_RCL_2023Q3",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "sources_NVDA_FY24_annual",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "sources_NOW_FY23_annual",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "sources_CCL_FY23_original",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "sources_CCL_FY23_filed",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "sources_RCL_2023YTD9",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "filing_cutoff_2024-04-30_NVDA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "conservative_release_cutoff_2024-04-30_NVDA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "filing_cutoff_2024-10-31_ZBRA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "conservative_release_cutoff_2024-10-31_ZBRA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "filing_cutoff_2024-11-29_ZBRA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "conservative_release_cutoff_2024-11-29_ZBRA",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "filing_cutoff_2025-06-30_PLTR",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "conservative_release_cutoff_2025-06-30_PLTR",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "filing_cutoff_2025-09-30_PLTR",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "conservative_release_cutoff_2025-09-30_PLTR",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "filing_cutoff_2024-02-29_NOW",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "conservative_release_cutoff_2024-02-29_NOW",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "filing_cutoff_2024-02-29_SNPS",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "conservative_release_cutoff_2024-02-29_SNPS",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "filing_cutoff_2024-01-31_CCL",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "conservative_release_cutoff_2024-01-31_CCL",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "filing_cutoff_2024-01-31_RCL",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "conservative_release_cutoff_2024-01-31_RCL",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "distinct_companies",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "reports_windows",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "case_signals",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "pair_dates",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "missing_is_not_zero",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "negative_ni_ratio_excluded",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "CCL_original_FCF_definition",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "CCL_later_annual_vintage_retained",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "CCL_issuer_financing_addback",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "PLTR_Q1_payroll_cash_addback",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "PLTR_Q2_payroll_cash_addback",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "NOW_annual_company_FCF_acquisition_addback",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "NI_scope_not_parent_substitution",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "API_clock_conflict_preserved",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "original_failure_attempts_retained",
+      "passed": true,
+      "detail": ""
+    }
+  ]
+}

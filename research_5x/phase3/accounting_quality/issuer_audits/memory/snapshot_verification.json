@@ -1,0 +1,37 @@
+{
+  "checks": [
+    {
+      "source_id": "MU-Q4-2023-ORIGINAL",
+      "snapshot_hash_valid": true,
+      "release_heading_present": true
+    },
+    {
+      "source_id": "MU-Q4-2024-ORIGINAL",
+      "snapshot_hash_valid": true,
+      "release_heading_present": true
+    },
+    {
+      "source_id": "MU-Q2-2024-ORIGINAL",
+      "snapshot_hash_valid": true,
+      "release_heading_present": true
+    },
+    {
+      "source_id": "MU-Q3-2025-ORIGINAL",
+      "snapshot_hash_valid": true,
+      "release_heading_present": true
+    },
+    {
+      "source_id": "STX-Q4-2023-ORIGINAL",
+      "snapshot_hash_valid": true,
+      "release_heading_present": true
+    },
+    {
+      "source_id": "STX-Q4-2024-ORIGINAL",
+      "snapshot_hash_valid": true,
+      "release_heading_present": true
+    }
+  ],
+  "retained_document_checks": 6,
+  "all_passed": true,
+  "limitation": "Hash and release-heading checks do not replace manual statement extraction or certify a historical web archive."
+}

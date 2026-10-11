@@ -1,0 +1,267 @@
+{
+  "verified_at": "2026-10-11T19:09:02.426935+00:00",
+  "parent_sha": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+  "input_export_manifest_sha256": "752822f5b4bd6553349d51dfdd492d2360981e3531ce513810294c6049fdff09",
+  "network_retrieval_used": false,
+  "scripts": [
+    {
+      "script": "unpack_sources.py",
+      "exit_code": 0,
+      "output": "Verified/restored 186 source/intermediate files; no changed file overwritten.\n"
+    },
+    {
+      "script": "build_cohorts.py",
+      "exit_code": 0,
+      "output": "{\"qualified\": 379, \"mature\": 188, \"censored\": 191, \"mature_issuers\": 39, \"all_issuers\": 66, \"first_observed_mature\": 39, \"earliest_mature_issuers\": 39, \"phase2_input_sha256\": \"51e9ead69dc634bb016d4499a7ac9bea7dc493cf602dd4e5c09c9a47d32d39d7\", \"matching_uses_outcomes\": false}\nspecification  matched_observations  unmatched_observations  matched_issuers  cross_outcome_nearest_rows  median_momentum_gap  median_size_gap_log2  unique_directed_nearest_rows                                                                                                        note\n       strict                    71                     117               22                          44             0.069252              0.353163                            71 Directed nearest pairs can reuse peers; not independent trials. Sector classifications are current proxies.\n      relaxed                    76                     112               25                          46             0.071039              0.269451                            76 Directed nearest pairs can reuse peers; not independent trials. Sector classifications are current proxies.\n"
+    },
+    {
+      "script": "stage_accounting.py",
+      "exit_code": 0,
+      "output": "{'rows': 188, 'issuers': 39, 'selected_accessions': 91, 'timestamp_conflicts': 435, 'certified_predictive_rows': 0}\ngroup                      metric  observations  values_present  coverage_pct  issuers_present  certified_predictive_rows                                                              note\n  all                 cfo_ytd_usd           188             185     98.404255               38                          0 Present API value does not certify original release/period/scope.\n  all          net_income_ytd_usd           188             185     98.404255               38                          0 Present API value does not certify original release/period/scope.\n  all             revenue_ytd_usd           188             185     98.404255               38                          0 Present API value does not certify original release/period/scope.\n  all     gross_ppe_capex_ytd_usd           188             163     86.702128               33                          0 Present API value does not certify original release/period/scope.\n  all                 sbc_ytd_usd           188             185     98.404255               38                          0 Present API value does not certify original release/period/scope.\n  all             cfo_quarter_usd           188             185     98.404255               38                          0 Present API value does not certify original release/period/scope.\n  all gross_ppe_capex_quarter_usd           188             163     86.702128               33                          0 Present API value does not certify original release/period/scope.\n  all             sbc_quarter_usd           188             185     98.404255               38                          0 Present API value does not certify original release/period/scope.\n"
+    },
+    {
+      "script": "cohort_uncertainty.py",
+      "exit_code": 0,
+      "output": "       sample                      resampling  draws  observations  issuers  point_mean_pct  point_median_pct  mean_2_5_pct  mean_97_5_pct  median_2_5_pct  median_97_5_pct\n   all_mature  whole_company_with_replacement   2000           188       39       87.167986         29.684075     38.304576     139.031270        9.929173        48.361645\nfirst_company  whole_company_with_replacement   2000            39       39       51.348761         25.083912     21.396716      86.955841       -0.816254        53.356486\n   all_mature circular_12_signal_month_blocks   2000           188       39       87.167986         29.684075     37.381263     132.537236       15.379380        38.956867\n"
+    },
+    {
+      "script": "build_phase3.py",
+      "exit_code": 0,
+      "output": "Built company comparison, all-negative attribution and executive HTML. No quality factor fit or new portfolio backtest.\n"
+    },
+    {
+      "script": "verify_phase3.py",
+      "exit_code": 0,
+      "output": "{\n  \"verified_at\": \"2026-10-11T19:09:02.418958+00:00\",\n  \"all_test_suites_pass\": true,\n  \"phase2_readonly_hash_checks\": 105,\n  \"phase2_preserved\": true,\n  \"checks_scope\": \"Regression/data-integrity checks only, not predictive or independent-cycle validation.\"\n}\ncode/test_phase3.py ...............\n----------------------------------------------------------------------\nRan 15 tests in 0.468s\n\nOK\naccounting_quality/issuer_audits/failures/test_failure_audits.py .......\n----------------------------------------------------------------------\nRan 7 tests in 0.014s\n\nOK\naccounting_quality/issuer_audits/matched_peers/test_case_audit.py test_CCL_annual_vintages (__main__.OriginalAuditTests.test_CCL_annual_vintages) ... ok\ntest_cash_duration_never_spliced (__main__.OriginalAuditTests.test_cash_duration_never_spliced) ... ok\ntest_combined_capex_not_pure_PPE (__main__.OriginalAuditTests.test_combined_capex_not_pure_PPE) ... ok\ntest_consolidated_cash_earnings_scopes (__main__.OriginalAuditTests.test_consolidated_cash_earnings_scopes) ... ok\ntest_negative_cash_not_missing_or_positive (__main__.OriginalAuditTests.test_negative_cash_not_missing_or_positive) ... ok\ntest_net_interest_not_gross_expense (__main__.OriginalAuditTests.test_net_interest_not_gross_expense) ... ok\ntest_original_index_clock_beats_API (__main__.OriginalAuditTests.test_original_index_clock_beats_API) ... ok\ntest_source_failure_and_repeated_cases_retained (__main__.OriginalAuditTests.test_source_failure_and_repeated_cases_retained) ... ok\n\n----------------------------------------------------------------------\nRan 8 tests in 0.024s\n\nOK\n"
+    }
+  ],
+  "deterministic_output_checks": [
+    {
+      "path": "research_5x/phase3/accounting_quality/all_66_company_coverage.csv",
+      "expected_sha256": "50a17365615f40cbdb8fbf54d332b28d4433a8b23e8dca4093e75a10cf552e80",
+      "reproduced_sha256": "50a17365615f40cbdb8fbf54d332b28d4433a8b23e8dca4093e75a10cf552e80",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/all_qualified_with_labels.csv",
+      "expected_sha256": "4ff138eed74323c9b9e6daa517468f57fbb15a6393dd862b86a5d55445251294",
+      "reproduced_sha256": "4ff138eed74323c9b9e6daa517468f57fbb15a6393dd862b86a5d55445251294",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/cik_map.csv",
+      "expected_sha256": "cd49bd3c817c58d88d998e38154cfa62c6022ad5c6e45554ec58e6fab98ad746",
+      "reproduced_sha256": "cd49bd3c817c58d88d998e38154cfa62c6022ad5c6e45554ec58e6fab98ad746",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/cohort_inventory.json",
+      "expected_sha256": "12559b1313c5353fe5c219e77fee81fef650af4b306f0fcd90286277fdddd323",
+      "reproduced_sha256": "12559b1313c5353fe5c219e77fee81fef650af4b306f0fcd90286277fdddd323",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/cohort_summary.csv",
+      "expected_sha256": "fb31cfb989bacbdc0135b524f116de73677fb5a7554c2c3a1ea50f4793034a8a",
+      "reproduced_sha256": "fb31cfb989bacbdc0135b524f116de73677fb5a7554c2c3a1ea50f4793034a8a",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/company_accounting_comparison.csv",
+      "expected_sha256": "691c958d88acce1ebf473fd092f7b1727a1281ccfc54b3c71fd1f30b4ed88a78",
+      "reproduced_sha256": "691c958d88acce1ebf473fd092f7b1727a1281ccfc54b3c71fd1f30b4ed88a78",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/company_coverage.csv",
+      "expected_sha256": "683335d2563a06327dc9848b0c0673d357217c9b714c6dc04318daf7edf75ae4",
+      "reproduced_sha256": "683335d2563a06327dc9848b0c0673d357217c9b714c6dc04318daf7edf75ae4",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/descriptive_uncertainty.csv",
+      "expected_sha256": "c9c01d88e72b6476888f1e38b3def2c4fe8887316da1d065de59b0fb22d28873",
+      "reproduced_sha256": "c9c01d88e72b6476888f1e38b3def2c4fe8887316da1d065de59b0fb22d28873",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/earliest_mature_company_signals.csv",
+      "expected_sha256": "2ea34f31518f90e03fa6bb90ad2cafd56fdb90dbac64fd1eada42edf9acef9f2",
+      "reproduced_sha256": "2ea34f31518f90e03fa6bb90ad2cafd56fdb90dbac64fd1eada42edf9acef9f2",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/failure_attribution.csv",
+      "expected_sha256": "e80d71012779ac7a5a36f5ec08866ac134e89279da3b9a300d507cf189d0041d",
+      "reproduced_sha256": "e80d71012779ac7a5a36f5ec08866ac134e89279da3b9a300d507cf189d0041d",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/first_company_signals.csv",
+      "expected_sha256": "1aa85447a966a7eda578d3e396f7f00fd54af70f9f67d6e166598b8325c29640",
+      "reproduced_sha256": "1aa85447a966a7eda578d3e396f7f00fd54af70f9f67d6e166598b8325c29640",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/match_summary.csv",
+      "expected_sha256": "04dfbf0ccbb42731113921b72ef0574c14b636b01d85fe3aad90d101d43d100b",
+      "reproduced_sha256": "04dfbf0ccbb42731113921b72ef0574c14b636b01d85fe3aad90d101d43d100b",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/mature_cohorts.csv",
+      "expected_sha256": "a3c3e02af01286e197ce5601cdd2ca09c4a3734368c0b1bb88acf76a4967f568",
+      "reproduced_sha256": "a3c3e02af01286e197ce5601cdd2ca09c4a3734368c0b1bb88acf76a4967f568",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/missingness_coverage.csv",
+      "expected_sha256": "576ccb5a1c4b08254c7e660fe4c3df596a1ea230a27d31a10c77d2e3840a753e",
+      "reproduced_sha256": "576ccb5a1c4b08254c7e660fe4c3df596a1ea230a27d31a10c77d2e3840a753e",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/original_accession_lineage.csv",
+      "expected_sha256": "0413b78bf9123273ec8983ff27a9b16d4cdd410d1ec6fa50bb64c02921093ee6",
+      "reproduced_sha256": "0413b78bf9123273ec8983ff27a9b16d4cdd410d1ec6fa50bb64c02921093ee6",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/raw_snapshot_manifest.json",
+      "expected_sha256": "fd8dd79c171abf6bfe657116f9b190d3ee802c76ecb501a7886567f86ad111bb",
+      "reproduced_sha256": "fd8dd79c171abf6bfe657116f9b190d3ee802c76ecb501a7886567f86ad111bb",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/relaxed_eligible_pairs.csv",
+      "expected_sha256": "c8ce1385c1f3143ba4985bd9eaee2f7003915f1068bd24ad2aa4cb7757c4d17a",
+      "reproduced_sha256": "c8ce1385c1f3143ba4985bd9eaee2f7003915f1068bd24ad2aa4cb7757c4d17a",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/relaxed_first_company_pairs.csv",
+      "expected_sha256": "ade20d91bcaa9b8fd63355064d626b2fe552b14172f97ae59a739eed896dc7ab",
+      "reproduced_sha256": "ade20d91bcaa9b8fd63355064d626b2fe552b14172f97ae59a739eed896dc7ab",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/relaxed_first_company_unmatched.csv",
+      "expected_sha256": "09581ad7ba6c89ee001e21c9037359b3f190a15d2252c45b2d9fcf47ab11c979",
+      "reproduced_sha256": "09581ad7ba6c89ee001e21c9037359b3f190a15d2252c45b2d9fcf47ab11c979",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/relaxed_nearest_pairs.csv",
+      "expected_sha256": "93d878bd1f0977b193033b90f27c4436c46d89a4f38ff06d0a6d34525cad4c97",
+      "reproduced_sha256": "93d878bd1f0977b193033b90f27c4436c46d89a4f38ff06d0a6d34525cad4c97",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/relaxed_unmatched.csv",
+      "expected_sha256": "f714cd244db912fda7071b0ccd21de79897236a04f2b8d91562c20abd74ad373",
+      "reproduced_sha256": "f714cd244db912fda7071b0ccd21de79897236a04f2b8d91562c20abd74ad373",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/sec_fact_lineage.csv.gz",
+      "expected_sha256": "5c0029cf9236c3eddd40dc824ce0b9ff0c0a755ad0c1c88743b106324d986ce3",
+      "reproduced_sha256": "5c0029cf9236c3eddd40dc824ce0b9ff0c0a755ad0c1c88743b106324d986ce3",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/sec_metrics_staging.csv",
+      "expected_sha256": "ca34d8ab61a72e99f59bd8636edf14af56854ca8011716aecda00f0a717ee57b",
+      "reproduced_sha256": "ca34d8ab61a72e99f59bd8636edf14af56854ca8011716aecda00f0a717ee57b",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/sec_retrieval_inventory.json",
+      "expected_sha256": "673aff59df7a25acafd08195c52c0c1633f16b1f781ead9adc4cad77536c2bfa",
+      "reproduced_sha256": "673aff59df7a25acafd08195c52c0c1633f16b1f781ead9adc4cad77536c2bfa",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/strict_eligible_pairs.csv",
+      "expected_sha256": "0912849086b6c01579527132b24f704aa4720d7103ff1463cc9539e9ab70da97",
+      "reproduced_sha256": "0912849086b6c01579527132b24f704aa4720d7103ff1463cc9539e9ab70da97",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/strict_first_company_pairs.csv",
+      "expected_sha256": "35c0b0290cf66dfffd7535be0a2740c735b831b02273e58651826d3f838e6bc7",
+      "reproduced_sha256": "35c0b0290cf66dfffd7535be0a2740c735b831b02273e58651826d3f838e6bc7",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/strict_first_company_unmatched.csv",
+      "expected_sha256": "dc1a9b40adcd98cb36424a6abede61858c2079d187ae31f9a46a964f008e48df",
+      "reproduced_sha256": "dc1a9b40adcd98cb36424a6abede61858c2079d187ae31f9a46a964f008e48df",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/strict_nearest_pairs.csv",
+      "expected_sha256": "31ea2ef8cb3d2a73acff76f31c8f8f66bef96c0171d067e31429b5ebd491c160",
+      "reproduced_sha256": "31ea2ef8cb3d2a73acff76f31c8f8f66bef96c0171d067e31429b5ebd491c160",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/strict_unmatched.csv",
+      "expected_sha256": "6245f4c219832dba5d40c4af764949fda426b7c1a941ba24a3bc122ff8cc0c06",
+      "reproduced_sha256": "6245f4c219832dba5d40c4af764949fda426b7c1a941ba24a3bc122ff8cc0c06",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/timestamp_conflicts.csv",
+      "expected_sha256": "8006b858838126f5bf999e565a88a5d513e61b723be5495586e302d89bc67730",
+      "reproduced_sha256": "8006b858838126f5bf999e565a88a5d513e61b723be5495586e302d89bc67730",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/accounting_quality/uncertainty_limits.json",
+      "expected_sha256": "e123854f597d2976db3695cb19f32cccce5d7165d44ca4026950def3f3b1407e",
+      "reproduced_sha256": "e123854f597d2976db3695cb19f32cccce5d7165d44ca4026950def3f3b1407e",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/figures/cash_failure_cases.png",
+      "expected_sha256": "4bd213ee62e38c28a10e0f91dff1f8ed0279a71c846be8d8ba5a9ca7344b8fb3",
+      "reproduced_sha256": "4bd213ee62e38c28a10e0f91dff1f8ed0279a71c846be8d8ba5a9ca7344b8fb3",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/figures/cohort_outcomes.png",
+      "expected_sha256": "ba22b03cc7cdd155210bc9a9b4bae182a828e07373b107266a174505dc9c0512",
+      "reproduced_sha256": "ba22b03cc7cdd155210bc9a9b4bae182a828e07373b107266a174505dc9c0512",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/figures/match_coverage.png",
+      "expected_sha256": "27148430e6005487bab97c0db4c642df3181390a328d396bffc77bca4538069f",
+      "reproduced_sha256": "27148430e6005487bab97c0db4c642df3181390a328d396bffc77bca4538069f",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/figures/prior_retention_tradeoff.png",
+      "expected_sha256": "993a5c8c8f013147a8c4220204e5b3edbded3e307b24413802a31a122116e32a",
+      "reproduced_sha256": "993a5c8c8f013147a8c4220204e5b3edbded3e307b24413802a31a122116e32a",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/research_report.html",
+      "expected_sha256": "92034521ad176a14ce29d724cee717a33127673cacc99a982f92007393dae728",
+      "reproduced_sha256": "92034521ad176a14ce29d724cee717a33127673cacc99a982f92007393dae728",
+      "pass": true
+    },
+    {
+      "path": "research_5x/phase3/retention/prior_evidence_references.csv",
+      "expected_sha256": "9d5d94c3a15ad03407e878d84c65edd3234c2aa0949fd8a0d94d67cd2f22d0a1",
+      "reproduced_sha256": "9d5d94c3a15ad03407e878d84c65edd3234c2aa0949fd8a0d94d67cd2f22d0a1",
+      "pass": true
+    }
+  ],
+  "all_outputs_identical": true,
+  "all_test_suites_pass": true,
+  "phase2_preserved": true,
+  "interpretation": "Portable data/arithmetic reproduction, not independent financial outcome validation.",
+  "input_export_manifest_path": "validation/portable_inputs/752822f5b4bd6553349d51dfdd492d2360981e3531ce513810294c6049fdff09.json"
+}

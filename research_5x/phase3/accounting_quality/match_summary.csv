@@ -1,0 +1,3 @@
+specification,matched_observations,unmatched_observations,matched_issuers,cross_outcome_nearest_rows,median_momentum_gap,median_size_gap_log2,unique_directed_nearest_rows,note
+strict,71,117,22,44,0.06925154146186,0.3531625474181605,71,Directed nearest pairs can reuse peers; not independent trials. Sector classifications are current proxies.
+relaxed,76,112,25,46,0.07103902899784523,0.26945141404885026,76,Directed nearest pairs can reuse peers; not independent trials. Sector classifications are current proxies.

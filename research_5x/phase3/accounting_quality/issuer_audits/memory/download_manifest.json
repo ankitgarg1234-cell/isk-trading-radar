@@ -1,0 +1,148 @@
+{
+  "schema": "primary_document_retention_v1",
+  "snapshots": [
+    {
+      "source_id": "MU-Q4-2023-ORIGINAL",
+      "source_url": "https://investors.micron.com/news/press-release/2023/Micron-Technology-Inc--Reports-Results-for-the-Fourth-Quarter-and-Full-Year-of-Fiscal-2023-09-27-2023/default.aspx",
+      "retrieved_utc": "2026-10-11T13:22:14.694235+00:00",
+      "historical_archive_certification": false,
+      "status": "retained_current_snapshot_of_dated_original_document",
+      "http_status": 200,
+      "path": "raw/MU-Q4-2023-ORIGINAL.html.gz",
+      "uncompressed_bytes": 719450,
+      "uncompressed_sha256": "a1e5da36c84d6b2e566a02b90f814bfaa077bd0599e98323a43342f767d129b6",
+      "gzip_sha256": "c0d7dbe8aaa548fb11282cdf35fbfa93c449ba8cc059ec53f7bae4dc1c560f88"
+    },
+    {
+      "source_id": "MU-Q4-2024-ORIGINAL",
+      "source_url": "https://investors.micron.com/news/press-release/2024/Micron-Technology-Inc--Reports-Results-for-the-Fourth-Quarter-and-Full-Year-of-Fiscal-2024-09-25-2024/default.aspx",
+      "retrieved_utc": "2026-10-11T13:22:14.694439+00:00",
+      "historical_archive_certification": false,
+      "status": "retained_current_snapshot_of_dated_original_document",
+      "http_status": 200,
+      "path": "raw/MU-Q4-2024-ORIGINAL.html.gz",
+      "uncompressed_bytes": 719176,
+      "uncompressed_sha256": "1b8de3944afc6de86a9466f1b47d2eeda13467295b7dd19bfb5770fe9a079856",
+      "gzip_sha256": "f9fa1faa9078695a2f5dbe94276c00aa2d7deb9057e7ef8be5c80eb0c40514d9"
+    },
+    {
+      "source_id": "MU-Q2-2024-ORIGINAL",
+      "source_url": "https://investors.micron.com/news/press-release/2024/Micron-Technology-Inc--Reports-Results-for-the-Second-Quarter-of-Fiscal-2024-03-20-2024/default.aspx",
+      "retrieved_utc": "2026-10-11T13:22:15.599427+00:00",
+      "historical_archive_certification": false,
+      "status": "retained_current_snapshot_of_dated_original_document",
+      "http_status": 200,
+      "path": "raw/MU-Q2-2024-ORIGINAL.html.gz",
+      "uncompressed_bytes": 674129,
+      "uncompressed_sha256": "33eb5aad0dc98e5749b5816489999a39879d8d14cff80207e408aa2096d6af7e",
+      "gzip_sha256": "8bfba88558346dfc6b65760275e97d35a3aa7b892ce49bae10c0657e1a94897e"
+    },
+    {
+      "source_id": "MU-Q3-2025-ORIGINAL",
+      "source_url": "https://investors.micron.com/news/press-release/2025/Micron-Technology-Inc--Reports-Results-for-the-Third-Quarter-of-Fiscal-2025-06-25-2025/default.aspx",
+      "retrieved_utc": "2026-10-11T13:22:16.308651+00:00",
+      "historical_archive_certification": false,
+      "status": "retained_current_snapshot_of_dated_original_document",
+      "http_status": 200,
+      "path": "raw/MU-Q3-2025-ORIGINAL.html.gz",
+      "uncompressed_bytes": 707781,
+      "uncompressed_sha256": "8112fde93d5b8a28336e3c94e1bda7fa4f189d50c675e64e0151434fe9b3c352",
+      "gzip_sha256": "16a3d17ff324310226fbf184c0f2da8bb0de109349fe6b6050979ca6c390f820"
+    },
+    {
+      "source_id": "MU-FY2023-10K",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312523000054/mu-20230831.htm",
+      "retrieved_utc": "2026-10-11T13:22:19.848868+00:00",
+      "historical_archive_certification": false,
+      "status": "retrieval_failed_no_substitute",
+      "error": "HTTP Error 403: Forbidden",
+      "exception": "HTTPError"
+    },
+    {
+      "source_id": "MU-FY2024-10K",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/723125/000072312524000027/mu-20240829.htm",
+      "retrieved_utc": "2026-10-11T13:22:20.275891+00:00",
+      "historical_archive_certification": false,
+      "status": "retrieval_failed_no_substitute",
+      "error": "HTTP Error 403: Forbidden",
+      "exception": "HTTPError"
+    },
+    {
+      "source_id": "STX-Q4-2023-ORIGINAL",
+      "source_url": "https://investors.seagate.com/news/news-details/2023/Seagate-Technology-Reports-Fiscal-Fourth-Quarter-and-Fiscal-Year-2023-Financial-Results/default.aspx",
+      "retrieved_utc": "2026-10-11T13:22:20.743154+00:00",
+      "historical_archive_certification": false,
+      "status": "retained_existing_current_snapshot",
+      "path": "raw/STX-Q4-2023-ORIGINAL.html.gz",
+      "uncompressed_bytes": 489084,
+      "uncompressed_sha256": "e93fe85e695d2eb5759507b4d1fd696d912d2f5d930bef1055f7954557f4392a",
+      "gzip_sha256": "03e919caa4f97a5d2a69defe919e744dea9242ce18939a2c0ebab189763d6ebd"
+    },
+    {
+      "source_id": "STX-Q4-2024-ORIGINAL",
+      "source_url": "https://investors.seagate.com/news/news-details/2024/Seagate-Technology-Reports-Fiscal-Fourth-Quarter-and-Fiscal-Year-2024-Financial-Results/default.aspx",
+      "retrieved_utc": "2026-10-11T13:22:20.744910+00:00",
+      "historical_archive_certification": false,
+      "status": "retained_existing_current_snapshot",
+      "path": "raw/STX-Q4-2024-ORIGINAL.html.gz",
+      "uncompressed_bytes": 467874,
+      "uncompressed_sha256": "b8f7c5f3296875a15c9acc649e9f0c5b0f74c2cc5502ff211981c0203931428d",
+      "gzip_sha256": "2a5fde22daf39d6fc8031d285cbeb160f2314cdd09d147ba1cf9694e6042faf1"
+    },
+    {
+      "source_id": "STX-FY2023-10K",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1137789/000113778923000049/stx-20230630.htm",
+      "retrieved_utc": "2026-10-11T13:22:20.745691+00:00",
+      "historical_archive_certification": false,
+      "status": "retrieval_failed_no_substitute",
+      "error": "HTTP Error 403: Forbidden",
+      "exception": "HTTPError"
+    },
+    {
+      "source_id": "STX-FY2024-10K",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1137789/000113778924000068/stx-20240628.htm",
+      "retrieved_utc": "2026-10-11T13:22:21.259820+00:00",
+      "historical_archive_certification": false,
+      "status": "retrieval_failed_no_substitute",
+      "error": "HTTP Error 403: Forbidden",
+      "exception": "HTTPError"
+    },
+    {
+      "source_id": "WDC-Q4-2024-ORIGINAL",
+      "source_url": "https://investor.wdc.com/news-releases/news-release-details/western-digital-reports-fiscal-fourth-quarter-and-fiscal-year-1",
+      "retrieved_utc": "2026-10-11T13:22:21.359832+00:00",
+      "historical_archive_certification": false,
+      "status": "retrieval_failed_no_substitute",
+      "error": "HTTP Error 403: Forbidden",
+      "exception": "HTTPError"
+    },
+    {
+      "source_id": "WDC-FY2024-10K",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/106040/000010604024000031/wdc-20240628.htm",
+      "retrieved_utc": "2026-10-11T13:22:21.750534+00:00",
+      "historical_archive_certification": false,
+      "status": "retrieval_failed_no_substitute",
+      "error": "HTTP Error 403: Forbidden",
+      "exception": "HTTPError"
+    },
+    {
+      "source_id": "WDC-Q3-2025-ORIGINAL",
+      "source_url": "https://investor.wdc.com/node/26681",
+      "retrieved_utc": "2026-10-11T13:22:21.776481+00:00",
+      "historical_archive_certification": false,
+      "status": "retrieval_failed_no_substitute",
+      "error": "HTTP Error 403: Forbidden",
+      "exception": "HTTPError"
+    },
+    {
+      "source_id": "WDC-Q3-2025-10Q",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/106040/000010604025000026/wdc-20250328.htm",
+      "retrieved_utc": "2026-10-11T13:22:22.243157+00:00",
+      "historical_archive_certification": false,
+      "status": "retrieval_failed_no_substitute",
+      "error": "HTTP Error 403: Forbidden",
+      "exception": "HTTPError"
+    }
+  ],
+  "limitation": "2026 retrieval of original dated release/accession pages; no historical web archive or all-fact source certification inferred. Failed binary downloads do not negate targeted web review, and remain disclosed."
+}

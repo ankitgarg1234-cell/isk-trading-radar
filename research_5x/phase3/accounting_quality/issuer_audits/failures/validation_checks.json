@@ -1,0 +1,599 @@
+{
+  "checks": [
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DXCM_Q1_2024",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DECK_Q1_FY2025",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DECK_Q2_FY2025",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "FSLR_Q1_2024",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "TTD_Q1_2025",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "APP_Q2_2025",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DASH_Q2_2025",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DXCM_Q1_2024_10Q",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DECK_Q1_FY2025_10Q",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DECK_Q2_FY2025_10Q_INELIGIBLE",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "FSLR_Q1_2024_10Q",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "APP_Q2_2025_10Q",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DASH_Q2_2025_10Q",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DECK_FY2024_release",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DECK_FY2024_10K",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "TTD_Q1_2025_10Q",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DXCM_FY2023_release",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "FSLR_FY2023_release",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "TTD_FY2024_release",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "APP_FY2024_release",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DASH_FY2024_release",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DXCM_FY2023_10K",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "FSLR_FY2023_10K",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "TTD_FY2024_10K",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "APP_FY2024_10K",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DASH_FY2024_10K",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DXCM_Q1_2024_10Q_index",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DECK_Q1_FY2025_10Q_index",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DECK_Q2_FY2025_10Q_INELIGIBLE_index",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "FSLR_Q1_2024_10Q_index",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "TTD_Q1_2025_10Q_index",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "APP_Q2_2025_10Q_index",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DASH_Q2_2025_10Q_index",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DXCM_FY2023_10K_index",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DECK_FY2024_10K_index",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "FSLR_FY2023_10K_index",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "TTD_FY2024_10K_index",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "APP_FY2024_10K_index",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DASH_FY2024_10K_index",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DASH_Q1_2025_10Q",
+      "passed": true
+    },
+    {
+      "check": "snapshot_sha256",
+      "source_id": "DASH_Q1_2025_10Q_index",
+      "passed": true
+    },
+    {
+      "check": "release_cutoff",
+      "source_id": "DXCM_Q1_2024",
+      "signal_date": "2024-04-30",
+      "passed": true
+    },
+    {
+      "check": "original_filing_cutoff",
+      "source_id": "DXCM_Q1_2024_10Q",
+      "signal_date": "2024-04-30",
+      "passed": true
+    },
+    {
+      "check": "release_cutoff",
+      "source_id": "DECK_Q1_FY2025",
+      "signal_date": "2024-09-30",
+      "passed": true
+    },
+    {
+      "check": "original_filing_cutoff",
+      "source_id": "DECK_Q1_FY2025_10Q",
+      "signal_date": "2024-09-30",
+      "passed": true
+    },
+    {
+      "check": "release_cutoff",
+      "source_id": "DECK_Q2_FY2025",
+      "signal_date": "2024-10-31",
+      "passed": true
+    },
+    {
+      "check": "release_cutoff",
+      "source_id": "FSLR_Q1_2024",
+      "signal_date": "2024-05-31",
+      "passed": true
+    },
+    {
+      "check": "original_filing_cutoff",
+      "source_id": "FSLR_Q1_2024_10Q",
+      "signal_date": "2024-05-31",
+      "passed": true
+    },
+    {
+      "check": "release_cutoff",
+      "source_id": "TTD_Q1_2025",
+      "signal_date": "2025-07-31",
+      "passed": true
+    },
+    {
+      "check": "original_filing_cutoff",
+      "source_id": "TTD_Q1_2025_10Q",
+      "signal_date": "2025-07-31",
+      "passed": true
+    },
+    {
+      "check": "release_cutoff",
+      "source_id": "APP_Q2_2025",
+      "signal_date": "2025-09-30",
+      "passed": true
+    },
+    {
+      "check": "original_filing_cutoff",
+      "source_id": "APP_Q2_2025_10Q",
+      "signal_date": "2025-09-30",
+      "passed": true
+    },
+    {
+      "check": "release_cutoff",
+      "source_id": "DASH_Q2_2025",
+      "signal_date": "2025-09-30",
+      "passed": true
+    },
+    {
+      "check": "original_filing_cutoff",
+      "source_id": "DASH_Q2_2025_10Q",
+      "signal_date": "2025-09-30",
+      "passed": true
+    },
+    {
+      "check": "derived_quarter_prior_filing_cutoff",
+      "source_id": "DASH_Q1_2025_10Q",
+      "signal_date": "2025-09-30",
+      "passed": true
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DXCM_FY2023_10K",
+      "metric": "revenue",
+      "passed": true,
+      "candidate_values_musd": "[3622.3]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DXCM_FY2023_10K",
+      "metric": "operating_income",
+      "passed": true,
+      "candidate_values_musd": "[597.7]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DXCM_FY2023_10K",
+      "metric": "net_income",
+      "passed": true,
+      "candidate_values_musd": "[541.5]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DXCM_FY2023_10K",
+      "metric": "cfo",
+      "passed": true,
+      "candidate_values_musd": "[748.5]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DXCM_FY2023_10K",
+      "metric": "gross_capex",
+      "passed": true,
+      "candidate_values_musd": "[236.6]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DXCM_FY2023_10K",
+      "metric": "sbc_expense",
+      "passed": true,
+      "candidate_values_musd": "[150.8]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DECK_FY2024_10K",
+      "metric": "revenue",
+      "passed": true,
+      "candidate_values_musd": "[4287.763]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DECK_FY2024_10K",
+      "metric": "operating_income",
+      "passed": true,
+      "candidate_values_musd": "[927.514]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DECK_FY2024_10K",
+      "metric": "net_income",
+      "passed": true,
+      "candidate_values_musd": "[759.563]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DECK_FY2024_10K",
+      "metric": "cfo",
+      "passed": true,
+      "candidate_values_musd": "[1033.184]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DECK_FY2024_10K",
+      "metric": "gross_capex",
+      "passed": true,
+      "candidate_values_musd": "[89.365]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DECK_FY2024_10K",
+      "metric": "sbc_expense",
+      "passed": true,
+      "candidate_values_musd": "[37.288]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "FSLR_FY2023_10K",
+      "metric": "revenue",
+      "passed": true,
+      "candidate_values_musd": "[3318.602]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "FSLR_FY2023_10K",
+      "metric": "operating_income",
+      "passed": true,
+      "candidate_values_musd": "[857.266]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "FSLR_FY2023_10K",
+      "metric": "net_income",
+      "passed": true,
+      "candidate_values_musd": "[830.777]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "FSLR_FY2023_10K",
+      "metric": "cfo",
+      "passed": true,
+      "candidate_values_musd": "[602.26]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "FSLR_FY2023_10K",
+      "metric": "gross_capex",
+      "passed": true,
+      "candidate_values_musd": "[1386.775]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "FSLR_FY2023_10K",
+      "metric": "sbc_expense",
+      "passed": true,
+      "candidate_values_musd": "[34.219]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "TTD_FY2024_10K",
+      "metric": "revenue",
+      "passed": true,
+      "candidate_values_musd": "[2444.831]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "TTD_FY2024_10K",
+      "metric": "operating_income",
+      "passed": true,
+      "candidate_values_musd": "[427.167]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "TTD_FY2024_10K",
+      "metric": "net_income",
+      "passed": true,
+      "candidate_values_musd": "[393.076]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "TTD_FY2024_10K",
+      "metric": "cfo",
+      "passed": true,
+      "candidate_values_musd": "[739.456]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "TTD_FY2024_10K",
+      "metric": "gross_capex",
+      "passed": true,
+      "candidate_values_musd": "[98.238]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "TTD_FY2024_10K",
+      "metric": "sbc_expense",
+      "passed": true,
+      "candidate_values_musd": "[494.699]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "APP_FY2024_10K",
+      "metric": "revenue",
+      "passed": true,
+      "candidate_values_musd": "[4709.248]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "APP_FY2024_10K",
+      "metric": "operating_income",
+      "passed": true,
+      "candidate_values_musd": "[1873.459]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "APP_FY2024_10K",
+      "metric": "net_income",
+      "passed": true,
+      "candidate_values_musd": "[1579.776]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "APP_FY2024_10K",
+      "metric": "cfo",
+      "passed": true,
+      "candidate_values_musd": "[2099.011]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "APP_FY2024_10K",
+      "metric": "gross_capex",
+      "passed": true,
+      "candidate_values_musd": "[4.776]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "APP_FY2024_10K",
+      "metric": "sbc_expense",
+      "passed": true,
+      "candidate_values_musd": "[369.367, 376.455]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DASH_FY2024_10K",
+      "metric": "revenue",
+      "passed": true,
+      "candidate_values_musd": "[10722.0]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DASH_FY2024_10K",
+      "metric": "operating_income",
+      "passed": true,
+      "candidate_values_musd": "[-38.0]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DASH_FY2024_10K",
+      "metric": "net_income",
+      "passed": true,
+      "candidate_values_musd": "[117.0, 123.0]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DASH_FY2024_10K",
+      "metric": "cfo",
+      "passed": true,
+      "candidate_values_musd": "[2132.0]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DASH_FY2024_10K",
+      "metric": "gross_capex",
+      "passed": true,
+      "candidate_values_musd": "[104.0]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "annual_inline_xbrl_selected_value",
+      "source_id": "DASH_FY2024_10K",
+      "metric": "sbc_expense",
+      "passed": true,
+      "candidate_values_musd": "[1099.0]",
+      "notes": "A failed check remains an open taxonomy/scope exception; does not fabricate a replacement."
+    },
+    {
+      "check": "exclude_DECK_Q2_after_cutoff",
+      "source_id": "DECK_Q2_FY2025_10Q_INELIGIBLE",
+      "passed": true
+    },
+    {
+      "check": "APP_scope_guard",
+      "source_id": "APP_Q2_2025",
+      "passed": true
+    },
+    {
+      "check": "DASH_software_FCF_bridge",
+      "source_id": "DASH_Q2_2025",
+      "passed": true
+    }
+  ],
+  "passed": 94,
+  "failed": 0,
+  "interpretation": "Arithmetic,original snapshot hashes,cutoff guards and selectedannual XBRL tie-outs. Case evidence does not certify broader matched-cohort validity."
+}

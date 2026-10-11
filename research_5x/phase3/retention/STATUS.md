@@ -1,0 +1,7 @@
+# C: controlled holding and rotation are gate-blocked
+
+No new hybrid, industry-cap or replenished rotational experiment is simulated. Gate 1 and Gate 2 precede these experiments. The full daily NAVs and orders for all 264 Phase 2 fixed-basket accounts remain available under `../../phase2/2026-10-11_earnings_acceleration/retention/`; `prior_evidence_references.csv` points to those immutable files. No placeholder curves or invented performance appear in this directory.
+
+The prior six-policy comparison is descriptive and dependent. It holds initial stock baskets and quantities constant, admits no replacement stock, and tests 20/100bps. The original static basket’s monthly/untouched June 2025 returns are +392.75%/+463.52%, with drawdowns −18.20%/−18.89%. Across22 overlapping starts, untouched median +33.00% is paired with worst drawdown −34.72%, maximum company52.91% and correlated storage/memory93.04%. Monthly25% cap checks may drift between observations; they do not cap the correlated industry.
+
+Required work after A: a frozen controlled hybrid, identical initial quantities, daily share/cash/NAV reconciliation, payable-date dividend funding, turnover/exposure/contribution metrics, full interval/industry exclusion, then a separately labeled rotational deployment. A replenished account must never be presented as a controlled frozen-basket result. None of these prerequisites authorizes an existing account change.

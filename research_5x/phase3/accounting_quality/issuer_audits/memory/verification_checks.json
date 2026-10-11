@@ -1,0 +1,372 @@
+{
+  "status": "passed_accounting_arithmetic_and_source_lineage_checks_only",
+  "checks": [
+    {
+      "check": "MU-Q4-2023-ORIGINAL/FY2023Q4 company-adjusted cash bridge",
+      "actual": -758,
+      "expected": -758,
+      "passed": true
+    },
+    {
+      "check": "MU-Q4-2023-ORIGINAL/FY2023 company-adjusted cash bridge",
+      "actual": -5453,
+      "expected": -5453,
+      "passed": true
+    },
+    {
+      "check": "MU-Q2-2024-ORIGINAL/FY2024Q2 company-adjusted cash bridge",
+      "actual": -29,
+      "expected": -29,
+      "passed": true
+    },
+    {
+      "check": "MU-Q4-2024-ORIGINAL/FY2024Q4 company-adjusted cash bridge",
+      "actual": 323,
+      "expected": 323,
+      "passed": true
+    },
+    {
+      "check": "MU-Q4-2024-ORIGINAL/FY2024 company-adjusted cash bridge",
+      "actual": 386,
+      "expected": 386,
+      "passed": true
+    },
+    {
+      "check": "MU-Q3-2025-ORIGINAL/FY2025Q3 company-adjusted cash bridge",
+      "actual": 1949,
+      "expected": 1949,
+      "passed": true
+    },
+    {
+      "check": "STX-Q4-2023-ORIGINAL/FY2023Q4 reported CFO less gross capex",
+      "actual": 168,
+      "expected": 168,
+      "passed": true
+    },
+    {
+      "check": "STX-Q4-2023-ORIGINAL/FY2023 reported CFO less gross capex",
+      "actual": 626,
+      "expected": 626,
+      "passed": true
+    },
+    {
+      "check": "STX-Q4-2024-ORIGINAL/FY2024Q4 reported CFO less gross capex",
+      "actual": 380,
+      "expected": 380,
+      "passed": true
+    },
+    {
+      "check": "STX-Q4-2024-ORIGINAL/FY2024 reported CFO less gross capex",
+      "actual": 664,
+      "expected": 664,
+      "passed": true
+    },
+    {
+      "check": "WDC-Q4-2024-ORIGINAL/FY2024Q4 company-FCF net-capex plusFlash bridge",
+      "actual": 282,
+      "expected": 282,
+      "passed": true
+    },
+    {
+      "check": "WDC-Q4-2024-ORIGINAL/FY2024 company-FCF net-capex plusFlash bridge",
+      "actual": -347,
+      "expected": -347,
+      "passed": true
+    },
+    {
+      "check": "WDC-Q3-2025-ORIGINAL/FY2025Q3 company-FCF net-capex plusFlash bridge",
+      "actual": 436,
+      "expected": 436,
+      "passed": true
+    },
+    {
+      "check": "MUFY2023 original release-to-original annual revenue",
+      "actual": 15540,
+      "expected": 15540,
+      "passed": true
+    },
+    {
+      "check": "MUFY2023 original release-to-original annual oi",
+      "actual": -5745,
+      "expected": -5745,
+      "passed": true
+    },
+    {
+      "check": "MUFY2023 original release-to-original annual ni",
+      "actual": -5833,
+      "expected": -5833,
+      "passed": true
+    },
+    {
+      "check": "MUFY2023 original release-to-original annual cfo",
+      "actual": 1559,
+      "expected": 1559,
+      "passed": true
+    },
+    {
+      "check": "MUFY2023 original release-to-original annual gross_ppe_capex",
+      "actual": 7676,
+      "expected": 7676,
+      "passed": true
+    },
+    {
+      "check": "MUFY2024 original release-to-original annual revenue",
+      "actual": 25111,
+      "expected": 25111,
+      "passed": true
+    },
+    {
+      "check": "MUFY2024 original release-to-original annual oi",
+      "actual": 1304,
+      "expected": 1304,
+      "passed": true
+    },
+    {
+      "check": "MUFY2024 original release-to-original annual ni",
+      "actual": 778,
+      "expected": 778,
+      "passed": true
+    },
+    {
+      "check": "MUFY2024 original release-to-original annual cfo",
+      "actual": 8507,
+      "expected": 8507,
+      "passed": true
+    },
+    {
+      "check": "MUFY2024 original release-to-original annual gross_ppe_capex",
+      "actual": 8386,
+      "expected": 8386,
+      "passed": true
+    },
+    {
+      "check": "STXFY2023 original release-to-original annual revenue",
+      "actual": 7384,
+      "expected": 7384,
+      "passed": true
+    },
+    {
+      "check": "STXFY2023 original release-to-original annual oi",
+      "actual": -342,
+      "expected": -342,
+      "passed": true
+    },
+    {
+      "check": "STXFY2023 original release-to-original annual ni",
+      "actual": -529,
+      "expected": -529,
+      "passed": true
+    },
+    {
+      "check": "STXFY2023 original release-to-original annual cfo",
+      "actual": 942,
+      "expected": 942,
+      "passed": true
+    },
+    {
+      "check": "STXFY2023 original release-to-original annual gross_ppe_capex",
+      "actual": 316,
+      "expected": 316,
+      "passed": true
+    },
+    {
+      "check": "STXFY2024 original release-to-original annual revenue",
+      "actual": 6551,
+      "expected": 6551,
+      "passed": true
+    },
+    {
+      "check": "STXFY2024 original release-to-original annual oi",
+      "actual": 452,
+      "expected": 452,
+      "passed": true
+    },
+    {
+      "check": "STXFY2024 original release-to-original annual ni",
+      "actual": 335,
+      "expected": 335,
+      "passed": true
+    },
+    {
+      "check": "STXFY2024 original release-to-original annual cfo",
+      "actual": 918,
+      "expected": 918,
+      "passed": true
+    },
+    {
+      "check": "STXFY2024 original release-to-original annual gross_ppe_capex",
+      "actual": 254,
+      "expected": 254,
+      "passed": true
+    },
+    {
+      "check": "MU FY2024 four observable quarter sums:revenue",
+      "actual": 25111,
+      "expected": 25111,
+      "passed": true
+    },
+    {
+      "check": "MU FY2024 four observable quarter sums:oi",
+      "actual": 1304,
+      "expected": 1304,
+      "passed": true
+    },
+    {
+      "check": "MU FY2024 four observable quarter sums:ni",
+      "actual": 778,
+      "expected": 778,
+      "passed": true
+    },
+    {
+      "check": "MU FY2024 four observable quarter sums:cfo",
+      "actual": 8507,
+      "expected": 8507,
+      "passed": true
+    },
+    {
+      "check": "MU FY2024 four observable quarter sums:gross_ppe_capex",
+      "actual": 8386,
+      "expected": 8386,
+      "passed": true
+    },
+    {
+      "check": "STX FY2024 four observable quarter sums:revenue",
+      "actual": 6551,
+      "expected": 6551,
+      "passed": true
+    },
+    {
+      "check": "STX FY2024 four observable quarter sums:oi",
+      "actual": 452,
+      "expected": 452,
+      "passed": true
+    },
+    {
+      "check": "STX FY2024 four observable quarter sums:ni",
+      "actual": 335,
+      "expected": 335,
+      "passed": true
+    },
+    {
+      "check": "STX FY2024 four observable quarter sums:cfo",
+      "actual": 918,
+      "expected": 918,
+      "passed": true
+    },
+    {
+      "check": "STX FY2024 four observable quarter sums:gross_ppe_capex",
+      "actual": 254,
+      "expected": 254,
+      "passed": true
+    },
+    {
+      "check": "WDC annual original-preliminary OI less laterlitigation",
+      "actual": -317,
+      "expected": -317,
+      "passed": true
+    },
+    {
+      "check": "WDC annual original-preliminary NI less laterlitigation",
+      "actual": -798,
+      "expected": -798,
+      "passed": true
+    },
+    {
+      "check": "WDC corrected Q4 OI annual-minus9month",
+      "actual": 216,
+      "expected": 216,
+      "passed": true
+    },
+    {
+      "check": "WDC corrected Q4 NI annual-minus9month",
+      "actual": 39,
+      "expected": 39,
+      "passed": true
+    },
+    {
+      "check": "WDC quarter2025Q3 continuing plus discontinuedNI",
+      "actual": 520,
+      "expected": 520,
+      "passed": true
+    },
+    {
+      "check": "WDC quarter2025Q3 OI aftercredit/SBC/otheradjustments",
+      "actual": 596,
+      "expected": 596,
+      "passed": true
+    },
+    {
+      "check": "MU quarter2024Q2 OI ex patent",
+      "actual": -9,
+      "expected": -9,
+      "passed": true
+    },
+    {
+      "check": "MU quarter2024Q2 OI ex patent and inventory benefit",
+      "actual": -391,
+      "expected": -391,
+      "passed": true
+    },
+    {
+      "check": "MU quarter2024Q2 adjustedOI ex inventory benefit",
+      "actual": -178,
+      "expected": -178,
+      "passed": true
+    },
+    {
+      "check": "STX quarter2024Q4 cash afterdivestiturediagnostic",
+      "actual": 208,
+      "expected": 208,
+      "passed": true
+    },
+    {
+      "check": "STX quarter2024Q4 FCF afterdivestiturediagnostic",
+      "actual": 154,
+      "expected": 154,
+      "passed": true
+    },
+    {
+      "check": "STX FY2024 cash afterdivestiturediagnostic",
+      "actual": 692,
+      "expected": 692,
+      "passed": true
+    },
+    {
+      "check": "STX FY2024 FCF afterdivestiturediagnostic",
+      "actual": 438,
+      "expected": 438,
+      "passed": true
+    },
+    {
+      "check": "Two MU API/index conflicts retained",
+      "actual": 2,
+      "expected": 2,
+      "passed": true
+    },
+    {
+      "check": "WDC standalone cash ratios blocked; net capex not gross",
+      "passed": true
+    },
+    {
+      "check": "All30 Phase2 originalrelease references retained with inherited labels",
+      "passed": true
+    },
+    {
+      "check": "Nonpositive NI cash-conversion denominator remains missing",
+      "passed": true
+    }
+  ],
+  "check_count": 60,
+  "all_passed": true,
+  "source_count": 14,
+  "metric_period_vintage_rows": 18,
+  "inherited_original_releases": 30,
+  "timestamp_conflict_count": 3,
+  "predictive_validation": "not_attempted",
+  "limits": [
+    "No all-39 cohort source certification from this three-issuer packet",
+    "Original binary retention is separately disclosed",
+    "No causal loss attribution or entry-policy claim",
+    "Q4 original releases retained separately from later annual vintages"
+  ]
+}

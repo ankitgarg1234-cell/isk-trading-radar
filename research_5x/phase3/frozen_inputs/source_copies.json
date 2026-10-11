@@ -1,0 +1,51 @@
+{
+  "source_commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+  "copies": [
+    {
+      "source": "research_5x/phase2/2026-10-11_earnings_acceleration/panel/all_qualified.csv",
+      "copy": "frozen_inputs/all_qualified.csv",
+      "sha256": "51e9ead69dc634bb016d4499a7ac9bea7dc493cf602dd4e5c09c9a47d32d39d7"
+    },
+    {
+      "source": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/summary.csv",
+      "copy": "retention/prior_phase2/summary.csv",
+      "sha256": "d564c760de0bdb94f12ff7f513448dc38c4e89a57e09660eacc4006188feab4a"
+    },
+    {
+      "source": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/accounts.csv",
+      "copy": "retention/prior_phase2/accounts.csv",
+      "sha256": "93611471fc484169e26406e53e214ddedf1dc21e368dc4ce6195febd65890c98"
+    },
+    {
+      "source": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/curves.csv.gz",
+      "copy": "retention/prior_phase2/curves.csv.gz",
+      "sha256": "a8e1697e69378f272f15aeba81932b72bde979b5e6b9ca3c38a864a6dd351d7e"
+    },
+    {
+      "source": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/trades.csv.gz",
+      "copy": "retention/prior_phase2/trades.csv.gz",
+      "sha256": "1b9f8bb9446598a31d077c4a56c708c5f9db9c1a5e9413235b1cee39244102a2"
+    },
+    {
+      "source": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/spy_accounts.csv",
+      "copy": "retention/prior_phase2/spy_accounts.csv",
+      "sha256": "c6c29e62e59a56c7df3327455454921de48c2be2488766ee70a13eb6a990f19c"
+    },
+    {
+      "source": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/empirical_frequencies.csv",
+      "copy": "retention/prior_phase2/empirical_frequencies.csv",
+      "sha256": "c151438bb612202e8769609502c8cfec2f404a86c5ce1671d9397da672c894a5"
+    },
+    {
+      "source": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/continuous_comparison.csv",
+      "copy": "retention/prior_phase2/continuous_comparison.csv",
+      "sha256": "973fb2c56ed204b99b9341c1bf22109132e5bd104a6dd545d7c43f21d6fb63a4"
+    },
+    {
+      "source": "research_5x/phase2/2026-10-11_earnings_acceleration/retention/paired_differences.csv",
+      "copy": "retention/prior_phase2/paired_differences.csv",
+      "sha256": "6062459c05b5189153f2ffd8b785b46fb19af274094775f0114f788999b0b996"
+    }
+  ],
+  "acceptance_map_source_sha256": "a066363bd896bb583478adcb6590f5094042ef47158b357b2cde3d2c1aff6893"
+}

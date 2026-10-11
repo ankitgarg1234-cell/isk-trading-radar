@@ -1,0 +1,984 @@
+{
+  "purpose": "Exact source/intermediate byte preservation; run code/unpack_sources.py before reproduction. No changed file overwritten.",
+  "bundles": [
+    {
+      "path": "source_bundles/preserved_sources_01.zip",
+      "bytes": 2375451,
+      "sha256": "647b569cc07c7ccd7de08adfbf23d0a8c1a66432bb944121f7ac197fc91389c0",
+      "members": [
+        {
+          "path": "accounting_quality/issuer_audits/failures/original_inline_xbrl_facts.csv",
+          "bytes": 1728559,
+          "sha256": "2e89e2ccee4a1d9a7b6a4040c738d6d5791881017deef6a9d0dc7032661ec944"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/APP_FY2024_10K.html",
+          "bytes": 2315375,
+          "sha256": "48b35a9f819b25e54948408e8df250fe5119829cfbdbc2958f9a3da5c3a632a7"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/APP_FY2024_10K_index.html",
+          "bytes": 13541,
+          "sha256": "c341ce6494899bc2a03e2f6c0dbdd29af89084a7b65d6dd7fa48b99cc976a4b0"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/APP_FY2024_release.html",
+          "bytes": 385346,
+          "sha256": "c8b3e0412531d2d613c8379671582c90ccf2690706be41d19f6023f0c0ff6c08"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/APP_FY2024_release.tables.txt",
+          "bytes": 7247,
+          "sha256": "9295e1b531b30535bb488ea270cd45ee740f4ac3695d794f37910eac50be967d"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/APP_Q2_2025.html",
+          "bytes": 319225,
+          "sha256": "422c2a0369fae4bf3eb84251436461e193383901618a0f35256211a17fa08aa3"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/APP_Q2_2025.tables.txt",
+          "bytes": 13237,
+          "sha256": "956121dcdd8ed17168ea3fdb916b16abd9cde339e12f6d9b4926de96e6c68b9d"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/APP_Q2_2025_10Q.cash_tables.txt",
+          "bytes": 3434,
+          "sha256": "294804d576bd049a78c741e6d7d1d91aae8e62cbc6ad4dbeb32e640b107159fb"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/APP_Q2_2025_10Q.html",
+          "bytes": 1431072,
+          "sha256": "c92d0db8b13194dda83f89fb42cd612547e56e092b75bcc336ddf92d4fb9ea85"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/APP_Q2_2025_10Q_index.html",
+          "bytes": 11199,
+          "sha256": "f34b34ab130c8638551c54492839761cf31870eeebc555c6259a9db624a8c8c8"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DASH_FY2024_10K.html",
+          "bytes": 2479494,
+          "sha256": "57de35878a72af4552aebe254d7b791806ae46de13c586ff4ac1eea5e2b366a0"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DASH_FY2024_10K_index.html",
+          "bytes": 13032,
+          "sha256": "1715366419a8c0d93a9f685de063a71c85e07c85e532b805bbee381e7572c288"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DASH_FY2024_release.html",
+          "bytes": 501310,
+          "sha256": "69bc850d6bc9fd055df56ccbf0d670ec428bb367cab046e36b457bc227bb6032"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DASH_FY2024_release.tables.txt",
+          "bytes": 4863,
+          "sha256": "4a173cd4a7ef2a58702ed5bd9221c126e3c7524db4b8c8c52275faaf6c42333e"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DASH_Q1_2025_10Q.html",
+          "bytes": 1720103,
+          "sha256": "e345b1a0a23c489f2a20d01232a7d4741c793cc782dff435aaa9f58a596e55e8"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DASH_Q1_2025_10Q_index.html",
+          "bytes": 11321,
+          "sha256": "ed1ce7f2a885c14f7da29c31a3970fa871135d86e9361397ce58c17114400191"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DASH_Q2_2025.html",
+          "bytes": 491022,
+          "sha256": "455e416d757928e0976148b81a914587bf32757d55e3ebb6abc47ecad5c7b922"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DASH_Q2_2025.tables.txt",
+          "bytes": 18213,
+          "sha256": "2ce717b0b756dfdc5ed27c956ae6c40f24e430e7985e7d2d82d75d5df40519f6"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DASH_Q2_2025_10Q.cash_tables.txt",
+          "bytes": 4543,
+          "sha256": "042718cc046ae72faeec8534f1a457379046cdefaf1c49da3000d07ee4d5de03"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DASH_Q2_2025_10Q.html",
+          "bytes": 2156531,
+          "sha256": "48d6b5b2a23aa6f3d4a7d0cc115e83728309247feb5418b544dd4205a07c546f"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DASH_Q2_2025_10Q_index.html",
+          "bytes": 11669,
+          "sha256": "f25ef98583ba56c29153bf35769b9d16116ab08009a75b8269fb1257a23042ee"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DECK_FY2024_10K.html",
+          "bytes": 2299870,
+          "sha256": "f757b034d97eeca95cafea6fef85413f36538f057031288ae4ef4b2e7a11e921"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DECK_FY2024_10K_index.html",
+          "bytes": 13589,
+          "sha256": "cadf299d8b3c4a5539a53ff8b42d9b8c6593fa90d4b8168be41fea168fd489bd"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DECK_FY2024_release.html",
+          "bytes": 73377,
+          "sha256": "a9e21ad46e6e3379a059806fa608596440ae773e400e72cb84cc7ebbe233941c"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DECK_FY2024_release.tables.txt",
+          "bytes": 1428,
+          "sha256": "00e46e1a47f3dd278020ebe3d95cc5507b94323748777f5e8ff8985dee9540c5"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DECK_Q1_FY2025.html",
+          "bytes": 83290,
+          "sha256": "c0aa8f317a1aea2e6926925e7dc9f29fdebdee3d372f9e350c1dd94903792cad"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DECK_Q1_FY2025.tables.txt",
+          "bytes": 1153,
+          "sha256": "fc8d2f3873648e01d5db9e797e37a0d3726ab35b0162211ea9e349ebd487118a"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DECK_Q1_FY2025_10Q.cash_tables.txt",
+          "bytes": 3205,
+          "sha256": "799a36b6e1512e6557aa2040ba7b80b324136c5b8c09d2acb0c1754b52e8dd0d"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DECK_Q1_FY2025_10Q.html",
+          "bytes": 1032045,
+          "sha256": "407df632ed92003c5f5932c8906fa1f21f35d750277dedc10deb00b84e1ded3a"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DECK_Q1_FY2025_10Q_index.html",
+          "bytes": 11517,
+          "sha256": "be26a4c54ac693c40c8977775054ad749fcf3ef066d8dd849b5a9d3a3b4456fb"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DECK_Q2_FY2025.html",
+          "bytes": 100561,
+          "sha256": "65d83803f9b462ff8ade4bff53714eb4cb79c0994d21846292f7ddca31452092"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DECK_Q2_FY2025.tables.txt",
+          "bytes": 1813,
+          "sha256": "60f6b184ad386cb4bb46459876ad03151572e28db34a07ad48b0206280c547ae"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DECK_Q2_FY2025_10Q_INELIGIBLE.cash_tables.txt",
+          "bytes": 3398,
+          "sha256": "315574e9f4e312479757c4e95daed61078576bd8acda797cf72a0d67dee45f3f"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DECK_Q2_FY2025_10Q_INELIGIBLE.html",
+          "bytes": 1375818,
+          "sha256": "a5aacd2caa5271c9152254501c92aec2388cbf75fd202df6cdc9d0cedb758050"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DECK_Q2_FY2025_10Q_INELIGIBLE_index.html",
+          "bytes": 11842,
+          "sha256": "34a12b37ab991b88161296dd7faecb3cc966cb8c176099c5d5d3994b381b24f0"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DXCM_FY2023_10K.html",
+          "bytes": 2524528,
+          "sha256": "b0990751db7ba2f509f0077bee76f407905b70275b39e8c55d087b747d901595"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DXCM_FY2023_10K_index.html",
+          "bytes": 16086,
+          "sha256": "91d88858ae298009a59c580d51aab91f9cd86b9819d64a792743708aa204e22a"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DXCM_FY2023_release.html",
+          "bytes": 388212,
+          "sha256": "7ece77c6020f9caec5f24eb90edd0f906506472787c645e5c6cf938e7fe462dd"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DXCM_FY2023_release.tables.txt",
+          "bytes": 1598,
+          "sha256": "4c274436a1d55786973c3885e2af1ec2e47d395d75bbfa9cdba5e2390fbcec7e"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DXCM_Q1_2024.html",
+          "bytes": 238264,
+          "sha256": "c58a5583095ae18d905caf3d01216914e72f03dee79e734ec518e1abc3d9cac9"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DXCM_Q1_2024.tables.txt",
+          "bytes": 5798,
+          "sha256": "79f4491fa7372f8bddfd5fce095abd32fbff9c6cb3d1cd1a3d68d69a24cee690"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DXCM_Q1_2024_10Q.cash_tables.txt",
+          "bytes": 2846,
+          "sha256": "bec0d39f9e82a1a34e91ca619ce10da443fb624e5ef981a0157f194749e3647b"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DXCM_Q1_2024_10Q.html",
+          "bytes": 1077130,
+          "sha256": "ff7620c385800a410ed82a4ed6c6f096aea72544c725238e889c98dacdc95e20"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/DXCM_Q1_2024_10Q_index.html",
+          "bytes": 12572,
+          "sha256": "8672d0773e098362a17d3131f069f02f67ab9d0502fafdb9612ba919049ccce4"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/FSLR_FY2023_10K.html",
+          "bytes": 2674816,
+          "sha256": "6732654dba88b390d477a26232e24f1f9d62742502099b6b3fa89755445fae90"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/FSLR_FY2023_10K_index.html",
+          "bytes": 17304,
+          "sha256": "75e6a239221884d4de7d2013c0c6963e80b340c8570cbd884e57bf42c841d51e"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/FSLR_FY2023_release.html",
+          "bytes": 217475,
+          "sha256": "b4da5838ac34d322ee724a5dd7a1c582bc235a4c18cb77dafb7807f4dc623608"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/FSLR_FY2023_release.tables.txt",
+          "bytes": 6828,
+          "sha256": "5edd16e850fdd4c7ff1ca933b79b8ce9a561bc41fb6ef531f79701116e284a02"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/FSLR_Q1_2024.html",
+          "bytes": 172886,
+          "sha256": "26c9d1318b49f5aa192b0c868a24e3eff3a5689e7338032a23b6a22bd88b868e"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/FSLR_Q1_2024.tables.txt",
+          "bytes": 7915,
+          "sha256": "816d15a8368df6e92a090e2921ac9039fa66d281ddef62cb69926ef156ef2805"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/FSLR_Q1_2024_10Q.cash_tables.txt",
+          "bytes": 3574,
+          "sha256": "5b36e3b7ea34f708ebedc3d81ce89e382d72d5d56dd1ab121d95653b3efd1925"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/FSLR_Q1_2024_10Q.html",
+          "bytes": 1483849,
+          "sha256": "ffb0d7f9f4600bdda33b873daba9305ada73957ccf704a3f6c8285df7bc9339a"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/FSLR_Q1_2024_10Q_index.html",
+          "bytes": 12048,
+          "sha256": "4c20231baef1e871447b014f93e155e75a7cdef3401f46d81fab2aba718569c1"
+        }
+      ]
+    },
+    {
+      "path": "source_bundles/preserved_sources_02.zip",
+      "bytes": 2271924,
+      "sha256": "483c9467d353e8fb7f597f81fd21920a57cfc662e29a395dff689ea517d916ed",
+      "members": [
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/TTD_FY2024_10K.html",
+          "bytes": 1589110,
+          "sha256": "d6e3f2203018a944d56b0691300c2375cfe04640b59ce751c85bad9d9f7d5d1a"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/TTD_FY2024_10K_index.html",
+          "bytes": 15716,
+          "sha256": "88361f396af8b6432a1468e53aca9e29ce6d8f01fa322fe124ee1564f8b9dc80"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/TTD_FY2024_release.html",
+          "bytes": 253578,
+          "sha256": "064cb5b5a70ed85887d0c01f1bac0fca592460a86482a62cdfccfa053659c94e"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/TTD_FY2024_release.tables.txt",
+          "bytes": 4149,
+          "sha256": "a1e97398076901dab0bffa33792db240acbeb58ff1b57b0405b3d69d20d7ed7e"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/TTD_Q1_2025.html",
+          "bytes": 190697,
+          "sha256": "09134b3c28beba596a2643d82ca578d2dab58813a7d9d28fd3549308987fd065"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/TTD_Q1_2025.tables.txt",
+          "bytes": 5958,
+          "sha256": "c532f077a82b66cca4d2d7aed8043efdd80ab3ec1a97642f799b51321ce1fe6b"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/TTD_Q1_2025_10Q.html",
+          "bytes": 914392,
+          "sha256": "e8f878446317051c473172fc7469183224f043c2632652c988e2bc4ec3687ef7"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/failures/raw/TTD_Q1_2025_10Q_index.html",
+          "bytes": 12862,
+          "sha256": "0ab0ec6df5966734c69b024b908647fd2b370b71bd035ac0b5854c3ec683ef77"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/original_inline_facts.csv",
+          "bytes": 2449908,
+          "sha256": "e72073e7b87d62031275af17d0481f7cdafbda6e165cea491d509d99871b3be0"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/CCL_FY23_10K.bin.gz",
+          "bytes": 194135,
+          "sha256": "65ef80fa2e2e26fa154fe5821f269cbf416466620aff631e31071d3eeae48733"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/CCL_FY23_10K_index.bin.gz",
+          "bytes": 3816,
+          "sha256": "3d97d668951a90bd1e3b3d48daf548efb51ce45bd48d2802db48b05fe017175b"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/CCL_Q4_release.bin.gz",
+          "bytes": 26659,
+          "sha256": "40ab03a9605e658a9aa69ec3915cda653c7b8b0547a635a2c16aa621de464983"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/CCL_Q4_release_index.bin.gz",
+          "bytes": 3162,
+          "sha256": "69ec55be2dccd297760cdce8076fea6dd3ad90b00535fecd627fad658be483b1"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/NOW_FY23_10K.bin.gz",
+          "bytes": 156181,
+          "sha256": "6cfbf3df79a4d6d01d406277246a12dc980f769a3baf443dabc4066dcd5fbe7d"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/NOW_FY23_10K_index.bin.gz",
+          "bytes": 3356,
+          "sha256": "8415c5128a600b0f2edf2ecb8e35204342aa70a7bf4f7439fd75f7dc7f5f1b40"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/NOW_Q4_SEC_release.bin.gz",
+          "bytes": 22541,
+          "sha256": "e152485300bd42f54fa5bf10272b9b2cc559a9d5ef553fa456b05b6d7cce3868"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/NOW_Q4_SEC_release_index.bin.gz",
+          "bytes": 2949,
+          "sha256": "f3d020c11ff511b6fd3b515f83a325d4b59baf8e1a96bc4f6169c4c3821fdfbb"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/NVDA_FY24_10K.bin.gz",
+          "bytes": 168070,
+          "sha256": "9dddb3035683993545ef67d04b8886a8daf1bae6786f65fe6107c6473abff022"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/NVDA_FY24_10K_index.bin.gz",
+          "bytes": 3410,
+          "sha256": "4f6092ccd9450e80d702bacdbfe88e27b34372d47ad222a5c5b0fefb73e12932"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/NVDA_Q4_SEC_release.bin.gz",
+          "bytes": 16243,
+          "sha256": "457cdcdfd64100092ce5874fe6ab74b2c1dcae9475fceb2099b5221f1698bf60"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/NVDA_Q4_SEC_release_index.bin.gz",
+          "bytes": 3070,
+          "sha256": "58a5b80055f2c15fbfa51831ce9307034e1533f538f59c55315866a4352072f6"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/NVDA_Q4_release.bin.gz",
+          "bytes": 38041,
+          "sha256": "e6a2917fffd81d6c6cbb5789ddb6fec85ef6213ae4d69bdae9cd8e3484d184f5"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/PLTR_Q1_10Q.bin.gz",
+          "bytes": 157239,
+          "sha256": "e04be0ac45ddaf3742116b41013374dc478c2ffd1947a8be8e58310c4bee6318"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/PLTR_Q1_10Q_index.bin.gz",
+          "bytes": 3019,
+          "sha256": "95253c0615ebf910098026295a9bec5c08ad5c38d82bc1b2c8eb8db6349733d1"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/PLTR_Q1_release.bin.gz",
+          "bytes": 13744,
+          "sha256": "40bc723b288297e758c6065d1815a2aea236d17a6b6d5a56bda5dc2ddaaa2882"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/PLTR_Q1_release_index.bin.gz",
+          "bytes": 2964,
+          "sha256": "15337398de8349048e154a560068bdd4f43a53d6d09fb444fa4e4abb9394b721"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/PLTR_Q2_10Q.bin.gz",
+          "bytes": 168010,
+          "sha256": "7bd59fcc92271b1325af73eb34b7e74bfc3ef51cbb662dc1303df6409290b2b2"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/PLTR_Q2_10Q_index.bin.gz",
+          "bytes": 3015,
+          "sha256": "db54750092dafc60a776429ac178c339245e0717ced0d377ca4ef257f31e8057"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/PLTR_Q2_release.bin.gz",
+          "bytes": 14848,
+          "sha256": "ebfe8c068a640342ff25fa2be4f88e13eaba75b775a6ea014f76ec4541b6a1e1"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/PLTR_Q2_release_index.bin.gz",
+          "bytes": 2964,
+          "sha256": "dfeccf76a654e3e0fe451a278f23301f390ac03f22bedc316cde3831d452db0d"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/RCL_Q3_10Q.bin.gz",
+          "bytes": 132450,
+          "sha256": "9097f1035838c3c9138dbc0a5460cfa78b0f3f66c42da126da6e99988cdec7d6"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/RCL_Q3_10Q_index.bin.gz",
+          "bytes": 3183,
+          "sha256": "4e7dc46210c0ac83dd3c3bbf46bc53be3d8605aa09198dec7bc41891bb79ce46"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/RCL_Q3_release.bin.gz",
+          "bytes": 27416,
+          "sha256": "0e2db9b9cb145939b07c724788362829c461cc751613bc057ff5e6389b893002"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/RCL_Q3_release_index.bin.gz",
+          "bytes": 2977,
+          "sha256": "0ab29970ce229ba0794acdefb27f7aaa598c699e4b3778312383a3a79a2355b8"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/SNPS_Q1_10Q.bin.gz",
+          "bytes": 120429,
+          "sha256": "ff48d189fdebde7dda4e6826499003c8a78872792d350fe8db1f49f98bba9ece"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/SNPS_Q1_10Q_index.bin.gz",
+          "bytes": 3057,
+          "sha256": "7feac21df0a6195a65a6b009a76976d4d3b40f79f1f49d881b6c128513ea5e8e"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/SNPS_Q1_SEC_release.bin.gz",
+          "bytes": 17459,
+          "sha256": "eacd51ee635c8f6464944328e1602f3324b9e91c94e897ba44b2aed3498e5d0b"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/SNPS_Q1_SEC_release_index.bin.gz",
+          "bytes": 2952,
+          "sha256": "e5612fa1a3eedab0fede165b5f8c62f5a8478138cb571aef9e46c9c6e1a76531"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/SNPS_Q1_release.bin.gz",
+          "bytes": 31555,
+          "sha256": "a034593b1e811739eddeb12a5496180c40a47fd3143cdd860e4cf8edd9a4af3a"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/ZBRA_Q2_release.bin.gz",
+          "bytes": 19720,
+          "sha256": "7ccd987dbd185ec5abee4fb7ee03b9bd11e2b8d8fc8fe4e9cf0bd9d0bbc1912d"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/ZBRA_Q2_release_index.bin.gz",
+          "bytes": 2996,
+          "sha256": "805436d4f26dbe918c5a4833499d939f2eea33dee9016ded3ee0f70278be1dc2"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/ZBRA_Q3_10Q.bin.gz",
+          "bytes": 75665,
+          "sha256": "8fb7ea136fa339c66a483ebfdd0b2710e1c94cddd6dff5296d509ac658ca3f22"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/ZBRA_Q3_10Q_index.bin.gz",
+          "bytes": 3060,
+          "sha256": "c5a3b43b9bae385864ab0b1da6fe2c03bc680913104c708fb802bccdc09d6d56"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/ZBRA_Q3_SEC_release.bin.gz",
+          "bytes": 19592,
+          "sha256": "ac0cae72f10b5d571cf7c5e3e4435bbecf69f5a68c9034f6d5d1fe0d8f347583"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/ZBRA_Q3_SEC_release_index.bin.gz",
+          "bytes": 2994,
+          "sha256": "c84a411ba40c25cb4eb36084132d953b4b5ca0148a07c804332d3ddcd252e3d2"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/matched_peers/raw/ZBRA_Q3_release.bin.gz",
+          "bytes": 38759,
+          "sha256": "a098bf40ee91cddfd4a049b11f739745a8ae5944749f1cdb9090702c13928997"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/memory/raw/MU-Q2-2024-ORIGINAL.html.gz",
+          "bytes": 57370,
+          "sha256": "8bfba88558346dfc6b65760275e97d35a3aa7b892ce49bae10c0657e1a94897e"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/memory/raw/MU-Q3-2025-ORIGINAL.html.gz",
+          "bytes": 55996,
+          "sha256": "16a3d17ff324310226fbf184c0f2da8bb0de109349fe6b6050979ca6c390f820"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/memory/raw/MU-Q4-2023-ORIGINAL.html.gz",
+          "bytes": 57418,
+          "sha256": "c0d7dbe8aaa548fb11282cdf35fbfa93c449ba8cc059ec53f7bae4dc1c560f88"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/memory/raw/MU-Q4-2024-ORIGINAL.html.gz",
+          "bytes": 57567,
+          "sha256": "f9fa1faa9078695a2f5dbe94276c00aa2d7deb9057e7ef8be5c80eb0c40514d9"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/memory/raw/STX-Q4-2023-ORIGINAL.html.gz",
+          "bytes": 30992,
+          "sha256": "03e919caa4f97a5d2a69defe919e744dea9242ce18939a2c0ebab189763d6ebd"
+        },
+        {
+          "path": "accounting_quality/issuer_audits/memory/raw/STX-Q4-2024-ORIGINAL.html.gz",
+          "bytes": 31527,
+          "sha256": "2a5fde22daf39d6fc8031d285cbeb160f2314cdd09d147ba1cf9694e6042faf1"
+        }
+      ]
+    },
+    {
+      "path": "source_bundles/preserved_sources_03.zip",
+      "bytes": 2376868,
+      "sha256": "6e92268e1cb16907987f84d89b23632f2b833f03bec3f4754042df42c9fb9cc1",
+      "members": [
+        {
+          "path": "accounting_quality/raw/ADI_companyfacts.json.gz",
+          "bytes": 313754,
+          "sha256": "8a56ebcc437e1332b1f6450a04e97771d75f42075d77375e9de234de9ddf6dcc"
+        },
+        {
+          "path": "accounting_quality/raw/ADI_submissions.json.gz",
+          "bytes": 26914,
+          "sha256": "00fa00f4fe92907e8ff67951f9bcdc2e40dd4ce0f43c534aef9baf9e4f0a3795"
+        },
+        {
+          "path": "accounting_quality/raw/AMD_companyfacts.json.gz",
+          "bytes": 256463,
+          "sha256": "62239f01e5aabcbb3a4d1ece8f6141350fe5fa972ee7bb378e50878095a011c3"
+        },
+        {
+          "path": "accounting_quality/raw/AMD_submissions.json.gz",
+          "bytes": 27991,
+          "sha256": "56084c8e37792e0d45a8cb01f99868ee48be7612a423f9343f146dfc5983898f"
+        },
+        {
+          "path": "accounting_quality/raw/ANET_companyfacts.json.gz",
+          "bytes": 187187,
+          "sha256": "5dc323f75ee1d5643ff77e4f0a593a1b0759a7ef39e2cb66fe1027bb25a517cd"
+        },
+        {
+          "path": "accounting_quality/raw/ANET_submissions.json.gz",
+          "bytes": 19542,
+          "sha256": "b8a24fedb446504d6eb317d57023eb7919000f12ab11b9af4bf25fb90e19768f"
+        },
+        {
+          "path": "accounting_quality/raw/APH_companyfacts.json.gz",
+          "bytes": 233729,
+          "sha256": "86e9e8c17c8934853aef226a17dc8aa20f72336eb3b0d1a5e431d57e5eb0b33a"
+        },
+        {
+          "path": "accounting_quality/raw/APH_submissions.json.gz",
+          "bytes": 25922,
+          "sha256": "5e4dd032fef35784c9d06c4ca97786a5c9ca2a48ed581524f81747c091b42003"
+        },
+        {
+          "path": "accounting_quality/raw/APP_companyfacts.json.gz",
+          "bytes": 81751,
+          "sha256": "98298bfef941ff1b9cb585af646146958cddf4a32052c81b686e04ff781527b7"
+        },
+        {
+          "path": "accounting_quality/raw/APP_submissions.json.gz",
+          "bytes": 18436,
+          "sha256": "d53b2c9a3b62165f01f34c55e8a530daf59e63d176c4a34a11247f723f3d2fc7"
+        },
+        {
+          "path": "accounting_quality/raw/AXON_companyfacts.json.gz",
+          "bytes": 228738,
+          "sha256": "2d437c982970e3c258e6eae30e16d099f7e5a7591ca541c8d425ccf71d817fd9"
+        },
+        {
+          "path": "accounting_quality/raw/AXON_submissions.json.gz",
+          "bytes": 28022,
+          "sha256": "bed8edcbb45e5bcd0089a62964c9723cde5dea365dcdfa11391bca038abb0b04"
+        },
+        {
+          "path": "accounting_quality/raw/CBOE_companyfacts.json.gz",
+          "bytes": 247676,
+          "sha256": "5390c11a56cf40a1fe48567d3991fd7cfa293c7c12be2d13ef7362b453248fc5"
+        },
+        {
+          "path": "accounting_quality/raw/CBOE_submissions.json.gz",
+          "bytes": 24262,
+          "sha256": "8913354300137c481b7c6e92acd87436e3b98e9fd08fdd6e24bae0cc0513de9b"
+        },
+        {
+          "path": "accounting_quality/raw/CCL_companyfacts.json.gz",
+          "bytes": 181913,
+          "sha256": "5f99c59eccccd6b66c61580e7ee9a782fcb05b12af880aba37f8d65af680f69c"
+        },
+        {
+          "path": "accounting_quality/raw/CCL_submissions.json.gz",
+          "bytes": 26995,
+          "sha256": "392501f1cd89db24a90ad8046e0a353e39088e0abdc35fefab017e21ecde571e"
+        },
+        {
+          "path": "accounting_quality/raw/CRWD_companyfacts.json.gz",
+          "bytes": 126844,
+          "sha256": "80bcd50b4bd6caedf5c5acf301198d80378ab65406fcbcf464eada4f1a7505f8"
+        },
+        {
+          "path": "accounting_quality/raw/CRWD_submissions.json.gz",
+          "bytes": 23572,
+          "sha256": "1b3c9084bc8decce42064e484d81b4a3bfc6858cbcffb8f30f6b1a9c0131b4ef"
+        },
+        {
+          "path": "accounting_quality/raw/DASH_companyfacts.json.gz",
+          "bytes": 83357,
+          "sha256": "5f6a0ce24a5d47c9f18f263a990d6aec6a19661f0f6b20a1efc6a63869860cd6"
+        },
+        {
+          "path": "accounting_quality/raw/DASH_submissions.json.gz",
+          "bytes": 22320,
+          "sha256": "bf3dc4667bec35da2bea7e5a695830f8dba4866229179b761198b762bf3f276b"
+        },
+        {
+          "path": "accounting_quality/raw/DECK_companyfacts.json.gz",
+          "bytes": 204477,
+          "sha256": "97f4340bf1b87b9e249728f3a27142f0a4cf90b8ee45e634aef4181078a7b947"
+        },
+        {
+          "path": "accounting_quality/raw/DECK_submissions.json.gz",
+          "bytes": 20901,
+          "sha256": "666701bb9bb56738fed495f1ae20cc1d0541863d63482665eb7de5bffa4ddc86"
+        }
+      ]
+    },
+    {
+      "path": "source_bundles/preserved_sources_04.zip",
+      "bytes": 2423209,
+      "sha256": "68b2e2d3094bea16507dffcb5577ffb289cb4e3c061e169611ebafa83cfc0538",
+      "members": [
+        {
+          "path": "accounting_quality/raw/DXCM_companyfacts.json.gz",
+          "bytes": 194004,
+          "sha256": "0244c89bc33c49f9ef54b49dfa8477a0db15b38a235fc4e3d620d21a626e3368"
+        },
+        {
+          "path": "accounting_quality/raw/DXCM_submissions.json.gz",
+          "bytes": 22444,
+          "sha256": "44ac938f2174bc478c1b474be2ceb0dadf984501db5e84c6f80fd70ce48b0f2c"
+        },
+        {
+          "path": "accounting_quality/raw/EQT_companyfacts.json.gz",
+          "bytes": 290368,
+          "sha256": "dcfaa5f46f2846b8d4f5e50fd510282b814a3319b667e0be118dc026be36ef78"
+        },
+        {
+          "path": "accounting_quality/raw/EQT_submissions.json.gz",
+          "bytes": 26262,
+          "sha256": "0c7f8553b9927b143164bc85bfab8bb9e582b98c54bf7c1b3b0ac50705aed9ba"
+        },
+        {
+          "path": "accounting_quality/raw/EXE_companyfacts.json.gz",
+          "bytes": 327941,
+          "sha256": "20db08d0c9dc8b94a6df209612b54fbfec7bfa49b1e43d063ad055ce38074b70"
+        },
+        {
+          "path": "accounting_quality/raw/EXE_submissions.json.gz",
+          "bytes": 29627,
+          "sha256": "7fcc522b85b06ec2f4107ba3987eb8835994a3aa990280f5c23b75923a87590b"
+        },
+        {
+          "path": "accounting_quality/raw/FSLR_companyfacts.json.gz",
+          "bytes": 315418,
+          "sha256": "d9e8b868114a0fa0ff5282b30204050fa0fdea03d8ed65060fabe718e3b346a7"
+        },
+        {
+          "path": "accounting_quality/raw/FSLR_submissions.json.gz",
+          "bytes": 19596,
+          "sha256": "14cfab2259c7f4806baf88e3fd5e1724304a574456f1d90c2c3e6ef97a5c953e"
+        },
+        {
+          "path": "accounting_quality/raw/GRMN_companyfacts.json.gz",
+          "bytes": 258500,
+          "sha256": "5d0534bd301364887f3507994c5cb28ec29a0033bc0105ded07d1b4a0c92b8bc"
+        },
+        {
+          "path": "accounting_quality/raw/GRMN_submissions.json.gz",
+          "bytes": 23182,
+          "sha256": "a3bb0688a7c1b4078d33ccbf0718eb889ce8a93ec8f1f72740fe6aa02dbc91e2"
+        },
+        {
+          "path": "accounting_quality/raw/LRCX_companyfacts.json.gz",
+          "bytes": 279317,
+          "sha256": "735593df76383fd471b53a3087e1dd28f5223bde3c6b01f54df0df5664f563aa"
+        },
+        {
+          "path": "accounting_quality/raw/LRCX_submissions.json.gz",
+          "bytes": 29260,
+          "sha256": "faf6fa69b79cdf0f713abf6eefd04698f967cc9464d55d6e6f7d907af6ca11be"
+        },
+        {
+          "path": "accounting_quality/raw/LVS_companyfacts.json.gz",
+          "bytes": 229881,
+          "sha256": "bee6443784fda9256c03695cd3f82c8839506447c66666ac6312d09b844a2838"
+        },
+        {
+          "path": "accounting_quality/raw/LVS_submissions.json.gz",
+          "bytes": 29577,
+          "sha256": "1ae2aaafcd54d72c2694a4e9cd83ce4a5ae98f3e0cf2ae15f61a143276b18922"
+        },
+        {
+          "path": "accounting_quality/raw/MCO_companyfacts.json.gz",
+          "bytes": 324941,
+          "sha256": "e65b1248cd78cdfe71fb79921ca57e3bc7960e62f28423f5e49bf916310aa984"
+        },
+        {
+          "path": "accounting_quality/raw/MCO_submissions.json.gz",
+          "bytes": 23197,
+          "sha256": "f343c17b4071b988ecfb9c61a5dfa3a7f15515aa24b3ef074d5b2949af5be882"
+        },
+        {
+          "path": "accounting_quality/raw/META_CIK0001326801-submissions-001.json.gz",
+          "bytes": 41447,
+          "sha256": "3021624c774099571e24585bd22a2592306378bb5b29f653e7312dd92c2060fb"
+        }
+      ]
+    },
+    {
+      "path": "source_bundles/preserved_sources_05.zip",
+      "bytes": 2318784,
+      "sha256": "c08a03fe69b395f1ddbf51c67d0793c0aee643d98f95090482f33d6d98974fd6",
+      "members": [
+        {
+          "path": "accounting_quality/raw/META_companyfacts.json.gz",
+          "bytes": 174347,
+          "sha256": "6c8468def7788db66a62a6024a63a5bb862d3783113204ff9bbd0f90b8456761"
+        },
+        {
+          "path": "accounting_quality/raw/META_submissions.json.gz",
+          "bytes": 21942,
+          "sha256": "b0bd2a7e2ef1b5b439da6879472efb1beb86f79061a2a55b69a1faabe7aa8496"
+        },
+        {
+          "path": "accounting_quality/raw/MPWR_companyfacts.json.gz",
+          "bytes": 235454,
+          "sha256": "039330a1af355cc89b369db242b25f33fe776b96e872922b33367f2ebd22b90c"
+        },
+        {
+          "path": "accounting_quality/raw/MPWR_submissions.json.gz",
+          "bytes": 22160,
+          "sha256": "bfc6444e5cecf59e5125a7450824728583ac30f8f030a5f02fc8ac403ada9005"
+        },
+        {
+          "path": "accounting_quality/raw/MU_0000723125-25-000021.html.error.json",
+          "bytes": 130,
+          "sha256": "1fee6db7b24ce9447ea94e967e0ae9d640509c54133ad468c3195428bd2ebe42"
+        },
+        {
+          "path": "accounting_quality/raw/MU_companyfacts.json.gz",
+          "bytes": 272127,
+          "sha256": "fd0eae957e293af0ea0937e82fb8c004093e419f95c45e7b1463d0d529078970"
+        },
+        {
+          "path": "accounting_quality/raw/MU_companyfacts_probe.json",
+          "bytes": 4150366,
+          "sha256": "162439f31208eaf4cd1a33939d80fd40479a559735b9488d32ac43d5516ff7bf"
+        },
+        {
+          "path": "accounting_quality/raw/MU_submissions.json.gz",
+          "bytes": 23958,
+          "sha256": "ae6d3b100c087989e7b9e2150b286d69d14a3815cfd6dc027cb16a0ce35aad12"
+        },
+        {
+          "path": "accounting_quality/raw/NCLH_companyfacts.json.gz",
+          "bytes": 181104,
+          "sha256": "2de7d305d5859496e22af82a4dbbb61cb19833d1510b6d52198bf39ff5cfd8d2"
+        },
+        {
+          "path": "accounting_quality/raw/NCLH_submissions.json.gz",
+          "bytes": 28792,
+          "sha256": "47e93829bddc1a52d77722530f4acc10f50323f317f83b9ff64973b79fa0f529"
+        },
+        {
+          "path": "accounting_quality/raw/NOW_companyfacts.json.gz",
+          "bytes": 211231,
+          "sha256": "2a085b6158b1b66387e4a372688967203268d593f399e5aabf1a90ff88a79072"
+        },
+        {
+          "path": "accounting_quality/raw/NOW_submissions.json.gz",
+          "bytes": 22182,
+          "sha256": "db28e3ed5037e078677c65a1f5702fa58a03bd48ade331c23d3c4afb5a45bdff"
+        },
+        {
+          "path": "accounting_quality/raw/NVDA_companyfacts.json.gz",
+          "bytes": 275686,
+          "sha256": "eedd80115bab312003784de1058dfee51b18af78d33e08b069e3d4a9f3f4315b"
+        },
+        {
+          "path": "accounting_quality/raw/NVDA_submissions.json.gz",
+          "bytes": 25115,
+          "sha256": "91900990ea9f98aec66f954999984687cfa74225adfa81c5fa5b85043bd42739"
+        },
+        {
+          "path": "accounting_quality/raw/PANW_companyfacts.json.gz",
+          "bytes": 200310,
+          "sha256": "b7b48425f4bfbc3f27e5aaaea1062251aa6835b65cedb0313b1e9d8a2f17fd44"
+        },
+        {
+          "path": "accounting_quality/raw/PANW_submissions.json.gz",
+          "bytes": 23435,
+          "sha256": "0928fe4ed776a3b2c801fe4da882d26d05a2a1a315cff4f921e4d9443e9cbed1"
+        },
+        {
+          "path": "accounting_quality/raw/PLTR_companyfacts.json.gz",
+          "bytes": 85595,
+          "sha256": "b6dab9777ffcd8a84e21a939ebb8d286b80b44bcb7c55cea20ca456ff6c883f1"
+        },
+        {
+          "path": "accounting_quality/raw/PLTR_submissions.json.gz",
+          "bytes": 24874,
+          "sha256": "5f21d2439e25c7be87d98d8ba75cc595078b86b011ad99493a4082f0d19db213"
+        },
+        {
+          "path": "accounting_quality/raw/PODD_companyfacts.json.gz",
+          "bytes": 223775,
+          "sha256": "d7178eb36fb97258da6464e680722fa907deda09f85ca65ce1aff9718e9195bd"
+        },
+        {
+          "path": "accounting_quality/raw/PODD_submissions.json.gz",
+          "bytes": 23670,
+          "sha256": "7254a02b07fe84fe6e55d135e7423ef8b2e547c590ffcfb452e8361733069ab5"
+        }
+      ]
+    },
+    {
+      "path": "source_bundles/preserved_sources_06.zip",
+      "bytes": 2432691,
+      "sha256": "e3ecafb35bf2b65c3d7c23ead85c401212f5c6f50ed8f324e836b8bbf9fa6fa3",
+      "members": [
+        {
+          "path": "accounting_quality/raw/PTC_companyfacts.json.gz",
+          "bytes": 255595,
+          "sha256": "0ccda3b6446b232ddd77fffdeb9a7b3763597ae83298beb7a063a1078c201a13"
+        },
+        {
+          "path": "accounting_quality/raw/PTC_submissions.json.gz",
+          "bytes": 24753,
+          "sha256": "a5aa972d69d78a1d066154d57b7b387d587a898ae3710ad4492895c313a9747c"
+        },
+        {
+          "path": "accounting_quality/raw/QRVO_companyfacts.json.gz",
+          "bytes": 167490,
+          "sha256": "c0fe2056ea59b33048f89b6fb09c9bc2906faa2ae2c2dda7ee39ea155c51e508"
+        },
+        {
+          "path": "accounting_quality/raw/QRVO_submissions.json.gz",
+          "bytes": 22655,
+          "sha256": "d7719804abdf4247c160d553dedb8dca025d1a75865de67b2259ef51d27e39bf"
+        },
+        {
+          "path": "accounting_quality/raw/RCL_companyfacts.json.gz",
+          "bytes": 228831,
+          "sha256": "6132567e9e3c600d5ae01ff6aca6462fe89f5b0532700f28f775cdff7bd7b4c6"
+        },
+        {
+          "path": "accounting_quality/raw/RCL_submissions.json.gz",
+          "bytes": 24253,
+          "sha256": "e8374f60a9d4927d4452eb5a67f791fadf7115d052eeac035563dd9706b72f6d"
+        },
+        {
+          "path": "accounting_quality/raw/RTX_companyfacts.json.gz",
+          "bytes": 323669,
+          "sha256": "33235bdf441656a24a2a1bf5b6c21b1dd94b040b7f6d7742f3162bce13211903"
+        },
+        {
+          "path": "accounting_quality/raw/RTX_submissions.json.gz",
+          "bytes": 23344,
+          "sha256": "4db6432ef0789946f6140525c7b624573485ce1463f1d9abb1903140c72f2377"
+        },
+        {
+          "path": "accounting_quality/raw/SNPS_companyfacts.json.gz",
+          "bytes": 282144,
+          "sha256": "848c98547d1ebe2b482201c646f3d9ce88874e304832ad97dfbdc547d37ce57c"
+        },
+        {
+          "path": "accounting_quality/raw/SNPS_submissions.json.gz",
+          "bytes": 23048,
+          "sha256": "ecc9ed152203c38d8e4885bd682420f063ab8017469c50d4379511e85ecd19b8"
+        },
+        {
+          "path": "accounting_quality/raw/STX_companyfacts.json.gz",
+          "bytes": 231900,
+          "sha256": "662d6b85ef81725d959c630ea6e3ded16c0616d63ede9303b99d07b0a233a099"
+        },
+        {
+          "path": "accounting_quality/raw/STX_submissions.json.gz",
+          "bytes": 26615,
+          "sha256": "cfd3306ca093f86d835ab9f39accd64eff75e7738de6419f2ea8c2807e74cc2a"
+        },
+        {
+          "path": "accounting_quality/raw/TTD_companyfacts.json.gz",
+          "bytes": 104783,
+          "sha256": "9d7e4ccba517caf2806d05f559354ae5881db0cd35ae2f6435cdb10e821125a8"
+        },
+        {
+          "path": "accounting_quality/raw/TTD_submissions.json.gz",
+          "bytes": 24953,
+          "sha256": "8296b59b62bca8b0e71110f7202ace7d2d9f635f30576ca1d94262e18398fe0c"
+        },
+        {
+          "path": "accounting_quality/raw/UBER_companyfacts.json.gz",
+          "bytes": 128941,
+          "sha256": "683fe507b55dcc7b20122d9962632b8c83aef428fa07f130417d39d14fc62ae5"
+        },
+        {
+          "path": "accounting_quality/raw/UBER_submissions.json.gz",
+          "bytes": 20521,
+          "sha256": "7c1fea5187fa7842a99347d73c61ddfc9d2da486636e7fbf22c4c5ba569dc871"
+        },
+        {
+          "path": "accounting_quality/raw/WDC_companyfacts.json.gz",
+          "bytes": 277244,
+          "sha256": "df36185044eb4ff8a638bd12b21ea7965e81720e1a939d9774a1fa9392221886"
+        },
+        {
+          "path": "accounting_quality/raw/WDC_submissions.json.gz",
+          "bytes": 21546,
+          "sha256": "1b9d851c37ac7bd80ef5b3b669acac5424f503ec4e1da61857f0532df483ca4f"
+        },
+        {
+          "path": "accounting_quality/raw/XYL_companyfacts.json.gz",
+          "bytes": 235599,
+          "sha256": "109529678fc4ea760f5d653174868fa5c75264948034f51d1feb68ef0f665b1b"
+        },
+        {
+          "path": "accounting_quality/raw/XYL_submissions.json.gz",
+          "bytes": 23706,
+          "sha256": "6c942706ccb1a0acf7725363238ee44785754fe53e87e3c63fa4919ac56bc468"
+        }
+      ]
+    },
+    {
+      "path": "source_bundles/preserved_sources_07.zip",
+      "bytes": 311124,
+      "sha256": "6b3c4f868d8f7451d998bf77dd2dfdf4759195e0d9c71a3fa444a4645dd4b4bd",
+      "members": [
+        {
+          "path": "accounting_quality/raw/ZBRA_companyfacts.json.gz",
+          "bytes": 291594,
+          "sha256": "3ad426094ecff6b7b33a8b76850d490aba9153ada11de692e0c485f8c0b491f5"
+        },
+        {
+          "path": "accounting_quality/raw/ZBRA_submissions.json.gz",
+          "bytes": 24867,
+          "sha256": "cd75f7d3a4fd273b47d3c695a6fedd29fde068469f716482dd772b72d9a22188"
+        }
+      ]
+    }
+  ]
+}

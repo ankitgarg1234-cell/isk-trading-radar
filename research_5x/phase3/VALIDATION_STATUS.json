@@ -1,0 +1,28 @@
+{
+  "phase": 3,
+  "date": "2026-10-11",
+  "baseline_commit": "4ea44011e3911227f9be2266d5dcb6c078b8722a",
+  "branch": "research/phase3-accounting-quality-validation",
+  "protocol_frozen_before_new_quality_analysis": true,
+  "gates": {
+    "gate_1_original_accounting_and_matched_cohorts": {"status":"Blocked", "api_observations":188, "api_issuers":39, "selected_accessions":91, "cash_facts_present":185, "strict_matched_observations":71, "relaxed_matched_observations":76, "strict_first_company_matched":10, "relaxed_first_company_matched":9, "blocker":"Full original release/index/period/NI-scope certification is incomplete; current sectors/size proxies and limited first-company matching cannot supply historical industry controls. API presence is not source certification."},
+    "gate_2_incremental_quality_information": {"status":"Blocked", "tests_run":false, "blocker":"Gate1 unmet. No quality/return regression or optimized cutoff on uncertified staging metrics."},
+    "gate_3_entry_timing_and_holding": {"status":"Blocked", "new_portfolio_tests_run":false, "blocker":"Sequential accounting prerequisites unmet. Prior Phase2 results preserved only as prior evidence."},
+    "gate_4_independent_market_cycles": {"status":"Blocked", "independent_period_results":false, "blocker":"No complete dated historical universe with terminal proceeds and original accounting vintages; all2024–2026 periods reused.", "prospective_protocol":"validation/PROSPECTIVE_PROTOCOL.md", "prospective_account_started":false}
+  },
+  "conclusions": {
+    "Q1": {"classification":"Blocked", "answer":"No accounting characteristic is established as an incremental, transferable winner/failure discriminator. Positive cash conversion alone is not sufficient."},
+    "Q2": {"classification":"Promising but unvalidated", "answer":"Later MU recurring profitability/cash evidence is stronger than its early2024 headline recovery, but no general early/confirmation policy test passes."},
+    "Q3": {"classification":"Promising but unvalidated", "answer":"Phase2 untouched retention improved16/22 dependent static starts while worst drawdown and concentration increased; no new policy validated."},
+    "Q4": {"classification":"Promising but unvalidated", "answer":"Prior winning-account storage/memory contributed87.6% of net profit; excluding that cluster reduced annual return to about104.14%. Two static5x starts are one overlapping industry interval."},
+    "Q5": {"classification":"Blocked", "answer":"Independent-cycle rules have not been tested credibly."},
+    "Q6": {"classification":"Blocked", "answer":"No validated best return/drawdown tradeoff exists. Prior same-June static monthly/untouched returns392.75%/463.52%,DD18.20%/18.89%,versus same-periodSPY28.48%,DD8.37%,are dependent comparisons."},
+    "Q7": {"classification":"Blocked", "answer":"Evidence remains insufficient for repeatable2x,3x or5x annual account performance."}
+  },
+  "rejected_sufficient_conditions": ["Positive CFO/FCF and improving OI guarantee profitable stock outcomes", "Issuer-adjusted FCF is a uniform cross-company measure", "Current submissions UTC metadata alone certifies historical acceptance"],
+  "new_strategy_recommendation": false,
+  "deployed_or_paper_account_modified": false,
+  "trades_executed": false,
+  "production_merge": false,
+  "evidence_classification_note":"Arithmetic/source checks can pass independently; no investment-rule conclusion is labeled Validated without independent outcome evidence."
+}

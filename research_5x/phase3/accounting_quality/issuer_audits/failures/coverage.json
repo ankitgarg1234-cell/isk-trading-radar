@@ -1,0 +1,87 @@
+{
+  "case_observations": 7,
+  "unique_issuers": 6,
+  "matched_or_representative_sample": false,
+  "core_metric_coverage": {
+    "revenue": {
+      "available": 7,
+      "missing": 0,
+      "total": 7
+    },
+    "operating_income": {
+      "available": 7,
+      "missing": 0,
+      "total": 7
+    },
+    "gross_profit": {
+      "available": 6,
+      "missing": 1,
+      "total": 7
+    },
+    "net_income": {
+      "available": 7,
+      "missing": 0,
+      "total": 7
+    },
+    "cfo": {
+      "available": 6,
+      "missing": 1,
+      "total": 7
+    },
+    "gross_capex": {
+      "available": 6,
+      "missing": 1,
+      "total": 7
+    },
+    "sbc": {
+      "available": 6,
+      "missing": 1,
+      "total": 7
+    },
+    "adjusted_operating_income": {
+      "available": 1,
+      "missing": 6,
+      "total": 7
+    },
+    "adjusted_net_income": {
+      "available": 2,
+      "missing": 5,
+      "total": 7
+    },
+    "working_capital_cash_change": {
+      "available": 4,
+      "missing": 3,
+      "total": 7
+    }
+  },
+  "matching_period_scope_cfo_to_ni": 5,
+  "cash_scope_bridge_only_issuers": [
+    "APP"
+  ],
+  "latest_cash_after_cutoff_issuers": [
+    "DECK2024-10-31"
+  ],
+  "original_q4_release_issuers": [
+    "DXCM",
+    "DECK",
+    "FSLR",
+    "TTD",
+    "APP",
+    "DASH"
+  ],
+  "source_snapshots": 41,
+  "original_filing_indices": 14,
+  "release_exact_clock_time_certification": false,
+  "broad_phase3_gate_status": "blocked",
+  "missingness_is_zero": false,
+  "unresolved_fields": [
+    "Complete recurring earnings adjustments across issuers",
+    "Quarterly working-capital sums for APP and DASH",
+    "Continuing-only APP CFO and cash PPE",
+    "DECK Q2 cash and SBC before cutoff",
+    "TTD comparable GAAP gross-profit subtotal",
+    "Historical consensus and valuation expectations",
+    "Historical sector/industry and company-size matched cohort certification",
+    "Complete first-inflection/consecutive-report histories"
+  ]
+}

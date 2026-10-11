@@ -1,0 +1,13 @@
+{
+  "python": "3.12.14 (main, Aug 25 2026, 13:50:33) [Clang 22.1.3 ]",
+  "packages": {
+    "pandas": "2.2.3",
+    "numpy": "2.3.5",
+    "lxml": "6.1.1"
+  },
+  "plots": {
+    "Matplotlib": "3.11.2",
+    "isolated_install_used": true
+  },
+  "network_required_for_frozen_reproduction": false
+}
