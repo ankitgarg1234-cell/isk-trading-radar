@@ -1,0 +1,17 @@
+{
+  "case_release_events": 30,
+  "matured_accounts": 30,
+  "initial_capital": 10000,
+  "cost_bps_per_side": 20,
+  "release_policy": "First SPY session strictly after date, unknown release times conservatively ignored",
+  "holding_policy": "Buyissueratnextopen,holdparent,knownspinoffchildsoldnextopen;nootherrotation;cashdividendsexdate",
+  "inference": "Outcome-selected30events, overlappingreturns. Earlier-entry chronology only, not alpha or annual portfolio optimization.",
+  "limits": [
+    "All frozen-source limitations",
+    "Someearly2023pre252momentum missing",
+    "Dividendspayabledateunresolved",
+    "Spinofffractionapproximation",
+    "WDCpre/postspinscopechanges",
+    "Historicalconsensusmissing"
+  ]
+}

@@ -1,0 +1,727 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Phase 2 — Earnings acceleration and repeatability</title><style>body{margin:0;background:#edf1f5;color:#172233;font:16px/1.55 system-ui,-apple-system,sans-serif}main{max-width:1160px;margin:auto;padding:40px 24px}h1{font-size:38px;line-height:1.15;margin:12px 0}h2{margin-top:38px;font-size:25px}h3{font-size:20px}.eyebrow{color:#445c78;font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:12px}.lead{font-size:21px;max-width:970px}.card{background:white;border:1px solid #d6dde7;border-radius:12px;padding:20px;margin:18px 0}.warning{border-left:5px solid #b67b22;background:#fff9eb}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.num{font-size:29px;font-weight:750;color:#164d76}.muted{color:#536376;font-size:14px}.scroll{overflow:auto;max-width:100%}table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:left;padding:9px 12px;border-bottom:1px solid #e4e8ed}th{background:#f4f7fa;position:sticky;top:0}a{color:#145e97}button,select{font:inherit;padding:8px;border:1px solid #bac6d4;border-radius:5px;background:white}code{overflow-wrap:anywhere}nav{display:flex;gap:18px;flex-wrap:wrap;font-size:14px}@media(max-width:680px){main{padding:24px 14px}h1{font-size:29px}.grid{grid-template-columns:1fr}.card{padding:14px}}</style></head><body><main>
+<div class="eyebrow">S&P 500 rotational research · Phase 2 · 11 October 2026</div><h1>Explain the 5× year.<br>Test whether its edge transfers.</h1><p class="lead">The account reproduces. A repeatable 5× process remains unproven. The strongest new evidence concerns earnings quality and the cost of repeatedly trimming winners.</p>
+<nav><a href="#audit">Audit</a><a href="#economics">Economic evidence</a><a href="#panel">Winners and failures</a><a href="#holding">Controlled holding tests</a><a href="#history">History and validation</a><a href="#next">Next experiments</a></nav>
+<div class="grid"><div class="card"><div class="num">$51,081.81</div>Independent winning-account NAV<div class="muted">23 trades · 252 daily records · −18.00% DD</div></div><div class="card"><div class="num">58 / 188</div>Qualified stock observations lost money<div class="muted">Matured 252-session price labels, overlapping</div></div><div class="card"><div class="num">264</div>Matched initial-basket annual accounts<div class="muted">22 starts × 6 holding policies × 2 cost levels</div></div></div>
+<div class="card warning"><b>Validation status:</b> all historical years have been reused. Proxy membership, missing delists, accounting scope changes, current sector labels and unavailable historical consensus prevent a statistically defensible future 5× probability. This milestone authorizes no portfolio change.</div>
+<h2 id="audit">1. Every cash movement and share reconciles</h2><p>The separate accountant independently sizes the winning orders from frozen signals and quotes. Ending NAV is $51,081.80757124, cash $7,312.93, dividends $78.64 and costs $136.86. Maximum accounting residual is $7.28×10⁻¹². All 1,144 archive member hashes match. Six deliberate mistakes are detected. No corporate split or spinoff was held during the winning interval.</p><p>The maximum drawdown ran 10–21 November 2025; storage/memory explains 74.3% of its dollar loss, as well as 87.6% of full-year net profit. At 100 bps per side, +401.83% before liquidation becomes +397.45% after a mechanical ending-stock cost deduction. This distinction corrects the shorthand that higher costs alone invalidate the original account.</p><p><a href="audit/findings.md">Independent findings</a> · <a href="audit/summary.json">Checks and attribution</a> · <a href="audit/daily_reconciliation.csv">Daily cash/NAV reconciliation</a> · <a href="audit/trade_checks.csv">Every order</a></p>
+<h2 id="economics">2. What was observable before the winners were selected?</h2><p>Thirty original quarterly releases are reconstructed, with availability dates, source vintages, GAAP/adjusted bridges, cash flow, guidance and industry claims. For all three main June 2025 winners, revenue growth was slowing. Margin recovery and higher next-quarter management guides coexisted with that slowdown. No historical analyst revision signal has been established.</p>
+<div class="card"><h3>Three different economic mechanisms</h3><p><b>Micron:</b> DRAM/HBM mix and manufacturing cost improvements accompanied higher margins; NAND pricing still weakened. The March 2024 inflection included tax/patent and inventory-accounting effects. <a href="https://investors.micron.com/news/press-release/2025/Micron-Technology-Inc--Reports-Results-for-the-Third-Quarter-of-Fiscal-2025-06-25-2025/default.aspx">June 2025 release</a>.</p><p><b>Seagate:</b> improving nearline cloud demand, product mix and HAMR expectations accompanied margin improvement. Latest quarterly revenue and exabyte shipments declined sequentially; rounded price/TB was flat sequentially. <a href="https://investors.seagate.com/news/news-details/2025/Seagate-Technology-Reports-Fiscal-Third-Quarter-2025-Financial-Results/default.aspx">April 2025 release</a>.</p><p><b>Western Digital:</b> the spinoff changes economic scope. Consistent HDD revenue acceleration is −45.29 pp; the cache's mixed comparison gives −10.39 pp. Operating-margin improvement is 27.76 pp reported,19.00 pp excluding only the litigation credit, or 17.25 pp under management-adjusted definitions. Tax and retained-Sandisk losses distort NI; CFO still includes discontinued Flash. <a href="https://investor.wdc.com/node/26681">April 2025 release</a>.</p></div>
+<p><a href="sources/memory/findings.md">MU/STX detailed chronology and quality flags</a> · <a href="sources/wdc/findings.md">WDC scope and vintage reconciliation</a></p>
+<h3>Earlier detection did not consistently improve outcomes</h3><p>The source-defined operating turnarounds were observable well before June 2025. Conservative entries after MU's March 2024 release and WDC's April 2024 release returned−16.21% and−20.01% respectively over exact calendar-year accounts, with drawdowns−44.88% and−41.77%. At the monthly April 2024 MU screen, the separate price-only 252-session label is−28.54%. These measures differ in entry, horizon, dividends and costs; they are explicitly separate.</p><div class="scroll"><table class="dataframe data">
+  <thead>
+    <tr style="text-align: right;">
+      <th>ticker</th>
+      <th>quarter</th>
+      <th>release_date</th>
+      <th>entry_date</th>
+      <th>pre_r 63_pct</th>
+      <th>net_calendar_return_pct</th>
+      <th>max_dd_pct</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>MU</td>
+      <td>2024 Q 2</td>
+      <td>2024-03-20</td>
+      <td>2024-03-21</td>
+      <td>18.01</td>
+      <td>-16.21</td>
+      <td>-44.88</td>
+    </tr>
+    <tr>
+      <td>MU</td>
+      <td>2025 Q 3</td>
+      <td>2025-06-25</td>
+      <td>2025-06-26</td>
+      <td>35.11</td>
+      <td>772.34</td>
+      <td>-30.25</td>
+    </tr>
+    <tr>
+      <td>STX</td>
+      <td>2024 Q 2</td>
+      <td>2024-01-24</td>
+      <td>2024-01-25</td>
+      <td>36.66</td>
+      <td>21.39</td>
+      <td>-22.25</td>
+    </tr>
+    <tr>
+      <td>STX</td>
+      <td>2025 Q 3</td>
+      <td>2025-04-29</td>
+      <td>2025-04-30</td>
+      <td>-18.62</td>
+      <td>671.74</td>
+      <td>-20.88</td>
+    </tr>
+    <tr>
+      <td>WDC</td>
+      <td>FY 2024 Q 3</td>
+      <td>2024-04-25</td>
+      <td>2024-04-26</td>
+      <td>15.10</td>
+      <td>-20.01</td>
+      <td>-41.77</td>
+    </tr>
+    <tr>
+      <td>WDC</td>
+      <td>FY 2025 Q 3</td>
+      <td>2025-04-30</td>
+      <td>2025-05-01</td>
+      <td>-7.60</td>
+      <td>863.41</td>
+      <td>-20.56</td>
+    </tr>
+  </tbody>
+</table></div><p class="muted">Case accounts are outcome-selected and overlap. Parent held; known child entitlement sold at next open; whole-share buys;20 bps both sides; cash dividends on ex-date. Pre 63 is price appreciation before release, not a share of a known future rally. Some WDC accounts span the spinoff and retain disclosed reconstruction limits.</p><p><a href="stages/release_entry_outcomes.csv">All 30 release-date accounts, not only favorable dates</a></p>
+<h2 id="panel">3. Test the signal against failures and the broader panel</h2><p>16,257 monthly rows from 533 tickers include 10,275 mature price labels and 5,982 censored/missing labels. The unchanged growth/margin/momentum gates yield 188 matured observations across 39 issuers. Median price return 29.68%, loss frequency 30.85%, median path drawdown−31.86%. Removing the best three issuers reduces the mean from 87.17% to 38.16%, confirming substantial skew.</p><div class="scroll"><table class="dataframe data">
+  <thead>
+    <tr style="text-align: right;">
+      <th>screen</th>
+      <th>matured</th>
+      <th>tickers</th>
+      <th>median_pct</th>
+      <th>mean_pct</th>
+      <th>loss_pct</th>
+      <th>loss 30_pct</th>
+      <th>median_path_dd_pct</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>all</td>
+      <td>10275</td>
+      <td>514</td>
+      <td>5.99</td>
+      <td>11.56</td>
+      <td>41.26</td>
+      <td>8.36</td>
+      <td>-25.66</td>
+    </tr>
+    <tr>
+      <td>qualified</td>
+      <td>188</td>
+      <td>39</td>
+      <td>29.68</td>
+      <td>87.17</td>
+      <td>30.85</td>
+      <td>6.91</td>
+      <td>-31.86</td>
+    </tr>
+    <tr>
+      <td>fresh</td>
+      <td>43</td>
+      <td>29</td>
+      <td>28.36</td>
+      <td>108.29</td>
+      <td>34.88</td>
+      <td>6.98</td>
+      <td>-30.08</td>
+    </tr>
+    <tr>
+      <td>persistent</td>
+      <td>128</td>
+      <td>31</td>
+      <td>28.37</td>
+      <td>83.86</td>
+      <td>30.47</td>
+      <td>6.25</td>
+      <td>-34.17</td>
+    </tr>
+    <tr>
+      <td>qualified_revenue_acceleration_positive</td>
+      <td>126</td>
+      <td>29</td>
+      <td>15.38</td>
+      <td>46.99</td>
+      <td>37.30</td>
+      <td>8.73</td>
+      <td>-30.68</td>
+    </tr>
+    <tr>
+      <td>qualified_revenue_acceleration_nonpositive</td>
+      <td>62</td>
+      <td>20</td>
+      <td>44.96</td>
+      <td>168.82</td>
+      <td>17.74</td>
+      <td>3.23</td>
+      <td>-34.21</td>
+    </tr>
+    <tr>
+      <td>qualified_price_acceleration_positive</td>
+      <td>81</td>
+      <td>32</td>
+      <td>31.70</td>
+      <td>122.54</td>
+      <td>29.63</td>
+      <td>7.41</td>
+      <td>-30.56</td>
+    </tr>
+    <tr>
+      <td>qualified_price_acceleration_nonpositive</td>
+      <td>107</td>
+      <td>36</td>
+      <td>25.08</td>
+      <td>60.39</td>
+      <td>31.78</td>
+      <td>6.54</td>
+      <td>-32.17</td>
+    </tr>
+    <tr>
+      <td>qualified_volume_accumulation_positive</td>
+      <td>156</td>
+      <td>36</td>
+      <td>31.34</td>
+      <td>90.26</td>
+      <td>28.21</td>
+      <td>5.77</td>
+      <td>-31.38</td>
+    </tr>
+    <tr>
+      <td>qualified_volume_accumulation_nonpositive</td>
+      <td>32</td>
+      <td>19</td>
+      <td>10.83</td>
+      <td>72.11</td>
+      <td>43.75</td>
+      <td>12.50</td>
+      <td>-34.21</td>
+    </tr>
+    <tr>
+      <td>qualified_relative_strength_positive</td>
+      <td>161</td>
+      <td>36</td>
+      <td>32.52</td>
+      <td>97.79</td>
+      <td>29.19</td>
+      <td>6.83</td>
+      <td>-31.86</td>
+    </tr>
+    <tr>
+      <td>qualified_relative_strength_nonpositive</td>
+      <td>27</td>
+      <td>19</td>
+      <td>10.35</td>
+      <td>23.82</td>
+      <td>40.74</td>
+      <td>7.41</td>
+      <td>-30.80</td>
+    </tr>
+  </tbody>
+</table></div><p>Fresh qualification median 28.36% is similar to persistent 28.37%; fresh cases lose more frequently. Revenue acceleration's conditional rank correlation is−0.183; NI growth acceleration is−0.0015. Neither establishes a positive acceleration advantage. Volume accumulation and relative strength remain hypotheses; the reused small sample cannot certify incremental alpha.</p><p>The nonpositive-acceleration group in 2025 has only 21 observations from 6 issuers over 5 months; removing its top three issuers changes its mean return to−17.27%. This is episode dependence, not an inverse-acceleration rule. Only 8 qualified observations occur in the risk-off regime; bear-market robustness is untested.</p>
+<h3>All June 2025 lookalikes in fixed sector/size strata</h3><div class="scroll"><table class="dataframe data">
+  <thead>
+    <tr style="text-align: right;">
+      <th>ticker</th>
+      <th>size_bucket</th>
+      <th>revenue_yoy</th>
+      <th>revenue_acceleration</th>
+      <th>margin_delta_pp</th>
+      <th>r 63</th>
+      <th>forward_252 d</th>
+      <th>path_dd</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>ADI</td>
+      <td>Q 4</td>
+      <td>22.28</td>
+      <td>25.84</td>
+      <td>7.80</td>
+      <td>18.09</td>
+      <td>63.42</td>
+      <td>-15.99</td>
+    </tr>
+    <tr>
+      <td>AMD</td>
+      <td>Q 4</td>
+      <td>35.90</td>
+      <td>18.33</td>
+      <td>10.18</td>
+      <td>37.47</td>
+      <td>281.17</td>
+      <td>-27.76</td>
+    </tr>
+    <tr>
+      <td>LRCX</td>
+      <td>Q 4</td>
+      <td>24.43</td>
+      <td>7.99</td>
+      <td>5.22</td>
+      <td>34.06</td>
+      <td>301.95</td>
+      <td>-20.10</td>
+    </tr>
+    <tr>
+      <td>MU</td>
+      <td>Q 4</td>
+      <td>36.56</td>
+      <td>-1.71</td>
+      <td>12.76</td>
+      <td>39.36</td>
+      <td>737.55</td>
+      <td>-30.31</td>
+    </tr>
+    <tr>
+      <td>PLTR</td>
+      <td>Q 4</td>
+      <td>39.34</td>
+      <td>9.35</td>
+      <td>7.17</td>
+      <td>58.79</td>
+      <td>-7.77</td>
+      <td>-48.22</td>
+    </tr>
+    <tr>
+      <td>MPWR</td>
+      <td>Q 2</td>
+      <td>39.24</td>
+      <td>8.65</td>
+      <td>5.62</td>
+      <td>26.12</td>
+      <td>82.08</td>
+      <td>-22.45</td>
+    </tr>
+    <tr>
+      <td>STX</td>
+      <td>Q 2</td>
+      <td>30.51</td>
+      <td>-19.00</td>
+      <td>11.31</td>
+      <td>69.96</td>
+      <td>534.10</td>
+      <td>-21.00</td>
+    </tr>
+    <tr>
+      <td>WDC</td>
+      <td>Q 2</td>
+      <td>30.94</td>
+      <td>-10.39</td>
+      <td>27.76</td>
+      <td>57.53</td>
+      <td>835.10</td>
+      <td>-21.41</td>
+    </tr>
+  </tbody>
+</table></div><p class="muted">Current-sector and size-quartile proxies, same month and same original gates; duplicate peers removed for display. PLTR passed the same conditions yet its forward price label was−7.77% with−48.22%pathDD. No matched peer was excluded after observing outcomes.</p><h3>Failures are retained in the record</h3><div class="scroll"><table class="dataframe data">
+  <thead>
+    <tr style="text-align: right;">
+      <th>date</th>
+      <th>ticker</th>
+      <th>sector</th>
+      <th>revenue_yoy</th>
+      <th>revenue_acceleration</th>
+      <th>margin_delta_pp</th>
+      <th>forward_252 d</th>
+      <th>path_dd</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>2025-07-31</td>
+      <td>TTD</td>
+      <td>Unknown</td>
+      <td>0.25</td>
+      <td>-0.02</td>
+      <td>3.01</td>
+      <td>-78.96</td>
+      <td>-81.29</td>
+    </tr>
+    <tr>
+      <td>2025-09-30</td>
+      <td>APP</td>
+      <td>Communication Services</td>
+      <td>0.77</td>
+      <td>0.37</td>
+      <td>22.02</td>
+      <td>-60.85</td>
+      <td>-61.65</td>
+    </tr>
+    <tr>
+      <td>2024-10-31</td>
+      <td>DECK</td>
+      <td>Consumer Discretionary</td>
+      <td>0.22</td>
+      <td>0.06</td>
+      <td>5.62</td>
+      <td>-50.56</td>
+      <td>-64.35</td>
+    </tr>
+    <tr>
+      <td>2025-01-31</td>
+      <td>NOW</td>
+      <td>Information Technology</td>
+      <td>0.22</td>
+      <td>0.00</td>
+      <td>4.85</td>
+      <td>-46.11</td>
+      <td>-47.46</td>
+    </tr>
+    <tr>
+      <td>2024-05-31</td>
+      <td>FSLR</td>
+      <td>Information Technology</td>
+      <td>0.45</td>
+      <td>0.17</td>
+      <td>27.33</td>
+      <td>-41.19</td>
+      <td>-59.97</td>
+    </tr>
+    <tr>
+      <td>2025-01-31</td>
+      <td>ZBRA</td>
+      <td>Information Technology</td>
+      <td>0.31</td>
+      <td>0.31</td>
+      <td>16.47</td>
+      <td>-40.51</td>
+      <td>-45.52</td>
+    </tr>
+    <tr>
+      <td>2024-11-29</td>
+      <td>ZBRA</td>
+      <td>Information Technology</td>
+      <td>0.31</td>
+      <td>0.31</td>
+      <td>16.47</td>
+      <td>-36.28</td>
+      <td>-49.29</td>
+    </tr>
+    <tr>
+      <td>2024-04-30</td>
+      <td>DXCM</td>
+      <td>Health Care</td>
+      <td>0.24</td>
+      <td>-0.02</td>
+      <td>4.61</td>
+      <td>-35.93</td>
+      <td>-54.64</td>
+    </tr>
+    <tr>
+      <td>2024-09-30</td>
+      <td>DECK</td>
+      <td>Consumer Discretionary</td>
+      <td>0.22</td>
+      <td>0.06</td>
+      <td>5.62</td>
+      <td>-34.90</td>
+      <td>-57.28</td>
+    </tr>
+    <tr>
+      <td>2024-12-31</td>
+      <td>ZBRA</td>
+      <td>Information Technology</td>
+      <td>0.31</td>
+      <td>0.31</td>
+      <td>16.47</td>
+      <td>-34.59</td>
+      <td>-49.29</td>
+    </tr>
+    <tr>
+      <td>2025-09-30</td>
+      <td>DASH</td>
+      <td>Consumer Discretionary</td>
+      <td>0.25</td>
+      <td>0.04</td>
+      <td>12.61</td>
+      <td>-33.02</td>
+      <td>-47.97</td>
+    </tr>
+    <tr>
+      <td>2024-10-31</td>
+      <td>ZBRA</td>
+      <td>Information Technology</td>
+      <td>0.31</td>
+      <td>0.31</td>
+      <td>16.47</td>
+      <td>-31.84</td>
+      <td>-49.29</td>
+    </tr>
+  </tbody>
+</table></div><p class="muted">Revenue columns in this failure table are fractions, price return/drawdown are percentages. These are diagnostic stock labels, not annual total-return accounts. Ordinary and nonstandard vendor actions are flagged across label horizons; the action-free sensitivity and all sector/year/regime controls are saved. Current industry controls are unavailable; “Unknown” remains visible.</p><p><a href="panel/qualified_failures.csv">All 58 negative qualified observations</a> · <a href="panel/screen_results.csv">All strata and action-free sensitivity</a> · <a href="panel/continuous_correlations.csv">Continuous correlations</a> · <a href="panel/released_quarter_observables.csv">As-of NI/gross-margin series</a></p>
+<h2 id="holding">4. Selection held constant; isolate retention and trimming</h2><p>For each start and cost level, all six policies buy the identical initial basket and quantities. No replacement stock is admitted. Monthly equal weighting can resize existing names; untouched holding changes only holding frequency. Cap-only checks 25% at monthly opens; positions can drift above it. Fundamental exit uses the existing reported G/E/margin gates without momentum; relative-strength exit uses 63-session return versus SPY. These are separate from an unavailable analyst-expectations exit.</p><h3>The same June 2025 basket</h3><div class="scroll"><table class="dataframe data">
+  <thead>
+    <tr style="text-align: right;">
+      <th>policy</th>
+      <th>return_pct</th>
+      <th>max_dd_pct</th>
+      <th>trade_count</th>
+      <th>cost_dollars</th>
+      <th>max_company_weight_pct</th>
+      <th>max_storage_memory_weight_pct</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>monthly_equal</td>
+      <td>392.75</td>
+      <td>-18.20</td>
+      <td>48</td>
+      <td>74.47</td>
+      <td>26.62</td>
+      <td>68.78</td>
+    </tr>
+    <tr>
+      <td>quarterly_equal</td>
+      <td>399.62</td>
+      <td>-18.13</td>
+      <td>18</td>
+      <td>38.83</td>
+      <td>27.69</td>
+      <td>71.42</td>
+    </tr>
+    <tr>
+      <td>untouched_hold</td>
+      <td>463.52</td>
+      <td>-18.89</td>
+      <td>5</td>
+      <td>19.27</td>
+      <td>36.29</td>
+      <td>82.68</td>
+    </tr>
+    <tr>
+      <td>monthly_cap 25_only</td>
+      <td>420.71</td>
+      <td>-18.40</td>
+      <td>12</td>
+      <td>30.51</td>
+      <td>29.39</td>
+      <td>75.56</td>
+    </tr>
+    <tr>
+      <td>fundamental_exit_only</td>
+      <td>403.91</td>
+      <td>-18.87</td>
+      <td>7</td>
+      <td>56.94</td>
+      <td>38.53</td>
+      <td>90.52</td>
+    </tr>
+    <tr>
+      <td>relative_strength_exit_only</td>
+      <td>427.47</td>
+      <td>-18.52</td>
+      <td>7</td>
+      <td>30.95</td>
+      <td>36.69</td>
+      <td>88.21</td>
+    </tr>
+  </tbody>
+</table></div>
+<h3>Every complete monthly start: return/drawdown tradeoff</h3><div class="scroll"><table class="dataframe data">
+  <thead>
+    <tr style="text-align: right;">
+      <th>policy</th>
+      <th>median_return_pct</th>
+      <th>worst_return_pct</th>
+      <th>best_return_pct</th>
+      <th>largest_account_dd_pct</th>
+      <th>fivefold_accounts</th>
+      <th>loss_accounts</th>
+      <th>mean_turnover</th>
+      <th>max_company_weight_pct</th>
+      <th>max_cluster_weight_pct</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>fundamental_exit_only</td>
+      <td>24.34</td>
+      <td>-9.68</td>
+      <td>403.91</td>
+      <td>-29.11</td>
+      <td>1</td>
+      <td>1</td>
+      <td>0.70</td>
+      <td>56.35</td>
+      <td>92.78</td>
+    </tr>
+    <tr>
+      <td>monthly_cap 25_only</td>
+      <td>29.92</td>
+      <td>-4.46</td>
+      <td>420.71</td>
+      <td>-31.42</td>
+      <td>1</td>
+      <td>2</td>
+      <td>0.43</td>
+      <td>32.89</td>
+      <td>78.24</td>
+    </tr>
+    <tr>
+      <td>monthly_equal</td>
+      <td>29.59</td>
+      <td>-10.52</td>
+      <td>392.75</td>
+      <td>-31.19</td>
+      <td>0</td>
+      <td>2</td>
+      <td>0.80</td>
+      <td>28.00</td>
+      <td>68.78</td>
+    </tr>
+    <tr>
+      <td>quarterly_equal</td>
+      <td>30.07</td>
+      <td>-9.40</td>
+      <td>399.62</td>
+      <td>-33.04</td>
+      <td>0</td>
+      <td>2</td>
+      <td>0.62</td>
+      <td>35.75</td>
+      <td>78.32</td>
+    </tr>
+    <tr>
+      <td>relative_strength_exit_only</td>
+      <td>19.40</td>
+      <td>-0.88</td>
+      <td>427.47</td>
+      <td>-33.47</td>
+      <td>2</td>
+      <td>1</td>
+      <td>0.76</td>
+      <td>56.36</td>
+      <td>92.95</td>
+    </tr>
+    <tr>
+      <td>untouched_hold</td>
+      <td>33.00</td>
+      <td>-5.30</td>
+      <td>463.52</td>
+      <td>-34.72</td>
+      <td>2</td>
+      <td>2</td>
+      <td>0.35</td>
+      <td>52.91</td>
+      <td>93.04</td>
+    </tr>
+  </tbody>
+</table></div>
+<p>Untouched holding improves 16 of 22 starts relative to monthly equal weights; median paired improvement 3.25 pp, while the mean improvement 24.37 pp is pulled up by the exceptional cycle. Its worst DD increases to 34.72% and maximum company/cluster exposures to 52.91%/93.04%. Fundamental exits split improvements 11/11; relative-strength exits have a lower median annual outcome. No universal exit advantage is established.</p><div class="card warning">The 2 untouched-hold 5× starts are June/July 2025 and heavily overlap. Higher costs still leave 2 hits for this static policy, but this does not add another independent episode. Across starts its median wealth multiple is 1.330×, a 3.670× starting-capital gap to 5×. The prior rotational retained policy's median annual return was 100.61%, illustrating that retention of a fixed initial basket alone does not reproduce ordinary rotational performance.</div>
+<p><a href="retention/frontier.csv">Historical nondominated frontier</a> · <a href="retention/summary.csv">20/100 bps summary</a> · <a href="retention/accounts.csv">All 264 account outcomes</a> · <a href="retention/empirical_frequencies.csv">Threshold frequencies</a> · <a href="retention/curves.csv.gz">All daily NAVs</a> · <a href="retention/trades.csv.gz">All orders</a></p>
+<h3>Earlier continuous-account comparison</h3><div class="scroll"><table class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>candidate</th>
+      <th>scenario</th>
+      <th>net_return_pct</th>
+      <th>max_dd_pct</th>
+      <th>rolling 12_max_pct</th>
+      <th>rolling 12_median_pct</th>
+      <th>worst_complete_calendar_year_pct</th>
+      <th>annual_oneway_turnover_over_avg_equity</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>growth_margin 5</td>
+      <td>baseline</td>
+      <td>413.53</td>
+      <td>-29.24</td>
+      <td>275.54</td>
+      <td>88.12</td>
+      <td>29.56</td>
+      <td>5.03</td>
+    </tr>
+    <tr>
+      <td>growth_margin 5</td>
+      <td>retain_and_preserve_20 bps</td>
+      <td>522.30</td>
+      <td>-34.20</td>
+      <td>359.56</td>
+      <td>93.71</td>
+      <td>33.14</td>
+      <td>2.50</td>
+    </tr>
+    <tr>
+      <td>growth_momentum 10</td>
+      <td>baseline</td>
+      <td>150.62</td>
+      <td>-24.17</td>
+      <td>169.18</td>
+      <td>30.38</td>
+      <td>17.74</td>
+      <td>5.28</td>
+    </tr>
+    <tr>
+      <td>momentum 10_inverse_vol</td>
+      <td>baseline</td>
+      <td>123.78</td>
+      <td>-21.40</td>
+      <td>106.24</td>
+      <td>44.10</td>
+      <td>23.61</td>
+      <td>7.47</td>
+    </tr>
+    <tr>
+      <td>compression_momentum 10</td>
+      <td>baseline</td>
+      <td>48.66</td>
+      <td>-13.42</td>
+      <td>44.72</td>
+      <td>25.67</td>
+      <td>10.82</td>
+      <td>7.87</td>
+    </tr>
+  </tbody>
+</table></div><p>These continuously funded accounts span January 2024–October 2026. Their total return is not a one-year return. The retained rotational growth/margin policy reaches +359.56% in its best strict annual window, a 40.44 percentage-point gap to +400%, with −34.20% full-period drawdown. It remains a provisional research alternative, with the same source and reused-history limits. The deployed frozen portfolio ledger is unavailable, so its prior headline metrics cannot be independently compared.</p><p><a href="retention/continuous_comparison.csv">Frozen full-period comparisons</a> · <a href="retention/spy_accounts.csv">Same-date cash-funded SPY accounts</a></p><h2 id="history">5. Broader history and statistical honesty</h2><p>The public-price probe retrieved 42,264 daily rows across 12 surviving case series from 2010–2023. WBA andPXDfailed. Allsnapshotoptions and hashes are preserved. This extends price availability, not the historical screening universe. Reliable dated membership, delisting/merger proceeds, and released-vintage quarterly fundamentals remain required. Historical consensus remains unavailable.</p><p>The research has only 21 maturedmonthly factor cohorts and 22 complete annual monthly starts fromtwo start years. Repeated issuers and overlapping years are dependent. Cohort 12-month block intervals are descriptive with inadequate cycle coverage; binomial independent-trial probabilities are not reported. All periods 2024–2026 were examined previously. No statistical technique turns reused history into an untouched holdout.</p><p>A valid subsequent evaluation must freeze rules on earlier released information, purge any training label ending after the next decision boundary, embargo 20 actual SPY sessions where training labels overlap, and evaluate previously unseen dates. Broad daily-funded arbitrary date accounts and remaining capital/gap/liquidity fragility tests are pending.</p><p>Independentledgercheck verified 264 matchedaccounts,66,384 dailyrecords and 3,793 transactions. Maximum residual is$7.3 e-12. The direct winner auditor is stronger: it independently generates orders rather than only replaying recorded quantities. Dividend payable-date funding and full corporate-action economics remain uncertified.</p>
+<h2 id="next">6. Decisions and next experiments</h2><div class="scroll"><table class="dataframe data">
+  <thead>
+    <tr style="text-align: right;">
+      <th>priority</th>
+      <th>experiment</th>
+      <th>next_action</th>
+      <th>status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>Released-vintage quality gate</td>
+      <td>Reconstruct MU April 2024 and 2025; WDCscope and litigation; STXone-offs; applysamebridge to all 39 qualifiedissuers beforelooking atnextreturns</td>
+      <td>Rejectunadjustedmargindelta asuniformsignal; qualitygatecurrentlyuncertified</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>Matched failure source packets</td>
+      <td>Fixed ALLJune 2025 peerstrata and all 58 negativequalifiedrows; prioritizePLTRsameJune andFSLR/ZBRA/DECK/DXCM/NOW</td>
+      <td>No cherry-pickedwinner-onlyfundamentals</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>Historical management guides</td>
+      <td>Same-quarter guidebeats, nextquartergrowth separate; fixed 12 industry-balancedissuers plusfailures; releasevintages</td>
+      <td>Selected 30 events cannotestablishguidancealpha; consensussnapshotmissing</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>Earlier point-in-time universe</td>
+      <td>Datedmembers/acquisitions/delists/mergerproceeds 2010–2023 plusoriginalreleasefinancials</td>
+      <td>12 livepricehistories available; deadWBA/PXDmissing; nofulluniverseproof</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>Frozen prospective validation</td>
+      <td>Freeze existingrules now; use laterpreviouslyunseen periods with 252 sessionlabelpurge+20 actualSPYsessionembargo whenlabelsused</td>
+      <td>No untouchedholdout currently; do notretune 2024–2026</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>Arbitrary daily-funded accounts</td>
+      <td>Defineexistingprior-signalstartup and deferredstartup beforetest; allcompletedailystarts; dateblockdependence</td>
+      <td>22 monthly starts not arbitrarydatecalibration; priorityaftercleanhistory</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td>Fragility and dividend payable funding</td>
+      <td>Allpromisingpolicies delay 1/5/20,gaps,capital/participation,costs,membershipunknowns,paymentdates</td>
+      <td>20/100 bpsdone; initialcapital 10 konly; next-openstressnotyetcomplete</td>
+    </tr>
+  </tbody>
+</table></div>
+<p><a href="PROTOCOL.md">Frozen experiment definitions</a> · <a href="DECISION_LOG.md">Successful/rejected hypotheses</a> · <a href="verification.json">Independent verification</a> · <a href="VALIDATION_STATUS.json">Validation blockers</a> · <a href="README.md">Reproduction instructions</a></p><p class="muted">No deployment, paper strategy, real trade or leverage changes. This report distinguishes arithmetic reproducibility, source availability, economic interpretation and independent predictive evidence.</p></main></body></html>

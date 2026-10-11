@@ -1,0 +1,21 @@
+{
+  "pass": true,
+  "observations": 1904,
+  "issuers": 66,
+  "source_fact_roles": 13744,
+  "all_filing_dates_before_signal": true,
+  "scope": "Structural eligibility only; not original-source certification except separately audited cases",
+  "missing_fields": [
+    "HistoricalconsensusEPS revisions",
+    "EPS per share in cachedconcepts",
+    "CFO/FCF in cachedconcepts",
+    "PITindustry classification"
+  ],
+  "limits": [
+    "NI is GAAP netincome, not adjustedEPS; losses make percent earnings growth unavailable",
+    "No recurring-income cleaning except sourcecase report",
+    "Later released comparatives admitted only after filing, but sourcevintage trust unresolved globally",
+    "10-K Q4 excluded by inheritedquarterstore",
+    "WDCscope changes contaminate cache; see sourceaudit rather than rewriting originalinputs"
+  ]
+}

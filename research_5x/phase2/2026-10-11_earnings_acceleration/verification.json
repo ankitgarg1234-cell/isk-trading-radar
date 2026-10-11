@@ -1,0 +1,3160 @@
+{
+  "pass": true,
+  "retention_accounts": 264,
+  "daily_records": 66384,
+  "transactions_checked": 3793,
+  "holdings_checked": 252864,
+  "max_cash_nav_cost_residual": 7.275957614183426e-12,
+  "records": [
+    {
+      "start": "2024-01-02",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 253,
+      "transactions": 8,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 253,
+      "transactions": 8,
+      "pass": true
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 253,
+      "transactions": 6,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 253,
+      "transactions": 6,
+      "pass": true
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 253,
+      "transactions": 39,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 253,
+      "transactions": 36,
+      "pass": true
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 253,
+      "transactions": 19,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 253,
+      "transactions": 18,
+      "pass": true
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 253,
+      "transactions": 10,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 253,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 253,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 253,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 6,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 6,
+      "pass": true
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 28,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 30,
+      "pass": true
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 18,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 18,
+      "pass": true
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 250,
+      "transactions": 8,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 250,
+      "transactions": 8,
+      "pass": true
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 250,
+      "transactions": 6,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 250,
+      "transactions": 6,
+      "pass": true
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 250,
+      "transactions": 28,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 250,
+      "transactions": 28,
+      "pass": true
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 250,
+      "transactions": 14,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 250,
+      "transactions": 13,
+      "pass": true
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 250,
+      "transactions": 10,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 250,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 250,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 250,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 8,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 8,
+      "pass": true
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 8,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 8,
+      "pass": true
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 38,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 39,
+      "pass": true
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 18,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 21,
+      "pass": true
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 10,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 8,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 8,
+      "pass": true
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 38,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 41,
+      "pass": true
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 21,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 23,
+      "pass": true
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2024-06-03",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-06-03",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2024-06-03",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 7,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-06-03",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 7,
+      "pass": true
+    },
+    {
+      "start": "2024-06-03",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 38,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-06-03",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 32,
+      "pass": true
+    },
+    {
+      "start": "2024-06-03",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 15,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-06-03",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 16,
+      "pass": true
+    },
+    {
+      "start": "2024-06-03",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-06-03",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2024-06-03",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-06-03",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2024-07-01",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-07-01",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2024-07-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 7,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-07-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 7,
+      "pass": true
+    },
+    {
+      "start": "2024-07-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 31,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-07-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 30,
+      "pass": true
+    },
+    {
+      "start": "2024-07-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 20,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-07-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 20,
+      "pass": true
+    },
+    {
+      "start": "2024-07-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-07-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2024-07-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-07-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2024-08-01",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-08-01",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2024-08-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 7,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-08-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 8,
+      "pass": true
+    },
+    {
+      "start": "2024-08-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 22,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-08-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 25,
+      "pass": true
+    },
+    {
+      "start": "2024-08-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 13,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-08-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 13,
+      "pass": true
+    },
+    {
+      "start": "2024-08-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-08-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2024-08-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 6,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-08-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 6,
+      "pass": true
+    },
+    {
+      "start": "2024-09-03",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-09-03",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true
+    },
+    {
+      "start": "2024-09-03",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 11,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-09-03",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 11,
+      "pass": true
+    },
+    {
+      "start": "2024-09-03",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 30,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-09-03",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 30,
+      "pass": true
+    },
+    {
+      "start": "2024-09-03",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 12,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-09-03",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 12,
+      "pass": true
+    },
+    {
+      "start": "2024-09-03",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-09-03",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true
+    },
+    {
+      "start": "2024-09-03",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-09-03",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2024-10-01",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-10-01",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true
+    },
+    {
+      "start": "2024-10-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 14,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-10-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 13,
+      "pass": true
+    },
+    {
+      "start": "2024-10-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 30,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-10-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 31,
+      "pass": true
+    },
+    {
+      "start": "2024-10-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 22,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-10-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 20,
+      "pass": true
+    },
+    {
+      "start": "2024-10-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-10-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true
+    },
+    {
+      "start": "2024-10-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-10-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2024-11-01",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 250,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-11-01",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 250,
+      "transactions": 9,
+      "pass": true
+    },
+    {
+      "start": "2024-11-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 250,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-11-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 250,
+      "transactions": 9,
+      "pass": true
+    },
+    {
+      "start": "2024-11-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 250,
+      "transactions": 26,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-11-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 250,
+      "transactions": 26,
+      "pass": true
+    },
+    {
+      "start": "2024-11-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 250,
+      "transactions": 18,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-11-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 250,
+      "transactions": 17,
+      "pass": true
+    },
+    {
+      "start": "2024-11-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 250,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-11-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 250,
+      "transactions": 9,
+      "pass": true
+    },
+    {
+      "start": "2024-11-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 250,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-11-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 250,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2024-12-02",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-12-02",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true
+    },
+    {
+      "start": "2024-12-02",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-12-02",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true
+    },
+    {
+      "start": "2024-12-02",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 40,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-12-02",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 36,
+      "pass": true
+    },
+    {
+      "start": "2024-12-02",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 15,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-12-02",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 16,
+      "pass": true
+    },
+    {
+      "start": "2024-12-02",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-12-02",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true
+    },
+    {
+      "start": "2024-12-02",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2024-12-02",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 9,
+      "pass": true
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 31,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 31,
+      "pass": true
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 17,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 18,
+      "pass": true
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2025-02-03",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-02-03",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 9,
+      "pass": true
+    },
+    {
+      "start": "2025-02-03",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-02-03",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 9,
+      "pass": true
+    },
+    {
+      "start": "2025-02-03",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 44,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-02-03",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 41,
+      "pass": true
+    },
+    {
+      "start": "2025-02-03",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 18,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-02-03",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 17,
+      "pass": true
+    },
+    {
+      "start": "2025-02-03",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 10,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-02-03",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2025-02-03",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-02-03",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2025-03-03",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 8,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-03-03",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 8,
+      "pass": true
+    },
+    {
+      "start": "2025-03-03",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-03-03",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2025-03-03",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 46,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-03-03",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 42,
+      "pass": true
+    },
+    {
+      "start": "2025-03-03",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 17,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-03-03",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 19,
+      "pass": true
+    },
+    {
+      "start": "2025-03-03",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 10,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-03-03",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2025-03-03",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-03-03",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2025-04-01",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 4,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-04-01",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 4,
+      "pass": true
+    },
+    {
+      "start": "2025-04-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 4,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-04-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 4,
+      "pass": true
+    },
+    {
+      "start": "2025-04-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 29,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-04-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 30,
+      "pass": true
+    },
+    {
+      "start": "2025-04-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 12,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-04-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 12,
+      "pass": true
+    },
+    {
+      "start": "2025-04-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 6,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-04-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 6,
+      "pass": true
+    },
+    {
+      "start": "2025-04-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 3,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-04-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 3,
+      "pass": true
+    },
+    {
+      "start": "2025-05-01",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 7,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-05-01",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 7,
+      "pass": true
+    },
+    {
+      "start": "2025-05-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 10,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-05-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2025-05-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 46,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-05-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 50,
+      "pass": true
+    },
+    {
+      "start": "2025-05-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 21,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-05-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 22,
+      "pass": true
+    },
+    {
+      "start": "2025-05-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 9,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-05-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 9,
+      "pass": true
+    },
+    {
+      "start": "2025-05-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-05-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2025-06-02",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 7,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-06-02",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 7,
+      "pass": true
+    },
+    {
+      "start": "2025-06-02",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 12,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-06-02",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 13,
+      "pass": true
+    },
+    {
+      "start": "2025-06-02",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 48,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-06-02",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 50,
+      "pass": true
+    },
+    {
+      "start": "2025-06-02",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 18,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-06-02",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 18,
+      "pass": true
+    },
+    {
+      "start": "2025-06-02",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 7,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-06-02",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 7,
+      "pass": true
+    },
+    {
+      "start": "2025-06-02",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-06-02",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2025-07-01",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 8,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-07-01",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 8,
+      "pass": true
+    },
+    {
+      "start": "2025-07-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 14,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-07-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 15,
+      "pass": true
+    },
+    {
+      "start": "2025-07-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 49,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-07-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 46,
+      "pass": true
+    },
+    {
+      "start": "2025-07-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 23,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-07-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 21,
+      "pass": true
+    },
+    {
+      "start": "2025-07-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 7,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-07-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 7,
+      "pass": true
+    },
+    {
+      "start": "2025-07-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-07-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2025-08-01",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 7,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-08-01",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 7,
+      "pass": true
+    },
+    {
+      "start": "2025-08-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 16,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-08-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 18,
+      "pass": true
+    },
+    {
+      "start": "2025-08-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 45,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-08-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 44,
+      "pass": true
+    },
+    {
+      "start": "2025-08-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 24,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-08-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 24,
+      "pass": true
+    },
+    {
+      "start": "2025-08-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 7,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-08-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 7,
+      "pass": true
+    },
+    {
+      "start": "2025-08-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-08-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 251,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2025-09-02",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 253,
+      "transactions": 8,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-09-02",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 253,
+      "transactions": 8,
+      "pass": true
+    },
+    {
+      "start": "2025-09-02",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 253,
+      "transactions": 14,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-09-02",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 253,
+      "transactions": 13,
+      "pass": true
+    },
+    {
+      "start": "2025-09-02",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 253,
+      "transactions": 46,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-09-02",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 253,
+      "transactions": 41,
+      "pass": true
+    },
+    {
+      "start": "2025-09-02",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 253,
+      "transactions": 20,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-09-02",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 253,
+      "transactions": 20,
+      "pass": true
+    },
+    {
+      "start": "2025-09-02",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 253,
+      "transactions": 10,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-09-02",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 253,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2025-09-02",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 253,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-09-02",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 253,
+      "transactions": 5,
+      "pass": true
+    },
+    {
+      "start": "2025-10-01",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 8,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-10-01",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 8,
+      "pass": true
+    },
+    {
+      "start": "2025-10-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 8,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-10-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2025-10-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 39,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-10-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 35,
+      "pass": true
+    },
+    {
+      "start": "2025-10-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 17,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-10-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 18,
+      "pass": true
+    },
+    {
+      "start": "2025-10-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 10,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-10-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 10,
+      "pass": true
+    },
+    {
+      "start": "2025-10-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "sessions": 252,
+      "transactions": 5,
+      "pass": true,
+      "matches_frozen_original_initial_orders": true
+    },
+    {
+      "start": "2025-10-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "sessions": 252,
+      "transactions": 5,
+      "pass": true
+    }
+  ],
+  "held_corporate_events": [
+    {
+      "start": "2024-01-02",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-01-02",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-02-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-03-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "date": "2024-12-04",
+      "ticker": "ANET",
+      "ratio": 4.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-04-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "fundamental_exit_only",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "fundamental_exit_only",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "relative_strength_exit_only",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2024-05-01",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "date": "2024-06-10",
+      "ticker": "NVDA",
+      "ratio": 10.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "monthly_cap25_only",
+      "bps": 20,
+      "date": "2025-12-18",
+      "ticker": "NOW",
+      "ratio": 5.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "monthly_cap25_only",
+      "bps": 100,
+      "date": "2025-12-18",
+      "ticker": "NOW",
+      "ratio": 5.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "monthly_equal",
+      "bps": 20,
+      "date": "2025-12-18",
+      "ticker": "NOW",
+      "ratio": 5.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "monthly_equal",
+      "bps": 100,
+      "date": "2025-12-18",
+      "ticker": "NOW",
+      "ratio": 5.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "quarterly_equal",
+      "bps": 20,
+      "date": "2025-12-18",
+      "ticker": "NOW",
+      "ratio": 5.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "quarterly_equal",
+      "bps": 100,
+      "date": "2025-12-18",
+      "ticker": "NOW",
+      "ratio": 5.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "untouched_hold",
+      "bps": 20,
+      "date": "2025-12-18",
+      "ticker": "NOW",
+      "ratio": 5.0,
+      "known": "ordinary_integer"
+    },
+    {
+      "start": "2025-01-02",
+      "policy": "untouched_hold",
+      "bps": 100,
+      "date": "2025-12-18",
+      "ticker": "NOW",
+      "ratio": 5.0,
+      "known": "ordinary_integer"
+    }
+  ],
+  "independent_scope": "Reconstruct cash/shares/dividends/NAV from recordedorders and independentrawMarket implementation; firstorders also match frozen originalpolicy. Futureselectionstrength notcertified.",
+  "audit_pass": true,
+  "sources_pass": [
+    {
+      "status": "passed",
+      "release_events": 20,
+      "ticker_counts": {
+        "MU": 10,
+        "STX": 10
+      },
+      "sec_acceptance_verified_filings": 2,
+      "checks": [
+        "Unique source IDs and matching JSON/CSV row counts",
+        "Chronological release and conservative availability order before cutoff",
+        "Finite numeric fields",
+        "Independent revenue-growth, margin, acceleration and same-quarter guidance beat arithmetic",
+        "Original issuer/SEC domains and exact acceptance-time UTC conversion"
+      ],
+      "not_certified": [
+        "No independent audit of all historical SEC statements",
+        "No historical analyst consensus vintages",
+        "No false-positive population or predictive probability from selected case studies"
+      ],
+      "sha256": {
+        "quarter_timeline.csv": "3ac702f913a9bbc1b75d386c63429d4a4f275d810139d858fc5042bcf12cbe09",
+        "source_evidence.json": "7270580d97cf71f3a521d18b0dadf10f6cf790abb2e223c60ca9aa4599f3fd1f",
+        "findings.md": "6b1fcdc95eb9375036f0d91f22589252823223e474f2dd34f6d2368de4cfb1d7",
+        "build_evidence.py": "c4fb61d522dafaec456c9968b5d7a7353de9083d3db0d987ec26e24f3b3c46fe"
+      }
+    },
+    {
+      "checks": [
+        {
+          "check": "ten unique original quarter releases",
+          "passed": true
+        },
+        {
+          "check": "all releases before historical cutoff",
+          "passed": true
+        },
+        {
+          "check": "cash flow scope explicitly different after separation",
+          "passed": true
+        },
+        {
+          "check": "guidance cross-separation comparison blocked",
+          "passed": true
+        },
+        {
+          "check": "no denominator-negative earnings percentage generated",
+          "passed": true
+        },
+        {
+          "check": "HDD segment plusFlash total Q2FY2025",
+          "passed": true
+        },
+        {
+          "check": "Q3FY2025 consolidatedNI scope reconciliation",
+          "passed": true
+        },
+        {
+          "check": "Q3FY2025 adjustedOI reconciliation",
+          "passed": true
+        },
+        {
+          "check": "Q4FY2024 laterOI annual-minus-nine-month",
+          "passed": true
+        },
+        {
+          "check": "SEC UTC dates are not mistaken for local publication dates",
+          "passed": true
+        }
+      ],
+      "all_passed": true
+    }
+  ]
+}

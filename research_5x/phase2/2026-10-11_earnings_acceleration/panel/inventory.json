@@ -1,0 +1,22 @@
+{
+  "generated_utc": "2026-10-11T10:41:07.932073+00:00",
+  "source_sha256": "fad4e903a2a792269aeace56512f9c9818a3682c3d1b8992c1afe0dfacfa7ad3",
+  "rows": 16257,
+  "matured": 10275,
+  "censored_or_missing": 5982,
+  "tickers": 533,
+  "first_date": "2024-01-31",
+  "last_date": "2026-09-30",
+  "qualified_rows": 379,
+  "qualified_matured": 188,
+  "left_censored_qualified": 21,
+  "vendor_action_flagged_matured": 299,
+  "qualified_matured_failures": 58,
+  "limitations": [
+    "252 sessions close price only, not annual total return",
+    "all prior source universe/fundamental/sector limitations preserved",
+    "descriptive comparisons, not untouched OOS",
+    "first observed is not first economically detectable",
+    "zero direction splits are hypotheses, not trading-rule additions"
+  ]
+}

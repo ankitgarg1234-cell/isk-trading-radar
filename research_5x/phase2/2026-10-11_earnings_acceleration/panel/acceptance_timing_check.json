@@ -1,0 +1,7 @@
+{
+  "pass": true,
+  "facts": 13744,
+  "accepted_timestamps_missing": 0,
+  "after_previous_day_cutoff_eastern": 0,
+  "scope": "Timestampeligibilityforselectedcachedfactroles; no globaloriginalsourcecertification"
+}

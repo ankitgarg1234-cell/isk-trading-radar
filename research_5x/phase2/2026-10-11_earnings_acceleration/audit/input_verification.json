@@ -1,0 +1,74 @@
+{
+  "archive_sha256": "1315b523195777aea09edb40cf2c1534d81652886d7110f9dcb0c02ca3ab0af8",
+  "archive_bytes": 42781816,
+  "embedded_manifest_files_verified": 1144,
+  "crc_pass": true,
+  "required_inputs": [
+    {
+      "path": "research_repository/backtests/staged/wf3_prices.json.gz",
+      "sha256": "6ab928b5ab5a1226dfecbccd9b50e444766aba9c00f6ce4f372801cbaaab2793",
+      "bytes": 11559438,
+      "embedded_and_workspace_match": true
+    },
+    {
+      "path": "research_repository/backtests/staged/wf3_valuein_fundamentals.json.gz",
+      "sha256": "a066363bd896bb583478adcb6590f5094042ef47158b357b2cde3d2c1aff6893",
+      "bytes": 1669093,
+      "embedded_and_workspace_match": true
+    },
+    {
+      "path": "research_5x/data/spy.json",
+      "sha256": "a4f5aa969a0179439a836572cfac109c0ca18ca09a67d338a2bd6e3550fa37e6",
+      "bytes": 133598,
+      "embedded_and_workspace_match": true
+    },
+    {
+      "path": "research_5x/continuation/2026-10-11/fresh_hit/replay20_curve.csv",
+      "sha256": "b19b5b113b488f44348b40699666fcaf1145760fea94fb820513fa425c81c410",
+      "bytes": 21073,
+      "embedded_and_workspace_match": true
+    },
+    {
+      "path": "research_5x/continuation/2026-10-11/fresh_hit/replay20_trades.csv",
+      "sha256": "6c6b662620ae54961db8b9261a334b327226d319cbf7895a7c0fa32ccfb619d3",
+      "bytes": 2170,
+      "embedded_and_workspace_match": true
+    },
+    {
+      "path": "research_5x/continuation/2026-10-11/fresh_hit/replay20_signals.csv",
+      "sha256": "612fb5ce231a6774105281186e94cfa94a333991dfe975f648428b2f72ca2719",
+      "bytes": 906,
+      "embedded_and_workspace_match": true
+    },
+    {
+      "path": "research_5x/continuation/2026-10-11/fresh_hit/results.json",
+      "sha256": "7fd75a037e3114348d25354f91f208ac663191d5fdb610b6c9e201c694d9bc85",
+      "bytes": 28952,
+      "embedded_and_workspace_match": true
+    },
+    {
+      "path": "research_5x/code/run_research.py",
+      "sha256": "a46271c5436a9fdec93af55705623a270c2888b0124814cf90af873d54ecf7b5",
+      "bytes": 31786,
+      "embedded_and_workspace_match": true
+    },
+    {
+      "path": "research_5x/code/continuation_engine.py",
+      "sha256": "bb4d9845bbc58493f8f83f7e57c171e874e0d20cbc048cf6fbb42cb6f3f686d1",
+      "bytes": 5297,
+      "embedded_and_workspace_match": true
+    },
+    {
+      "path": "research_5x/code/run_continuation.py",
+      "sha256": "468e41562d5b5f8ec90f139ae069dd63db89e96c8ac86e52c64e2642eb057095",
+      "bytes": 10558,
+      "embedded_and_workspace_match": true
+    },
+    {
+      "path": "research_repository/scripts/wf3_offline_valuein.py",
+      "sha256": "521d6327ba932bde5e548b1b44cc2469afbb69c31e0428f13e2260678468b6d8",
+      "bytes": 16867,
+      "embedded_and_workspace_match": true
+    }
+  ]
+}

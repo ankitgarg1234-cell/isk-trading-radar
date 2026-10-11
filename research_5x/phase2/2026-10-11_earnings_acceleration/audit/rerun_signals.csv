@@ -1,0 +1,13 @@
+date,tickers,target_gross,scheduled_fill_date,additional_delay_sessions,holding_rule
+2025-06-30,STX|PLTR|WDC|MU|AMD,1.0,2025-07-01,0,retain_and_preserve
+2025-07-31,STX|PLTR|WDC|MU|AMD,1.0,2025-08-01,0,retain_and_preserve
+2025-08-29,STX|PLTR|WDC|MU|ANET,1.0,2025-09-02,0,retain_and_preserve
+2025-09-30,STX|PLTR|WDC|MU|ANET,1.0,2025-10-01,0,retain_and_preserve
+2025-10-31,STX|PLTR|WDC|MU|ANET,1.0,2025-11-03,0,retain_and_preserve
+2025-11-28,STX|PLTR|WDC|MU|LRCX,1.0,2025-12-01,0,retain_and_preserve
+2025-12-31,STX|WDC|MU|LRCX|AMD,1.0,2026-01-02,0,retain_and_preserve
+2026-01-30,STX|WDC|MU|LRCX|ADI,1.0,2026-02-02,0,retain_and_preserve
+2026-02-27,STX|WDC|MU|LRCX|ADI,1.0,2026-03-02,0,retain_and_preserve
+2026-03-31,STX|WDC|MU|LRCX|ADI,1.0,2026-04-01,0,retain_and_preserve
+2026-04-30,STX|WDC|MU|ADI|LITE,1.0,2026-05-01,0,retain_and_preserve
+2026-05-29,STX|MU|ADI|LITE|SNDK,1.0,2026-06-01,0,retain_and_preserve

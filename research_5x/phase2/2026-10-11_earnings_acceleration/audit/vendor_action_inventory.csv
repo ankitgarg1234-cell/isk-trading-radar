@@ -1,0 +1,4 @@
+ticker,date,numerator,denominator,ratio,classification,source_certification,inside_account_interval,held_at_event
+ANET,2024-12-04,4.0,1.0,4.0,ordinary_ratio,not independently company-source certified in this accounting audit,False,False
+LRCX,2024-10-03,10.0,1.0,10.0,ordinary_ratio,not independently company-source certified in this accounting audit,False,False
+WDC,2025-02-24,1323.0,1000.0,1.323,fractional_or_synthetic_vendor_ratio,vendor record only; known-spinoff economics separately documented previously,False,False

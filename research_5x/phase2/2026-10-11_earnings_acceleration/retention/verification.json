@@ -1,0 +1,148 @@
+{
+  "pass": true,
+  "accounts": 264,
+  "initial_order_checks": [
+    {
+      "start": "2024-01-02",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2024-02-01",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2024-03-01",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2024-04-01",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2024-05-01",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2024-06-03",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2024-07-01",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2024-08-01",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2024-09-03",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2024-10-01",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2024-11-01",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2024-12-02",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2025-01-02",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2025-02-03",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2025-03-03",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2025-04-01",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2025-05-01",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2025-06-02",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2025-07-01",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2025-08-01",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2025-09-02",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    },
+    {
+      "start": "2025-10-01",
+      "same_initial_orders_all_policies": true,
+      "no_new_tickers_after_initial_selection": true,
+      "cash_and_pnl_checks": true
+    }
+  ],
+  "source_unchanged": true,
+  "highest_absolute_pnl_residual": 7.275957614183426e-12,
+  "source_sha256": "a46271c5436a9fdec93af55705623a270c2888b0124814cf90af873d54ecf7b5",
+  "ast_locations": {
+    "holdings": 1,
+    "target_override": 1,
+    "dispatch_policy": 1,
+    "monthly": 1
+  },
+  "posture": "retrospective matched ablations on frozen, incomplete public-source panel"
+}

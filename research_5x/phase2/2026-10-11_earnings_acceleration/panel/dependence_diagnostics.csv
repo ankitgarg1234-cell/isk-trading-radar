@@ -1,0 +1,13 @@
+screen,months,block_length_months,equal_month_mean_pct,diagnostic_2_5_pct,diagnostic_97_5_pct,independent_cycle_inference
+all,21,12,11.52997498286252,6.9109326054562725,13.657338723822892,"unavailable; too few distinct cycles, biased source universe and reused history"
+qualified,21,12,75.57287544488693,33.15774668008264,98.1455381524737,"unavailable; too few distinct cycles, biased source universe and reused history"
+fresh,16,12,51.356674888607756,11.037400062502003,59.626615708648224,"unavailable; too few distinct cycles, biased source universe and reused history"
+persistent,20,12,63.79942974024099,29.385667187577436,68.56637139936453,"unavailable; too few distinct cycles, biased source universe and reused history"
+qualified_revenue_acceleration_positive,21,12,46.1975817072777,35.58024296035626,60.625172461808994,"unavailable; too few distinct cycles, biased source universe and reused history"
+qualified_revenue_acceleration_nonpositive,17,12,152.92457603336481,34.065879903046245,153.60511424824767,"unavailable; too few distinct cycles, biased source universe and reused history"
+qualified_price_acceleration_positive,18,12,93.17196622718252,32.20706271114426,99.27909293935205,"unavailable; too few distinct cycles, biased source universe and reused history"
+qualified_price_acceleration_nonpositive,20,12,47.474435993953726,23.935542036091068,49.36554534014846,"unavailable; too few distinct cycles, biased source universe and reused history"
+qualified_volume_accumulation_positive,21,12,77.9813679690686,41.86757277912993,92.70637033433852,"unavailable; too few distinct cycles, biased source universe and reused history"
+qualified_volume_accumulation_nonpositive,17,12,83.38416608137165,27.40948441316578,96.2211769920274,"unavailable; too few distinct cycles, biased source universe and reused history"
+qualified_relative_strength_positive,21,12,81.66263601244236,36.26727517833821,102.88191863493921,"unavailable; too few distinct cycles, biased source universe and reused history"
+qualified_relative_strength_nonpositive,14,12,18.1248381318309,14.915311344441687,20.24777285996205,"unavailable; too few distinct cycles, biased source universe and reused history"

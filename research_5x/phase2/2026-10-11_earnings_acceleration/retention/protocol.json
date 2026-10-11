@@ -1,0 +1,37 @@
+{
+  "written_before_runs_utc": "2026-10-11T11:14:27.614907+00:00",
+  "policies": {
+    "monthly_equal": {},
+    "quarterly_equal": {
+      "rotation_frequency": "quarterly"
+    },
+    "untouched_hold": {
+      "rotation_frequency": "never"
+    },
+    "monthly_cap25_only": {
+      "preserve_initial_weights": true,
+      "concentration_cap": 0.25
+    },
+    "fundamental_exit_only": {
+      "preserve_initial_weights": true,
+      "exit_rule": "reported_fundamental"
+    },
+    "relative_strength_exit_only": {
+      "preserve_initial_weights": true,
+      "exit_rule": "relative_strength"
+    }
+  },
+  "cost_bps_per_side": [
+    20,
+    100
+  ],
+  "start_policy": "Cash until first new month-end; identical initial basket,20% slots,whole shares across policies for each cost/start. No replacements or reentry after exit.",
+  "cap_scope": "25% checked only at monthly execution; can drift between checks.",
+  "exit_rule": "Reported fundamental means originalG/E/margin gates, without momentum. Relative strength means63-session stock return exceedsSPY; directional zero boundary, no tuning. Membership removal applies to all.",
+  "caveats": [
+    "No expectations/thesis exit without released historical expectations",
+    "Static baskets are ablations, not implementable proof of repeatable5x selection",
+    "Annual accounts overlap; all history reused",
+    "All inherited input/corporate-action limitations remain"
+  ]
+}

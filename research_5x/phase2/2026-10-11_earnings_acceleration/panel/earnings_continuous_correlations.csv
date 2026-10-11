@@ -1,0 +1,9 @@
+screen,factor,matured_n,rank_corr_price_return,rank_corr_control_residual
+qualified,net_income_yoy,143,0.30025226604586797,0.3208821018186883
+qualified,net_income_yoy_acceleration,122,-0.001471033147076194,-0.037605557485705134
+qualified,net_income_yoy_dollar_delta_over_revenue,188,0.08468115851251386,0.08166737881309875
+qualified,gross_margin_pct,127,-0.1367860823051632,-0.20006125690649113
+fresh,net_income_yoy,31,0.21635245598406705,0.1824780733136819
+fresh,net_income_yoy_acceleration,27,-0.18165165835207178,-0.34895436217885384
+fresh,net_income_yoy_dollar_delta_over_revenue,43,-0.025976968261796546,-0.0996035498177606
+fresh,gross_margin_pct,31,-0.1599112756852872,-0.2928009738903367

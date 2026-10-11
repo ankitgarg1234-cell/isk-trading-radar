@@ -1,0 +1,45 @@
+{
+  "checks": [
+    {
+      "check": "ten unique original quarter releases",
+      "passed": true
+    },
+    {
+      "check": "all releases before historical cutoff",
+      "passed": true
+    },
+    {
+      "check": "cash flow scope explicitly different after separation",
+      "passed": true
+    },
+    {
+      "check": "guidance cross-separation comparison blocked",
+      "passed": true
+    },
+    {
+      "check": "no denominator-negative earnings percentage generated",
+      "passed": true
+    },
+    {
+      "check": "HDD segment plusFlash total Q2FY2025",
+      "passed": true
+    },
+    {
+      "check": "Q3FY2025 consolidatedNI scope reconciliation",
+      "passed": true
+    },
+    {
+      "check": "Q3FY2025 adjustedOI reconciliation",
+      "passed": true
+    },
+    {
+      "check": "Q4FY2024 laterOI annual-minus-nine-month",
+      "passed": true
+    },
+    {
+      "check": "SEC UTC dates are not mistaken for local publication dates",
+      "passed": true
+    }
+  ],
+  "all_passed": true
+}

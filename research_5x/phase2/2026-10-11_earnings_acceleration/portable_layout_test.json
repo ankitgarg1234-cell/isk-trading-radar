@@ -1,0 +1,48 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "script": "replay_published_winner.py",
+      "exit_code": 0,
+      "stdout": "{\n  \"pass\": true,\n  \"independent_replay\": {\n    \"starting_cash\": 10000.0,\n    \"ending_equity\": 51081.807571243284,\n    \"ending_cash\": 7312.927810501098,\n    \"net_return_pct\": 410.81807571243286,\n    \"max_dd_pct\": -17.99519606906851,\n    \"dd_peak_date\": \"2025-11-10\",\n    \"dd_trough_date\": \"2025-11-21\",\n    \"sessions\": 252,\n    \"transactions\": 23,\n    \"buy_transactions\": 11,\n    \"sell_transactions\": 12,\n    \"signals\": 12,\n    \"first_buy\": \"2025-07-01\",\n    \"cash_dividend_dollars\": 78.64,\n    \"cost_dollars\": 136.8615806732178,\n    \"traded_notional\": 68430.79033660889,\n    \"held_corporate_actions\": [],\n    \"stale_held_marks\": 0,\n    \"pnl_by_ticker\": {\n      \"MU\": 14193.512311645507,\n      \"WDC\": 11682.704356002807,\n      \"STX\": 10203.475177520751,\n      \"LRCX\": 2099.790278778076,\n      \"ADI\": 1178.6615875244142,\n      \"LITE\": 800.2681708984373,\n      \"PLTR\": 635.556022705078,\n      \"AMD\": 442.3459686584474,\n      \"ANET\": -63.244606933593786,\n      \"SNDK\": -91.26169555664092\n    },\n    \"max_absolute_residuals\": {\n      \"daily_equity\": 0.0,\n      \"daily_cash\": 0.0,\n      \"daily_exposure\": 0.0,\n      \"daily_positions\": 0.0,\n      \"daily_cumulative_cost\": 1.4210854715202004e-14,\n      \"daily_pnl_identity\": 7.275957614183426e-12,\n      \"trade_shares\": 0.0,\n      \"trade_nominal_open\": 0.0,\n      \"trade_gross\": 0.0,\n      \"trade_cost\": 4.440892098500626e-16,\n      \"trade_cash_after\": 0.0\n    },\n    \"terminal_holdings\": {\n      \"STX\": 13.0,\n      \"MU\": 11.0,\n      \"ADI\": 10.0,\n      \"LITE\": 7.0,\n      \"SNDK\": 5.0\n    },\n    \"cash_event_count\": 38\n  },\n  \"frozen_engine_all_fields_match\": true,\n  \"archive_audit\": \"See original audit/summary.json; thisportablecommand does not verify the omittedOctober11ZIP\"\n}\n",
+      "stderr": ""
+    },
+    {
+      "script": "verify_phase2.py",
+      "exit_code": 0,
+      "stdout": "{\"pass\": true, \"accounts\": 264, \"sessions\": 66384, \"transactions\": 3793, \"maxresidual\": 7.275957614183426e-12, \"held_events\": 92}\n",
+      "stderr": ""
+    },
+    {
+      "script": "analyze_acceleration.py",
+      "exit_code": 0,
+      "stdout": "{\n  \"generated_utc\": \"2026-10-11T11:55:52.439589+00:00\",\n  \"source_sha256\": \"fad4e903a2a792269aeace56512f9c9818a3682c3d1b8992c1afe0dfacfa7ad3\",\n  \"rows\": 16257,\n  \"matured\": 10275,\n  \"censored_or_missing\": 5982,\n  \"tickers\": 533,\n  \"first_date\": \"2024-01-31\",\n  \"last_date\": \"2026-09-30\",\n  \"qualified_rows\": 379,\n  \"qualified_matured\": 188,\n  \"left_censored_qualified\": 21,\n  \"vendor_action_flagged_matured\": 299,\n  \"qualified_matured_failures\": 58,\n  \"limitations\": [\n    \"252 sessions close price only, not annual total return\",\n    \"all prior source universe/fundamental/sector limitations preserved\",\n    \"descriptive comparisons, not untouched OOS\",\n    \"first observed is not first economically detectable\",\n    \"zero direction splits are hypotheses, not trading-rule additions\"\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "script": "quarter_observables.py",
+      "exit_code": 0,
+      "stdout": "   screen                                   factor  matured_n  rank_corr_price_return  rank_corr_control_residual\nqualified                           net_income_yoy        143                0.300252                    0.320882\nqualified              net_income_yoy_acceleration        122               -0.001471                   -0.037606\nqualified net_income_yoy_dollar_delta_over_revenue        188                0.084681                    0.081667\nqualified                         gross_margin_pct        127               -0.136786                   -0.200061\n    fresh                           net_income_yoy         31                0.216352                    0.182478\n    fresh              net_income_yoy_acceleration         27               -0.181652                   -0.348954\n    fresh net_income_yoy_dollar_delta_over_revenue         43               -0.025977                   -0.099604\n    fresh                         gross_margin_pct         31               -0.159911                   -0.292801\n",
+      "stderr": ""
+    }
+  ],
+  "comparisons": [
+    {
+      "file": "panel/screen_results.csv",
+      "sha256": "e621623973dbd98be3c5491ca838a7fe9ed311fd66584923d4a103069fd1b77b",
+      "matches": true
+    },
+    {
+      "file": "panel/continuous_correlations.csv",
+      "sha256": "d200c3bc4ebe7c307d85bf3f2ea6266dcf5390f655954ab191795d6c51d55a2c",
+      "matches": true
+    },
+    {
+      "file": "panel/released_quarter_observables.csv",
+      "sha256": "9591e2cde9e69c2deee57b857d765c46c4b63894c8696cff5617efc012a85e8b",
+      "matches": true
+    }
+  ],
+  "layout": "Newrepositoryroot with onlypublicationfiles and3frozenbaseinputs; no research_repository subfolder orOctober11ZIP",
+  "artifact_privacy": "Temporarylocalpaths omitted fromsavedreport"
+}

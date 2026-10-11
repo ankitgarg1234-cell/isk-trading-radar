@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "release_events": 20,
+  "ticker_counts": {
+    "MU": 10,
+    "STX": 10
+  },
+  "sec_acceptance_verified_filings": 2,
+  "checks": [
+    "Unique source IDs and matching JSON/CSV row counts",
+    "Chronological release and conservative availability order before cutoff",
+    "Finite numeric fields",
+    "Independent revenue-growth, margin, acceleration and same-quarter guidance beat arithmetic",
+    "Original issuer/SEC domains and exact acceptance-time UTC conversion"
+  ],
+  "not_certified": [
+    "No independent audit of all historical SEC statements",
+    "No historical analyst consensus vintages",
+    "No false-positive population or predictive probability from selected case studies"
+  ],
+  "sha256": {
+    "quarter_timeline.csv": "3ac702f913a9bbc1b75d386c63429d4a4f275d810139d858fc5042bcf12cbe09",
+    "source_evidence.json": "7270580d97cf71f3a521d18b0dadf10f6cf790abb2e223c60ca9aa4599f3fd1f",
+    "findings.md": "6b1fcdc95eb9375036f0d91f22589252823223e474f2dd34f6d2368de4cfb1d7",
+    "build_evidence.py": "c4fb61d522dafaec456c9968b5d7a7353de9083d3db0d987ec26e24f3b3c46fe"
+  }
+}
