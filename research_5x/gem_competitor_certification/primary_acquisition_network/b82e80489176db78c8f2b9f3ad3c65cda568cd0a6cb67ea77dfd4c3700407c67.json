@@ -1,0 +1,12 @@
+{
+  "accession": "0001410636-24-000187",
+  "automatic_case_certification": false,
+  "cik": "0001410636",
+  "error": "URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1081)>",
+  "network_retry_count": 0,
+  "retrieved_at_utc": "2026-10-11T19:45:15.250115+00:00",
+  "signal_date": "2025-03-31",
+  "status": "TRANSPORT_FAILED",
+  "ticker": "AWK",
+  "url": "https://www.sec.gov/Archives/edgar/data/1410636/000141063624000187/0001410636-24-000187-index-headers.html"
+}

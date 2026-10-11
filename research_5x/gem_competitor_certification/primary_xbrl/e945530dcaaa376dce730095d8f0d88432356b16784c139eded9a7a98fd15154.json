@@ -1,0 +1,16 @@
+{
+  "accession": "0001410636-24-000187",
+  "automatic_case_certification": false,
+  "cik": "0001410636",
+  "http_status": 200,
+  "network_retry_count": 0,
+  "raw_path": "d8743f978240df5702e244f5102327a6309ef57adcae24ab3ecf1d691f6dc2ec.html",
+  "response_bytes": 1604194,
+  "response_sha256": "d8743f978240df5702e244f5102327a6309ef57adcae24ab3ecf1d691f6dc2ec",
+  "retrieved_at_utc": "2026-10-11T19:54:55.890272+00:00",
+  "signal_date": "2025-03-31",
+  "status": "ACQUIRED_PENDING_REVIEW",
+  "ticker": "AWK",
+  "transport": "system-curl",
+  "url": "https://www.sec.gov/Archives/edgar/data/1410636/000141063624000187/awk-20240930_htm.xml"
+}

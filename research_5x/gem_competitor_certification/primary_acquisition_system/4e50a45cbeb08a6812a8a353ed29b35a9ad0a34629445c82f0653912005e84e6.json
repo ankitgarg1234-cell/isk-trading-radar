@@ -1,0 +1,16 @@
+{
+  "accession": "0000059478-24-000245",
+  "automatic_case_certification": false,
+  "cik": "0000059478",
+  "http_status": 200,
+  "network_retry_count": 0,
+  "raw_path": "3d67640f2b200cf1fdf1990b87d3f7bcc29603b00f7d74915715f8048ee1cf5b.html",
+  "response_bytes": 18075,
+  "response_sha256": "3d67640f2b200cf1fdf1990b87d3f7bcc29603b00f7d74915715f8048ee1cf5b",
+  "retrieved_at_utc": "2026-10-11T19:53:43.835762+00:00",
+  "signal_date": "2025-02-28",
+  "status": "ACQUIRED_PENDING_REVIEW",
+  "ticker": "LLY",
+  "transport": "system-curl",
+  "url": "https://www.sec.gov/Archives/edgar/data/59478/000005947824000245/0000059478-24-000245-index-headers.html"
+}

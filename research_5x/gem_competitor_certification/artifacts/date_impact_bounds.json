@@ -1,0 +1,793 @@
+[
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 45,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 3,
+      "changed_target_slots_upper": 3,
+      "hypothetical_top5": [
+        "PLTR",
+        "GRMN",
+        "C",
+        "FOX",
+        "SYF"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P0_ABOVE_OBSERVED_SELECTED_CUTOFF": 21,
+      "P1_UNKNOWN_MOMENTUM": 12,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 12
+    },
+    "return_impact": null,
+    "signal_date": "2025-01-31",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 5,
+      "changed_target_slots_upper": 5,
+      "hypothetical_top5": [
+        "ANSS",
+        "AVB",
+        "CTRA",
+        "DAY",
+        "DFS"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 48,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 4,
+      "changed_target_slots_upper": 4,
+      "hypothetical_top5": [
+        "PLTR",
+        "FOX",
+        "LLY",
+        "ETR",
+        "WELL"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P0_ABOVE_OBSERVED_SELECTED_CUTOFF": 22,
+      "P1_UNKNOWN_MOMENTUM": 12,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 14
+    },
+    "return_impact": null,
+    "signal_date": "2025-02-28",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 5,
+      "changed_target_slots_upper": 5,
+      "hypothetical_top5": [
+        "ANSS",
+        "AVB",
+        "CTRA",
+        "DAY",
+        "DFS"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 49,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 5,
+      "changed_target_slots_upper": 5,
+      "hypothetical_top5": [
+        "NEM",
+        "ED",
+        "EXC",
+        "WELL",
+        "AEP"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P0_ABOVE_OBSERVED_SELECTED_CUTOFF": 34,
+      "P1_UNKNOWN_MOMENTUM": 12,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 3
+    },
+    "return_impact": null,
+    "signal_date": "2025-03-31",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 5,
+      "changed_target_slots_upper": 5,
+      "hypothetical_top5": [
+        "ANSS",
+        "AVB",
+        "CTRA",
+        "DAY",
+        "DFS"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 3,
+    "backlog_cases": 42,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 2,
+      "archived_selected_replacements_upper": 1,
+      "changed_target_slots_upper": 3,
+      "hypothetical_top5": [
+        "PLTR",
+        "NEM",
+        "ED",
+        "UBER",
+        "CNP"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P0_ABOVE_OBSERVED_SELECTED_CUTOFF": 27,
+      "P1_CAN_FILL_ARCHIVED_CASH_SLOT": 3,
+      "P1_UNKNOWN_MOMENTUM": 12
+    },
+    "return_impact": null,
+    "signal_date": "2025-04-30",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 2,
+      "archived_selected_replacements_upper": 3,
+      "changed_target_slots_upper": 5,
+      "hypothetical_top5": [
+        "ANSS",
+        "AVB",
+        "CTRA",
+        "DAY",
+        "DFS"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 34,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 2,
+      "changed_target_slots_upper": 2,
+      "hypothetical_top5": [
+        "PLTR",
+        "NEM",
+        "CEG",
+        "STX",
+        "EQT"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P0_ABOVE_OBSERVED_SELECTED_CUTOFF": 5,
+      "P1_UNKNOWN_MOMENTUM": 11,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 18
+    },
+    "return_impact": null,
+    "signal_date": "2025-05-30",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 5,
+      "changed_target_slots_upper": 5,
+      "hypothetical_top5": [
+        "ANSS",
+        "AVB",
+        "CTRA",
+        "DAY",
+        "EA"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 40,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 1,
+      "changed_target_slots_upper": 1,
+      "hypothetical_top5": [
+        "STX",
+        "PLTR",
+        "WDC",
+        "CEG",
+        "MU"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P0_ABOVE_OBSERVED_SELECTED_CUTOFF": 1,
+      "P1_UNKNOWN_MOMENTUM": 11,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 28
+    },
+    "return_impact": null,
+    "signal_date": "2025-06-30",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 5,
+      "changed_target_slots_upper": 5,
+      "hypothetical_top5": [
+        "ANSS",
+        "AVB",
+        "CTRA",
+        "DAY",
+        "EA"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 52,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 1,
+      "changed_target_slots_upper": 1,
+      "hypothetical_top5": [
+        "AMD",
+        "WDC",
+        "STX",
+        "TTD",
+        "CEG"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P0_ABOVE_OBSERVED_SELECTED_CUTOFF": 1,
+      "P1_UNKNOWN_MOMENTUM": 8,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 43
+    },
+    "return_impact": null,
+    "signal_date": "2025-07-31",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 5,
+      "changed_target_slots_upper": 5,
+      "hypothetical_top5": [
+        "AVB",
+        "CTRA",
+        "DAY",
+        "EA",
+        "HOLX"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 57,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 2,
+      "changed_target_slots_upper": 2,
+      "hypothetical_top5": [
+        "ANET",
+        "WDC",
+        "STX",
+        "NEM",
+        "APA"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P0_ABOVE_OBSERVED_SELECTED_CUTOFF": 6,
+      "P1_UNKNOWN_MOMENTUM": 7,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 44
+    },
+    "return_impact": null,
+    "signal_date": "2025-08-29",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 5,
+      "changed_target_slots_upper": 5,
+      "hypothetical_top5": [
+        "AVB",
+        "CTRA",
+        "DAY",
+        "EA",
+        "HOLX"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 58,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 1,
+      "changed_target_slots_upper": 1,
+      "hypothetical_top5": [
+        "APP",
+        "WDC",
+        "STX",
+        "HOOD",
+        "ANET"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P0_ABOVE_OBSERVED_SELECTED_CUTOFF": 3,
+      "P1_UNKNOWN_MOMENTUM": 7,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 48
+    },
+    "return_impact": null,
+    "signal_date": "2025-09-30",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 5,
+      "changed_target_slots_upper": 5,
+      "hypothetical_top5": [
+        "AVB",
+        "CTRA",
+        "DAY",
+        "EA",
+        "HOLX"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 51,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 0,
+      "changed_target_slots_upper": 0,
+      "hypothetical_top5": [
+        "MU",
+        "WDC",
+        "STX",
+        "APP",
+        "LRCX"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P1_UNKNOWN_MOMENTUM": 8,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 43
+    },
+    "return_impact": null,
+    "signal_date": "2025-10-31",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 5,
+      "changed_target_slots_upper": 5,
+      "hypothetical_top5": [
+        "AVB",
+        "CTRA",
+        "DAY",
+        "EA",
+        "HOLX"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 52,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 1,
+      "changed_target_slots_upper": 1,
+      "hypothetical_top5": [
+        "WDC",
+        "MU",
+        "STX",
+        "LRCX",
+        "GOOG"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P0_ABOVE_OBSERVED_SELECTED_CUTOFF": 2,
+      "P1_UNKNOWN_MOMENTUM": 8,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 42
+    },
+    "return_impact": null,
+    "signal_date": "2025-11-28",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 5,
+      "changed_target_slots_upper": 5,
+      "hypothetical_top5": [
+        "AVB",
+        "CTRA",
+        "DAY",
+        "EA",
+        "HOLX"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 40,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 2,
+      "changed_target_slots_upper": 2,
+      "hypothetical_top5": [
+        "MU",
+        "WDC",
+        "AMD",
+        "LLY",
+        "GOOG"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P0_ABOVE_OBSERVED_SELECTED_CUTOFF": 5,
+      "P1_UNKNOWN_MOMENTUM": 6,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 29
+    },
+    "return_impact": null,
+    "signal_date": "2025-12-31",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 5,
+      "changed_target_slots_upper": 5,
+      "hypothetical_top5": [
+        "AVB",
+        "CTRA",
+        "DAY",
+        "EA",
+        "HOLX"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 46,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 0,
+      "changed_target_slots_upper": 0,
+      "hypothetical_top5": [
+        "MU",
+        "WDC",
+        "STX",
+        "LRCX",
+        "ADI"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P1_UNKNOWN_MOMENTUM": 6,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 40
+    },
+    "return_impact": null,
+    "signal_date": "2026-01-30",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 5,
+      "changed_target_slots_upper": 5,
+      "hypothetical_top5": [
+        "AVB",
+        "CTRA",
+        "DAY",
+        "EA",
+        "HOLX"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 53,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 0,
+      "changed_target_slots_upper": 0,
+      "hypothetical_top5": [
+        "SNDK",
+        "MU",
+        "GLW",
+        "WDC",
+        "CIEN"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P1_UNKNOWN_MOMENTUM": 5,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 48
+    },
+    "return_impact": null,
+    "signal_date": "2026-02-27",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 5,
+      "changed_target_slots_upper": 5,
+      "hypothetical_top5": [
+        "AVB",
+        "CTRA",
+        "EA",
+        "HOLX",
+        "Q"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 40,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 2,
+      "changed_target_slots_upper": 2,
+      "hypothetical_top5": [
+        "SNDK",
+        "LITE",
+        "DOW",
+        "APA",
+        "CIEN"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P0_ABOVE_OBSERVED_SELECTED_CUTOFF": 2,
+      "P1_UNKNOWN_MOMENTUM": 5,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 33
+    },
+    "return_impact": null,
+    "signal_date": "2026-03-31",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 5,
+      "changed_target_slots_upper": 5,
+      "hypothetical_top5": [
+        "AVB",
+        "CTRA",
+        "EA",
+        "HOLX",
+        "Q"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 46,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 0,
+      "changed_target_slots_upper": 0,
+      "hypothetical_top5": [
+        "LITE",
+        "CIEN",
+        "SNDK",
+        "GLW",
+        "FIX"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P1_UNKNOWN_MOMENTUM": 3,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 43
+    },
+    "return_impact": null,
+    "signal_date": "2026-04-30",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 3,
+      "changed_target_slots_upper": 3,
+      "hypothetical_top5": [
+        "AVB",
+        "CTRA",
+        "EA",
+        "LITE",
+        "CIEN"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 25,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 0,
+      "changed_target_slots_upper": 0,
+      "hypothetical_top5": [
+        "SNDK",
+        "AMD",
+        "MU",
+        "STX",
+        "CIEN"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P1_UNKNOWN_MOMENTUM": 2,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 23
+    },
+    "return_impact": null,
+    "signal_date": "2026-05-29",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 2,
+      "changed_target_slots_upper": 2,
+      "hypothetical_top5": [
+        "AVB",
+        "EA",
+        "SNDK",
+        "AMD",
+        "MU"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 47,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 0,
+      "changed_target_slots_upper": 0,
+      "hypothetical_top5": [
+        "SNDK",
+        "MU",
+        "AMD",
+        "STX",
+        "DELL"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P1_UNKNOWN_MOMENTUM": 4,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 43
+    },
+    "return_impact": null,
+    "signal_date": "2026-06-30",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 4,
+      "changed_target_slots_upper": 4,
+      "hypothetical_top5": [
+        "AVB",
+        "EA",
+        "FDXF",
+        "HONA",
+        "SNDK"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 42,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 0,
+      "changed_target_slots_upper": 0,
+      "hypothetical_top5": [
+        "DELL",
+        "FTNT",
+        "CRWD",
+        "HPE",
+        "MU"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P1_UNKNOWN_MOMENTUM": 4,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 38
+    },
+    "return_impact": null,
+    "signal_date": "2026-07-31",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 4,
+      "changed_target_slots_upper": 4,
+      "hypothetical_top5": [
+        "AVB",
+        "EA",
+        "FDXF",
+        "HONA",
+        "DELL"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 56,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 1,
+      "changed_target_slots_upper": 1,
+      "hypothetical_top5": [
+        "MPC",
+        "VLO",
+        "ZBRA",
+        "PSX",
+        "INCY"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P0_ABOVE_OBSERVED_SELECTED_CUTOFF": 7,
+      "P1_UNKNOWN_MOMENTUM": 2,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 47
+    },
+    "return_impact": null,
+    "signal_date": "2026-08-31",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 2,
+      "changed_target_slots_upper": 2,
+      "hypothetical_top5": [
+        "FDXF",
+        "HONA",
+        "MPC",
+        "VLO",
+        "ZBRA"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  },
+  {
+    "archived_selected_count": 5,
+    "backlog_cases": 20,
+    "changed_slots_lower": 0,
+    "observed_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 1,
+      "changed_target_slots_upper": 1,
+      "hypothetical_top5": [
+        "P",
+        "MPC",
+        "PLTR",
+        "PSX",
+        "HPE"
+      ],
+      "is_certified_or_realized_impact": false
+    },
+    "priority_counts": {
+      "P0_ABOVE_OBSERVED_SELECTED_CUTOFF": 1,
+      "P1_UNKNOWN_MOMENTUM": 2,
+      "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 17
+    },
+    "return_impact": null,
+    "signal_date": "2026-09-30",
+    "unknown_momentum_conditional_bound": {
+      "archived_cash_slots_filled_upper": 0,
+      "archived_selected_replacements_upper": 2,
+      "changed_target_slots_upper": 2,
+      "hypothetical_top5": [
+        "FDXF",
+        "HONA",
+        "P",
+        "MPC",
+        "PLTR"
+      ],
+      "is_certified_or_realized_impact": false
+    }
+  }
+]

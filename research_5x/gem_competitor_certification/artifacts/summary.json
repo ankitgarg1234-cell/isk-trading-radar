@@ -1,0 +1,44 @@
+{
+  "cached_input_uses_independently_rechecked": 1714,
+  "cached_recheck_error_counts": {
+    "ACCEPTANCE_UNVERIFIED": 88,
+    "NO_TIMELY_MATCHING_10Q_DIRECT_QUARTER": 122
+  },
+  "cached_recheck_status_counts": {
+    "CACHED_ACCESSION_VALUE_TIME_MATCH": 1572,
+    "UNRESOLVED": 142
+  },
+  "cases": 943,
+  "changed_slot_lower_sum": 0,
+  "dates_with_fewer_than_five_archived_selections": [
+    "2025-04-30"
+  ],
+  "frozen_commit": "d59b93d3d9a87d582045b4ae71ff9a6f696a48be",
+  "new_strictly_certified_cases": 0,
+  "observed_momentum_changed_slot_upper_sum": 29,
+  "previous_status_counts": {
+    "ACCEPTANCE_UNVERIFIED_OR_AFTER_SIGNAL": 20,
+    "MISSING_SEC_DIRECT_QUARTER": 106,
+    "VALUE_MISMATCH": 16,
+    "VERIFIED_SAME_ACCESSION_QUARTER": 1572
+  },
+  "priority_counts": {
+    "P0_ABOVE_OBSERVED_SELECTED_CUTOFF": 137,
+    "P1_CAN_FILL_ARCHIVED_CASH_SLOT": 3,
+    "P1_UNKNOWN_MOMENTUM": 147,
+    "P2_BELOW_OBSERVED_SELECTED_CUTOFF": 656
+  },
+  "remaining_strict_certification_cases": 943,
+  "return_impact": null,
+  "schema_version": "gem-competitor-case-v1",
+  "scope": "943 frozen unresolved security/date cases; fixed archived prices and selected candidates",
+  "signal_dates": 21,
+  "unique_tickers": 111,
+  "unknown_momentum_changed_slot_upper_sum": 92,
+  "warnings": [
+    "Cache recheck is not fresh SEC source reacquisition or complete eligibility certification",
+    "Below-cutoff deferral assumes archived selected signals and price units remain fixed",
+    "Slot bounds assume every backlog candidate qualifies; not probabilities or return bounds",
+    "Exact audited historical returns remain uncertified; no tuning or future data used"
+  ]
+}
