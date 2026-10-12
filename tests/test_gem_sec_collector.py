@@ -87,7 +87,7 @@ def test_invalid_sec_header_does_not_leave_manifest(tmp_path):
     manifest = {"cik": "0001652044", "schema": "gem-sec-quarter-discovery-v1"}
     receipt = _original_receipt("1652044", b"trusted header")
     with pytest.raises(ValueError, match="do not match"):
-        save_new_evidence(str(tmp_path), manifest, receipt, b"wrong header")
+        save_new_evidence(str(tmp_path), manifest, receipt, b"xxxxxxx header")
     assert list(tmp_path.iterdir()) == []
 
 
