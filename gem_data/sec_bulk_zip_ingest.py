@@ -26,6 +26,7 @@ from gem_data.gem_public_ingest import (
     EXPERIMENT, SECONDARY, _verify, write_observation,
 )
 from gem_data.sec_original_collector import validate_sec_user_agent
+from gem_data.sec_zip_index import SelectedRemoteZip, RemoteZipHold
 
 ARCHIVES = {
     "submissions": "https://www.sec.gov/Archives/edgar/daily-index/bulkdata/submissions.zip",
@@ -243,19 +244,16 @@ def capture_bulk_batch(*, client: httpx.Client | None = None,
                     "remaining_before": len(pending),
                 }
                 count, spent = 0, 0
-                with zipfile.ZipFile(stream, "r", allowZip64=True) as archive:
-                    for cik in pending[:max_ciks]:
+                # SelectedRemoteZip parses huge central directories incrementally
+                # and caches only matching CIK member offsets, not all SEC filers.
+                archive = SelectedRemoteZip(stream, {
+                    f"CIK{c}.json" for c in pending[:max_ciks]
+                })
+                for cik in pending[:max_ciks]:
                         member_name = f"CIK{cik}.json"
                         result["attempted_ciks"] += 1
                         try:
-                            info = archive.getinfo(member_name)
-                            if (info.is_dir() or info.flag_bits & 1
-                                    or info.file_size > MAX_MEMBER_BYTES):
-                                raise BulkSourceHold("Original SEC member rejected by size/encryption")
-                            with archive.open(info, "r") as f:
-                                raw = f.read(MAX_MEMBER_BYTES+1)
-                            if len(raw) != info.file_size or len(raw) > MAX_MEMBER_BYTES:
-                                raise BulkSourceHold("Original SEC member size mismatch")
+                            raw = archive.read_member(member_name)
                             metrics = parse_selected_member(kind, cik, raw)
                             compressed = zlib.compress(raw, 9)
                             if (len(compressed) > MAX_MEMBER_COMPRESSED
@@ -286,7 +284,7 @@ def capture_bulk_batch(*, client: httpx.Client | None = None,
                             }
                             state = "PARTIAL"
                             count += 1
-                        except (KeyError, BulkSourceHold, zipfile.BadZipFile, OSError) as exc:
+                        except (KeyError, BulkSourceHold, RemoteZipHold, zipfile.BadZipFile, OSError) as exc:
                             receipt, state = None, "BLOCKED"
                             sha = sha256((kind+cik+type(exc).__name__).encode()).hexdigest()
                             result["blocked"] += 1
