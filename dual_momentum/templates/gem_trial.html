@@ -41,6 +41,7 @@ h1{font-size:27px;margin:0 0 7px}h2{font-size:18px;margin:0 0 10px}p{margin:5px 
     <p>GEM has not been approved to execute simulated trades. It does not use or reset any of the existing Dual Momentum paper account's balances, positions or history. Independent pre-trade QA and explicit activation are required before execution.</p>
     {% if gem.projection_error %}<p><strong>Data projection:</strong> {{ gem.projection_error }}</p>{% endif %}
   </aside>
+  <section class="panel" aria-label="GEM database state"><span class="kicker">Isolated persistent ledger</span><h2>Shadow database connectivity</h2><p><strong>{{ "CONNECTED" if gem.read_model_connected else "NOT CONNECTED" }}</strong> · Source receipts: {{ gem.source_receipts if gem.source_receipts is not none else "—" }} · Sealed forward signals: {{ gem.shadow_signals if gem.shadow_signals is not none else "—" }} · Trading capability: <strong>DISABLED</strong></p><p class="sub">Database is separate from the existing trial; source receipts are evidence observations, not automatic eligibility certification.</p></section>
   <section class="grid" aria-label="GEM portfolio statistics">
     <div class="card"><div class="name">Planned starting capital</div><div class="value">$10,000</div><small>Not a funded ledger balance</small></div>
     <div class="card"><div class="name">Reconciled portfolio NAV</div><div class="value">{% if gem.portfolio and gem.portfolio.nav is number %}${{ "%.2f"|format(gem.portfolio.nav) }}{% else %}—{% endif %}</div><small>Unavailable until verified paper records</small></div>
