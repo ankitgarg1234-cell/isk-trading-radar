@@ -67,6 +67,68 @@ def _snapshot():
         return None, "GEM projection could not be read or validated"
 
 
+
+def oct1_retrospective_reference():
+    """Read an explicitly retrospective frozen evidence artifact; never place orders.
+
+    This is not the GEM forward paper account or its source of trading authority.
+    Historical vendor prices were retrieved after the Oct 1 model entry.
+    """
+    try:
+        path = Path(__file__).with_name("gem_oct1_reference.json")
+        if not path.is_file() or path.stat().st_size > 16000:
+            return None
+        ref = json.loads(path.read_text(encoding="utf-8"))
+        if (not isinstance(ref, dict)
+                or ref.get("schema") != "gem-retrospective-reference-v1"
+                or ref.get("classification") != "RETROSPECTIVE_NOT_FORWARD_NOT_CERTIFIED"
+                or ref.get("strategy_commit") != FROZEN_REF
+                or ref.get("signal_date") != "2026-09-30"
+                or ref.get("simulated_open") != "2026-10-01"
+                or ref.get("marked_through") != "2026-10-09"
+                or ref.get("starting_cash_usd") != 10000
+                or ref.get("cost_bps_per_side") != 20
+                or ref.get("selected") != ["P", "MPC", "PLTR", "HPE", "VLO"]):
+            return None
+        orders = ref.get("orders")
+        daily = ref.get("daily_nav")
+        if not isinstance(orders, list) or len(orders) != 5 or not isinstance(daily, list) or len(daily) != 7:
+            return None
+        if any(not isinstance(order, dict) or order.get("actual_fill") is not False
+               or order.get("side") != "HYPOTHETICAL_BUY" or order.get("quantity", 0) <= 0
+               or order.get("ticker") != expected
+               for order, expected in zip(orders, ref["selected"])):
+            return None
+        if (any(row.get("date") not in {"2026-10-01","2026-10-02","2026-10-05","2026-10-06","2026-10-07","2026-10-08","2026-10-09"}
+                for row in daily) or
+                [row["date"] for row in daily] != sorted(set(row["date"] for row in daily))):
+            return None
+        # A historical reference must not be allowed to masquerade as a
+        # contemporaneously recorded fill or a real prospective mark.
+        latest = daily[-1]
+        if latest.get("date") != "2026-10-09":
+            return None
+        return {
+            "classification": "BACKFILLED_UNCERTIFIED",
+            "as_of": latest["date"],
+            "signal_date": ref["signal_date"],
+            "modeled_buy_date": ref["simulated_open"],
+            "nav_usd": latest["gem_nav"],
+            "return_pct": latest["gem_return_pct"],
+            "spy_nav_usd": latest["spy_nav"],
+            "spy_return_pct": latest["spy_return_pct"],
+            "cash_usd": ref["ending_cash_usd"],
+            "orders": orders,
+            "daily_nav": daily,
+            "source_retrieved": "2026-10-11",
+            "qa": "UNCERTIFIED — full eligible universe not reconciled",
+            "issues": "20 historical competitor cases open for Sep 30, including PSX above observed cutoff and FDXF/HONA with unknown momentum",
+            "fills_recorded": 0,
+        }
+    except (OSError, ValueError, TypeError, KeyError, AttributeError):
+        return None
+
+
 def gem_status():
     snapshot, error = _snapshot()
     raw_sources = (snapshot or {}).get("sources") or {}
@@ -112,6 +174,7 @@ def gem_status():
         "historical_open_cases": 943,
         "historical_case_as_of": "2026-10-11",
         "read_model_connected": snapshot is not None,
+        "oct1_backfill": oct1_retrospective_reference(),
         "next_signal": (snapshot or {}).get("next_signal"),
         "notes": "Read-only. An external projection cannot grant trading authority.",
     }
@@ -125,3 +188,8 @@ def gem_trial_page(request: Request):
 @router.get("/api/gem-trial/status")
 def gem_trial_status_api():
     return gem_status()
+
+
+@router.get("/api/gem-trial/backfill-reference")
+def gem_oct1_backfill_reference_api():
+    return oct1_retrospective_reference() or {"status": "UNAVAILABLE", "classification": "RETROSPECTIVE_ONLY"}
