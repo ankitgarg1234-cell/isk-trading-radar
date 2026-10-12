@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>GEM V1 · Dual Momentum Radar</title>
+<style>
+:root{color-scheme:light;--bg:#f3f6fa;--ink:#15243b;--muted:#607083;--line:#dbe3ed;--blue:#315fba;--red:#9d402f;--amber:#8a601e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink)}
+.top{background:#142b4b;color:#fff;padding:18px max(18px,calc((100vw - 1200px)/2));display:flex;gap:18px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.brand small{display:block;letter-spacing:.1em;color:#adcee9;font-size:11px}.brand strong{font-size:20px}
+.links{display:flex;gap:9px;flex-wrap:wrap}.links a{color:#eaf3ff;text-decoration:none;padding:8px 12px;border:1px solid #6585a4;border-radius:7px}.links a[aria-current]{background:#f3f6fa;color:#142b4b}
+main{max-width:1200px;margin:0 auto;padding:22px 18px 60px}.header{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+h1{font-size:27px;margin:0 0 7px}h2{font-size:18px;margin:0 0 10px}p{margin:5px 0 12px}small,.muted{color:var(--muted)}.warning{background:#fff4e7;border:1px solid #efd0a2;border-left:4px solid #b96c26;padding:16px;border-radius:9px;margin:17px 0}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}.card,.panel{background:white;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 2px 6px rgba(16,36,60,.025)}
+.card .name{font-size:12px;color:var(--muted)}.card .value{font-size:23px;font-weight:700;margin:8px 0 3px;font-variant-numeric:tabular-nums}
+.columns{display:grid;grid-template-columns:1.2fr 1fr;gap:14px;margin-bottom:14px}.panel{margin-bottom:14px}table{width:100%;border-collapse:collapse;text-align:left}th{color:var(--muted);font-weight:600;font-size:12px}th,td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}.scroll{overflow-x:auto}.status{display:inline-block;font-size:11px;border-radius:6px;padding:3px 8px;background:#e8edf4;color:#34465e;font-weight:750;white-space:nowrap}.status.bad{background:#fff0ed;color:#9c3826}.status.ok{background:#e7f5ec;color:#237a49}.status.wait{background:#fff3d9;color:#805916}.sub{font-size:12px;color:var(--muted)}
+.empty{padding:28px 12px;text-align:center;background:#f6f8fb;color:var(--muted);border:1px dashed var(--line);border-radius:9px}
+.kicker{font-size:11px;color:var(--blue);font-weight:750;letter-spacing:.08em;text-transform:uppercase}
+.foot{border-top:1px solid var(--line);padding-top:14px;font-size:12px;color:var(--muted)}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}.columns{grid-template-columns:1fr}}
+@media(max-width:420px){h1{font-size:23px}.grid{grid-template-columns:1fr 1fr}.card{padding:11px}.card .value{font-size:20px}th,td{padding:9px 5px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><small>ISK · US EQUITY RESEARCH</small><strong>Dual Momentum Radar</strong></div>
+  <nav class="links" aria-label="Portfolio navigation">
+    <a href="/">Strategy dashboard</a><a href="/trial">Existing paper trial</a><a href="/gem-trial" aria-current="page">GEM V1 trial</a>
+  </nav>
+</header>
+<main>
+  <section class="header">
+    <div><span class="kicker">Separate strategy · same application</span><h1>Growth + Earnings + Margin</h1>
+      <p class="muted">Frozen GEM V1 paper-validation dashboard · strategy reference <code>{{ gem.strategy_ref }}</code></p></div>
+    <span class="status bad">PAPER PURCHASES DISABLED</span>
+  </section>
+  <aside class="warning" role="status">
+    <strong>Read-only setup / shadow preparation</strong>
+    <p>GEM has not been approved to execute simulated trades. It does not use or reset any of the existing Dual Momentum paper account's balances, positions or history. Independent pre-trade QA and explicit activation are required before execution.</p>
+    {% if gem.projection_error %}<p><strong>Data projection:</strong> {{ gem.projection_error }}</p>{% endif %}
+  </aside>
+  <section class="grid" aria-label="GEM portfolio statistics">
+    <div class="card"><div class="name">Planned starting capital</div><div class="value">$10,000</div><small>Not a funded ledger balance</small></div>
+    <div class="card"><div class="name">Reconciled portfolio NAV</div><div class="value">{% if gem.portfolio and gem.portfolio.nav is number %}${{ "%.2f"|format(gem.portfolio.nav) }}{% else %}—{% endif %}</div><small>Unavailable until verified paper records</small></div>
+    <div class="card"><div class="name">Portfolio return</div><div class="value">{% if gem.portfolio and gem.portfolio.return_pct is number %}{{ "%.2f"|format(gem.portfolio.return_pct) }}%{% else %}—{% endif %}</div><small>Prospective only; no historical replay substituted</small></div>
+    <div class="card"><div class="name">SPY benchmark return</div><div class="value">{% if gem.portfolio and gem.portfolio.spy_return_pct is number %}{{ "%.2f"|format(gem.portfolio.spy_return_pct) }}%{% else %}—{% endif %}</div><small>Same-account inception period</small></div>
+  </section>
+  <div class="columns">
+    <section class="panel">
+      <span class="kicker">Data readiness</span><h2>Required forward data sources</h2>
+      <p class="muted">Existing data adapters are not automatically GEM-certified. Unknown or incomplete information prevents a qualified ranking.</p>
+      <div class="scroll"><table><thead><tr><th>Source</th><th>Evidence required</th><th>State</th></tr></thead><tbody>
+      {% for s in gem.sources %}<tr><td><strong>{{ s.name }}</strong>{% if s.as_of %}<div class="sub">As of {{ s.as_of }}</div>{% endif %}</td><td class="sub">{{ s.requirement }}</td>
+      <td><span class="status {{ 'ok' if s.status == 'VERIFIED' else 'bad' if s.status in ['BLOCKED','MISSING','STALE'] else 'wait' }}">{{ s.status }}</span></td></tr>{% endfor %}
+      </tbody></table></div>
+    </section>
+    <section class="panel">
+      <span class="kicker">Decision safety</span><h2>Pre-trade QA pipeline</h2>
+      <table><tbody>
+        <tr><td>GEM rules and source digest</td><td><span class="status">FROZEN REF</span></td></tr>
+        <tr><td>Complete month-end membership and ranking</td><td><span class="status wait">NOT VERIFIED</span></td></tr>
+        <tr><td>SEC accession and publication evidence</td><td><span class="status wait">NOT VERIFIED</span></td></tr>
+        <tr><td>Independent QA and order-plan parity</td><td><span class="status bad">BLOCKED</span></td></tr>
+        <tr><td>Reconciled isolated GEM ledger</td><td><span class="status wait">NOT STARTED</span></td></tr>
+        <tr><td>Paper order authorization</td><td><span class="status bad">DISABLED</span></td></tr>
+      </tbody></table>
+      <p class="sub">QA evidence must bind the exact signal, source manifest, portfolio state, proposed orders and rule version. Display status cannot authorize a purchase.</p>
+      <h2>Next forward signal</h2>
+      <p>{% if gem.next_signal and gem.read_model_connected %}{{ gem.next_signal }}{% else %}Awaiting first independently verified monthly snapshot{% endif %}</p>
+    </section>
+  </div>
+  <div class="columns">
+    <section class="panel">
+      <span class="kicker">Forward portfolio</span><h2>Holdings and executions</h2>
+      <div class="empty">No reconciled GEM portfolio events are available. Existing paper-trial positions are intentionally excluded.</div>
+    </section>
+    <section class="panel">
+      <span class="kicker">Parallel research</span><h2>Historical competitor certification</h2>
+      <div class="card" style="border:0;background:#f6f8fb">
+        <div class="name">Unresolved competitor cases in archived audit</div>
+        <div class="value">{{ gem.historical_open_cases }}</div>
+        <small>Static reference as of {{ gem.historical_case_as_of }}; not a live progress count</small>
+      </div>
+      <p class="muted">Historical corrections remain separate from the frozen forward account. No retrospective result is displayed as prospective performance.</p>
+    </section>
+  </div>
+  <p class="foot">Environment: {{ gem.mode }} · Projection observed: {{ gem.as_of or "not available" }} · All values are simulated research data when present. No brokerage connection, brokerage orders, portfolio resets, DB migrations or account writes are exposed on this page.</p>
+</main>
+</body>
+</html>

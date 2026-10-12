@@ -19,8 +19,10 @@ from .db import DMCash, DMPosition, DMStrategyState, DMTrade, SessionLocal, engi
 from .portfolio import build_portfolio_plan
 from .rules import StopState, advance_stop, wilder_atr_series
 from .trial import init_trial, read_trial, poll, refresh_ranking_only, START as TRIAL_START, END as TRIAL_END, NY as TRIAL_NY
+from .gem_dashboard import router as gem_trial_router
 
 app = FastAPI(title="Dual Momentum Radar", version="1.0.0")
+app.include_router(gem_trial_router)
 templates = Jinja2Templates(directory="dual_momentum/templates")
 SCAN_LOCK = threading.Lock()
 
