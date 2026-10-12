@@ -155,6 +155,9 @@ def classify_month(signal_date: date, a_symbols: set[str], b_symbols: set[str] |
     # missing record, or missing fundamentals. NEVER call it a failed gate.
     missing_a = a_symbols - input_a
     missing_b = b_symbols - input_b if b_symbols is not None else set()
+    disputed = (a_symbols ^ b_symbols) if b_symbols is not None else set()
+    disputed_observed = disputed & set(rows or {})
+    disputed_qualified = conditional_top5(rows, disputed_observed) if rows else []
     result = {
         "signal_session": day,
         "source_A_member_count": len(a_symbols),
@@ -162,6 +165,11 @@ def classify_month(signal_date: date, a_symbols: set[str], b_symbols: set[str] |
         "members_only_A": sorted(a_symbols - b_symbols) if b_symbols is not None else [],
         "members_only_B": sorted(b_symbols - a_symbols) if b_symbols is not None else [],
         "member_symmetric_difference_count": len(a_symbols ^ b_symbols) if b_symbols is not None else None,
+        "disputed_members_with_archived_feature": sorted(disputed_observed),
+        "disputed_members_qualified_on_archived_features": disputed_qualified,
+        "archived_original_selected_missing_from_A": sorted(set(initial or []) - a_symbols) if initial is not None else None,
+        "archived_original_selected_missing_from_B": (sorted(set(initial or []) - b_symbols)
+                                                    if initial is not None and b_symbols is not None else None),
         "archived_feature_rows": len(rows) if rows else 0,
         "source_A_observed_feature_rows": len(input_a),
         "source_B_observed_feature_rows": len(input_b) if b_symbols is not None else None,
