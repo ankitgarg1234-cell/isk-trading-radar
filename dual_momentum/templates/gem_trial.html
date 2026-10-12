@@ -90,17 +90,32 @@ h1{font-size:27px;margin:0 0 7px}h2{font-size:18px;margin:0 0 10px}p{margin:5px 
   <div class="columns">
     <section class="panel">
       <span class="kicker">Data readiness</span><h2>Required forward data sources</h2>
-      <p class="muted">Existing data adapters are not automatically GEM-certified. Unknown or incomplete information prevents a qualified ranking.</p>
-      <div class="scroll"><table><thead><tr><th>Source</th><th>Evidence required</th><th>State</th></tr></thead><tbody>
-      {% for s in gem.sources %}<tr><td><strong>{{ s.name }}</strong>{% if s.as_of %}<div class="sub">As of {{ s.as_of }}</div>{% endif %}</td><td class="sub">{{ s.requirement }}</td>
-      <td><span class="status {{ 'ok' if s.status == 'VERIFIED' else 'bad' if s.status in ['BLOCKED','MISSING','STALE'] else 'wait' }}">{{ s.status }}</span></td></tr>{% endfor %}
+      <p class="muted"><strong>Independently certified for GEM: {{ gem.verified_source_count }}/{{ gem.required_source_count }}.</strong> The checks below distinguish tested provider availability from complete usable trading evidence. A PARTIAL sample never approves a ranking.</p>
+      <div class="scroll"><table><thead><tr><th>Source</th><th>Evidence required</th><th>State / blockers</th></tr></thead><tbody>
+      {% for s in gem.sources %}<tr>
+        <td style="min-width:125px"><strong>{{ s.name }}</strong>{% if s.as_of %}<div class="sub">Checked {{ s.as_of }}</div>{% endif %}</td>
+        <td class="sub" style="min-width:165px">{{ s.requirement }}</td>
+        <td style="min-width:170px">
+          <span class="status {{ 'ok' if s.status == 'VERIFIED' else 'bad' if s.status in ['BLOCKED','MISSING','STALE'] else 'wait' }}">{{ s.status }}</span>
+          {% if s.evidence or s.missing %}
+          <details style="margin-top:7px;font-size:12px"><summary>View evidence &amp; gaps</summary>
+            {% if s.checked_scope %}<p class="sub"><strong>Scope:</strong> {{ s.checked_scope }}</p>{% endif %}
+            {% if s.evidence %}<p class="sub"><strong>Checked:</strong> {{ s.evidence }}</p>{% endif %}
+            {% if s.missing %}<p class="sub"><strong>Still required:</strong></p><ul class="sub" style="padding-left:16px;margin-top:4px">
+              {% for missing in s.missing %}<li>{{ missing }}</li>{% endfor %}
+            </ul>{% endif %}
+          </details>{% endif %}
+        </td>
+      </tr>{% endfor %}
       </tbody></table></div>
+      <p class="sub" style="margin-top:12px">The October 12 provider probes are diagnostic snapshots and become STALE when their freshness window expires. The GEM signal engine must consume separately certified, timestamped full-universe data; the dashboard cannot authorize an order.</p>
     </section>
     <section class="panel">
       <span class="kicker">Decision safety</span><h2>Pre-trade QA pipeline</h2>
       <table><tbody>
         <tr><td>GEM rules and source digest</td><td><span class="status">FROZEN REF</span></td></tr>
         <tr><td>Complete month-end membership and ranking</td><td><span class="status wait">NOT VERIFIED</span></td></tr>
+        <tr><td>Full-universe missing-competing-stock test</td><td><span class="status bad">BLOCKS IF INCOMPLETE</span></td></tr>
         <tr><td>SEC accession and publication evidence</td><td><span class="status wait">NOT VERIFIED</span></td></tr>
         <tr><td>Independent QA and order-plan parity</td><td><span class="status bad">BLOCKED</span></td></tr>
         <tr><td>Reconciled isolated GEM ledger</td><td><span class="status wait">NOT STARTED</span></td></tr>
