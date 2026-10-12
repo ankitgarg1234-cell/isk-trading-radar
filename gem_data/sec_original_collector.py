@@ -168,21 +168,49 @@ class SecOriginalCollector:
 
 def save_new_evidence(directory: str, manifest: dict, receipt: RawReceipt | None = None,
                       original_header: bytes | None = None):
-    """Create-only files; do not overwrite source receipts or existing snapshots."""
-    out = Path(directory)
-    out.mkdir(parents=True, exist_ok=True)
-    cik = manifest["cik"]
-    path = out / (f"CIK{cik}-quarter-discovery.json")
-    if path.exists():
-        raise FileExistsError("Refusing to overwrite original SEC evidence")
-    path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    if receipt is not None and original_header is not None:
+    """Persist checked original evidence without overwriting an existing receipt.
+
+    Validate ALL supplied bytes and identities before writing any artifact;
+    require both header bytes and their receipt. Use exclusive creation to avoid
+    overwriting evidence during concurrent collector retries.
+    """
+    if not isinstance(manifest, dict):
+        raise ValueError("Missing original SEC manifest")
+    cik = normalize_cik(manifest.get("cik", ""))
+    if (receipt is None) != (original_header is None):
+        raise ValueError("Header bytes and their original receipt must be supplied together")
+    if original_header is not None and not isinstance(original_header, bytes):
+        raise ValueError("Original SEC header must be raw bytes")
+    header_path = None
+    if receipt is not None:
+        if receipt.provider != "SEC_ORIGINAL" or receipt.bytes != len(original_header):
+            raise ValueError("Original SEC header receipt metadata mismatch")
         if sha256(original_header).hexdigest() != receipt.sha256:
             raise ValueError("Original header raw bytes do not match source receipt")
-        header_path = out / f"CIK{cik}-original-header-{receipt.sha256}.html"
-        if header_path.exists():
-            raise FileExistsError("Duplicate original header raw bytes")
-        header_path.write_bytes(original_header)
+        if f"/Archives/edgar/data/{int(cik)}/" not in receipt.uri:
+            raise ValueError("SEC original header CIK does not match manifest")
+        header_path = Path(directory) / f"CIK{cik}-original-header-{receipt.sha256}.html"
+
+    out = Path(directory)
+    out.mkdir(parents=True, exist_ok=True)
+    path = out / f"CIK{cik}-quarter-discovery.json"
+    if path.exists() or (header_path is not None and header_path.exists()):
+        raise FileExistsError("Refusing to overwrite original SEC evidence")
+
+    # Write the original first. On a manifest write error, undo ONLY the header
+    # created in this call. No preexisting file is ever rewritten or deleted.
+    created_header = False
+    try:
+        if header_path is not None:
+            with header_path.open("xb") as sink:
+                sink.write(original_header)
+            created_header = True
+        with path.open("x", encoding="utf-8") as sink:
+            sink.write(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    except Exception:
+        if created_header:
+            header_path.unlink(missing_ok=True)
+        raise
     return path
 
 
