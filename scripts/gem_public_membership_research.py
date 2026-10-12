@@ -15,6 +15,11 @@ import urllib.request
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+if __package__:
+    from .gem_membership_identity_audit import identity_screen, screen_reference_symbols
+else:
+    from gem_membership_identity_audit import identity_screen, screen_reference_symbols
+
 SOURCE_HISTORY = "https://raw.githubusercontent.com/lawcal/sp500-components-history/main/data/components_history.csv"
 SOURCE_CURRENT = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv"
 MONTHLY_SOURCES = {
@@ -139,20 +144,32 @@ def research_report(history_raw: bytes, snapshots: list[date], *,
         active = asof_members(history, day)
         flags = [r for r in active if r["date_approximate"]]
         unknown_at_signal = [r for r in active if r["first_source_recorded_on"] > day]
+        identity = identity_screen(active, day)
+        identity.pop("retained")
         results.append({
             "date": day.isoformat(),
             "count": len(active),
             "approximate_date_count": len(flags),
             "not_recorded_by_snapshot_count": len(unknown_at_signal),
+            "asof_ticker_identity": identity,
+            "frozen_gem_top5_impact": "UNDETERMINED_MISSING_63_SESSION_AND_SEC_FACT_EVIDENCE",
+            "ranking_comparison_ready": False,
             "quality_flags": (["UNUSUAL_COMPONENT_COUNT"] if not 490 <= len(active) <= 510 else [])
                            + (["APPROXIMATE_EFFECTIVE_DATES"] if flags else [])
-                           + (["RETROSPECTIVELY_RECONSTRUCTED"] if unknown_at_signal else []),
+                           + (["RETROSPECTIVELY_RECONSTRUCTED"] if unknown_at_signal else [])
+                           + (["HISTORICAL_TICKER_ERA_MISMATCH"] if identity["quarantined"] else [])
+                           + (["UNRESOLVED_CIK_SHARE_CLASS_COLLISION"] if identity["unresolved_same_cik_collisions"] else []),
             "members": [{
                 "ticker": r["ticker"], "cik": r["cik"], "sector": r["sector"],
                 "effective_from": r["effective_from"].isoformat(),
                 "effective_until": r["effective_until"].isoformat() if r["effective_until"] else None,
                 "approximate_effective_date": r["date_approximate"],
                 "first_source_recorded_on": r["first_source_recorded_on"].isoformat(),
+                "asof_ticker_identity_status": (
+                    "QUARANTINED_KNOWN_IMPOSSIBLE_TICKER_ERA"
+                    if any(q["ticker"] == r["ticker"] for q in identity["quarantined"])
+                    else "UNVERIFIED_RETROSPECTIVE_SOURCE"
+                ),
             } for r in active],
         })
     cross_checks = {}
@@ -175,12 +192,26 @@ def research_report(history_raw: bytes, snapshots: list[date], *,
         day = date.fromisoformat(snapshot_date)
         history_month = {normalize_alias(r["ticker"]) for r in asof_members(history, day)}
         reference_month = {normalize_alias(x) for x in _april_symbols(raw)}
+        history_era = identity_screen(asof_members(history, day), day)
+        monthly_era = screen_reference_symbols(reference_month, day)
+        h_era_set = set(normalize_alias(x) for x in history_era["retained"])
+        m_era_set = set(normalize_alias(x) for x in monthly_era["retained"])
         cross_checks["monthly_" + snapshot_date] = {
             "source": source,
             "source_sha256": hashlib.sha256(raw).hexdigest(),
             "history_count": len(history_month), "reference_count": len(reference_month),
             "only_in_history": sorted(history_month - reference_month),
             "only_in_reference": sorted(reference_month - history_month),
+            "after_documented_symbol_era_check": {
+                "history_count": len(h_era_set),
+                "reference_count": len(m_era_set),
+                "only_in_history": sorted(h_era_set - m_era_set),
+                "only_in_reference": sorted(m_era_set - h_era_set),
+                "history_quarantined_tickers": sorted(q["ticker"] for q in history_era["quarantined"]),
+                "reference_quarantined_tickers": sorted(q["ticker"] for q in monthly_era["quarantined"]),
+                "unresolved_cik_collisions": history_era["unresolved_same_cik_collisions"],
+                "top5_effect": "UNDETERMINED_UNTIL_ALL_DISPUTED_COMPETITORS_HAVE_PIT_R63_SEC_AND_LIQUIDITY",
+            },
             "asof_semantics": "TWO_PUBLIC_RECONSTRUCTIONS_DISAGREEMENTS_UNRESOLVED",
         }
     return {
@@ -213,7 +244,7 @@ def main():
                         help="Explicit YYYY-MM-DD research snapshot. Repeat for additional dates.")
     parser.add_argument("--out", required=True, help="Path for local JSON research output")
     parser.add_argument("--cross-checks", action="store_true",
-                        help="Compare secondary current list and April 2026 monthly snapshot")
+                        help="Compare secondary current list and pinned historical monthly snapshots")
     args = parser.parse_args()
     snapshots = [date.fromisoformat(item) for item in args.date]
     historical = fetch_public_source(SOURCE_HISTORY)
