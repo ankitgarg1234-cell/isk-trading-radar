@@ -134,7 +134,7 @@ def merge_source_status(*, probe: dict, observed: dict | None) -> dict:
         observed_at = _limited_text(row.get("as_of"))
         observed_day = _safe_date(observed_at[:10])
         if observed_day is None or observed_day > datetime.now(timezone.utc).date():
-            state = "UNKNOWN"
+            state = "STALE" if state == "STALE" else "UNKNOWN"
         elif (datetime.now(timezone.utc).date() - observed_day).days > MAX_AGE_DAYS[key]:
             state = "STALE"
         existing = result[key]
