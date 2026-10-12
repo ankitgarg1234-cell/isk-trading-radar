@@ -60,8 +60,8 @@ def test_secondary_comparisons_report_disagreements_without_replacement():
     current = ("Symbol,CIK\nAAA,0000001234\nBRK.B,0000000123\nCCC,0000000124\n").encode()
     april = "AAA\tIssuer\t0.5\nBRK/B\tIssuer\t0.5\nZZZ\tOther\t0.5\n".encode()
     report = research_report(raw, [date(2026, 4, 30)], current_raw=current,
-                             april_raw=april, retrieved_at="2026-10-12T12:00:00+00:00")
+                             monthly_raw={"2026-04-30": april}, retrieved_at="2026-10-12T12:00:00+00:00")
     assert report["cross_checks"]["other_public_current"]["only_in_reference"] == ["CCC"]
-    assert report["cross_checks"]["april_2026_monthly"]["only_in_reference"] == ["ZZZ"]
+    assert report["cross_checks"]["monthly_2026-04-30"]["only_in_reference"] == ["ZZZ"]
     assert "BRK.B" not in report["cross_checks"]["april_2026_monthly"]["only_in_reference"]
     assert report["paper_execution_authorized"] is False
