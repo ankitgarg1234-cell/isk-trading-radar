@@ -251,7 +251,10 @@ def capture_and_persist(*, observed: datetime | None = None) -> dict:
         if membership_raw is None:
             raise RuntimeError("SEC scan held: current secondary CIK discovery missing")
         ua = os.getenv("SEC_USER_AGENT", "")
-        evidence, summary = probe_batch(membership_raw, observed, ua)
+        evidence, summary = probe_batch(
+            membership_raw, observed, ua,
+            pilot_limit=int(os.getenv("GEM_SEC_PILOT_LIMIT", "3")),
+        )
         with psycopg.connect(url, connect_timeout=6) as conn:
             store_sec_discovery(conn, evidence)
         result["sec"] = "BLOCKED" if summary["ciks_failed"] else "PARTIAL"
