@@ -5,6 +5,8 @@ on:
       - audit/gemv1-calendar-session-coverage-20261012
     paths:
       - "gem_data/nyse_2026_proposal.py"
+      - "scripts/gem_nyse_fetch_primary_2026.py"
+      - "tests/test_gem_nyse_primary_receipt.py"
       - "tests/test_gem_nyse_2026_proposal.py"
       - ".github/workflows/gem-nyse-2026-proposal-tests.yml"
   workflow_dispatch:
@@ -19,4 +21,25 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install -r dual_momentum_requirements.txt pytest
-      - run: python -m pytest -q tests/test_gem_nyse_2026_proposal.py
+      - run: python -m pytest -q tests/test_gem_nyse_2026_proposal.py tests/test_gem_nyse_primary_receipt.py
+
+  nyse-actual-first-party-receipt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install httpx
+      - name: Fetch official NYSE source and hash raw bytes; never auto-certify
+        run: python scripts/gem_nyse_fetch_primary_2026.py --output-dir "$RUNNER_TEMP/nyse-audit"
+      - name: Upload only reviewer evidence, not a trading-ready manifest
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gem-nyse-raw-review-not-certified
+          path: ${{ runner.temp }}/nyse-audit/
+          retention-days: 14
