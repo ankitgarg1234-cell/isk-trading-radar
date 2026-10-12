@@ -17,7 +17,13 @@ from pathlib import Path
 
 SOURCE_HISTORY = "https://raw.githubusercontent.com/lawcal/sp500-components-history/main/data/components_history.csv"
 SOURCE_CURRENT = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv"
-SOURCE_APRIL_2026 = "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202604"
+MONTHLY_SOURCES = {
+    "2022-12-30": "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202212",
+    "2023-06-30": "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202306",
+    "2024-12-31": "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202412",
+    "2025-09-30": "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202509",
+    "2026-04-30": "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202604",
+}
 MAX_BYTES = 2_000_000
 SYMBOL = re.compile(r"^[A-Z0-9][A-Z0-9.\-/]{0,12}$")
 CIK = re.compile(r"^[0-9]{10}$")
@@ -33,7 +39,7 @@ def normalize_alias(symbol: str) -> str:
 
 
 def fetch_public_source(url: str, *, opener=urllib.request.urlopen) -> bytes:
-    if url not in {SOURCE_HISTORY, SOURCE_CURRENT, SOURCE_APRIL_2026}:
+    if url not in {SOURCE_HISTORY, SOURCE_CURRENT, *MONTHLY_SOURCES.values()}:
         raise ResearchSourceError("Unapproved research source URL")
     req = urllib.request.Request(url, headers={"User-Agent": "GEM-research-source-audit/1.0"})
     with opener(req, timeout=25) as response:
@@ -122,7 +128,7 @@ def _april_symbols(raw: bytes) -> set[str]:
 
 def research_report(history_raw: bytes, snapshots: list[date], *,
                     current_raw: bytes | None = None,
-                    april_raw: bytes | None = None,
+                    monthly_raw: dict[str, bytes] | None = None,
                     retrieved_at: str | None = None) -> dict:
     history = parse_history(history_raw)
     retrieved = retrieved_at or datetime.now(timezone.utc).isoformat()
@@ -146,6 +152,7 @@ def research_report(history_raw: bytes, snapshots: list[date], *,
                 "effective_from": r["effective_from"].isoformat(),
                 "effective_until": r["effective_until"].isoformat() if r["effective_until"] else None,
                 "approximate_effective_date": r["date_approximate"],
+                "first_source_recorded_on": r["first_source_recorded_on"].isoformat(),
             } for r in active],
         })
     cross_checks = {}
@@ -161,17 +168,20 @@ def research_report(history_raw: bytes, snapshots: list[date], *,
             "only_in_reference": sorted(current-candidate),
             "asof_semantics": "LATEST_RETRIEVED_PUBLIC_LIST_NOT_ASOF_SIGNAL",
         }
-    if april_raw is not None:
-        day = date(2026, 4, 30)
-        history_april = {normalize_alias(r["ticker"]) for r in asof_members(history, day)}
-        reference_april = {normalize_alias(x) for x in _april_symbols(april_raw)}
-        cross_checks["april_2026_monthly"] = {
-            "source": SOURCE_APRIL_2026,
-            "source_sha256": hashlib.sha256(april_raw).hexdigest(),
-            "history_count": len(history_april), "reference_count": len(reference_april),
-            "only_in_history": sorted(history_april - reference_april),
-            "only_in_reference": sorted(reference_april - history_april),
-            "asof_semantics": "PUBLIC_MONTH_END_RECONSTRUCTION_DISAGREEMENTS_UNRESOLVED",
+    for snapshot_date, raw in (monthly_raw or {}).items():
+        source = MONTHLY_SOURCES.get(snapshot_date)
+        if source is None:
+            raise ResearchSourceError("Unknown pinned historical comparison month")
+        day = date.fromisoformat(snapshot_date)
+        history_month = {normalize_alias(r["ticker"]) for r in asof_members(history, day)}
+        reference_month = {normalize_alias(x) for x in _april_symbols(raw)}
+        cross_checks["monthly_" + snapshot_date] = {
+            "source": source,
+            "source_sha256": hashlib.sha256(raw).hexdigest(),
+            "history_count": len(history_month), "reference_count": len(reference_month),
+            "only_in_history": sorted(history_month - reference_month),
+            "only_in_reference": sorted(reference_month - history_month),
+            "asof_semantics": "TWO_PUBLIC_RECONSTRUCTIONS_DISAGREEMENTS_UNRESOLVED",
         }
     return {
         "schema": "gem-public-membership-research-v1",
@@ -208,8 +218,9 @@ def main():
     snapshots = [date.fromisoformat(item) for item in args.date]
     historical = fetch_public_source(SOURCE_HISTORY)
     current = fetch_public_source(SOURCE_CURRENT) if args.cross_checks else None
-    april = fetch_public_source(SOURCE_APRIL_2026) if args.cross_checks else None
-    report = research_report(historical, snapshots, current_raw=current, april_raw=april)
+    monthly = {d.isoformat(): fetch_public_source(MONTHLY_SOURCES[d.isoformat()])
+               for d in snapshots if args.cross_checks and d.isoformat() in MONTHLY_SOURCES}
+    report = research_report(historical, snapshots, current_raw=current, monthly_raw=monthly)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
