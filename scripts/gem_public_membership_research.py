@@ -122,15 +122,30 @@ def _current_symbols(raw: bytes) -> set[str]:
     return set(names)
 
 
-def _april_symbols(raw: bytes) -> set[str]:
+def _monthly_reference_names(raw: bytes) -> dict[str, str]:
     try:
         lines = raw.decode("utf-8-sig").splitlines()
     except UnicodeDecodeError as exc:
         raise ResearchSourceError("Malformed monthly reference") from exc
-    names = [line.split("\t")[0].strip().upper() for line in lines if line.strip()]
-    if not names or len(names) != len(set(names)):
-        raise ResearchSourceError("Malformed monthly reference member list")
-    return set(names)
+    records: dict[str, str] = {}
+    for line in lines:
+        if not line.strip():
+            continue
+        fields = line.split("\t")
+        if len(fields) < 2:
+            raise ResearchSourceError("Malformed historical monthly membership row")
+        ticker = normalize_alias(fields[0].strip().upper())
+        issuer_name = fields[1].strip()
+        if not ticker or not issuer_name or ticker in records:
+            raise ResearchSourceError("Malformed/duplicate monthly ticker or issuer")
+        records[ticker] = issuer_name
+    if not records:
+        raise ResearchSourceError("Empty monthly membership")
+    return records
+
+
+def _april_symbols(raw: bytes) -> set[str]:
+    return set(_monthly_reference_names(raw))
 
 
 def research_report(history_raw: bytes, snapshots: list[date], *,
@@ -204,9 +219,10 @@ def research_report(history_raw: bytes, snapshots: list[date], *,
             raise ResearchSourceError("Unknown pinned historical comparison month")
         day = date.fromisoformat(snapshot_date)
         history_month = {normalize_alias(r["ticker"]) for r in asof_members(history, day)}
-        reference_month = {normalize_alias(x) for x in _april_symbols(raw)}
+        reference_names = _monthly_reference_names(raw)
+        reference_month = set(reference_names)
         history_era = identity_screen(asof_members(history, day), day)
-        monthly_era = screen_reference_symbols(reference_month, day)
+        monthly_era = screen_reference_symbols(reference_month, day, names=reference_names)
         h_era_set = set(normalize_alias(x) for x in history_era["retained"])
         m_era_set = set(normalize_alias(x) for x in monthly_era["retained"])
         cross_checks["monthly_" + snapshot_date] = {
@@ -222,6 +238,8 @@ def research_report(history_raw: bytes, snapshots: list[date], *,
                 "only_in_reference": sorted(m_era_set - h_era_set),
                 "history_quarantined_tickers": sorted(q["ticker"] for q in history_era["quarantined"]),
                 "reference_quarantined_tickers": sorted(q["ticker"] for q in monthly_era["quarantined"]),
+                "reference_unresolved_or_recycled_identity": monthly_era["uncertain_identity"],
+                "reference_ticker_era_quarantine": monthly_era["quarantined"],
                 "unresolved_cik_collisions": history_era["unresolved_same_cik_collisions"],
                 "top5_effect": "UNDETERMINED_UNTIL_ALL_DISPUTED_COMPETITORS_HAVE_PIT_R63_SEC_AND_LIQUIDITY",
             },
