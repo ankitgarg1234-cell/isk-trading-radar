@@ -193,7 +193,7 @@ def write_observation(conn, receipt: dict | None, probe: dict) -> None:
 def capture_and_persist(*, observed: datetime | None = None) -> dict:
     """Synchronous bounded worker invoked only from GEM's opt-in scheduler."""
     url = os.environ.get("GEM_INGEST_DATABASE_URL", "")
-    if not url or not url.startswith("postgresql://gem_source_ingestor:"):
+    if not url or not url.startswith("postgresql://gem_source_ingest_limited:"):
         raise RuntimeError("GEM source collection disabled: restricted writer URL unavailable")
     observed = observed or datetime.now(timezone.utc)
     result = {}
