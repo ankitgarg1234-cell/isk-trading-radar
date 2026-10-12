@@ -25,3 +25,11 @@ jobs:
       - run: pip install -r dual_momentum_requirements.txt pytest
       - run: python -m compileall -q dual_momentum/gem_dashboard.py dual_momentum/gem_source_evidence.py gem_data/coverage_gate.py
       - run: pytest -q tests/test_gem_source_evidence.py tests/test_gem_dashboard.py tests/test_paper_trial.py tests/test_paper_month_trial.py
+      - name: Collect public data-source health receipts (NOT trading data)
+        run: python scripts/gem_public_source_diagnostic.py --out gem-source-diagnostic-${{ github.run_id }}.json
+      - name: Preserve immutable CI diagnostic output
+        uses: actions/upload-artifact@v4
+        with:
+          name: gem-source-health-${{ github.run_id }}
+          path: gem-source-diagnostic-${{ github.run_id }}.json
+          retention-days: 30
