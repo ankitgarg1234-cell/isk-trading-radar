@@ -157,4 +157,4 @@ def test_neon_reader_verifies_both_gem_accounts_without_writes(monkeypatch):
     assert state["gem_db"]["backfill_observations"] == 7
     assert state["gem_db"]["forward_signals"] == 0
     assert state["execution"] == "DISABLED"
-    assert len(calls) == 3
+    assert len(calls) == 4
