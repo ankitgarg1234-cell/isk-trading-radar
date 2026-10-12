@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python -m pip install pytest
+      - run: python -m pip install -r dual_momentum_requirements.txt pytest
       - name: Validate offline membership research fixtures
         run: python -m pytest -q tests/test_gem_public_membership_research.py
       - name: Collect bounded public secondary memberships (research only)
