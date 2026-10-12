@@ -5,7 +5,9 @@ on:
     branches: [dual-momentum-dashboard]
     paths:
       - "scripts/gem_public_membership_research.py"
+      - "scripts/gem_membership_identity_audit.py"
       - "tests/test_gem_public_membership_research.py"
+      - "tests/test_gem_membership_identity_audit.py"
       - ".github/workflows/gem-public-membership-research.yml"
   workflow_dispatch:
 
@@ -23,7 +25,7 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install -r dual_momentum_requirements.txt pytest
       - name: Validate offline membership research fixtures
-        run: python -m pytest -q tests/test_gem_public_membership_research.py
+        run: python -m pytest -q tests/test_gem_public_membership_research.py tests/test_gem_membership_identity_audit.py
       - name: Collect bounded public secondary memberships (research only)
         continue-on-error: true
         run: |
