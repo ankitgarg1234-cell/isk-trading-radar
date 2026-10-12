@@ -1,0 +1,241 @@
+{
+  "schema": "gem-retrospective-reference-v1",
+  "classification": "RETROSPECTIVE_NOT_FORWARD_NOT_CERTIFIED",
+  "strategy_commit": "d59b93d3d9a87d582045b4ae71ff9a6f696a48be",
+  "research_branch": "research/gem-2025-2026-validation-2026-10-11",
+  "source_signal_file": "research_5x/gem_2025_2026_validation/signals.csv",
+  "signal_date": "2026-09-30",
+  "simulated_open": "2026-10-01",
+  "marked_through": "2026-10-09",
+  "starting_cash_usd": 10000,
+  "account_inception_deviation": "Fresh $10k start using Sep30 pre-existing signal; frozen independent-account specification normally waits for a new month-end after cash start.",
+  "cost_bps_per_side": 20,
+  "uncertainties": [
+    "20 unresolved Sep30 historical competitor cases, including one above observed r63 cutoff and two with unknown momentum",
+    "2026-10-01 fills are later-retrieved daily vendor openings, not archived actual paper orders or brokerage executions",
+    "Selected-stock fundamental inputs verified historically, but complete competitor rankings and primary index history are not certified",
+    "Market data collected October 11; no genuine forward observations before October 12",
+    "Existing trial and primary GEM SHADOW account have no modeled buys from this reference"
+  ],
+  "selected": [
+    "P",
+    "MPC",
+    "PLTR",
+    "HPE",
+    "VLO"
+  ],
+  "orders": [
+    {
+      "ticker": "P",
+      "side": "HYPOTHETICAL_BUY",
+      "quantity": 15,
+      "opening_price": 132.130005,
+      "cost_20bps": 3.9639,
+      "gross": 1981.950073,
+      "effective_session": "2026-10-01",
+      "actual_fill": false
+    },
+    {
+      "ticker": "MPC",
+      "side": "HYPOTHETICAL_BUY",
+      "quantity": 5,
+      "opening_price": 393.209991,
+      "cost_20bps": 3.9321,
+      "gross": 1966.049957,
+      "effective_session": "2026-10-01",
+      "actual_fill": false
+    },
+    {
+      "ticker": "PLTR",
+      "side": "HYPOTHETICAL_BUY",
+      "quantity": 10,
+      "opening_price": 190.089996,
+      "cost_20bps": 3.8018,
+      "gross": 1900.899963,
+      "effective_session": "2026-10-01",
+      "actual_fill": false
+    },
+    {
+      "ticker": "HPE",
+      "side": "HYPOTHETICAL_BUY",
+      "quantity": 30,
+      "opening_price": 65.529999,
+      "cost_20bps": 3.9318,
+      "gross": 1965.899963,
+      "effective_session": "2026-10-01",
+      "actual_fill": false
+    },
+    {
+      "ticker": "VLO",
+      "side": "HYPOTHETICAL_BUY",
+      "quantity": 5,
+      "opening_price": 387.25,
+      "cost_20bps": 3.8725,
+      "gross": 1936.25,
+      "effective_session": "2026-10-01",
+      "actual_fill": false
+    }
+  ],
+  "ending_cash_usd": 229.447943,
+  "shares": {
+    "P": 15,
+    "MPC": 5,
+    "PLTR": 10,
+    "HPE": 30,
+    "VLO": 5
+  },
+  "benchmark": {
+    "symbol": "SPY",
+    "shares": 13,
+    "cash_usd": 43.446831,
+    "opening_price": 764.3599853515625
+  },
+  "daily_nav": [
+    {
+      "date": "2026-10-01",
+      "gem_nav": 10222.247931,
+      "gem_return_pct": 2.22248,
+      "spy_nav": 9975.316704,
+      "spy_return_pct": -0.24683
+    },
+    {
+      "date": "2026-10-02",
+      "gem_nav": 10442.09786,
+      "gem_return_pct": 4.42098,
+      "spy_nav": 10048.767021,
+      "spy_return_pct": 0.48767
+    },
+    {
+      "date": "2026-10-05",
+      "gem_nav": 10596.447912,
+      "gem_return_pct": 5.96448,
+      "spy_nav": 10116.237053,
+      "spy_return_pct": 1.16237
+    },
+    {
+      "date": "2026-10-06",
+      "gem_nav": 10730.448004,
+      "gem_return_pct": 7.30448,
+      "spy_nav": 10171.61718,
+      "spy_return_pct": 1.71617
+    },
+    {
+      "date": "2026-10-07",
+      "gem_nav": 10955.047918,
+      "gem_return_pct": 9.55048,
+      "spy_nav": 10147.30645,
+      "spy_return_pct": 1.47306
+    },
+    {
+      "date": "2026-10-08",
+      "gem_nav": 11141.497961,
+      "gem_return_pct": 11.41498,
+      "spy_nav": 10104.536736,
+      "spy_return_pct": 1.04537
+    },
+    {
+      "date": "2026-10-09",
+      "gem_nav": 11284.998022,
+      "gem_return_pct": 12.84998,
+      "spy_nav": 10164.856926,
+      "spy_return_pct": 1.64857
+    }
+  ],
+  "source_receipts": {
+    "P": {
+      "url": "https://query1.finance.yahoo.com/v8/finance/chart/P?period1=1704067200&period2=1791676800&interval=1d&events=div,splits",
+      "sha256": "65886ef5f2c90687ecb4fab44a18bbb37878d20e0f68eb662ce4c9443f81f8d9",
+      "retrieved_at": "2026-10-11T17:33:49.675993+00:00"
+    },
+    "MPC": {
+      "url": "https://query1.finance.yahoo.com/v8/finance/chart/MPC?period1=1704067200&period2=1791676800&interval=1d&events=div,splits",
+      "sha256": "10e5785c387fcb68c3db2d432fba8dd0073d1e8cb4b3ce40f4d720c5fcaaff38",
+      "retrieved_at": "2026-10-11T17:33:42.104351+00:00"
+    },
+    "PLTR": {
+      "url": "https://query1.finance.yahoo.com/v8/finance/chart/PLTR?period1=1704067200&period2=1791676800&interval=1d&events=div,splits",
+      "sha256": "1515cdd31170c006d91fd459c7a1c0378a0d429c17a7bf3c6958e8d02aafe0ab",
+      "retrieved_at": "2026-10-11T17:33:51.106873+00:00"
+    },
+    "HPE": {
+      "url": "https://query1.finance.yahoo.com/v8/finance/chart/HPE?period1=1704067200&period2=1791676800&interval=1d&events=div,splits",
+      "sha256": "2586f38ae3ac6c087eb711ac44ca3cf43b073522e9dd1bf4cdd3b803878d46ff",
+      "retrieved_at": "2026-10-11T17:33:33.432032+00:00"
+    },
+    "VLO": {
+      "url": "https://query1.finance.yahoo.com/v8/finance/chart/VLO?period1=1704067200&period2=1791676800&interval=1d&events=div,splits",
+      "sha256": "712c094800a608fc334a1e145e44589be1d4213dffe632632ff8ffea1257e074",
+      "retrieved_at": "2026-10-11T17:33:57.435135+00:00"
+    },
+    "SPY": {
+      "url": "https://query1.finance.yahoo.com/v8/finance/chart/SPY?period1=1704067200&period2=1791676800&interval=1d&events=div,splits",
+      "sha256": "bf271f7df8b44acb6fa7ed5976207644b89b2379ba376a06379c582b5dea1f9e",
+      "retrieved_at": "2026-10-11T17:33:54.906230+00:00"
+    }
+  },
+  "verification": {
+    "selection_record": "B_2026_YTD,original,ARCHIVED_INPUT_REPLAY_UNCERTIFIED,2026-09-30,P|MPC|PLTR|HPE|VLO,1.0,2026-10-01,0,rebalance",
+    "source_envelope_dates": "2026-10-11",
+    "scope": "2026-10-01..2026-10-09",
+    "dividends_or_splits_in_window": "No in-window events visible in cached vendor chart envelopes; not independently certified",
+    "next_forward_session": "2026-10-12"
+  },
+  "closing_prices_by_date": {
+    "2026-10-01": {
+      "P": 134.1300048828125,
+      "MPC": 420.1499938964844,
+      "PLTR": 190.0399932861328,
+      "HPE": 64.58000183105469,
+      "VLO": 408.4599914550781,
+      "SPY": 763.989990234375
+    },
+    "2026-10-02": {
+      "P": 140.13999938964844,
+      "MPC": 422.3299865722656,
+      "PLTR": 188.75,
+      "HPE": 69.33000183105469,
+      "VLO": 406.29998779296875,
+      "SPY": 769.6400146484375
+    },
+    "2026-10-05": {
+      "P": 143.8800048828125,
+      "MPC": 433.4700012207031,
+      "PLTR": 189.39999389648438,
+      "HPE": 68.36000061035156,
+      "VLO": 419.3299865722656,
+      "SPY": 774.8300170898438
+    },
+    "2026-10-06": {
+      "P": 147.1999969482422,
+      "MPC": 432.3599853515625,
+      "PLTR": 192.07000732421875,
+      "HPE": 70.4800033569336,
+      "VLO": 419.2200012207031,
+      "SPY": 779.0900268554688
+    },
+    "2026-10-07": {
+      "P": 152.66000366210938,
+      "MPC": 442.260009765625,
+      "PLTR": 194.1199951171875,
+      "HPE": 72.08999633789062,
+      "VLO": 424.1000061035156,
+      "SPY": 777.219970703125
+    },
+    "2026-10-08": {
+      "P": 150.57000732421875,
+      "MPC": 463.3399963378906,
+      "PLTR": 198.77999877929688,
+      "HPE": 71,
+      "VLO": 443.79998779296875,
+      "SPY": 773.9299926757812
+    },
+    "2026-10-09": {
+      "P": 154.49000549316406,
+      "MPC": 455.0299987792969,
+      "PLTR": 209.0500030517578,
+      "HPE": 73.45999908447266,
+      "VLO": 433.75,
+      "SPY": 778.5700073242188
+    }
+  }
+}

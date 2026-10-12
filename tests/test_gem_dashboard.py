@@ -72,3 +72,41 @@ def test_source_missing_never_becomes_verified(monkeypatch, tmp_path):
     assert sources["calendar"] == "UNKNOWN"
     assert sources["sec"] == "UNKNOWN"
     assert result["execution"] == "DISABLED"
+
+
+def test_october_reference_exact_five_and_daily_reconciliation():
+    ref = gem.oct1_retrospective_reference()
+    assert ref is not None
+    assert ref["classification"] == "BACKFILLED_UNCERTIFIED"
+    assert ref["as_of"] == "2026-10-09"
+    assert ref["fills_recorded"] == 0
+    assert len(ref["daily_nav"]) == 7
+    assert {o["ticker"]: o["quantity"] for o in ref["orders"]} == {
+        "P": 15, "MPC": 5, "PLTR": 10, "HPE": 30, "VLO": 5}
+    assert abs(ref["nav_usd"] - 11284.998022) < .01
+    assert abs(ref["spy_nav_usd"] - 10164.856926) < .01
+    assert abs(ref["cash_usd"] - 229.447943) < .01
+    assert ref["return_pct"] > ref["spy_return_pct"]
+
+
+def test_october_reference_tampered_nav_blocked(monkeypatch, tmp_path):
+    original = Path(gem.__file__).with_name("gem_oct1_reference.json")
+    fixture = json.loads(original.read_text())
+    fixture["daily_nav"][-1]["gem_nav"] += 100
+    invalid = tmp_path / "tampered-reference.json"
+    invalid.write_text(json.dumps(fixture))
+    from pathlib import Path as FilePath
+    original_with_name = FilePath.with_name
+    monkeypatch.setattr(FilePath, "with_name",
+                        lambda self, name: invalid if name == "gem_oct1_reference.json" else original_with_name(self, name))
+    assert gem.oct1_retrospective_reference() is None
+
+
+def test_october_reference_never_funds_forward_paper_account(monkeypatch):
+    monkeypatch.delenv("GEM_STATUS_SNAPSHOT_PATH", raising=False)
+    monkeypatch.delenv("GEM_READONLY_DATABASE_URL", raising=False)
+    state = gem.gem_status()
+    assert state["oct1_backfill"] is not None
+    assert state["portfolio"] is None
+    assert state["execution"] == "DISABLED"
+    assert state["read_model_connected"] is False
