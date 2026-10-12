@@ -1,0 +1,36 @@
+name: GEM SPY Original Distribution Evidence Tests
+on:
+  pull_request:
+    branches: [draft/gem-standalone-render-20261012]
+    paths:
+      - "gem_data/gem_public_ingest.py"
+      - "tests/test_gem_spy_distribution_source.py"
+      - ".github/workflows/gem-spy-source-tests.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  spy-public-source-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt pytest reportlab
+      - run: python -m pytest -q tests/test_gem_spy_distribution_source.py
+
+      - name: Fetch real State Street SPY schedule; do not certify cash distributions
+        run: |
+          python - <<'PY'
+          import httpx
+          from hashlib import sha256
+          from gem_data.gem_public_ingest import fetch_one
+          with httpx.Client(timeout=20, follow_redirects=False) as client:
+              raw, metrics = fetch_one(client, "benchmark")
+          assert not metrics["spy_total_return_certified"]
+          print("Official SPY PDF captured and identity checked; bytes:", len(raw))
+          print("SHA256:", sha256(raw).hexdigest())
+          print("Certified:", metrics["spy_total_return_certified"])
+          PY

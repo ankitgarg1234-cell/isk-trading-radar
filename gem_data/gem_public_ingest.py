@@ -16,15 +16,19 @@ import json
 import os
 import re
 import zlib
+from io import BytesIO
 
 import httpx
+from pypdf import PdfReader
 import psycopg
 
 EXPERIMENT = "gem-v1-forward-2026-10"
 NYSE = "https://www.nyse.com/trade/hours-calendars"
 SECONDARY = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv"
+SPY_DISTRIBUTION_SCHEDULE = "https://www.ssga.com/library-content/products/fund-data/etfs/us/distribution/SPDR_Dividend_Distribution_Schedule.pdf"
 TARGETS = {"calendar": (NYSE, "text/html", 250000),
-           "membership": (SECONDARY, "text/plain", 500000)}
+           "membership": (SECONDARY, "text/plain", 500000),
+           "benchmark": (SPY_DISTRIBUTION_SCHEDULE, "application/pdf", 1000000)}
 MARKERS = ("Holidays & Trading Hours", "Core Trading Session",
            "Friday, June 19", "Friday, July 3",
            "Friday, November 27, 2026", "Thursday, December 24, 2026")
@@ -79,6 +83,22 @@ def _verify(source: str, raw: bytes) -> dict:
             raise InvalidEvidence("secondary membership identities inconsistent")
         return {"security_lines": len(rows), "unique_issuers": len(set(ciks)),
                 "official_point_in_time_membership": False}
+    if source == "benchmark":
+        if not raw.startswith(b"%PDF-") or b"%%EOF" not in raw[-1024:]:
+            raise InvalidEvidence("official SPY distribution schedule is not PDF")
+        try:
+            pdf = PdfReader(BytesIO(raw), strict=True)
+            if not 1 <= len(pdf.pages) <= 20:
+                raise ValueError("Unexpected SPY source page count")
+            lines = " ".join((page.extract_text() or "") for page in pdf.pages)
+        except Exception as exc:
+            raise InvalidEvidence("official SPY source PDF unreadable") from exc
+        if "SPY" not in lines or "Calendar Year 2026" not in lines or "Dividend Distribution Schedule" not in lines:
+            raise InvalidEvidence("official SPY distribution schedule identity absent")
+        return {"source_type": "SPY_PROVIDER_DIVIDEND_DATE_SCHEDULE",
+                "published_year": 2026,
+                "distribution_amounts_verified": False,
+                "spy_total_return_certified": False}
     raise InvalidEvidence("unknown GEM source")
 
 
@@ -127,15 +147,21 @@ def evidence_records(source: str, observed: datetime, raw: bytes | None,
         digest = sha256(raw).hexdigest()
         state = "PARTIAL"
         scope = "Raw response received; official certification and complete-universe QA outstanding"
-        note = ("Published exchange schedule; emergencies and completed sessions not independently certified"
-                if source == "calendar" else
-                "Secondary current membership only; authoritative effective dates missing")
+        note = (
+            "Published exchange schedule; emergencies and completed sessions not independently certified"
+            if source == "calendar" else
+            "Secondary current membership only; authoritative effective dates missing"
+            if source == "membership" else
+            "Provider SPY ex/pay-date schedule only; actual cash amounts, price bars and total returns missing"
+        )
         sample = 1
         # Byte-exact raw source survives in existing isolated DB without new
         # schema/migration or a temporary expiring GitHub artifact.
         receipt = {
             "receipt_id": f"gem-{source}-{key}-{digest[:16]}",
-            "provider": ("NYSE_OFFICIAL" if source == "calendar" else "SECONDARY_GITHUB_SP500"),
+            "provider": ("NYSE_OFFICIAL" if source == "calendar" else
+                        "SECONDARY_GITHUB_SP500" if source == "membership" else
+                        "STATE_STREET_OFFICIAL_SPY_SCHEDULE"),
             "observed_at": observed,
             "source_uri": uri,
             "source_sha256": digest,
@@ -203,7 +229,7 @@ def capture_and_persist(*, observed: datetime | None = None) -> dict:
         for source in TARGETS:
             try:
                 raw, metrics = fetch_one(client, source)
-                if source == "calendar" and observed.year != 2026:
+                if source in ("calendar", "benchmark") and observed.year != 2026:
                     raise InvalidEvidence("2026 published calendar requires year rollover")
                 receipt, probe = evidence_records(source, observed, raw, metrics)
             except InvalidEvidence as exc:
