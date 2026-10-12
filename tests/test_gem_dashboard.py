@@ -72,3 +72,22 @@ def test_source_missing_never_becomes_verified(monkeypatch, tmp_path):
     assert sources["calendar"] == "UNKNOWN"
     assert sources["sec"] == "UNKNOWN"
     assert result["execution"] == "DISABLED"
+
+
+def test_neon_reader_connection_failure_blocks_and_hides_ledger(monkeypatch):
+    monkeypatch.setenv("GEM_READONLY_DATABASE_URL", "postgresql://localhost:1/missing")
+    result = gem.gem_status()
+    assert result["read_model_connected"] is False
+    assert result["portfolio"] is None
+    assert result["execution"] == "DISABLED"
+    assert "read failed" in result["projection_error"]
+
+
+def test_neon_reader_empty_and_independent_of_dm_env(monkeypatch):
+    monkeypatch.setenv("DATABASE_URL", "postgresql://existing-trial/untouched")
+    monkeypatch.delenv("GEM_READONLY_DATABASE_URL", raising=False)
+    monkeypatch.delenv("GEM_STATUS_SNAPSHOT_PATH", raising=False)
+    result = gem.gem_status()
+    assert result["read_model_connected"] is False
+    assert result["shadow_signals"] is None
+    assert result["source_receipts"] is None
