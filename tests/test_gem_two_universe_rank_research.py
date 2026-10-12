@@ -4,7 +4,7 @@ from datetime import date
 import pytest
 
 from scripts.gem_two_universe_rank_research import (
-    classify_month, conditional_top5, monthly_source_url, parse_monthly,
+    classify_month, conditional_top5, monthly_source_url, parse_monthly, research_calendar,
 )
 
 
@@ -88,3 +88,13 @@ def test_frozen_rank_feature_zero_and_missing_data_cannot_be_selected():
             "BAD": {"r63": "0.9", "revenue_yoy": "", "earnings_improvement": "True",
                     "margin_delta_pp": "6.0"}}
     assert conditional_top5(rows, set(rows)) == ["GOOD"]
+
+
+def test_2022_january_has_complete_2021_127_session_warmup():
+    months, sessions_by_month = research_calendar()
+    assert months[0].isoformat() == "2021-01-29"
+    all_sessions = [session for group in sessions_by_month.values() for session in group]
+    i = all_sessions.index("2022-01-31")
+    assert i >= 126
+    assert len(all_sessions[i - 126:i + 1]) == 127
+    assert all_sessions[i - 126] < "2022-01-01"
