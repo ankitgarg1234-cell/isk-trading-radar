@@ -65,3 +65,10 @@ def test_malformed_sec_identity_blocks_issuer_and_summary():
 def test_no_placeholder_sec_user_agent():
     with pytest.raises(ValueError, match="SEC_USER_AGENT"):
         probe_batch(CSV, DAY, "generic scraper")
+
+def test_original_sec_storage_budget_fails_closed():
+    import random
+    from gem_data.sec_daily_discovery import _bounded_compress, SourceUnavailable
+    random_bytes = random.Random(178).randbytes(300_000)
+    with pytest.raises(SourceUnavailable, match="storage budget"):
+        _bounded_compress(random_bytes, 0)
