@@ -49,6 +49,7 @@ def _bars(rise):
         "nominal_open": 100.0,
         "nominal_high": 120.0,
         "nominal_low": 90.0,
+        "nominal_close": 118.0,
         "volume": 2_000_000.0,
     } for i, d in enumerate(dates)]
 
@@ -124,6 +125,28 @@ def test_missing_adjustment_parity_blocks():
     snap = _snapshot()
     snap["candidates"][1]["frozen_vendor_parity_reviewed"] = False
     with pytest.raises(RankingHold, match="adjusted-close"):
+        audit_snapshot(snap, fixture_min_members=3)
+
+
+
+def test_missing_bar_nominal_close_blocks_price_qa():
+    snap = _snapshot()
+    del snap["candidates"][0]["bars"][-1]["nominal_close"]
+    with pytest.raises(RankingHold, match="nominal daily close"):
+        audit_snapshot(snap, fixture_min_members=3)
+
+
+def test_outside_ohlc_range_nominal_close_blocks():
+    snap = _snapshot()
+    snap["candidates"][0]["bars"][-1]["nominal_close"] = 150.0
+    with pytest.raises(RankingHold, match="OHLCV geometry"):
+        audit_snapshot(snap, fixture_min_members=3)
+
+
+def test_last_bar_close_disagrees_with_candidate_nominal_price():
+    snap = _snapshot()
+    snap["candidates"][0]["bars"][-1]["nominal_close"] = 110.0
+    with pytest.raises(RankingHold, match="disagrees with session bar"):
         audit_snapshot(snap, fixture_min_members=3)
 
 
