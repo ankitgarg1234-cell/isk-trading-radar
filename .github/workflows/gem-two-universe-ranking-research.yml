@@ -1,0 +1,45 @@
+name: GEM two-universe historical evidence audit (research only)
+
+on:
+  pull_request:
+    branches: [research/gemv1-public-membership-baseline-20261012, dual-momentum-dashboard]
+    paths:
+      - "scripts/gem_two_universe_rank_research.py"
+      - "scripts/gem_membership_identity_audit.py"
+      - "tests/test_gem_two_universe_rank_research.py"
+      - ".github/workflows/gem-two-universe-ranking-research.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare-secondary-membership-and-archived-factors:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: sqlite:///./gem-research-ci.sqlite3
+      APP_PASSWORD: ""
+      DISABLE_SCANNER: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install public research-only dependencies
+        run: python -m pip install -r dual_momentum_requirements.txt pytest
+      - name: Run deterministic offline research tests
+        run: python -m pytest -q tests/test_gem_two_universe_rank_research.py tests/test_gem_membership_identity_audit.py tests/test_gem_public_membership_research.py
+      - name: Compare all 2022–2026 months with frozen archival feature and price coverage
+        run: |
+          python scripts/gem_two_universe_rank_research.py \
+            --out GEM_TWOUNIVERSE_NOT_CERTIFIED/report.json \
+            --raw-dir GEM_TWOUNIVERSE_NOT_CERTIFIED/raw
+      - name: Upload research-only provenance and full gap manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gem-two-universe-2022-2026-not-certified
+          path: GEM_TWOUNIVERSE_NOT_CERTIFIED/
+          if-no-files-found: ignore
+          retention-days: 30
