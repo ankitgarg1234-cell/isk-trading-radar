@@ -1157,6 +1157,7 @@ class YahooMarketProvider:
             return list(cls._universe_cache)
 
         rows: dict[str, dict] = {}
+        completed_sources: set[str] = set()
         sources = (
             ("https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt", "nasdaq"),
             ("https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt", "other"),
@@ -1206,8 +1207,13 @@ class YahooMarketProvider:
                         "exchange": exchange,
                         "name_key": self._normalise_company_name(name),
                     }
+                completed_sources.add(kind)
             except Exception:
                 continue
+
+        # A missing exchange directory must never silently shrink the universe.
+        if len(completed_sources) != len(sources):
+            return list(cls._universe_cache) if cls._universe_cache else []
 
         if not rows:
             try:
