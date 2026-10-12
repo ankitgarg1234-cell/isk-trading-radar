@@ -110,3 +110,20 @@ def test_invalid_future_window_rejected_without_request():
         with MarketstackEODProbe(key="dummy", client=client) as p:
             with pytest.raises(ValueError, match="future"):
                 p.fetch("AAPL", date(2090, 1, 1), date(2090, 1, 5))
+
+
+def test_null_vendor_close_identifies_symbol_and_session_without_leaking_key():
+    with fake_transport(lambda _: httpx.Response(200, json={
+        "pagination": {"total": 2, "count": 2, "offset": 0},
+        "data": [
+            bar("2026-06-08"),
+            bar("2026-06-09", close=None, adj_close=None),
+        ],
+    })) as client:
+        with MarketstackEODProbe(key="sensitive-test-key", client=client) as p:
+            with pytest.raises(MarketstackProbeError) as error:
+                p.fetch("AAPL", date(2026, 6, 8), date(2026, 6, 9))
+            assert "AAPL 2026-06-09" in str(error.value)
+            assert "close" in str(error.value)
+            assert "sensitive-test-key" not in str(error.value)
+            assert p.consumed_credits == 1
