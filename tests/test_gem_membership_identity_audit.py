@@ -88,3 +88,32 @@ def test_main_report_includes_rank_hold_and_quarantines():
     assert snap["frozen_gem_top5_impact"].startswith("UNDETERMINED")
     assert snap["ranking_comparison_ready"] is False
     assert next(x for x in snap["members"] if x["ticker"] == "FI")["asof_ticker_identity_status"].startswith("QUARANTINED")
+
+
+def test_2022_five_issuer_announced_ticker_changes_avoid_retrospective_overcount():
+    rows = [
+        member("ANTM", "0001156039"), member("ELV", "0001156039"),
+        member("BLL", "0000009389"), member("BALL", "0000009389"),
+        member("FB", "0001326801"), member("META", "0001326801"),
+        member("NLOK", "0000849399"), member("GEN", "0000849399"),
+        member("VIAC", "0000813828"), member("PARA", "0000813828"),
+    ]
+    jan = identity_screen(rows, date(2022, 1, 31))
+    assert jan["post_symbol_era_count"] == 5
+    assert set(jan["retained"]) == {"ANTM", "BLL", "FB", "NLOK", "VIAC"}
+    assert {x["ticker"] for x in jan["quarantined"]} == {"ELV", "BALL", "META", "GEN", "PARA"}
+    assert jan["unresolved_same_cik_collisions"] == []
+    december = identity_screen(rows, date(2022, 12, 30))
+    assert set(december["retained"]) == {"ELV", "BALL", "META", "GEN", "PARA"}
+    assert december["post_symbol_era_count"] == 5
+
+
+def test_off_by_one_public_interval_does_not_override_documented_ticker_session():
+    # Source interval reversals around June 8/9 are approximate. At the
+    # documented first META session, FB must not be considered a distinct line.
+    june8 = identity_screen([member("FB", "0001326801"), member("META", "0001326801")],
+                             date(2022, 6, 8))
+    june9 = identity_screen([member("FB", "0001326801"), member("META", "0001326801")],
+                             date(2022, 6, 9))
+    assert june8["retained"] == ["FB"]
+    assert june9["retained"] == ["META"]
