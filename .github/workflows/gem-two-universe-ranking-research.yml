@@ -23,6 +23,12 @@ jobs:
       DISABLE_SCANNER: "true"
     steps:
       - uses: actions/checkout@v4
+      - name: Read-only checkout of the *frozen* GEMv1 research archive
+        uses: actions/checkout@v4
+        with:
+          ref: d59b93d3d9a87d582045b4ae71ff9a6f696a48be
+          path: .gem_frozen_archive
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
