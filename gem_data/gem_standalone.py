@@ -42,16 +42,44 @@ async def _public_source_loop():
         await asyncio.sleep(max(1.0, delay))
 
 
+async def _sec_bulk_loop():
+    """Isolated opt-in research task; no HTTP request can trigger ingestion.
+
+    The real SEC archive is potentially multiple gigabytes. The only permitted
+    path is strict validated 206 byte ranges of selected ZIP members.
+    """
+    from gem_data.sec_bulk_zip_ingest import capture_bulk_batch, BulkSourceHold
+    await asyncio.sleep(25)  # avoid competing with startup public source scans
+    while True:
+        interval = 3600
+        try:
+            bound = int(os.getenv("GEM_SEC_BULK_CIK_LIMIT", "1"))
+            report = await asyncio.to_thread(capture_bulk_batch, max_ciks=bound)
+            # Aggregate coverage only, no private issuer/contact data in logs.
+            _log.info("GEM SEC nightly ZIP selected member ingestion: %s", report)
+            pending = sum(int(x["remaining_after_estimate"]) for x in report["kind"].values())
+            interval = 3600 if pending == 0 else 300
+        except BulkSourceHold as exc:
+            # These error messages are deliberately fixed non-secret labels.
+            _log.warning("GEM SEC ZIP ingestion HOLD: %s", str(exc)[:200])
+        except Exception as exc:
+            _log.warning("GEM SEC ZIP ingestion failed closed (%s)", type(exc).__name__)
+        await asyncio.sleep(interval)
+
+
 @asynccontextmanager
 async def _lifespan(app):
-    task = None
+    tasks = []
     if os.getenv("GEM_PUBLIC_COLLECTION_ENABLED") == "yes":
-        task = asyncio.create_task(_public_source_loop())
+        tasks.append(asyncio.create_task(_public_source_loop()))
+    if os.getenv("GEM_SEC_BULK_ENABLED") == "yes":
+        tasks.append(asyncio.create_task(_sec_bulk_loop()))
     try:
         yield
     finally:
-        if task is not None:
+        for task in tasks:
             task.cancel()
+        for task in tasks:
             try:
                 await task
             except asyncio.CancelledError:
