@@ -33,6 +33,51 @@ def vendor_url(ticker: str) -> str:
                                     "d2": "20231231", "i": "d"}))
 
 
+def yahoo_url(ticker: str) -> str:
+    if ticker not in SAMPLE:
+        raise ValueError("Explicit sample only")
+    start = int(datetime(2021, 1, 1, tzinfo=timezone.utc).timestamp())
+    end = int(datetime(2024, 1, 1, tzinfo=timezone.utc).timestamp())
+    return (f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?" +
+            urllib.parse.urlencode({"period1": start, "period2": end, "interval": "1d",
+                                    "events": "div,splits"}))
+
+
+def parse_yahoo_chart(raw: bytes) -> dict[str, dict]:
+    try:
+        body = json.loads(raw)
+        result = (body.get("chart", {}).get("result") or [None])[0]
+        if not isinstance(result, dict):
+            raise ValueError("Yahoo daily chart result missing")
+        timestamps = result.get("timestamp") or []
+        quotes = ((result.get("indicators") or {}).get("quote") or [None])[0]
+        if not isinstance(quotes, dict) or not timestamps:
+            raise ValueError("Yahoo daily chart arrays missing")
+        if any(len(quotes.get(key) or []) != len(timestamps) for key in
+               ("open", "high", "low", "close", "volume")):
+            raise ValueError("Yahoo chart arrays not aligned")
+        bars = {}
+        for i, t in enumerate(timestamps):
+            day = datetime.fromtimestamp(float(t), tz=timezone.utc).date()
+            if not START <= day < END:
+                continue
+            values = {key: quotes[key][i] for key in ("open", "high", "low", "close", "volume")}
+            if any(v is None for v in values.values()):
+                continue
+            o,h,l,c,v = [float(values[k]) for k in ("open", "high", "low", "close", "volume")]
+            if (not all(math.isfinite(x) for x in (o,h,l,c,v))
+                    or min(o,h,l,c) <= 0 or v < 0
+                    or l > min(o,c) or h < max(o,c)):
+                raise ValueError("Yahoo chart contains impossible nominal OHLCV")
+            key = day.isoformat()
+            if key in bars:
+                raise ValueError("Yahoo chart contains duplicated date")
+            bars[key] = {"Open":o,"High":h,"Low":l,"Close":c,"Volume":v}
+        return bars
+    except (json.JSONDecodeError, KeyError, TypeError, OverflowError) as exc:
+        raise ValueError("Malformed Yahoo chart response") from exc
+
+
 def parse_vendor_csv(raw: bytes) -> dict[str, dict]:
     try:
         rows = list(csv.DictReader(io.StringIO(raw.decode("utf-8-sig"))))
@@ -87,32 +132,43 @@ def run(out_dir: Path, *, get=None, sleep=None) -> dict:
     for index, sym in enumerate(SAMPLE):
         if index:
             sleep(1.1)  # respect free public source rate limits
-        url = vendor_url(sym)
-        path = out_dir / f"{sym}-raw.csv"
         entry = {
-            "symbol": sym, "uri": url,
-            "retrieved_at": datetime.now(timezone.utc).isoformat(),
-            "classification": "UNVERIFIED_FREE_PRICE_RESEARCH_NO_GEM_INPUT",
+            "symbol": sym, "classification": "UNVERIFIED_FREE_PRICE_RESEARCH_NO_GEM_INPUT",
             "adjustment_parity_certified": False,
             "corporate_actions_reconciled": False,
             "original_SEC_facts_available": False,
         }
-        try:
-            request = urllib.request.Request(
-                url, headers={"User-Agent": "Mozilla/5.0 (compatible; GEM academic price research)"})
-            with get(request, timeout=20) as resp:
-                raw = resp.read(MAX_BYTES + 1)
-            if not raw or len(raw) > MAX_BYTES:
-                raise ValueError("Empty/oversized public price response")
-            rows = parse_vendor_csv(raw)
-            if len(rows) < 127:
-                raise ValueError("Insufficient provider bars in full sample window")
-            path.write_bytes(raw)
-            entry.update({"status": "RECEIVED_UNCERTIFIED", "sha256": hashlib.sha256(raw).hexdigest(),
-                          "bytes": len(raw), "daily_bars": len(rows),
-                          "asof_session_coverage": session_coverage(rows, expected)})
-        except (OSError, ValueError, urllib.error.HTTPError) as exc:
-            entry.update({"status": "FAILED_EXPLICIT", "error_type": type(exc).__name__})
+        trials = []
+        for vendor, url, parser, extension in (
+            ("STOOQ", vendor_url(sym), parse_vendor_csv, "csv"),
+            ("YAHOO", yahoo_url(sym), parse_yahoo_chart, "json"),
+        ):
+            try:
+                request = urllib.request.Request(
+                    url, headers={"User-Agent": "Mozilla/5.0 (compatible; GEM academic price research)"})
+                with get(request, timeout=20) as resp:
+                    raw = resp.read(MAX_BYTES + 1)
+                if not raw or len(raw) > MAX_BYTES:
+                    raise ValueError("Empty/oversized public price response")
+                rows = parser(raw)
+                if len(rows) < 127:
+                    raise ValueError("Insufficient provider bars in full sample window")
+                (out_dir / f"{sym}-{vendor}-raw.{extension}").write_bytes(raw)
+                entry.update({
+                    "status": "RECEIVED_UNCERTIFIED", "provider": vendor,
+                    "uri": url, "sha256": hashlib.sha256(raw).hexdigest(),
+                    "bytes": len(raw), "daily_bars": len(rows),
+                    "asof_session_coverage": session_coverage(rows, expected),
+                })
+                trials.append({"provider": vendor, "status": "RECEIVED_UNCERTIFIED"})
+                break
+            except (OSError, ValueError, urllib.error.HTTPError) as exc:
+                trials.append({"provider":vendor,"status":"FAILED_EXPLICIT",
+                               "error_type":type(exc).__name__,
+                               "reason":str(exc)[:160] if isinstance(exc, ValueError) else "HTTP_OR_NETWORK_FAILURE"})
+        else:
+            entry.update({"status":"FAILED_EXPLICIT","error_type":"ALL_PUBLIC_SOURCES_UNAVAILABLE"})
+        entry["trials"] = trials
         report[sym] = entry
     evidence = {
         "schema": "gem-public-price-sample-research-v1",
