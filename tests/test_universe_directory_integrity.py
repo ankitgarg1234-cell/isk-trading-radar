@@ -62,8 +62,8 @@ def test_expired_cache_is_not_reused_during_partial_outage(monkeypatch):
         if "otherlisted.txt" in url:
             raise ConnectionError("directory unavailable")
         return _Response(
-            "Symbol|Security Name|Test Issue|ETF|Financial Status\\n"
-            "MSFT|Microsoft Corp|N|N|N\\n"
+            "Symbol|Security Name|Test Issue|ETF|Financial Status\n"
+            "MSFT|Microsoft Corp|N|N|N\n"
         )
 
     monkeypatch.setattr(provider.client, "get", get)
@@ -79,12 +79,12 @@ def test_both_complete_directories_produce_combined_universe(monkeypatch):
     def get(url, **kwargs):
         if "otherlisted.txt" in url:
             return _Response(
-                "ACT Symbol|Security Name|Test Issue|ETF|Exchange\\n"
-                "IBM|International Business Machines|N|N|N\\n"
+                "ACT Symbol|Security Name|Test Issue|ETF|Exchange\n"
+                "IBM|International Business Machines|N|N|N\n"
             )
         return _Response(
-            "Symbol|Security Name|Test Issue|ETF|Financial Status\\n"
-            "AAPL|Apple Inc|N|N|N\\n"
+            "Symbol|Security Name|Test Issue|ETF|Financial Status\n"
+            "AAPL|Apple Inc|N|N|N\n"
         )
 
     monkeypatch.setattr(provider.client, "get", get)
@@ -98,10 +98,10 @@ def test_schema_invalid_directory_does_not_publish_partial_universe(monkeypatch)
 
     def get(url, **kwargs):
         if "otherlisted.txt" in url:
-            return _Response("Unexpected|Columns\\nIBM|N\\n")
+            return _Response("Unexpected|Columns\nIBM|N\n")
         return _Response(
-            "Symbol|Security Name|Test Issue|ETF|Financial Status\\n"
-            "AAPL|Apple Inc|N|N|N\\n"
+            "Symbol|Security Name|Test Issue|ETF|Financial Status\n"
+            "AAPL|Apple Inc|N|N|N\n"
         )
 
     monkeypatch.setattr(provider.client, "get", get)
