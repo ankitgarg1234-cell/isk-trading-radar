@@ -53,7 +53,7 @@ flowchart LR
   API --> D[Separate GEM research dashboard]
 ```
 
-The new source/dashboard diagram is the target design: S&P access, continuous IBKR collection, API and dashboard are not running. A read-only IBKR sample probe has succeeded; the chosen connection was confirmed by the user and full source qualification remains pending. The planned independent paper capital is USD10,000. The original pipeline's future authorization path stays fail-closed; no dashboard interaction unlocks it.
+The new source/dashboard diagram is the target design: S&P access, scheduled IBKR collection, API and dashboard are not running. Daily completed-session collection plus a separate monthly rebalance-opening window is the proposed cadence; continuous polling is optional, as detailed in HOSTING_AND_EXECUTION.md. A read-only IBKR sample probe has succeeded; the chosen connection was confirmed by the user and full source qualification remains pending. The planned independent paper capital is USD10,000. The original pipeline's future authorization path stays fail-closed; no dashboard interaction unlocks it.
 
 Run ID = hash of strategy manifest + account + signal session + cutoff policy + immutable input manifest. Separate `attempt_id` for retries. States: `CREATED → COLLECTING → SNAPSHOT_SEALED → SIGNAL_COMPUTED → PLAN_SEALED → QA_PASS → RELEASE_ELIGIBLE → AUTHORIZED → SIMULATED → RECONCILED`. Any uncertainty leads to `HELD` with reason codes; an integrity incident leads to `QUARANTINED`. No timeout or retry can advance a hold. Prototype never advances to `AUTHORIZED`/`SIMULATED`.
 
