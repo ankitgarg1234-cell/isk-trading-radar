@@ -134,8 +134,16 @@ def test_neon_reader_verifies_both_gem_accounts_without_writes(monkeypatch):
         count = 0
         def __enter__(self): return self
         def __exit__(self, *args): pass
-        def execute(self, sql, params):
+        def execute(self, sql, params=None):
             calls.append((sql, params))
+            if len(calls) == 1:
+                assert sql == "SET TRANSACTION READ ONLY"
+                assert params is None
+                return
+            if len(calls) == 2:
+                assert sql == "SET LOCAL statement_timeout = 4500"
+                assert params is None
+                return
             assert sql.strip().upper().startswith("SELECT")
             assert "dual_momentum" not in sql
             self.count += 1
@@ -157,4 +165,35 @@ def test_neon_reader_verifies_both_gem_accounts_without_writes(monkeypatch):
     assert state["gem_db"]["backfill_observations"] == 7
     assert state["gem_db"]["forward_signals"] == 0
     assert state["execution"] == "DISABLED"
-    assert len(calls) == 4
+    assert len(calls) == 6
+    assert calls[0][0] == "SET TRANSACTION READ ONLY"
+    assert calls[1][0] == "SET LOCAL statement_timeout = 4500"
+
+
+def test_pooler_rejecting_unsafe_transaction_setup_fails_closed(monkeypatch):
+    """If read-only setup fails, never show a connected GEM snapshot."""
+    monkeypatch.setenv("GEM_READONLY_DATABASE_URL", "postgresql://gem-only-reader")
+    statements = []
+    class Cursor:
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def execute(self, sql, params=None):
+            statements.append(sql)
+            if sql == "SET TRANSACTION READ ONLY":
+                raise gem.psycopg.ProgrammingError("cannot set transaction mode")
+            raise AssertionError("Must never SELECT after read-only setup failure")
+    class Connection:
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def cursor(self): return Cursor()
+    def connect(*args, **kwargs):
+        assert "options" not in kwargs
+        assert kwargs["connect_timeout"] == 4
+        return Connection()
+    monkeypatch.setattr(gem.psycopg, "connect", connect)
+    state = gem.gem_status()
+    assert statements == ["SET TRANSACTION READ ONLY"]
+    assert state["read_model_connected"] is False
+    assert state["gem_db"] is None
+    assert state["portfolio"] is None
+    assert state["execution"] == "DISABLED"
