@@ -15,7 +15,8 @@ def test_empty_projection_shows_no_portfolio(monkeypatch):
     assert result["execution"] == "DISABLED"
     assert result["read_model_connected"] is False
     assert result["starting_capital_planned"] == 10000
-    assert all(item["status"] == "UNKNOWN" for item in result["sources"])
+    assert all(item["status"] != "VERIFIED" for item in result["sources"])
+    assert all(item["trade_eligible"] is False for item in result["sources"])
 
 
 def test_stale_and_wrong_release_block(monkeypatch, tmp_path):
@@ -70,7 +71,7 @@ def test_source_missing_never_becomes_verified(monkeypatch, tmp_path):
     sources = {row["key"]: row["status"] for row in result["sources"]}
     assert sources["prices"] == "STALE"
     assert sources["calendar"] == "UNKNOWN"
-    assert sources["sec"] == "UNKNOWN"
+    assert sources["sec"] == "PARTIAL"  # Dated archived evidence, not a live QA certificate
     assert result["execution"] == "DISABLED"
 
 
