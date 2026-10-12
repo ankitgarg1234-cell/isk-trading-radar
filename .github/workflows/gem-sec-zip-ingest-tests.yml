@@ -4,6 +4,7 @@ on:
     branches: [draft/gem-standalone-render-20261012]
     paths:
       - "gem_data/sec_bulk_zip_ingest.py"
+      - "gem_data/sec_zip_index.py"
       - "gem_data/gem_standalone.py"
       - "tests/test_gem_sec_bulk_zip_ingest.py"
       - ".github/workflows/gem-sec-zip-ingest-tests.yml"
