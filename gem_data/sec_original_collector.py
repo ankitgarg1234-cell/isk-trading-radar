@@ -206,7 +206,7 @@ def save_new_evidence(directory: str, manifest: dict, receipt: RawReceipt | None
                 sink.write(original_header)
             created_header = True
         with path.open("x", encoding="utf-8") as sink:
-            sink.write(json.dumps(manifest, indent=2, sort_keys=True) + "\\n")
+            sink.write(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     except Exception:
         if created_header:
             header_path.unlink(missing_ok=True)
