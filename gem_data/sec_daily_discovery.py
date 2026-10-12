@@ -91,12 +91,18 @@ def _snapshot(raw: bytes, cik: str) -> dict:
 
 
 def probe_batch(csv_bytes: bytes, observed: datetime, user_agent: str,
-                *, transport=None) -> tuple[list[tuple[dict | None, dict]], dict]:
+                *, transport=None, pilot_limit: int | None = None
+                ) -> tuple[list[tuple[dict | None, dict]], dict]:
     ua = validate_sec_user_agent(user_agent)
     if not observed.tzinfo:
         raise ValueError("SEC discovery requires aware timestamp")
     observed = observed.astimezone(timezone.utc)
     ciks, total = select_ciks(csv_bytes, observed)
+    # Start with a bounded pilot. Invalid limits fail before any request.
+    if pilot_limit is not None:
+        if type(pilot_limit) is not int or not 1 <= pilot_limit <= 5:
+            raise ValueError("SEC pilot limit must be an integer 1..5")
+        ciks = ciks[:pilot_limit]
     failures = []
     bytes_used = 0
     evidence: list[tuple[dict | None, dict]] = []
