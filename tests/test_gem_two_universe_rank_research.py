@@ -51,6 +51,8 @@ def test_two_source_observed_only_change_is_not_full_selection():
     assert report["observed_only_top5_A"] == ["AAA", "BBB"]
     assert report["observed_only_top5_B"] == ["BBB", "CCC"]
     assert report["observed_only_top5_differ"] is True
+    assert report["disputed_members_with_archived_feature"] == ["AAA", "CCC"]
+    assert report["disputed_members_qualified_on_archived_features"] == ["AAA", "CCC"]
     assert report["source_A_missing_feature_symbols"] == ["UNKNOWN"]
     assert report["source_B_missing_feature_symbols"] == ["UNKNOWN"]
     assert report["ranking_validated"] is False
