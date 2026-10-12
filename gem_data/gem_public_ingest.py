@@ -74,8 +74,8 @@ def _verify(source: str, raw: bytes) -> dict:
         symbols = [str(row.get("Symbol", "")).strip() for row in rows]
         ciks = [str(row.get("CIK", "")).strip() for row in rows]
         if (not 480 <= len(rows) <= 600 or len(set(symbols)) != len(symbols)
-                or any(not re.fullmatch(r"[A-Za-z0-9.\\-]{1,16}", s) for s in symbols)
-                or any(not re.fullmatch(r"\\d{1,10}", c) for c in ciks)):
+                or any(not re.fullmatch(r"[A-Za-z0-9.-]{1,16}", s) for s in symbols)
+                or any(not re.fullmatch(r"[0-9]{1,10}", c) for c in ciks)):
             raise InvalidEvidence("secondary membership identities inconsistent")
         return {"security_lines": len(rows), "unique_issuers": len(set(ciks)),
                 "official_point_in_time_membership": False}
