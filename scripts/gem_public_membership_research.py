@@ -1,0 +1,299 @@
+"""Public secondary S&P membership research; never eligible to certify GEMv1.
+
+The original frozen GEM strategy, official-source readiness gate, paper account,
+and execution logic do not import this file. It is intended for diagnostic
+historical research and reconciliation before independent primary-source QA.
+"""
+from __future__ import annotations
+
+import csv
+import hashlib
+import io
+import json
+import re
+import urllib.request
+from datetime import date, datetime, timezone
+from pathlib import Path
+
+if __package__:
+    from .gem_membership_identity_audit import identity_screen, screen_reference_symbols
+else:
+    from gem_membership_identity_audit import identity_screen, screen_reference_symbols
+
+SOURCE_HISTORY = "https://raw.githubusercontent.com/lawcal/sp500-components-history/main/data/components_history.csv"
+SOURCE_CURRENT = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv"
+MONTHLY_SOURCES = {
+    "2022-01-31": "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202201",
+    "2023-12-29": "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202312",
+    "2022-12-30": "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202212",
+    "2023-06-30": "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202306",
+    "2024-12-31": "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202412",
+    "2025-09-30": "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202509",
+    "2026-04-30": "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202604",
+}
+MAX_BYTES = 2_000_000
+SYMBOL = re.compile(r"^[A-Z0-9][A-Z0-9.\-/]{0,12}$")
+CIK = re.compile(r"^[0-9]{10}$")
+
+
+class ResearchSourceError(ValueError):
+    pass
+
+
+def normalize_alias(symbol: str) -> str:
+    """Only for cross-source diagnostics, not for strategy symbol mappings."""
+    return symbol.strip().upper().replace("/", ".").replace("-", ".")
+
+
+def fetch_public_source(url: str, *, opener=urllib.request.urlopen) -> bytes:
+    if url not in {SOURCE_HISTORY, SOURCE_CURRENT, *MONTHLY_SOURCES.values()}:
+        raise ResearchSourceError("Unapproved research source URL")
+    req = urllib.request.Request(url, headers={"User-Agent": "GEM-research-source-audit/1.0"})
+    with opener(req, timeout=25) as response:
+        content = response.read(MAX_BYTES + 1)
+    if not content or len(content) > MAX_BYTES:
+        raise ResearchSourceError("Public history unavailable or outside size limit")
+    return content
+
+
+def _table(raw: bytes, required: set[str]) -> list[dict[str, str]]:
+    try:
+        body = raw.decode("utf-8-sig")
+        reader = csv.DictReader(io.StringIO(body))
+        if not reader.fieldnames or not required.issubset(set(reader.fieldnames)):
+            raise ResearchSourceError("Unexpected constituent CSV schema")
+        rows = list(reader)
+    except UnicodeDecodeError as exc:
+        raise ResearchSourceError("Non-UTF8 constituent source") from exc
+    if not rows or any(None in row or None in row.values() for row in rows):
+        raise ResearchSourceError("Malformed constituent CSV rows")
+    return rows
+
+
+def _effective_date(value: str, field: str) -> tuple[date, bool]:
+    if not isinstance(value, str) or not value:
+        raise ResearchSourceError("Missing effective-date field: " + field)
+    approximate = value.endswith("*")
+    try:
+        return date.fromisoformat(value.rstrip("*")), approximate
+    except ValueError as exc:
+        raise ResearchSourceError("Malformed date in " + field) from exc
+
+
+def parse_history(raw: bytes) -> list[dict]:
+    source = _table(raw, {"symbol", "cik", "name", "sector", "date_added", "date_removed", "created_at"})
+    parsed = []
+    for item in source:
+        ticker = item["symbol"].strip().upper()
+        cik = item["cik"].strip()
+        if not SYMBOL.fullmatch(ticker) or not CIK.fullmatch(cik):
+            raise ResearchSourceError("Invalid ticker or security CIK")
+        added, added_approx = _effective_date(item["date_added"], "date_added")
+        removed, removed_approx = ((None, False) if not item["date_removed"]
+                                   else _effective_date(item["date_removed"], "date_removed"))
+        created, _ = _effective_date(item["created_at"], "created_at")
+        if removed is not None and removed <= added:
+            raise ResearchSourceError("Impossible historical constituent interval")
+        parsed.append({
+            "ticker": ticker, "cik": cik, "name": item["name"], "sector": item["sector"],
+            "effective_from": added, "effective_until": removed,
+            "date_approximate": added_approx or removed_approx,
+            "first_source_recorded_on": created,
+        })
+    return parsed
+
+
+def asof_members(history: list[dict], day: date) -> list[dict]:
+    if day < date(2007, 3, 5):
+        raise ResearchSourceError("Secondary source cannot reconstruct before March 2007")
+    active = [r for r in history if r["effective_from"] <= day
+              and (r["effective_until"] is None or day < r["effective_until"])]
+    tickers = [r["ticker"] for r in active]
+    if len(tickers) != len(set(tickers)):
+        raise ResearchSourceError("Ambiguous active intervals for the same ticker")
+    return sorted(active, key=lambda x: x["ticker"])
+
+
+def _current_symbols(raw: bytes) -> set[str]:
+    rows = _table(raw, {"Symbol", "CIK"})
+    names = [r["Symbol"].strip().upper() for r in rows]
+    if len(set(names)) != len(names):
+        raise ResearchSourceError("Duplicate secondary current-membership symbol")
+    return set(names)
+
+
+def _monthly_reference_names(raw: bytes) -> dict[str, str]:
+    try:
+        lines = raw.decode("utf-8-sig").splitlines()
+    except UnicodeDecodeError as exc:
+        raise ResearchSourceError("Malformed monthly reference") from exc
+    records: dict[str, str] = {}
+    for line in lines:
+        if not line.strip():
+            continue
+        fields = line.split("\t")
+        if len(fields) < 2:
+            raise ResearchSourceError("Malformed historical monthly membership row")
+        ticker = normalize_alias(fields[0].strip().upper())
+        issuer_name = fields[1].strip()
+        if not ticker or not issuer_name or ticker in records:
+            raise ResearchSourceError("Malformed/duplicate monthly ticker or issuer")
+        records[ticker] = issuer_name
+    if not records:
+        raise ResearchSourceError("Empty monthly membership")
+    return records
+
+
+def _april_symbols(raw: bytes) -> set[str]:
+    return set(_monthly_reference_names(raw))
+
+
+def research_report(history_raw: bytes, snapshots: list[date], *,
+                    current_raw: bytes | None = None,
+                    monthly_raw: dict[str, bytes] | None = None,
+                    retrieved_at: str | None = None) -> dict:
+    history = parse_history(history_raw)
+    retrieved = retrieved_at or datetime.now(timezone.utc).isoformat()
+    try:
+        observed = datetime.fromisoformat(retrieved.replace("Z", "+00:00"))
+    except (ValueError, AttributeError) as exc:
+        raise ResearchSourceError("Invalid research retrieval timestamp") from exc
+    if observed.tzinfo is None or observed.utcoffset() is None:
+        raise ResearchSourceError("Timezone-aware research retrieval timestamp required")
+    observation_day = observed.astimezone(timezone.utc).date()
+    if any(row["first_source_recorded_on"] > observation_day for row in history):
+        raise ResearchSourceError("History contains source records dated after retrieval")
+    results = []
+    for day in snapshots:
+        if not isinstance(day, date):
+            raise ResearchSourceError("Snapshot date must be explicit")
+        if day > observation_day:
+            raise ResearchSourceError("Future research snapshot would leak unavailable members")
+        active = asof_members(history, day)
+        flags = [r for r in active if r["date_approximate"]]
+        unknown_at_signal = [r for r in active if r["first_source_recorded_on"] > day]
+        identity = identity_screen(active, day)
+        identity.pop("retained")
+        results.append({
+            "date": day.isoformat(),
+            "count": len(active),
+            "approximate_date_count": len(flags),
+            "not_recorded_by_snapshot_count": len(unknown_at_signal),
+            "asof_ticker_identity": identity,
+            "frozen_gem_top5_impact": "UNDETERMINED_MISSING_63_SESSION_AND_SEC_FACT_EVIDENCE",
+            "ranking_comparison_ready": False,
+            "quality_flags": (["UNUSUAL_COMPONENT_COUNT"] if not 490 <= len(active) <= 510 else [])
+                           + (["APPROXIMATE_EFFECTIVE_DATES"] if flags else [])
+                           + (["RETROSPECTIVELY_RECONSTRUCTED"] if unknown_at_signal else [])
+                           + (["HISTORICAL_TICKER_ERA_MISMATCH"] if identity["quarantined"] else [])
+                           + (["UNRESOLVED_CIK_SHARE_CLASS_COLLISION"] if identity["unresolved_same_cik_collisions"] else []),
+            "members": [{
+                "ticker": r["ticker"], "cik": r["cik"], "sector": r["sector"],
+                "effective_from": r["effective_from"].isoformat(),
+                "effective_until": r["effective_until"].isoformat() if r["effective_until"] else None,
+                "approximate_effective_date": r["date_approximate"],
+                "first_source_recorded_on": r["first_source_recorded_on"].isoformat(),
+                "asof_ticker_identity_status": (
+                    "QUARANTINED_KNOWN_IMPOSSIBLE_TICKER_ERA"
+                    if any(q["ticker"] == r["ticker"] for q in identity["quarantined"])
+                    else "UNVERIFIED_RETROSPECTIVE_SOURCE"
+                ),
+            } for r in active],
+        })
+    cross_checks = {}
+    if current_raw is not None:
+        # This reference is current, never a historical snapshot guarantee.
+        current = _current_symbols(current_raw)
+        candidate = {r["ticker"] for r in asof_members(history, observation_day)}
+        cross_checks["other_public_current"] = {
+            "source": SOURCE_CURRENT,
+            "source_sha256": hashlib.sha256(current_raw).hexdigest(),
+            "history_count": len(candidate), "reference_count": len(current),
+            "only_in_history": sorted(candidate-current),
+            "only_in_reference": sorted(current-candidate),
+            "asof_semantics": "LATEST_RETRIEVED_PUBLIC_LIST_NOT_ASOF_SIGNAL",
+        }
+    for snapshot_date, raw in (monthly_raw or {}).items():
+        source = MONTHLY_SOURCES.get(snapshot_date)
+        if source is None:
+            raise ResearchSourceError("Unknown pinned historical comparison month")
+        day = date.fromisoformat(snapshot_date)
+        history_month = {normalize_alias(r["ticker"]) for r in asof_members(history, day)}
+        reference_names = _monthly_reference_names(raw)
+        reference_month = set(reference_names)
+        history_era = identity_screen(asof_members(history, day), day)
+        monthly_era = screen_reference_symbols(reference_month, day, names=reference_names)
+        h_era_set = set(normalize_alias(x) for x in history_era["retained"])
+        m_era_set = set(normalize_alias(x) for x in monthly_era["retained"])
+        cross_checks["monthly_" + snapshot_date] = {
+            "source": source,
+            "source_sha256": hashlib.sha256(raw).hexdigest(),
+            "history_count": len(history_month), "reference_count": len(reference_month),
+            "only_in_history": sorted(history_month - reference_month),
+            "only_in_reference": sorted(reference_month - history_month),
+            "after_documented_symbol_era_check": {
+                "history_count": len(h_era_set),
+                "reference_count": len(m_era_set),
+                "only_in_history": sorted(h_era_set - m_era_set),
+                "only_in_reference": sorted(m_era_set - h_era_set),
+                "history_quarantined_tickers": sorted(q["ticker"] for q in history_era["quarantined"]),
+                "reference_quarantined_tickers": sorted(q["ticker"] for q in monthly_era["quarantined"]),
+                "reference_unresolved_or_recycled_identity": monthly_era["uncertain_identity"],
+                "reference_ticker_era_quarantine": monthly_era["quarantined"],
+                "unresolved_cik_collisions": history_era["unresolved_same_cik_collisions"],
+                "top5_effect": "UNDETERMINED_UNTIL_ALL_DISPUTED_COMPETITORS_HAVE_PIT_R63_SEC_AND_LIQUIDITY",
+            },
+            "asof_semantics": "TWO_PUBLIC_RECONSTRUCTIONS_DISAGREEMENTS_UNRESOLVED",
+        }
+    return {
+        "schema": "gem-public-membership-research-v1",
+        "classification": "UNVERIFIED_SECONDARY_RESEARCH_NOT_GEM_CERTIFICATION",
+        "frozen_gem_strategy_unchanged": True,
+        "paper_execution_authorized": False,
+        "primary_sp_dji_source": False,
+        "retrieved_at": retrieved,
+        "source": SOURCE_HISTORY,
+        "source_sha256": hashlib.sha256(history_raw).hexdigest(),
+        "source_bytes": len(history_raw),
+        "history_intervals": len(history),
+        "approximate_interval_count": sum(r["date_approximate"] for r in history),
+        "snapshots": results,
+        "cross_checks": cross_checks,
+        "blockers": [
+            "Original index constituent effective-date announcements unavailable",
+            "Secondary data includes approximate membership dates and retrospective corrections",
+            "Separate security ID/share-class actions and independent QA required",
+            "Reconstructed research snapshots cannot certify a past observable trading universe",
+        ],
+    }
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Research only; cannot certify GEM trading inputs")
+    parser.add_argument("--date", action="append", required=True,
+                        help="Explicit YYYY-MM-DD research snapshot. Repeat for additional dates.")
+    parser.add_argument("--out", required=True, help="Path for local JSON research output")
+    parser.add_argument("--cross-checks", action="store_true",
+                        help="Compare secondary current list and pinned historical monthly snapshots")
+    args = parser.parse_args()
+    snapshots = [date.fromisoformat(item) for item in args.date]
+    historical = fetch_public_source(SOURCE_HISTORY)
+    current = fetch_public_source(SOURCE_CURRENT) if args.cross_checks else None
+    monthly = {d.isoformat(): fetch_public_source(MONTHLY_SOURCES[d.isoformat()])
+               for d in snapshots if args.cross_checks and d.isoformat() in MONTHLY_SOURCES}
+    report = research_report(historical, snapshots, current_raw=current, monthly_raw=monthly)
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(json.dumps({
+        "classification": report["classification"],
+        "source_sha256": report["source_sha256"],
+        "snapshots": [{k: v for k, v in x.items() if k != "members"} for x in report["snapshots"]],
+        "cross_checks": report["cross_checks"],
+        "trading_authorized": False,
+    }, indent=2))
+
+
+if __name__ == "__main__":
+    main()

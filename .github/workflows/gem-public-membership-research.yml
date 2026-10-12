@@ -1,0 +1,45 @@
+name: GEM public constituent research (non-trading)
+
+on:
+  pull_request:
+    branches: [dual-momentum-dashboard]
+    paths:
+      - "scripts/gem_public_membership_research.py"
+      - "scripts/gem_membership_identity_audit.py"
+      - "tests/test_gem_public_membership_research.py"
+      - "tests/test_gem_membership_identity_audit.py"
+      - ".github/workflows/gem-public-membership-research.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  secondary-data-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r dual_momentum_requirements.txt pytest
+      - name: Validate offline membership research fixtures
+        run: python -m pytest -q tests/test_gem_public_membership_research.py tests/test_gem_membership_identity_audit.py
+      - name: Collect bounded public secondary memberships (research only)
+        continue-on-error: true
+        run: |
+          python scripts/gem_public_membership_research.py \
+            --date 2022-01-31 --date 2022-12-30 \
+            --date 2023-06-30 --date 2023-12-29 \
+            --date 2024-12-31 --date 2025-09-30 \
+            --date 2026-04-30 --date 2026-09-30 \
+            --cross-checks --out gem-membership-research-only.json
+      - name: Upload research-only source report (not certified)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gem-public-membership-research-not-certified
+          path: gem-membership-research-only.json
+          if-no-files-found: ignore
+          retention-days: 30
