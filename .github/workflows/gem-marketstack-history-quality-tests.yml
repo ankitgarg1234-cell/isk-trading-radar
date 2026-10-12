@@ -1,0 +1,27 @@
+name: GEM Marketstack History Quality Tests
+on:
+  pull_request:
+    branches:
+      - dual-momentum-dashboard
+      - draft/gem-standalone-render-20261012
+    paths:
+      - "gem_data/marketstack_history_quality.py"
+      - "gem_data/marketstack_eod_probe.py"
+      - "tests/test_gem_marketstack_history_quality.py"
+      - "tests/test_gem_marketstack_probe.py"
+      - ".github/workflows/gem-marketstack-history-quality-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  offline-marketstack-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: python -m pip install pytest httpx
+      - name: Run vendor-data safety tests, no credentials or network
+        run: python -m pytest -q tests/test_gem_marketstack_probe.py tests/test_gem_marketstack_history_quality.py
