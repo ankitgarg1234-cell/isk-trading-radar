@@ -72,7 +72,7 @@ def parse_monthly(raw: bytes) -> tuple[set[str], dict[str, str]]:
     return set(names), names
 
 
-def research_calendar(start="2022-01-01", end="2026-09-30") -> tuple[list[date], dict[str, list[str]]]:
+def research_calendar(start="2021-01-01", end="2026-09-30") -> tuple[list[date], dict[str, list[str]]]:
     import pandas_market_calendars as mcal
     sessions = mcal.get_calendar("NYSE").valid_days(start_date=start, end_date=end)
     all_sessions = [x.date() for x in sessions]
@@ -245,7 +245,7 @@ def research_run(out: Path, raw_dir: Path, include_prices: bool = True) -> dict:
     history = parse_history(history_raw)
     panel, baseline = load_archived_features()
     months, bymonth = research_calendar()
-    dates = [d for d in months if d <= date(2026, 9, 30)]
+    dates = [d for d in months if date(2022, 1, 1) <= d <= date(2026, 9, 30)]
     price_coverage = archived_price_coverage(dates, bymonth) if include_prices else None
     comparisons, errors = [], []
     for signal in dates:
