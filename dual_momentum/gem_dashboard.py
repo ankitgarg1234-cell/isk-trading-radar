@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -103,6 +104,56 @@ def oct1_retrospective_reference():
                 for row in daily) or
                 [row["date"] for row in daily] != sorted(set(row["date"] for row in daily))):
             return None
+        # Independently reconcile the entire seven-session archived NAV path
+        # against the bundled source closes. Any changed/incomplete fixture
+        # blocks the display instead of silently showing a plausible P&L.
+        closes_by_date = ref.get("closing_prices_by_date")
+        benchmark = ref.get("benchmark")
+        if not isinstance(closes_by_date, dict) or not isinstance(benchmark, dict):
+            return None
+        if set(closes_by_date) != {row["date"] for row in daily}:
+            return None
+        expected_cash = 10000.0
+        shares = {}
+        for order in orders:
+            qty = order["quantity"]
+            opening_price = order.get("opening_price")
+            gross = order.get("gross")
+            modeled_fee = order.get("cost_20bps")
+            if (type(qty) is not int or type(opening_price) not in (int, float)
+                    or type(gross) not in (int, float)
+                    or type(modeled_fee) not in (int, float)
+                    or not all(math.isfinite(float(v)) and v >= 0
+                               for v in (opening_price, gross, modeled_fee))
+                    or abs(gross - qty * opening_price) > .01
+                    or abs(modeled_fee - gross * 0.002) > .01):
+                return None
+            shares[order["ticker"]] = qty
+            expected_cash -= gross + modeled_fee
+        if abs(expected_cash - ref.get("ending_cash_usd", float("nan"))) > .01:
+            return None
+        spy_qty = benchmark.get("shares")
+        spy_open = benchmark.get("opening_price")
+        spy_cash = benchmark.get("cash_usd")
+        if (type(spy_qty) is not int or spy_qty <= 0
+                or type(spy_open) not in (int, float) or spy_open <= 0
+                or type(spy_cash) not in (int, float)
+                or abs(spy_cash + spy_qty * spy_open * 1.002 - 10000) > .01):
+            return None
+        for row in daily:
+            marks = closes_by_date[row["date"]]
+            if set(marks) != set(shares) | {"SPY"}:
+                return None
+            if any(type(x) not in (int, float) or not math.isfinite(x) or x <= 0
+                   for x in marks.values()):
+                return None
+            nav = expected_cash + sum(qty * marks[sym] for sym, qty in shares.items())
+            spy_nav = spy_cash + spy_qty * marks["SPY"]
+            if (abs(nav - row.get("gem_nav", float("nan"))) > .01
+                    or abs(spy_nav - row.get("spy_nav", float("nan"))) > .01
+                    or abs((nav / 10000 - 1) * 100 - row.get("gem_return_pct", float("nan"))) > .0001
+                    or abs((spy_nav / 10000 - 1) * 100 - row.get("spy_return_pct", float("nan"))) > .0001):
+                return None
         # A historical reference must not be allowed to masquerade as a
         # contemporaneously recorded fill or a real prospective mark.
         latest = daily[-1]
