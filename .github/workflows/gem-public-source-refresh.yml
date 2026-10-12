@@ -28,9 +28,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install isolated, read-only collector dependency
-        run: python -m pip install httpx==0.28.1
+        run: python -m pip install httpx==0.28.1 pytest
       - name: Offline fail-closed unit tests
-        run: python -m unittest gem_public_refresh.test_collect -v
+        run: python -m pytest -q gem_public_refresh/test_collect.py
       - name: Retrieve primary NYSE + secondary S&P current-members source
         run: python -m gem_public_refresh.collect --output-dir "$RUNNER_TEMP/gem-public-evidence"
       - name: Save hash-receipted evidence for reviewer; NOT trading data
