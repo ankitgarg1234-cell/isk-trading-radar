@@ -18,6 +18,11 @@ This is a non-exhaustive, evidence-linked list of **ticker corrections**, not pr
 
 | New ticker | Earlier identity / treatment | Earliest new-ticker session | Documentary evidence |
 |---|---|---|---|
+| ELV | ANTM | 2022-06-28 | [SEC issuer 10-K](https://www.sec.gov/Archives/edgar/data/1156039/000115603923000007/elv-20221231.htm) |
+| BALL | BLL | 2022-05-10 | [SEC issuer 8-K](https://www.sec.gov/Archives/edgar/data/9389/000000938922000010/bll-20220427x8k.htm) |
+| META | FB | 2022-06-09 | [SEC issuer announcement](https://www.sec.gov/Archives/edgar/data/1326801/000132680122000070/may312022-exhibit991.htm) |
+| GEN | NLOK | 2022-11-08 | [SEC issuer announcement](https://www.sec.gov/Archives/edgar/data/849399/000110465922115277/tm2229813d1_ex99-01.htm) |
+| PARA | VIAC | 2022-02-17 | [SEC issuer 8-K](https://www.sec.gov/Archives/edgar/data/813828/000081382822000011/viac-20220216.htm) |
 | COR | ABC | 2023-08-30 | [SEC filing](https://www.sec.gov/Archives/edgar/data/1140859/000110465923096698/tm2324358d1_8k.htm) |
 | FI | FISV | 2023-06-07 | [Fiserv](https://investors.fiserv.com/news-releases/news-release-details/fiserv-completes-listing-transfer-new-york-stock-exchange) |
 | EG | RE | 2023-07-10 | [Everest](https://investors.everestglobal.com/news/news-details/2023/Everest-to-Rebrand-Company-Name-and-NYSE-Ticker-to-Reflect-its-Evolution-Global-Growth-and-Diversification-Strategy/default.aspx) |
@@ -36,19 +41,23 @@ This is a non-exhaustive, evidence-linked list of **ticker corrections**, not pr
 
 ## Raw history vs conservative ticker-era screen
 
-These are **not** official index sizes. A reduced row count does not make the universe historically correct. Counts are from the dated public research CI at 2026-10-12:
+These are **not** official index sizes. A reduced row count does not make the universe historically correct. Counts come from the bounded public research workflow. The January 2022 source overcount was largely caused by modern ticker names projected backward into predecessor periods.
 
 | Snapshot | Raw history rows | Rows after documented ticker-era exclusions | Remaining research issue |
 |---|---:|---:|---|
-| 2022-01-31 | 522 | 510 | Too many names; unresolved source and member timing |
+| 2022-01-31 | 522 | 505 | 17 documented future/retired ticker-era lines quarantined; true source membership still unproven |
 | 2022-12-30 | 515 | 503 | Monthly public reference has future-listed `SW`, and historical true-membership confirmation is outstanding |
-| 2023-06-30 | 514 | 503 | Monthly reference likewise contains future-listed `SW`; historic eligibility not official |
-| 2024-12-31 | 509 | 503 | Historic reconciliation must be checked per stable security ID |
+| 2023-06-30 | 514 | 503 | Monthly reference also contains future-recast ticker identities; historic eligibility not official |
+| 2023-12-29 | 512 | 503 | Historical public comparison has post-date ticker substitutions; no primary index provenance |\n| 2024-12-31 | 509 | 503 | Historic reconciliation must be checked per stable security ID |
 | 2025-09-30 | 508 | 503 | Retrospective creation/publication flags remain |
 | 2026-04-30 | 507 | 503 | Differences with separate April source, including recently effective security events |
 | 2026-09-30 | 504 | 502 | Under-coverage risk despite plausible raw count |
 
 Public lawcal history includes `created_at` dates that can be later than the historical signal session. That means retroactively entered facts should never be presented as information contemporaneously observable at the 2022/2023 cutoff.
+
+## Critical finding: the alternative public monthly list also has future symbols
+
+For example, the *January 2022* `spy202201` file labels securities with then-unavailable ticker identities such as `COR` (Cencora), `CPAY` (Corpay), `DAY` (Dayforce), `RVTY` (Revvity), `PSKY` (Paramount Skydance), and `SW` (Smurfit Westrock). This is a **retrospective re-labelled history, not original point-in-time trading symbols**. The research pipeline now checks those monthly names against documented effective dates and separately records any name-matched future/retired ticker without manufacturing a predecessor row. Unrelated reuse of the same ticker stays marked ambiguous. The two public datasets are sensitivity inputs, not independent point-in-time certifications.
 
 ## GEM top-five selection-impact status
 
