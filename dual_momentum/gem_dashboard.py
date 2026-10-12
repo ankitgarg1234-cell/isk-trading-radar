@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import psycopg
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -67,8 +68,54 @@ def _snapshot():
         return None, "GEM projection could not be read or validated"
 
 
+
+def _neon_snapshot():
+    """Query only the separate GEM database using its SELECT-only reader role.
+
+    Neither this web process nor any render environment setting authorizes orders,
+    creates tables, seeds accounts, migrates schemas or uses the DM DATABASE_URL.
+    """
+    url = os.getenv("GEM_READONLY_DATABASE_URL", "").strip()
+    if not url:
+        return None, "GEM isolated database read connection is not configured"
+    try:
+        with psycopg.connect(url, connect_timeout=4, options="-c statement_timeout=4000 -c default_transaction_read_only=on") as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT experiment_id, frozen_commit, mode, planned_capital, "
+                    "execution_enabled, receipt_count, signal_count FROM gem_status_v1 "
+                    "WHERE experiment_id = %s",
+                    ("gem-v1-forward-2026-10",),
+                )
+                record = cur.fetchone()
+                if record is None or record[1] != FROZEN_REF or record[4] is not False:
+                    return None, "GEM experiment missing, changed, or execution-enabled"
+                cur.execute(
+                    "SELECT DISTINCT ON (source_type) source_type, coverage_status, observed_at "
+                    "FROM gem_source_receipt WHERE experiment_id=%s "
+                    "ORDER BY source_type, collected_at DESC, receipt_id DESC",
+                    ("gem-v1-forward-2026-10",),
+                )
+                receipts = cur.fetchall()
+        return {
+            "schema": "gem-dashboard-v1",
+            "frozen_ref": FROZEN_REF,
+            "environment": "shadow",
+            "observed_at": datetime.now(timezone.utc).isoformat(),
+            "sources": {
+                source_type: {"status": status, "as_of": asof.isoformat()}
+                for source_type, status, asof in receipts
+                if source_type in {entry[0] for entry in SOURCE_NAMES}
+            },
+            "counts": {"source_receipts": int(record[5]), "signals": int(record[6])},
+            "ledger": None,
+        }, None
+    except (psycopg.Error, ValueError, TypeError, OSError):
+        return None, "GEM isolated database read failed; no portfolio values shown"
+
+
 def gem_status():
-    snapshot, error = _snapshot()
+    snapshot, error = _neon_snapshot() if os.getenv("GEM_READONLY_DATABASE_URL") else _snapshot()
     raw_sources = (snapshot or {}).get("sources") or {}
     # Source claims are shown as reports, NOT as authorization. Missing stays unknown.
     sources = []
@@ -112,6 +159,8 @@ def gem_status():
         "historical_open_cases": 943,
         "historical_case_as_of": "2026-10-11",
         "read_model_connected": snapshot is not None,
+        "source_receipts": ((snapshot or {}).get("counts") or {}).get("source_receipts"),
+        "shadow_signals": ((snapshot or {}).get("counts") or {}).get("signals"),
         "next_signal": (snapshot or {}).get("next_signal"),
         "notes": "Read-only. An external projection cannot grant trading authority.",
     }
