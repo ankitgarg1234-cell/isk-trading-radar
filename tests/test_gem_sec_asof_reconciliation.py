@@ -110,3 +110,9 @@ def test_broken_submissions_manifest_cik_blocks():
     m["raw_submissions_receipt"]["uri"] = "https://attacker.example/CIK.json"
     with pytest.raises(SecEvidenceHold, match="submissions receipt"):
         audit(m, f, r)
+
+def test_frozen_210_day_current_filing_freshness_is_respected():
+    # Other structural conditions remain plausible in March 2027; however,
+    # August 2026's filing was not within the frozen 210-day freshness window.
+    with pytest.raises(SecEvidenceHold, match="210-day freshness"):
+        audit(day="2027-04-01")
