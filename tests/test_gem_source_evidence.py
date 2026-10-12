@@ -61,6 +61,22 @@ def _snapshot():
         "signal_session": "2026-09-30",
         "official_month_end": True,
         "primary_universe_bytes_hash_verified": True,
+        "membership_manifest": {
+            "schema": "gem-primary-membership-manifest-v1",
+            "signal_session": "2026-09-30",
+            "decision_cutoff_at": "2026-09-30T20:00:00Z",
+            "source_published_at": "2026-09-29T15:00:00Z",
+            "first_observed_at": "2026-09-30T12:00:00Z",
+            "source_sha256": "a" * 64,
+            "source_bytes": 4096,
+            "source_uri": "https://example.invalid/fixture-not-official.csv",
+            "members": [
+                {"ticker": s, "security_id": f"{i}:{s}",
+                 "effective_from": "2020-01-01", "effective_until": None,
+                 "announcement_observed_at": "2020-01-01T12:00:00Z"}
+                for i, s in enumerate(symbols)
+            ],
+        },
         "corporate_action_coverage_verified": True,
         "spy_benchmark_coverage_verified": True,
         "complete_exchange_calendar_verified": True,
@@ -125,6 +141,48 @@ def test_missing_adjustment_parity_blocks():
     snap["candidates"][1]["frozen_vendor_parity_reviewed"] = False
     with pytest.raises(RankingHold, match="adjusted-close"):
         audit_snapshot(snap, fixture_min_members=3)
+
+
+
+def test_membership_manifest_absence_holds_even_if_old_boolean_true():
+    snapshot = _snapshot()
+    del snapshot["membership_manifest"]
+    with pytest.raises(RankingHold, match="Missing primary membership manifest"):
+        audit_snapshot(snapshot, fixture_min_members=3)
+
+
+def test_future_effective_member_cannot_enter_rank():
+    snapshot = _snapshot()
+    snapshot["membership_manifest"]["members"][0]["effective_from"] = "2026-10-01"
+    with pytest.raises(RankingHold, match="Future-effective"):
+        audit_snapshot(snapshot, fixture_min_members=3)
+
+
+def test_removed_member_cannot_enter_rank():
+    snapshot = _snapshot()
+    snapshot["membership_manifest"]["members"][0]["effective_until"] = "2026-09-30"
+    with pytest.raises(RankingHold, match="Removed member"):
+        audit_snapshot(snapshot, fixture_min_members=3)
+
+
+def test_future_publication_blocks_membership():
+    snapshot = _snapshot()
+    snapshot["membership_manifest"]["source_published_at"] = "2026-10-01T10:00:00Z"
+    with pytest.raises(RankingHold, match="not available by cutoff"):
+        audit_snapshot(snapshot, fixture_min_members=3)
+
+
+def test_wrong_security_identity_blocks_membership():
+    snapshot = _snapshot()
+    snapshot["membership_manifest"]["members"][0]["security_id"] = "wrong-share-class"
+    with pytest.raises(RankingHold, match="identifiers do not match"):
+        audit_snapshot(snapshot, fixture_min_members=3)
+
+
+def test_manifest_digest_present_but_never_authorizes_trades():
+    result = audit_snapshot(_snapshot(), fixture_min_members=3)
+    assert len(result["membership_manifest_digest"]) == 64
+    assert result["paper_execution_authorized"] is False
 
 
 def _probe_bundle():
