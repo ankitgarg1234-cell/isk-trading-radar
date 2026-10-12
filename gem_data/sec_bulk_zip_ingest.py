@@ -102,21 +102,29 @@ class SECByteRangeFile(io.RawIOBase):
         self.calls += 1
         self.last_request = time.monotonic()
         try:
-            response = self.client.get(self.url, headers={
+            with self.client.stream("GET", self.url, headers={
                 "Range": f"bytes={start}-{end}",
                 "Accept-Encoding": "identity",
-            }, follow_redirects=False)
+            }, follow_redirects=False) as response:
+                # Check 206 BEFORE reading response body. A 200 is a possible
+                # multi-gigabyte full archive: never call client.get() here.
+                if response.status_code != 206:
+                    raise BulkSourceHold("SEC ZIP HTTP byte ranges unavailable")
+                expected = f"bytes {start}-{end}/{self.length}"
+                if response.headers.get("content-range", "").lower() != expected:
+                    raise BulkSourceHold("SEC ZIP byte range changed")
+                parts, total = [], 0
+                maximum = end-start+1
+                for chunk in response.iter_bytes():
+                    total += len(chunk)
+                    if total > maximum:
+                        raise BulkSourceHold("SEC ZIP body exceeded requested range")
+                    parts.append(chunk)
         except httpx.HTTPError as exc:
             raise BulkSourceHold("SEC ZIP byte-range request failed") from exc
-        # HTTP 200 indicates the server ignored Range and might serve multi-GB.
-        if response.status_code != 206:
-            raise BulkSourceHold("SEC ZIP HTTP byte ranges unavailable")
-        expected = f"bytes {start}-{end}/{self.length}"
-        if response.headers.get("content-range", "").lower() != expected:
-            raise BulkSourceHold("SEC ZIP byte range changed")
-        if len(response.content) != end - start + 1:
+        if total != maximum:
             raise BulkSourceHold("SEC ZIP partial range length mismatch")
-        return response.content
+        return b"".join(parts)
 
     def read(self, size=-1):
         remaining = self.length - self._pos
@@ -201,13 +209,20 @@ def capture_bulk_batch(*, client: httpx.Client | None = None,
     result = {"attempted_ciks": 0, "new_members": 0, "blocked": 0,
               "kind": {}, "certified": False}
     try:
-        member_resp = client.get(SECONDARY)
-        if member_resp.status_code != 200 or len(member_resp.content) > 500000:
-            raise BulkSourceHold("Current secondary identity list unavailable")
-        _verify("membership", member_resp.content)
+        with client.stream("GET", SECONDARY, follow_redirects=False) as member_resp:
+            if member_resp.status_code != 200:
+                raise BulkSourceHold("Current secondary identity list unavailable")
+            chunks, count = [], 0
+            for chunk in member_resp.iter_bytes():
+                count += len(chunk)
+                if count > 500000:
+                    raise BulkSourceHold("Secondary identity list exceeds byte budget")
+                chunks.append(chunk)
+            manifest = b"".join(chunks)
+        _verify("membership", manifest)
         import csv
         from io import StringIO
-        rows = list(csv.DictReader(StringIO(member_resp.content.decode("utf-8-sig"))))
+        rows = list(csv.DictReader(StringIO(manifest.decode("utf-8-sig"))))
         ciks = sorted({str(row["CIK"]).zfill(10) for row in rows})
         if not 450 <= len(ciks) <= 550:
             raise BulkSourceHold("Current secondary issuer count outside contract")
