@@ -23,6 +23,8 @@ else:
 SOURCE_HISTORY = "https://raw.githubusercontent.com/lawcal/sp500-components-history/main/data/components_history.csv"
 SOURCE_CURRENT = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv"
 MONTHLY_SOURCES = {
+    "2022-01-31": "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202201",
+    "2023-12-29": "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202312",
     "2022-12-30": "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202212",
     "2023-06-30": "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202306",
     "2024-12-31": "https://raw.githubusercontent.com/pierrebrunelle/sp500-historical-constituents/main/data/spy202412",
