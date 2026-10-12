@@ -1170,6 +1170,11 @@ class YahooMarketProvider:
                 if not lines:
                     continue
                 headers = [h.strip() for h in lines[0].split("|")]
+                required = {"Security Name", "ETF", "Test Issue"}
+                required.add("Symbol" if kind == "nasdaq" else "ACT Symbol")
+                if not required.issubset(set(headers)):
+                    continue
+                eligible_count = 0
                 for line in lines[1:]:
                     parts = line.split("|")
                     if len(parts) < len(headers):
@@ -1207,13 +1212,19 @@ class YahooMarketProvider:
                         "exchange": exchange,
                         "name_key": self._normalise_company_name(name),
                     }
+                    eligible_count += 1
+                if eligible_count == 0:
+                    continue
                 completed_sources.add(kind)
             except Exception:
                 continue
 
         # A missing exchange directory must never silently shrink the universe.
         if len(completed_sources) != len(sources):
-            return list(cls._universe_cache) if cls._universe_cache else []
+            # Only a still-fresh complete snapshot can be reused. Never serve an
+            # expired cache as if a failed refresh established current coverage.
+            cache_fresh = cls._universe_cache and 0 <= now - cls._universe_cache_at < 6 * 3600
+            return list(cls._universe_cache) if cache_fresh else []
 
         if not rows:
             try:
