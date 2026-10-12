@@ -11,7 +11,7 @@
   "account_inception_deviation": "Fresh $10k start using Sep30 pre-existing signal; frozen independent-account specification normally waits for a new month-end after cash start.",
   "cost_bps_per_side": 20,
   "uncertainties": [
-    "Nine? no: 20 unresolved Sep30 historical competitor cases, including one above observed r63 cutoff and two with unknown momentum",
+    "20 unresolved Sep30 historical competitor cases, including one above observed r63 cutoff and two with unknown momentum",
     "2026-10-01 fills are later-retrieved daily vendor openings, not archived actual paper orders or brokerage executions",
     "Selected-stock fundamental inputs verified historically, but complete competitor rankings and primary index history are not certified",
     "Market data collected October 11; no genuine forward observations before October 12",
