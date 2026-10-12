@@ -30,6 +30,29 @@ flowchart LR
 
 ## Pipeline and state machine
 
+[SOURCES_AND_COLLECTION.md](SOURCES_AND_COLLECTION.md) names the collecting agent, upstream provider/routes, cadence, current access state and acceptance blockers for every evidence type. [DASHBOARD.md](DASHBOARD.md) specifies a separate, read-only research interface and authenticated projection service. The dashboard consumes verified evidence/status and has no order or approval capability. Original Yahoo inputs remain baseline evidence; an account/broker market-data adapter cannot silently change the frozen price/volume/adjustment semantics.
+
+```mermaid
+flowchart LR
+  SP[S&P DJI dated constituents and announcements] --> UA[Universe and identity agent]
+  SEC[SEC submissions and original accession filings] --> SA[SEC provenance agent]
+  PX[IBKR read-only market feed: bars and actions; alias and coverage pending] --> MA[Market and action agents]
+  EX[NYSE and Nasdaq calendars and status] --> MA
+  UA --> V[Versioned evidence vault]
+  SA --> V
+  MA --> V
+  V --> F[Sealed snapshot and frozen GEM computation]
+  F --> Q[Independent QA and held-cycle reasons]
+  Q --> R[Verified read projections]
+  B[943-case certification and locked impact artifacts] --> R
+  L[Dedicated ledger and reconciliation status] --> R
+  V --> R
+  R --> API[Authenticated read-only API]
+  API --> D[Separate GEM research dashboard]
+```
+
+The new source/dashboard diagram is the target design: S&P access, continuous IBKR collection, API and dashboard are not running. A read-only IBKR sample probe has succeeded; alias mapping/full source qualification remain pending. The planned independent paper capital is USD10,000. The original pipeline's future authorization path stays fail-closed; no dashboard interaction unlocks it.
+
 Run ID = hash of strategy manifest + account + signal session + cutoff policy + immutable input manifest. Separate `attempt_id` for retries. States: `CREATED → COLLECTING → SNAPSHOT_SEALED → SIGNAL_COMPUTED → PLAN_SEALED → QA_PASS → RELEASE_ELIGIBLE → AUTHORIZED → SIMULATED → RECONCILED`. Any uncertainty leads to `HELD` with reason codes; an integrity incident leads to `QUARANTINED`. No timeout or retry can advance a hold. Prototype never advances to `AUTHORIZED`/`SIMULATED`.
 
 1. Collect effective-date universe, exchange calendar, security aliases, price/action history and accession-specific SEC sources into a versioned vault. Validate raw response hash against actual bytes, URL, source entity, request/retrieval time, API status and content type. No URL-only proof.

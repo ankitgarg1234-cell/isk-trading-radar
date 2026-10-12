@@ -29,3 +29,7 @@ A missing acknowledgement at the cutoff generates `HANDOFF_INCOMPLETE`; no defau
 QA independently recomputes from raw sealed sources, rather than checking that two agents repeated the same derived values. At least one deterministic independent implementation and one semantic/source reviewer are required for release. Separate prompts relying on a shared aggregate SEC response are correlated evidence and must be labeled accordingly. The user reviews the evidence dossier and authorizes a specific release/account/time range; ongoing per-cycle QA is still required after release.
 
 Historical evidence corrections require B1/B2 agreement and an append-only decision event. Share accession tasks across dates to save acquisition work, while preserving individual security/date cutoffs and decisions. Historical certifiers have read-only access to A artifacts and no execution capability.
+
+## Source and dashboard ownership
+
+The [source register](SOURCES_AND_COLLECTION.md) assigns exact upstream evidence to universe/identity, IBKR market-data, SEC provenance, calendar/action, historical certification and independent QA roles. IBKR is the selected broker market source; no new Yahoo collector is selected. The dashboard projection owner maintains a separate read-only view of those artifacts and [the interface contract](DASHBOARD.md). Planned paper capital is USD 10,000, separate from actual broker balances. New source/API/dashboard services are not running and the selected connection/account mapping remains unverified.

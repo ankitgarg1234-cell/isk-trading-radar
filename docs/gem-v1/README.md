@@ -9,6 +9,8 @@ The two workstreams start from `research/gem-2025-2026-validation-2026-10-11`, c
 
 Read [architecture](ARCHITECTURE.md), [frozen rules](FROZEN_RULES.md), [agent handoffs](AGENTS_AND_HANDOFFS.md), [QA and release gates](QA_AND_RELEASE.md), [monitoring and incident runbook](OPERATIONS.md), [tests and acceptance criteria](TEST_PLAN.md), and [roadmap](ROADMAP.md). [Independent QA review](QA_REVIEW.md) records the implementation verdict. [Verification findings](VERIFICATION.md) distinguish completed checks from release blockers.
 
+The [source register](SOURCES_AND_COLLECTION.md) assigns each collector to exact upstream sources and distinguishes the existing archive from proposed entitled feeds. The [dashboard layout and read contract](DASHBOARD.md) define the separate research review interface; neither new source services nor a dashboard is deployed.
+
 The existing deployed Radar/paper strategy, live positions, `app/`, deployment definitions, existing workflows and frozen research inputs are outside the write scope. Both draft PRs target the pinned research branch, not `main`. No merge or deployment is authorized. No real-money trading is part of this project. Automatic paper purchases require a later explicit user signoff **after** reviewing the complete release evidence; this change cannot enable them.
 
 The small local hash-chain ledger is tamper-evident against a retained checkpoint, not immutable storage. Authenticated independent service identities, object-lock retention, data collectors, full rule parity, calendars, corporate actions and the operational rehearsal are future release gates. Passing unit tests is not permission to purchase.
