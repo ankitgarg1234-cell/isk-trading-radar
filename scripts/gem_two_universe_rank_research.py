@@ -20,6 +20,9 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+# The operational GEM dashboard branch does not carry the frozen research
+# archive. CI checks out the exact research commit into a read-only sidecar.
+FROZEN_ROOT = ROOT / ".gem_frozen_archive"
 sys.path.insert(0, str(ROOT / "scripts"))
 from gem_public_membership_research import (
     SOURCE_HISTORY, MAX_BYTES, fetch_public_source, parse_history,
@@ -31,9 +34,9 @@ SECONDARY_MONTHLY_PREFIX = (
     "https://raw.githubusercontent.com/pierrebrunelle/"
     "sp500-historical-constituents/main/data/spy"
 )
-ARCHIVE = ROOT / "research_5x/gem_2025_2026_validation"
-ARCHIVE_PRICE = ROOT / "backtests/staged/wf3_prices.json.gz"
-FROZEN_ENGINE = ROOT / "research_5x/code/run_research.py"
+ARCHIVE = FROZEN_ROOT / "research_5x/gem_2025_2026_validation"
+ARCHIVE_PRICE = FROZEN_ROOT / "backtests/staged/wf3_prices.json.gz"
+FROZEN_ENGINE = FROZEN_ROOT / "research_5x/code/run_research.py"
 FROZEN_ENGINE_SHA = "a46271c5436a9fdec93af55705623a270c2888b0124814cf90af873d54ecf7b5"
 FROZEN_COMMIT = "d59b93d3d9a87d582045b4ae71ff9a6f696a48be"
 
