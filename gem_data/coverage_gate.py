@@ -104,8 +104,11 @@ def _prices(row: dict, signal_day: date) -> tuple[float, float, float]:
         h = _finite(item.get("nominal_high"), "nominal high")
         lo = _finite(item.get("nominal_low"), "nominal low")
         v = _finite(item.get("volume"), "volume")
-        if min(c, o, h, lo, v) <= 0 or lo > min(o, h) or h < max(o, lo):
-            raise RankingHold("Invalid positive daily OHLCV values")
+        day_nominal_close = _finite(item.get("nominal_close"), "nominal daily close")
+        if (min(c, o, h, lo, v, day_nominal_close) <= 0
+                or lo > min(o, h, day_nominal_close)
+                or h < max(o, lo, day_nominal_close)):
+            raise RankingHold("Invalid daily nominal OHLCV geometry")
         close.append(c)
         volume.append(v)
     if (seen_dates != sorted(set(seen_dates)) or seen_dates[-1] != signal_day
@@ -114,6 +117,8 @@ def _prices(row: dict, signal_day: date) -> tuple[float, float, float]:
     raw_close = _finite(row.get("nominal_close"), "nominal close")
     if raw_close <= 0:
         raise RankingHold("Invalid nominal closing unit")
+    if abs(raw_close - _finite(prices[-1].get("nominal_close"), "latest vendor nominal close")) > max(0.01, raw_close * 0.0001):
+        raise RankingHold("Latest nominal closing price disagrees with session bar")
     adv20 = sum(close[-20+i] * volume[-20+i] for i in range(20)) / 20
     r63 = close[-1] / close[-64] - 1
     return raw_close, adv20, r63
