@@ -1,9 +1,10 @@
 """Tests for bounded public research price sample; no live provider requests."""
 import pytest
+import json
 from datetime import date, timedelta
 
 from scripts.gem_historical_price_probe import (
-    parse_vendor_csv, session_coverage, vendor_url,
+    parse_vendor_csv, parse_yahoo_chart, session_coverage, vendor_url, yahoo_url,
 )
 
 
@@ -49,3 +50,30 @@ def test_short_series_is_not_a_complete_127_bar_history():
     result = session_coverage({"2022-12-30": {"Close": 100}},
                               {"2022-12-30": ["2022-12-30"]})
     assert result["2022-12-30"]["complete_127_dates"] is False
+
+
+def test_yahoo_url_is_read_only_and_bounded():
+    assert "period1=" in yahoo_url("AAPL")
+    assert "/v8/finance/chart/AAPL" in yahoo_url("AAPL")
+    with pytest.raises(ValueError, match="Explicit sample"):
+        yahoo_url("NOT_A_REAL_GEM_SAMPLE")
+
+
+def test_yahoo_chart_original_arrays_are_parsed_without_certification():
+    from datetime import datetime, timezone
+    stamp = int(datetime(2022, 12, 30, 14, 30, tzinfo=timezone.utc).timestamp())
+    raw = json.dumps({"chart":{"result":[{"timestamp":[stamp],
+        "indicators":{"quote":[{"open":[100], "high":[110], "low":[90],
+                                 "close":[105], "volume":[2000000]}]}}],
+        "error":None}}).encode()
+    bars = parse_yahoo_chart(raw)
+    assert bars["2022-12-30"]["Close"] == 105
+    assert bars["2022-12-30"]["Volume"] == 2000000
+
+
+def test_yahoo_chart_array_mismatch_blocks():
+    raw = json.dumps({"chart":{"result":[{"timestamp":[100,101],
+        "indicators":{"quote":[{"open":[100], "high":[100], "low":[100],
+                                 "close":[100], "volume":[1]}]}}]}}).encode()
+    with pytest.raises(ValueError,match="not aligned"):
+        parse_yahoo_chart(raw)
