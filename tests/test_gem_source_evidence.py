@@ -123,7 +123,7 @@ def test_future_price_bar_blocks():
 def test_missing_adjustment_parity_blocks():
     snap = _snapshot()
     snap["candidates"][1]["frozen_vendor_parity_reviewed"] = False
-    with pytest.raises(RankingHold, match="vendor"):
+    with pytest.raises(RankingHold, match="adjusted-close"):
         audit_snapshot(snap, fixture_min_members=3)
 
 
