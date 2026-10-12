@@ -65,3 +65,24 @@ def test_secondary_comparisons_report_disagreements_without_replacement():
     assert report["cross_checks"]["monthly_2026-04-30"]["only_in_reference"] == ["ZZZ"]
     assert "BRK.B" not in report["cross_checks"]["monthly_2026-04-30"]["only_in_reference"]
     assert report["paper_execution_authorized"] is False
+
+
+def test_future_membership_research_date_must_not_replay_unavailable_members():
+    raw = (HEADER + row("AAA", "2010-01-01")).encode()
+    with pytest.raises(ResearchSourceError, match="Future research snapshot"):
+        research_report(raw, [date(2026, 12, 31)],
+                        retrieved_at="2026-10-12T12:00:00Z")
+
+
+def test_history_record_created_after_retrieval_is_rejected():
+    raw = (HEADER + row("AAA", "2010-01-01", created="2026-10-13")).encode()
+    with pytest.raises(ResearchSourceError, match="dated after retrieval"):
+        research_report(raw, [date(2022, 12, 30)],
+                        retrieved_at="2026-10-12T12:00:00Z")
+
+
+def test_naive_retrieval_timestamp_is_rejected():
+    raw = (HEADER + row("AAA", "2010-01-01")).encode()
+    with pytest.raises(ResearchSourceError, match="Timezone-aware"):
+        research_report(raw, [date(2022, 12, 30)],
+                        retrieved_at="2026-10-12T12:00:00")
