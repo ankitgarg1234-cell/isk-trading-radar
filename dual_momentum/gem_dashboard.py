@@ -16,6 +16,7 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from .gem_source_evidence import probe_status, merge_source_status
 
 router = APIRouter()
 templates = Jinja2Templates(directory="dual_momentum/templates")
@@ -251,19 +252,23 @@ def _gem_only_neon_snapshot():
 
 def gem_status():
     snapshot, error = (_gem_only_neon_snapshot() if os.getenv("GEM_READONLY_DATABASE_URL") else _snapshot())
-    raw_sources = (snapshot or {}).get("sources") or {}
-    # Source claims are shown as reports, NOT as authorization. Missing stays unknown.
+    # Source availability and GEM certification are distinct. Committed,
+    # dated read-only probes are diagnostic only. Unattested database states
+    # are never promoted to VERIFIED. Full coverage + independent QA remain
+    # required for any later paper-trading release.
+    source_evidence = merge_source_status(
+        probe=probe_status(),
+        observed=(snapshot or {}).get("sources"),
+    )
     sources = []
     for key, label, requirement in SOURCE_NAMES:
-        entry = raw_sources.get(key) if isinstance(raw_sources, dict) else None
-        if not isinstance(entry, dict):
-            entry = {}
-        reported = entry.get("status")
-        state = reported if reported in {"VERIFIED", "BLOCKED", "MISSING", "STALE"} else "UNKNOWN"
+        row = source_evidence[key]
         sources.append({
             "key": key, "name": label, "requirement": requirement,
-            "status": state,
-            "as_of": str(entry.get("as_of") or "")[:32],
+            "status": row["status"], "as_of": row["as_of"],
+            "evidence": row["evidence"], "missing": row["missing"],
+            "checked_scope": row["checked_scope"],
+            "trade_eligible": False,
         })
     # No initial $10,000 account is fabricated. Expose values only from a
     # separately reconciled and anchored paper projection.
@@ -291,6 +296,10 @@ def gem_status():
         "starting_capital_planned": 10000,
         "portfolio": portfolio,
         "sources": sources,
+        "verified_source_count": 0,
+        "required_source_count": len(SOURCE_NAMES),
+        "ranking_ready": False,
+        "rank_hold_reason": "No full-universe, SEC-proven, independent-QA-approved source bundle yet",
         "historical_open_cases": 943,
         "historical_case_as_of": "2026-10-11",
         "read_model_connected": snapshot is not None,
