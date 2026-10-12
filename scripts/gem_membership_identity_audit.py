@@ -100,13 +100,52 @@ def identity_screen(members: list[dict], day: date) -> dict:
     }
 
 
-def screen_reference_symbols(symbols: set[str], day: date) -> dict:
-    """No CIK in this source: only flag unmistakably future FIRST_LISTINGS."""
-    invalid, valid = [], []
+# These fragments identify specific issuer names in the SECONDARY monthly
+# snapshot. No-issuer, recycled-symbol cases must remain unresolved rather than
+# be silently mapped using just the ticker spelling.
+REFERENCE_ISSUER_NAMES = {
+    "ELV": "elevance", "BALL": "ball", "META": "meta",
+    "GEN": "gen digital", "PARA": "paramount",
+    "COR": "cencora", "BNY": "bny", "DAY": "dayforce",
+    "CPAY": "corpay", "DOC": "healthpeak", "EG": "everest",
+    "FI": "fiserv", "MRSH": "marsh", "RVTY": "revvity",
+    "FISV": "fiserv",
+    "VMRK": "vivmark", "PSKY": "paramount skydance",
+    "SKYD": "skydance", "SW": "smurfit westrock",
+}
+
+
+def screen_reference_symbols(symbols: set[str], day: date, *,
+                             names: dict[str, str] | None = None) -> dict:
+    """Flag second-source retro-tickers using issuer-qualified announcements.
+
+    This reference has NO CIK. Retain uncertainties, never add a predecessor
+    automatically (especially mergers/spinoffs with different legal entities).
+    """
+    invalid, valid, uncertain = [], [], []
     for ticker in sorted(symbols):
-        checks = identity_issues(ticker, "", day)
+        description = (names or {}).get(ticker, "").strip().lower()
+        known_issuer = REFERENCE_ISSUER_NAMES.get(ticker)
+        issuer_matched = bool(known_issuer and known_issuer in description)
+        # Existing ticker-only successor-listing check remains available to
+        # older callers; issuer names make source identity less ambiguous.
+        checks = identity_issues(ticker, "", day) if (not names or issuer_matched) else []
+        if issuer_matched:
+            for new, old, when, _, evidence in TICKER_CHANGES:
+                effective = date.fromisoformat(when)
+                if ticker == new and day < effective:
+                    checks.append({"code": "SECONDARY_FUTURE_TICKER_RECAST",
+                                   "possible_historical_ticker": old, "effective_on": when,
+                                   "evidence": evidence, "do_not_autofill": True})
+                if ticker == old and day >= effective:
+                    checks.append({"code": "SECONDARY_RETIRED_TICKER_RECAST",
+                                   "possible_historical_ticker": new, "effective_on": when,
+                                   "evidence": evidence, "do_not_autofill": True})
         if checks:
-            invalid.append({"ticker": ticker, "flags": checks})
+            invalid.append({"ticker": ticker, "name": description, "flags": checks})
         else:
             valid.append(ticker)
-    return {"retained": valid, "quarantined": invalid}
+            if known_issuer and names and not issuer_matched:
+                uncertain.append({"ticker": ticker, "name": description,
+                                  "reason": "REUSED_SYMBOL_OR_ISSUER_NAME_MISMATCH"})
+    return {"retained": valid, "quarantined": invalid, "uncertain_identity": uncertain}
