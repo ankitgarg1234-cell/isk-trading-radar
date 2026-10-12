@@ -131,11 +131,22 @@ def merge_source_status(*, probe: dict, observed: dict | None) -> dict:
             state = "PENDING_QA"
         if state not in DISPLAY_STATES:
             state = "UNKNOWN"
+        observed_at = _limited_text(row.get("as_of"))
+        observed_day = _safe_date(observed_at[:10])
+        if observed_day is None or observed_day > datetime.now(timezone.utc).date():
+            state = "UNKNOWN"
+        elif (datetime.now(timezone.utc).date() - observed_day).days > MAX_AGE_DAYS[key]:
+            state = "STALE"
         existing = result[key]
         updated = dict(existing)
         updated["status"] = state
-        updated["as_of"] = _limited_text(row.get("as_of")) or existing["as_of"]
-        updated["evidence"] = "GEM DB receipt (unattested); independent QA still required"
-        updated["missing"] = ["Independent certificate absent: DB source state cannot approve trading"]
+        updated["as_of"] = observed_at or existing["as_of"]
+        updated["evidence"] = _limited_text(row.get("evidence")) or "GEM-only DB diagnostic; independent QA still required"
+        updated["checked_scope"] = _limited_text(row.get("checked_scope")) or existing["checked_scope"]
+        missing = row.get("missing")
+        updated["missing"] = ([_limited_text(item) for item in missing[:6] if isinstance(item, str)]
+                              if isinstance(missing, list)
+                              else ["Independent source QA certificate absent"])
+        updated["trade_eligible"] = False
         result[key] = updated
     return result
