@@ -1,5 +1,6 @@
 """Tests for bounded public research price sample; no live provider requests."""
 import pytest
+from datetime import date, timedelta
 
 from scripts.gem_historical_price_probe import (
     parse_vendor_csv, session_coverage, vendor_url,
@@ -38,8 +39,7 @@ def test_bad_ohlcv_and_duplicate_dates_block():
 
 
 def test_missing_sessional_dates_cannot_satisfy_price_coverage():
-    sess = [f"2022-01-{i:02d}" for i in range(1, 32)]
-    sess = (sess*5)[:127]  # synthetic fixture, no trade authority
+    sess = [(date(2022, 1, 1) + timedelta(days=i)).isoformat() for i in range(127)]  # synthetic dates, no trade authority
     available = {d: {"Close": 100} for d in sess[:-1]}
     report = session_coverage(available, {"2022-12-30": sess})
     assert report["2022-12-30"]["complete_127_dates"] is False
