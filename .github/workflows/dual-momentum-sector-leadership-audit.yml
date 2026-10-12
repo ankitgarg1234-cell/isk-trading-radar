@@ -1,0 +1,30 @@
+name: dual-momentum-sector-leadership-audit
+
+on:
+  push:
+    branches: [dual-momentum-dashboard]
+    paths:
+      - "scripts/dual_momentum_sector_leadership_audit_5y.py"
+      - ".github/workflows/dual-momentum-sector-leadership-audit.yml"
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r dual_momentum_requirements.txt requests
+      - name: Run sector leadership audit
+        run: python scripts/dual_momentum_sector_leadership_audit_5y.py
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dual-momentum-sector-leadership-audit
+          path: backtests/results/dual_momentum_sector_leadership_audit_5y.json
+          if-no-files-found: ignore

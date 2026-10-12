@@ -1,0 +1,30 @@
+name: dual-momentum-10k-industry-leader-pool
+
+on:
+  push:
+    branches: [dual-momentum-dashboard]
+    paths:
+      - "scripts/dual_momentum_10k_industry_leader_pool_5y.py"
+      - ".github/workflows/dual-momentum-10k-industry-leader-pool.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r dual_momentum_requirements.txt requests
+      - name: Run industry leader pool test
+        run: python scripts/dual_momentum_10k_industry_leader_pool_5y.py
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dual-momentum-10k-industry-leader-pool
+          path: backtests/results/dual_momentum_10k_industry_leader_pool_5y.json
+          if-no-files-found: ignore

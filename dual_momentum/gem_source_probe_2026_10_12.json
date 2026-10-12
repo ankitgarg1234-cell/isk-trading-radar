@@ -1,0 +1,93 @@
+{
+  "schema": "gem-source-probes-v1",
+  "frozen_commit": "d59b93d3d9a87d582045b4ae71ff9a6f696a48be",
+  "checked_on": "2026-10-12",
+  "kind": "READ_ONLY_DIAGNOSTIC_SOURCE_INVENTORY_NOT_PIT_CERTIFICATION",
+  "policy": "Do not mark VERIFIED from a provider ping, cached research result or unsigned receipt.",
+  "sources": [
+    {
+      "key": "membership",
+      "status": "PARTIAL",
+      "evidence": "Secondary GitHub SP500 current constituents endpoint and historical components CSV reachable; current CSV displays ~503 security rows; no official S&P DJI full effective-dated delivery.",
+      "checked_scope": "Secondary public constituent/current-history tables; historical archive broad universe across 21 months.",
+      "missing": [
+        "Primary S&P DJI effective-dated full constituency license or equivalent independently certified official snapshots",
+        "Issuer/CIK/share-class changes and removed members; reconcile as-of decision-date identities"
+      ],
+      "urls": [
+        "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv",
+        "https://raw.githubusercontent.com/lawcal/sp500-components-history/main/data/components_history.csv"
+      ]
+    },
+    {
+      "key": "prices",
+      "status": "PARTIAL",
+      "evidence": "Read-only IBKR SPY/P/HPE/PSX daily bar probes returned 250 OHLCV bars each through 2026-10-09; complete price/volume arrays in these four samples.",
+      "checked_scope": "4 sampled US contracts via chosen IBKR connection; not the full eligible S&P 500.",
+      "missing": [
+        "Resolve every constituent to the correct IBKR security contract including corporate aliases",
+        "126 valid prior completed sessions for every eligible member, full universe coverage, nominal closing units and adjusted momentum parity",
+        "Qualified unattended cloud market-data collection and independent vendor/action validation"
+      ],
+      "urls": [
+        "https://ibkrcampus.com/docs/web-api/v1/endpoints/market-data/historical-market-data"
+      ]
+    },
+    {
+      "key": "sec",
+      "status": "PARTIAL",
+      "evidence": "Prior GEM audit matched 1,638 selected qualifying historical SEC input uses. This does not certify competing stocks; 943 cases across history remain open.",
+      "checked_scope": "Retrospective archive, not automated complete prospective filings for all current members.",
+      "missing": [
+        "Full competing universe 10-Q originals, acceptance/publication receipts, eligible quarter derivations, custom tags and filing cutoff proof",
+        "Resolve September 30 competitor PSX/FDXF/HONA and all cases capable of displacing the fifth rank",
+        "Deploy an identity-aware rate-limited SEC collector with source-byte digests and independent factor recomputation"
+      ],
+      "urls": [
+        "https://data.sec.gov/submissions/",
+        "https://www.sec.gov/search-filings/edgar-application-programming-interfaces"
+      ]
+    },
+    {
+      "key": "actions",
+      "status": "PARTIAL",
+      "evidence": "IBKR SPY/HPE/PSX sample history returned corporate-action records; no complete historical event coverage or original issuer reconciliations.",
+      "checked_scope": "Small sample only, not a qualified all-member actions ledger.",
+      "missing": [
+        "Complete dated split/merger/spinoff/delisting and dividend ex/pay records for universe and portfolio",
+        "Cross-check original issuer/SEC event declarations and nominal-price adjustment semantics",
+        "Reconcile share/cash event treatment and payment-versus-ex-date economics"
+      ],
+      "urls": [
+        "https://www.sec.gov/edgar/search/"
+      ]
+    },
+    {
+      "key": "calendar",
+      "status": "PARTIAL",
+      "evidence": "NYSE official trading hours/calendar page accessible; app already depends on pandas-market-calendars 5.5.0 and has NYSE session utilities.",
+      "checked_scope": "Published exchange calendar plus available local code; operational cutoff/holiday/halt monitoring not yet QA-certified.",
+      "missing": [
+        "Capture official session schedule snapshot with digest and independent agreement for each target signal/next open",
+        "Emergency halts, early closes, timezone changes and delayed/complete bar cutoff monitors"
+      ],
+      "urls": [
+        "https://www.nyse.com/markets/hours-calendars"
+      ]
+    },
+    {
+      "key": "benchmark",
+      "status": "PARTIAL",
+      "evidence": "Read-only IBKR SPY US-listed contract returned 250 completed daily OHLCV observations through 2026-10-09; snapshot reported REALTIME at probe.",
+      "checked_scope": "SPY market-price feed sample only; no independently reconciled dividend-adjusted total-return benchmark.",
+      "missing": [
+        "SPY distributions and payable-date methodology matched to starting cash and fill dates",
+        "Independent price/action verification and full daily synchronized total-return accounting",
+        "Automated daily acquisition with source freshness and persistence"
+      ],
+      "urls": [
+        "https://ibkrcampus.com/docs/web-api/v1/endpoints/market-data/historical-market-data"
+      ]
+    }
+  ]
+}

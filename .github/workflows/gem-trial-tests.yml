@@ -1,0 +1,25 @@
+name: gem-trial-readonly-tests
+on:
+  pull_request:
+    branches: [dual-momentum-dashboard]
+    paths:
+      - "dual_momentum/gem_dashboard.py"
+      - "dual_momentum/templates/gem_trial.html"
+      - "dual_momentum/main.py"
+      - "tests/test_gem_dashboard.py"
+      - ".github/workflows/gem-trial-tests.yml"
+  push:
+    branches: [feature/gem-trial-in-dual-dashboard-2026-10-12]
+  workflow_dispatch:
+jobs:
+  gem-ui-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r dual_momentum_requirements.txt pytest
+      - run: python -m compileall -q dual_momentum/gem_dashboard.py dual_momentum/main.py
+      - run: pytest -q tests/test_gem_dashboard.py
