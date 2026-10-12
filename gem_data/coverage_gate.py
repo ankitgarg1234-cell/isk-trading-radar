@@ -15,6 +15,8 @@ from typing import Any
 import json
 import math
 
+from gem_data.membership_integrity import audit_membership_manifest, MembershipHold
+
 
 class RankingHold(ValueError):
     pass
@@ -151,6 +153,10 @@ def audit_snapshot(snapshot: dict, *, fixture_min_members: int | None = None) ->
         raise RankingHold("Incomplete, ambiguous or duplicate S&P security identifiers")
     if snapshot.get("primary_universe_bytes_hash_verified") is not True:
         raise RankingHold("No primary effective-dated S&P identity/membership evidence")
+    try:
+        membership_digest = audit_membership_manifest(snapshot.get("membership_manifest"), universe, signal)
+    except MembershipHold as exc:
+        raise RankingHold(str(exc)) from exc
     if snapshot.get("corporate_action_coverage_verified") is not True:
         raise RankingHold("Unresolved market split/spinoff/merger/dividend actions")
     if snapshot.get("spy_benchmark_coverage_verified") is not True:
@@ -209,6 +215,7 @@ def audit_snapshot(snapshot: dict, *, fixture_min_members: int | None = None) ->
         "schema": "gem-ranking-qa-proposal-v1",
         "signal_session": signal.isoformat(),
         "member_count": len(universe),
+        "membership_manifest_digest": membership_digest,
         "evaluated_count": len(result),
         "candidate_count": len(qualified),
         "selected": [c.ticker for c in qualified[:5]],
