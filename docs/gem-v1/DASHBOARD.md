@@ -19,6 +19,8 @@ UI requirements for later delivery: filter cases by date/state/risk/owner; searc
 
 ## Read architecture and API contract — future implementation
 
+Render hosts the new GEM web/API and worker roles; an isolated Neon database holds durable GEM state and projections. [HOSTING_AND_EXECUTION.md](HOSTING_AND_EXECUTION.md) describes how a supported IBKR data-only gateway/bridge supplies Render and how a future internal simulator records virtual positions in Neon. The local preview is not cloud hosting, and the chat connector is not a server credential.
+
 ```mermaid
 flowchart LR
   E[Sealed source and signal artifacts] --> P[Verified read projections]

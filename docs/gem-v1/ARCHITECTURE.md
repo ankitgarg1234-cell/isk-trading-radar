@@ -2,6 +2,8 @@
 
 ## Boundaries and current implementation
 
+The selected hosting stack is **new isolated GEM services on Render and a separate GEM database on Neon**. [HOSTING_AND_EXECUTION.md](HOSTING_AND_EXECUTION.md) makes the gateway/authentication, cloud data flow and simulated-position persistence explicit. The current local dashboard layout is not a deployed Render service. The chat IBKR connector is a sample probe; it cannot be treated as an unattended Render credential. No database, gateway, cloud service or execution is provisioned here.
+
 This repository change is an offline safety prototype. A's `gem_paper` modules do not import `app`, read deployment environment variables or connect to a provider. B reads pinned research artifacts and writes only its own outputs. Neither can submit an order. The production design below is a contract and staged roadmap, not a claim that services are deployed.
 
 Use a separate GEM research account ID, database, object store, worker queue and credentials; no production tables, service routes, account IDs, resets, scanners or scheduled paper jobs may be reused. Network policy denies broker hosts and production database addresses. Future paper execution uses only a dedicated internal simulator capability with no real-money API route or credential. Environments are `unit-fixture`, `offline-research`, `shadow`, `dry-run`, and eventually `paper-approved`; missing/unknown environment is closed.
