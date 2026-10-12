@@ -64,6 +64,7 @@ def _snapshot():
         "corporate_action_coverage_verified": True,
         "spy_benchmark_coverage_verified": True,
         "complete_exchange_calendar_verified": True,
+        "completed_sessions": [bar["session"] for bar in _bars(1.0)],
         "universe": [{"ticker": s, "security_id": f"{i}:{s}"} for i, s in enumerate(symbols)],
         "candidates": [
             {"ticker": s, "security_id": f"{i}:{s}",
@@ -124,6 +125,31 @@ def test_missing_adjustment_parity_blocks():
     snap = _snapshot()
     snap["candidates"][1]["frozen_vendor_parity_reviewed"] = False
     with pytest.raises(RankingHold, match="adjusted-close"):
+        audit_snapshot(snap, fixture_min_members=3)
+
+
+
+def test_missing_completed_session_manifest_blocks_even_with_verified_flag():
+    snap = _snapshot()
+    del snap["completed_sessions"]
+    with pytest.raises(RankingHold, match="official session-date manifest"):
+        audit_snapshot(snap, fixture_min_members=3)
+
+
+def test_calendar_date_mismatch_blocks_even_with_sufficient_bars():
+    snap = _snapshot()
+    bars = snap["candidates"][0]["bars"]
+    # Exchange weekday coverage is not proof of completed NYSE sessions:
+    # a provider may insert a weekend bar without reducing the count.
+    for i in range(len(bars) - 1):
+        friday = date.fromisoformat(bars[i]["session"])
+        monday = date.fromisoformat(bars[i + 1]["session"])
+        if friday.weekday() == 4 and monday.weekday() == 0:
+            bars[i]["session"] = (friday + timedelta(days=1)).isoformat()
+            break
+    else:
+        raise AssertionError("fixture has no Friday-Monday pair")
+    with pytest.raises(RankingHold, match="127 certified completed exchange sessions"):
         audit_snapshot(snap, fixture_min_members=3)
 
 
