@@ -137,10 +137,21 @@ def research_report(history_raw: bytes, snapshots: list[date], *,
                     retrieved_at: str | None = None) -> dict:
     history = parse_history(history_raw)
     retrieved = retrieved_at or datetime.now(timezone.utc).isoformat()
+    try:
+        observed = datetime.fromisoformat(retrieved.replace("Z", "+00:00"))
+    except (ValueError, AttributeError) as exc:
+        raise ResearchSourceError("Invalid research retrieval timestamp") from exc
+    if observed.tzinfo is None or observed.utcoffset() is None:
+        raise ResearchSourceError("Timezone-aware research retrieval timestamp required")
+    observation_day = observed.astimezone(timezone.utc).date()
+    if any(row["first_source_recorded_on"] > observation_day for row in history):
+        raise ResearchSourceError("History contains source records dated after retrieval")
     results = []
     for day in snapshots:
         if not isinstance(day, date):
             raise ResearchSourceError("Snapshot date must be explicit")
+        if day > observation_day:
+            raise ResearchSourceError("Future research snapshot would leak unavailable members")
         active = asof_members(history, day)
         flags = [r for r in active if r["date_approximate"]]
         unknown_at_signal = [r for r in active if r["first_source_recorded_on"] > day]
@@ -176,7 +187,7 @@ def research_report(history_raw: bytes, snapshots: list[date], *,
     if current_raw is not None:
         # This reference is current, never a historical snapshot guarantee.
         current = _current_symbols(current_raw)
-        candidate = {r["ticker"] for r in asof_members(history, datetime.fromisoformat(retrieved[:10]).date())}
+        candidate = {r["ticker"] for r in asof_members(history, observation_day)}
         cross_checks["other_public_current"] = {
             "source": SOURCE_CURRENT,
             "source_sha256": hashlib.sha256(current_raw).hexdigest(),
