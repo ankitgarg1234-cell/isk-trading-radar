@@ -7,6 +7,10 @@ execute orders, or grant verification authority.
 """
 from __future__ import annotations
 
+import asyncio
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+import logging
 import os
 import secrets
 
@@ -16,7 +20,46 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from dual_momentum.gem_dashboard import router as gem_readonly_router
 
+_log = logging.getLogger(__name__)
+
+
+async def _public_source_loop():
+    """Optional bounded ingestion loop for this single GEM-only Starter service.
+
+    All network/database I/O happens off the ASGI event loop. No market-data
+    or SEC calls, no ranking, never a trading system.
+    """
+    from gem_data.gem_public_ingest import capture_and_persist, next_daily_run
+    while True:
+        try:
+            result = await asyncio.to_thread(capture_and_persist)
+            _log.info("GEM isolated public source refresh states: %s", result)
+        except Exception as exc:
+            # Never log database URLs, credentials, vendor response content.
+            _log.warning("GEM isolated source refresh failed (%s)", type(exc).__name__)
+        delay = (next_daily_run(datetime.now(timezone.utc)) -
+                 datetime.now(timezone.utc)).total_seconds()
+        await asyncio.sleep(max(1.0, delay))
+
+
+@asynccontextmanager
+async def _lifespan(app):
+    task = None
+    if os.getenv("GEM_PUBLIC_COLLECTION_ENABLED") == "yes":
+        task = asyncio.create_task(_public_source_loop())
+    try:
+        yield
+    finally:
+        if task is not None:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
+
 app = FastAPI(
+    lifespan=_lifespan,
     title="GEMv1 Read-only Dashboard",
     description="Isolated diagnostic dashboard. No live trading signals or order routing.",
     docs_url=None,
