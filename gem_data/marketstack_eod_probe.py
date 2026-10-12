@@ -161,12 +161,17 @@ class MarketstackEODProbe:
                 if session < date_from or session > date_to or session in seen:
                     raise MarketstackProbeError("duplicate or out-of-window vendor session")
                 seen.add(session)
-                op = self._number(item, "open")
-                hi = self._number(item, "high")
-                lo = self._number(item, "low")
-                cl = self._number(item, "close")
-                vol = self._number(item, "volume", nonnegative=True)
-                adj = self._number(item, "adj_close")
+                try:
+                    op = self._number(item, "open")
+                    hi = self._number(item, "high")
+                    lo = self._number(item, "low")
+                    cl = self._number(item, "close")
+                    vol = self._number(item, "volume", nonnegative=True)
+                    adj = self._number(item, "adj_close")
+                except MarketstackProbeError as exc:
+                    # Pinpoint the failed symbol/session without making another
+                    # billable vendor call. Never print request URLs or credentials.
+                    raise MarketstackProbeError(f"{symbol} {session.isoformat()}: {exc}") from None
                 if hi < max(op, cl, lo) or lo > min(op, cl, hi):
                     raise MarketstackProbeError("invalid vendor nominal OHLC geometry")
                 split = item.get("split_factor")
