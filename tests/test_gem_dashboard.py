@@ -110,3 +110,50 @@ def test_october_reference_never_funds_forward_paper_account(monkeypatch):
     assert state["portfolio"] is None
     assert state["execution"] == "DISABLED"
     assert state["read_model_connected"] is False
+
+
+def test_neon_reader_failure_is_fail_closed_without_dm_database(monkeypatch):
+    monkeypatch.setenv("GEM_READONLY_DATABASE_URL", "postgresql://invalid-gem-reader")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://existing-trial-do-not-touch")
+    def deny(*args, **kwargs):
+        raise gem.psycopg.OperationalError("restricted reader unavailable")
+    monkeypatch.setattr(gem.psycopg, "connect", deny)
+    state = gem.gem_status()
+    assert state["read_model_connected"] is False
+    assert state["gem_db"] is None
+    assert state["portfolio"] is None
+    assert state["execution"] == "DISABLED"
+    assert state["oct1_backfill"]["fills_recorded"] == 0
+
+
+def test_neon_reader_verifies_both_gem_accounts_without_writes(monkeypatch):
+    monkeypatch.setenv("GEM_READONLY_DATABASE_URL", "postgresql://gem-only-reader")
+    calls = []
+    class Cursor:
+        count = 0
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def execute(self, sql, params):
+            calls.append((sql, params))
+            assert sql.strip().upper().startswith("SELECT")
+            assert "dual_momentum" not in sql
+            self.count += 1
+        def fetchall(self):
+            if self.count == 1:
+                return [
+                    ("gem-v1-forward-2026-10", gem.FROZEN_REF, "SHADOW", False, 0, 0),
+                    ("gem-v1-oct1-backfill-2026", gem.FROZEN_REF, "SHADOW", False, 0, 0),
+                ]
+            return []
+        def fetchone(self): return (7,)
+    class Connection:
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def cursor(self): return Cursor()
+    monkeypatch.setattr(gem.psycopg, "connect", lambda *a, **k: Connection())
+    state = gem.gem_status()
+    assert state["read_model_connected"] is True
+    assert state["gem_db"]["backfill_observations"] == 7
+    assert state["gem_db"]["forward_signals"] == 0
+    assert state["execution"] == "DISABLED"
+    assert len(calls) == 3

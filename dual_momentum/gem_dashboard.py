@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import psycopg
 import math
 from datetime import datetime, timezone
 from pathlib import Path
@@ -180,8 +181,76 @@ def oct1_retrospective_reference():
         return None
 
 
+
+def _gem_only_neon_snapshot():
+    """Read GEM-specific evidence with a database-enforced SELECT-only identity.
+
+    This never reads DM DATABASE_URL, performs migrations, marks fills, or grants
+    execution. SQL errors are deliberately generic to avoid leaking credentials.
+    """
+    url = os.getenv("GEM_READONLY_DATABASE_URL", "").strip()
+    if not url:
+        return None, "GEM-only Neon read connection not configured"
+    try:
+        with psycopg.connect(
+            url, connect_timeout=4,
+            options="-c default_transaction_read_only=on -c statement_timeout=4500",
+        ) as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT experiment_id, frozen_commit, mode, execution_enabled, "
+                    "receipt_count, signal_count FROM gem_status_v1 "
+                    "WHERE experiment_id IN (%s,%s) ORDER BY experiment_id",
+                    ("gem-v1-forward-2026-10", "gem-v1-oct1-backfill-2026"),
+                )
+                rows = cur.fetchall()
+                by_id = {row[0]: row for row in rows}
+                primary = by_id.get("gem-v1-forward-2026-10")
+                backfill = by_id.get("gem-v1-oct1-backfill-2026")
+                if (
+                    primary is None or backfill is None
+                    or primary[1] != FROZEN_REF or backfill[1] != FROZEN_REF
+                    or primary[2] != "SHADOW" or backfill[2] != "SHADOW"
+                    or primary[3] is not False or backfill[3] is not False
+                ):
+                    return None, "GEM isolated account configuration mismatch"
+                cur.execute(
+                    "SELECT DISTINCT ON (source_type) source_type, coverage_status, observed_at "
+                    "FROM gem_source_receipt WHERE experiment_id=%s "
+                    "ORDER BY source_type, collected_at DESC, receipt_id DESC",
+                    ("gem-v1-forward-2026-10",),
+                )
+                receipts = cur.fetchall()
+                cur.execute(
+                    "SELECT count(*) FROM gem_shadow_observation "
+                    "WHERE experiment_id=%s AND observation_type=%s",
+                    ("gem-v1-oct1-backfill-2026", "RETROSPECTIVE_EOD_MARK"),
+                )
+                backfilled_days = int(cur.fetchone()[0])
+        permitted = {source[0] for source in SOURCE_NAMES}
+        return {
+            "schema": "gem-dashboard-v1",
+            "frozen_ref": FROZEN_REF,
+            "environment": "shadow",
+            "observed_at": datetime.now(timezone.utc).isoformat(),
+            "sources": {
+                kind: {"status": state, "as_of": observed_at.isoformat()}
+                for kind, state, observed_at in receipts if kind in permitted
+            },
+            "gem_db": {
+                "connected": True, "forward_source_receipts": int(primary[4]),
+                "forward_signals": int(primary[5]),
+                "backfill_observations": backfilled_days,
+                "execution_enabled": False,
+            },
+        }, None
+    except (psycopg.Error, OSError, ValueError, TypeError):
+        return None, "GEM-only Neon read failed; portfolio and authority remain blocked"
+
+
+
 def gem_status():
-    snapshot, error = _snapshot()
+    snapshot, error = (_gem_only_neon_snapshot() if os.getenv("GEM_READONLY_DATABASE_URL") else _snapshot())
     raw_sources = (snapshot or {}).get("sources") or {}
     # Source claims are shown as reports, NOT as authorization. Missing stays unknown.
     sources = []
@@ -225,6 +294,7 @@ def gem_status():
         "historical_open_cases": 943,
         "historical_case_as_of": "2026-10-11",
         "read_model_connected": snapshot is not None,
+        "gem_db": (snapshot or {}).get("gem_db"),
         "oct1_backfill": oct1_retrospective_reference(),
         "next_signal": (snapshot or {}).get("next_signal"),
         "notes": "Read-only. An external projection cannot grant trading authority.",
