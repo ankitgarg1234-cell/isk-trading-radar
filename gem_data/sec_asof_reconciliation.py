@@ -8,7 +8,7 @@ It never parses or certifies original XBRL facts and never authorizes orders.
 """
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 from hashlib import sha256
 import json
 import math
@@ -157,8 +157,12 @@ def audit_sec_six_facts(
             raise SecEvidenceHold("Mixed quarter periods or SEC accessions")
     if not 310 <= (periods["revenue_now"][1] - periods["revenue_prior"][1]).days <= 420:
         raise SecEvidenceHold("Now/prior comparison is not year-over-year")
-    if (signal - periods["revenue_now"][1]).days > 365:
-        raise SecEvidenceHold("Quarter data extremely stale")
+    # Same 210-day current-filing freshness window as the frozen offline
+    # ranking gate; never loosen it when preparing SEC evidence.
+    current_accession = periods["revenue_now"][2]
+    current_filed = by_accession[current_accession][1]
+    if (signal - timedelta(days=1) - current_filed).days > 210:
+        raise SecEvidenceHold("Current SEC quarter filing exceeds 210-day freshness")
     payload = {
         "schema": "gem-sec-six-facts-proposal-v1",
         "signal_session": signal_session,
