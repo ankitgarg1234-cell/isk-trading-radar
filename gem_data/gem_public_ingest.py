@@ -223,6 +223,7 @@ def capture_and_persist(*, observed: datetime | None = None) -> dict:
         raise RuntimeError("GEM source collection disabled: restricted writer URL unavailable")
     observed = observed or datetime.now(timezone.utc)
     result = {}
+    membership_raw = None
     with httpx.Client(timeout=18.0, follow_redirects=False, headers={
         "User-Agent": "GEMv1 read-only public source research"
     }) as client:
@@ -232,6 +233,8 @@ def capture_and_persist(*, observed: datetime | None = None) -> dict:
                 if source in ("calendar", "benchmark") and observed.year != 2026:
                     raise InvalidEvidence("2026 published calendar requires year rollover")
                 receipt, probe = evidence_records(source, observed, raw, metrics)
+                if source == "membership":
+                    membership_raw = raw
             except InvalidEvidence as exc:
                 receipt, probe = evidence_records(
                     source, observed, None, None, reason=str(exc))
@@ -240,6 +243,18 @@ def capture_and_persist(*, observed: datetime | None = None) -> dict:
             with psycopg.connect(url, connect_timeout=6) as conn:
                 write_observation(conn, receipt, probe)
             result[source] = probe["state"]
+    # SEC remains independently gated until the user registers a genuine
+    # organizational contact identity. No placeholder agent or unauthenticated
+    # SEC API request can be emitted by this application.
+    if os.getenv("GEM_SEC_COLLECTION_ENABLED") == "yes":
+        from gem_data.sec_daily_discovery import probe_batch, store_sec_discovery
+        if membership_raw is None:
+            raise RuntimeError("SEC scan held: current secondary CIK discovery missing")
+        ua = os.getenv("SEC_USER_AGENT", "")
+        evidence, summary = probe_batch(membership_raw, observed, ua)
+        with psycopg.connect(url, connect_timeout=6) as conn:
+            store_sec_discovery(conn, evidence)
+        result["sec"] = "BLOCKED" if summary["ciks_failed"] else "PARTIAL"
     return result
 
 
