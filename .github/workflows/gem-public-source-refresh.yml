@@ -1,0 +1,43 @@
+name: GEMv1 Public Source Freshness (read-only)
+on:
+  schedule:
+    # 23:40 UTC occurs after normal NYSE cash-market close in EST and EDT.
+    # Daily including weekends so newly announced closures can be noticed.
+    - cron: '40 23 * * *'
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'gem_public_refresh/**'
+      - '.github/workflows/gem-public-source-refresh.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gem-public-source-freshness
+  cancel-in-progress: false
+
+jobs:
+  public-source-freshness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install isolated, read-only collector dependency
+        run: python -m pip install httpx==0.28.1
+      - name: Offline fail-closed unit tests
+        run: python -m unittest gem_public_refresh.test_collect -v
+      - name: Retrieve primary NYSE + secondary S&P current-members source
+        run: python -m gem_public_refresh.collect --output-dir "$RUNNER_TEMP/gem-public-evidence"
+      - name: Save hash-receipted evidence for reviewer; NOT trading data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gem-public-source-freshness-not-certified
+          path: ${{ runner.temp }}/gem-public-evidence/
+          if-no-files-found: warn
+          retention-days: 30
