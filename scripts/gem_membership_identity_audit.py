@@ -10,6 +10,11 @@ from datetime import date
 
 # new symbol, legacy symbol, date of new symbol, CIK, dated issuer/SEC evidence
 TICKER_CHANGES = (
+    ("ELV", "ANTM", "2022-06-28", "0001156039", "https://www.sec.gov/Archives/edgar/data/1156039/000115603923000007/elv-20221231.htm"),
+    ("BALL", "BLL", "2022-05-10", "0000009389", "https://www.sec.gov/Archives/edgar/data/9389/000000938922000010/bll-20220427x8k.htm"),
+    ("META", "FB", "2022-06-09", "0001326801", "https://www.sec.gov/Archives/edgar/data/1326801/000132680122000070/may312022-exhibit991.htm"),
+    ("GEN", "NLOK", "2022-11-08", "0000849399", "https://www.sec.gov/Archives/edgar/data/849399/000110465922115277/tm2229813d1_ex99-01.htm"),
+    ("PARA", "VIAC", "2022-02-17", "0000813828", "https://www.sec.gov/Archives/edgar/data/813828/000081382822000011/viac-20220216.htm"),
     ("COR", "ABC", "2023-08-30", "0001140859", "https://www.sec.gov/Archives/edgar/data/1140859/000110465923096698/tm2324358d1_8k.htm"),
     ("BNY", "BK", "2026-05-21", "0001390777", "https://www.bny.com/corporate/global/en/about-us/newsroom/press-release/bny-announces-planned-change-of-stock-ticker-symbol-to-bny-130465.html"),
     ("DAY", "CDAY", "2024-02-01", "0001725057", "https://investors.dayforce.com/news-and-events/press-releases/press-release-details/2024/Ceridian-to-change-ticker-symbol-to-DAY-on-NYSE-and-TSX-effective-February-1/default.aspx"),
