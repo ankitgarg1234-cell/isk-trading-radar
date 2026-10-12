@@ -145,3 +145,21 @@ def test_all_selected_zip_members_stored_as_partial_originals(monkeypatch):
 def test_invalid_batch_rejected_before_any_http():
     with pytest.raises(BulkSourceHold, match="batch outside"):
         capture_bulk_batch(max_ciks=1000)
+
+
+def test_streams_large_central_directory_without_loading_index():
+    from gem_data.sec_zip_index import SelectedRemoteZip
+    target = "CIK0001000000.json"
+    _, original = zip_bytes(target, "0001000000")
+    buf = BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as z:
+        for i in range(40000):
+            z.writestr("dummy-" + str(i).zfill(8) + ("x"*85) + ".txt", "")
+        z.writestr(target, original)
+    archive_bytes = buf.getvalue()
+    assert len(archive_bytes) > 4_000_000
+    with client_with_ranges({ARCHIVES["submissions"]: archive_bytes}) as client:
+        stream = SECByteRangeFile(client, ARCHIVES["submissions"], min_delay=0)
+        index = SelectedRemoteZip(stream, {target})
+        assert index.read_member(target) == original
+        assert list(index.members) == [target]
