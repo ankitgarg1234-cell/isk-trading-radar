@@ -85,7 +85,22 @@ def _filing_quarter(row: dict, signal_day: date, *, label: str) -> tuple[float, 
     return _finite(row.get("value"), label), end, filed
 
 
-def _prices(row: dict, signal_day: date) -> tuple[float, float, float]:
+def _expected_completed_sessions(snapshot: dict, signal_day: date) -> list[date]:
+    """Require an explicit independently reviewed session calendar.
+
+    A boolean calendar-verified flag alone cannot prove the 127 trading
+    observations needed for momentum and dollar-volume calculations.
+    """
+    raw = snapshot.get("completed_sessions")
+    if not isinstance(raw, list) or len(raw) < 127:
+        raise RankingHold("Missing complete official session-date manifest")
+    sessions = [_date(session) for session in raw]
+    if sessions != sorted(set(sessions)) or sessions[-1] != signal_day:
+        raise RankingHold("Duplicate, stale or out-of-order official session manifest")
+    return sessions[-127:]
+
+
+def _prices(row: dict, signal_day: date, expected_sessions: list[date]) -> tuple[float, float, float]:
     prices = row.get("bars")
     if not isinstance(prices, list) or len(prices) < 127:
         raise RankingHold("Missing 126 previous session prices")
@@ -111,6 +126,8 @@ def _prices(row: dict, signal_day: date) -> tuple[float, float, float]:
     if (seen_dates != sorted(set(seen_dates)) or seen_dates[-1] != signal_day
             or any(d > signal_day for d in seen_dates)):
         raise RankingHold("Stale/forward/duplicate price observation")
+    if seen_dates[-127:] != expected_sessions:
+        raise RankingHold("Price bars do not cover the 127 certified completed exchange sessions")
     raw_close = _finite(row.get("nominal_close"), "nominal close")
     if raw_close <= 0:
         raise RankingHold("Invalid nominal closing unit")
@@ -163,12 +180,13 @@ def audit_snapshot(snapshot: dict, *, fixture_min_members: int | None = None) ->
     lookup = {r.get("security_id"): r for r in rows if isinstance(r, dict)}
     if len(lookup) != len(rows) or set(lookup) != set(ids):
         raise RankingHold("Missing or duplicated member candidates")
+    expected_sessions = _expected_completed_sessions(snapshot, signal)
     result = []
     for member in sorted(universe, key=lambda m: m["ticker"]):
         row = lookup[member["security_id"]]
         if row.get("ticker") != member["ticker"]:
             raise RankingHold("Ticker/security identity mismatch")
-        raw_close, adv, r63 = _prices(row, signal)
+        raw_close, adv, r63 = _prices(row, signal, expected_sessions)
         if len(row.get("quarterly_facts", {})) != 6:
             raise RankingHold("Missing some SEC quarter facts for " + member["ticker"])
         fs = row["quarterly_facts"]
