@@ -26,6 +26,15 @@ from gem_data.sec_original_collector import (
 )
 
 SEC_BATCH_LIMIT = 90
+MAX_SINGLE_RAW_COMPRESSED_BYTES = 120_000
+MAX_DAILY_RAW_COMPRESSED_BYTES = 3_000_000
+
+
+def _bounded_compress(raw: bytes, consumed: int) -> bytes:
+    zipped = zlib.compress(raw, 9)
+    if len(zipped) > MAX_SINGLE_RAW_COMPRESSED_BYTES or consumed + len(zipped) > MAX_DAILY_RAW_COMPRESSED_BYTES:
+        raise SourceUnavailable("SEC source exceeds isolated evidence storage budget")
+    return zipped
 
 
 def select_ciks(current_secondary_csv: bytes, observed_at: datetime) -> tuple[list[str], int]:
@@ -89,6 +98,7 @@ def probe_batch(csv_bytes: bytes, observed: datetime, user_agent: str,
     observed = observed.astimezone(timezone.utc)
     ciks, total = select_ciks(csv_bytes, observed)
     failures = []
+    bytes_used = 0
     evidence: list[tuple[dict | None, dict]] = []
     with SecOriginalCollector(ua, transport=transport) as collector:
         for cik in ciks:
@@ -96,6 +106,8 @@ def probe_batch(csv_bytes: bytes, observed: datetime, user_agent: str,
             try:
                 source_receipt, raw = collector.get(uri)
                 description = _snapshot(raw, cik)
+                zipped = _bounded_compress(raw, bytes_used)
+                bytes_used += len(zipped)
                 digest = source_receipt.sha256
                 receipt = {
                     "receipt_id": f"gem-sec-submissions-{cik}-{digest[:20]}",
@@ -105,7 +117,7 @@ def probe_batch(csv_bytes: bytes, observed: datetime, user_agent: str,
                     "coverage_status": "UNKNOWN",
                     "provider": "SEC_ORIGINAL_SUBMISSIONS",
                     "metadata": {
-                        "source_raw_zlib_base64": base64.b64encode(zlib.compress(raw, 9)).decode(),
+                        "source_raw_zlib_base64": base64.b64encode(zipped).decode(),
                         "source_raw_length": len(raw), "source_sha256": digest,
                         "issuer_cik": cik, "discovery": description,
                         "original_xbrl_facts_verified": False,
@@ -135,6 +147,8 @@ def probe_batch(csv_bytes: bytes, observed: datetime, user_agent: str,
         "ciks_attempted": len(ciks),
         "ciks_source_fetch_passed": len(ciks) - failed,
         "ciks_failed": failed,
+        "compressed_original_bytes_accepted": bytes_used,
+        "max_daily_original_bytes": MAX_DAILY_RAW_COMPRESSED_BYTES,
         "failure_categories": sorted(set(f["reason"] for f in failures)),
         "full_eligible_universe_certified": False,
         "six_original_quarter_facts_certified": False,
