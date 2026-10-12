@@ -117,3 +117,38 @@ def test_off_by_one_public_interval_does_not_override_documented_ticker_session(
                              date(2022, 6, 9))
     assert june8["retained"] == ["FB"]
     assert june9["retained"] == ["META"]
+
+
+def test_public_monthly_recast_aliases_are_flagged_without_cik_or_fake_history():
+    result = screen_reference_symbols(
+        {"COR", "CPAY", "DAY", "DOC", "EG", "MRSH", "RVTY", "SW", "AAPL"},
+        date(2022, 1, 31),
+        names={"COR": "Cencora", "CPAY": "Corpay", "DAY": "Dayforce",
+               "DOC": "Healthpeak Properties", "EG": "Everest Group",
+               "MRSH": "Marsh McLennan", "RVTY": "Revvity",
+               "SW": "Smurfit Westrock", "AAPL": "Apple"},
+    )
+    assert result["retained"] == ["AAPL"]
+    assert len(result["quarantined"]) == 8
+    assert any(row["ticker"] == "COR" and row["flags"][0]["do_not_autofill"]
+               for row in result["quarantined"])
+
+
+def test_reused_historical_symbol_not_quarantined_without_issuer_match():
+    result = screen_reference_symbols(
+        {"COR"}, date(2022, 1, 31),
+        names={"COR": "Unrelated Old Company Using COR Symbol"},
+    )
+    assert result["retained"] == ["COR"]
+    assert result["quarantined"] == []
+    assert result["uncertain_identity"][0]["reason"] == "REUSED_SYMBOL_OR_ISSUER_NAME_MISMATCH"
+
+
+def test_retired_second_source_ticker_is_not_accepted_as_later_security():
+    result = screen_reference_symbols(
+        {"FISV", "FI"}, date(2023, 12, 29),
+        names={"FISV": "Fiserv", "FI": "Fiserv"},
+    )
+    assert result["retained"] == ["FI"]
+    assert result["quarantined"][0]["ticker"] == "FISV"
+    assert result["quarantined"][0]["flags"][0]["code"] == "SECONDARY_RETIRED_TICKER_RECAST"
