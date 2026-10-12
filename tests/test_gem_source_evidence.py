@@ -150,7 +150,7 @@ def test_claimed_green_source_downgraded_to_qa_pending():
     row = inspect_probes(obj, today=date(2026, 10, 12))
     assert row["prices"]["status"] == "PENDING_QA"
     merged = merge_source_status(probe=row, observed={"prices": {"status": "VERIFIED"}})
-    assert merged["prices"]["status"] == "PENDING_QA"
+    assert merged["prices"]["status"] == "UNKNOWN"  # Spoofed verified with no timestamp cannot pass
     assert merged["prices"]["trade_eligible"] is False
 
 
