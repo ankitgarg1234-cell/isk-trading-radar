@@ -1,0 +1,23 @@
+name: gem-isolated-neon-read-safety
+on:
+  push:
+    branches: [feature/gem-isolated-neon-live-status-2026-10-12]
+  pull_request:
+    branches: [dual-momentum-dashboard]
+    paths:
+      - "dual_momentum/gem_dashboard.py"
+      - "dual_momentum/templates/gem_trial.html"
+      - "tests/test_gem_dashboard.py"
+  workflow_dispatch:
+jobs:
+  neon-readonly-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r dual_momentum_requirements.txt pytest
+      - run: python -m compileall -q dual_momentum/gem_dashboard.py
+      - run: pytest -q tests/test_gem_dashboard.py tests/test_paper_trial.py tests/test_paper_month_trial.py
