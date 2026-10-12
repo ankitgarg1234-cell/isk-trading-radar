@@ -223,6 +223,13 @@ def _gem_only_neon_snapshot():
                 )
                 receipts = cur.fetchall()
                 cur.execute(
+                    "SELECT DISTINCT ON (source_type) source_type, state, observed_at, details "
+                    "FROM gem_source_probe WHERE experiment_id=%s "
+                    "ORDER BY source_type, observed_at DESC, probe_id DESC",
+                    ("gem-v1-forward-2026-10",),
+                )
+                probes = cur.fetchall()
+                cur.execute(
                     "SELECT count(*) FROM gem_shadow_observation "
                     "WHERE experiment_id=%s AND observation_type=%s",
                     ("gem-v1-oct1-backfill-2026", "RETROSPECTIVE_EOD_MARK"),
@@ -237,10 +244,19 @@ def _gem_only_neon_snapshot():
             "sources": {
                 kind: {"status": state, "as_of": observed_at.isoformat()}
                 for kind, state, observed_at in receipts if kind in permitted
+            } | {
+                kind: {
+                    "status": state, "as_of": observed_at.isoformat(),
+                    "evidence": str((details or {}).get("source") or "")[:220],
+                    "checked_scope": str((details or {}).get("scope") or "")[:220],
+                    "missing": [str((details or {}).get("proof") or "Independent QA missing")[:220]],
+                }
+                for kind, state, observed_at, details in probes if kind in permitted
             },
             "gem_db": {
                 "connected": True, "forward_source_receipts": int(primary[4]),
                 "forward_signals": int(primary[5]),
+                "source_probes": len(probes),
                 "backfill_observations": backfilled_days,
                 "execution_enabled": False,
             },
