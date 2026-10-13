@@ -160,23 +160,20 @@ def fetch_filing_xbrl(plan_entry, *, filing_loader=None):
     # Retain every column/context in each relevant row, including custom
     # concepts. Never match a company-specific concept to a GEM metric merely
     # from its label.
-    relevant = []
-    for record in frame.to_dict(orient="records"):
+    rows = frame.to_dict(orient="records")
+    # Pandas serializers retain source period/context/unit columns and
+    # normalize numeric and date representations for portable review JSON.
+    indices = []
+    for i, record in enumerate(rows):
         labels = " ".join(str(record.get(k,"")) for k in (
             "concept","label","original_label"))
         if FACT_PATTERN.search(labels):
-            relevant.append(record)
-            if len(relevant)>MAX_XBRL_ROWS:
+            indices.append(i)
+            if len(indices)>MAX_XBRL_ROWS:
                 raise SECXBRLHold("Too many candidate XBRL facts")
-    if not relevant:
+    if not indices:
         raise SECXBRLHold("No relevant SEC XBRL financial concepts")
     try:
-        raw = frame.loc[frame.index[:0]].to_json(orient="records")
-        # Pandas serializes dates, decimal-like and missing values consistently.
-        # Re-select the subset in original order, without stringifying money.
-        indices = [i for i,rec in enumerate(frame.to_dict(orient="records"))
-                   if FACT_PATTERN.search(" ".join(str(rec.get(k,"")) for k in
-                                          ("concept","label","original_label")))]
         serialized = frame.iloc[indices].to_json(orient="records", date_format="iso")
         if len(serialized.encode()) > MAX_XBRL_BYTES:
             raise SECXBRLHold("Filtered XBRL fact payload too large")
