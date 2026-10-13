@@ -113,6 +113,11 @@ def summarize_pair(now, previous):
             "issuer_extensions_to_review":sorted(set(extensions))[:35],
             "ambiguous_standard_concepts":[tag for tag,vals in standard.items() if len(vals)>1],
             "direct_quarter_category_count":sum(len(vals)==1 for vals in standard.values()),
+            "missing_standard_categories":[category for category in
+                ("STANDARD_REVENUE","STANDARD_OPERATING_INCOME",
+                 "STANDARD_PARENT_NET_INCOME")
+                if category not in standard],
+            "issuer_extension_present":bool(extensions),
             "original_raw_sha256":doc["original_raw_sha256"],
             "accession":item["accession"],
         }
