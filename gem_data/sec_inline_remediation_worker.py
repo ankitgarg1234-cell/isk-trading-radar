@@ -20,12 +20,13 @@ from gem_data.gem_public_ingest import EXPERIMENT, write_observation
 from gem_data.sec_independent_fact_verify import decode_original_receipt, VerificationHold
 from gem_data.sec_fact_audit_worker import qa_as_of
 from gem_data.sec_inline_xbrl_evidence import extract_inline_candidates, InlineEvidenceHold
+from gem_data.gem_sec_annual_context import select_annual_original, summarize_annual_original
 from gem_data.sec_original_collector import SecOriginalCollector, SourceUnavailable, validate_sec_user_agent
 
 _ACC = re.compile(r"^[0-9]{10}-[0-9]{2}-[0-9]{6}$")
 _DOC = re.compile(r"^[A-Za-z0-9_.-]{1,128}$")
 PREFIX = "gem-sec-inline-review-"
-REV = "20261013-v2-24mb"
+REV = "20261013-v3-annual-evidence"
 
 
 class InlineReviewHold(ValueError):
@@ -166,6 +167,11 @@ def _work_items(conn, as_of, limit):
             today_retry=key+"-retry-"+datetime.now(timezone.utc).strftime("%Y%m%d")
             if key not in completed and today_retry not in completed:
                 remaining.append((cik,key,rid))
+        priority=os.getenv("GEM_SEC_INLINE_PRIORITY_CIK","").strip()
+        if priority and not re.fullmatch(r"[0-9]{10}",priority):
+            raise InlineReviewHold("Invalid bounded SEC priority CIK configuration")
+        if priority:
+            remaining.sort(key=lambda x:(x[0]!=priority,x[0]))
         selected=remaining[:limit]
         ids=[rid for _cik,_key,rid in selected]
         receipts={}
