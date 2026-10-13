@@ -236,7 +236,7 @@ def test_edgar_after_hours_acceptance_before_filing_date_is_valid():
 def test_audit_keys_include_verifier_code_hash():
     from gem_data.sec_fact_audit_worker import _key, CODE_SHA256
     key = _key(CIK, {"submissions": ("sub-id", "a"*64),
-                     "companyfacts": ("facts-id", "b"*64)})
+                     "companyfacts": ("facts-id", "b"*64)}, date(2026, 10, 12))
     assert CODE_SHA256[:12] in key
 
 
