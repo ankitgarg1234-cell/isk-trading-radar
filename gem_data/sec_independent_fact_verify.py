@@ -193,7 +193,6 @@ def verify_six_candidates(submissions: dict, companyfacts: dict,
                 "blockers": ["no_eligible_original_10q_usd_quarter_contexts"],
                 "certified": False}
     newest = max(k[2] for k in groups)
-    latest_filing_period = newest
     if (as_of-newest).days > 210:
         # Do not mislabel last year's quarter as "current" when current
         # quarter data is absent or only YTD cumulative facts are present.
