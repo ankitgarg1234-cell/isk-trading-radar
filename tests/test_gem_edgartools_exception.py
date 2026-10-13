@@ -11,7 +11,7 @@ import pytest
 from gem_data.gem_edgartools_exception import (
     SECXBRLHold, plan_filing_exceptions, fetch_filing_xbrl,
 )
-from gem_data.sec_independent_fact_verify import OFFICIAL_ARCHIVES
+from gem_data.sec_independent_fact_verify import OFFICIAL_ARCHIVES, VerificationHold
 
 CIK = "0001000000"
 SIGNAL = "2026-09-30"
@@ -67,7 +67,7 @@ def test_amendment_after_signal_does_not_leak():
 def test_tampered_sec_original_is_rejected_before_planning():
     receipt=original_submissions()
     receipt["source_sha256"]="0"*64
-    with pytest.raises(SECXBRLHold,match="") if False else pytest.raises(ValueError):
+    with pytest.raises(VerificationHold,match="SHA256"):
         plan_filing_exceptions(receipt,CIK,SIGNAL)
 
 
