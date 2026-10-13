@@ -43,3 +43,66 @@ A clean GitHub test suite proves code behavior on fixtures, **not** production i
 - [Review branch PR #103](https://github.com/ankitgarg1234-cell/isk-trading-radar/pull/103)
 - [Original frozen engine](https://github.com/ankitgarg1234-cell/isk-trading-radar/blob/d59b93d3d9a87d582045b4ae71ff9a6f696a48be/research_5x/code/run_research.py)
 - [SEC verifier issues #73](https://github.com/ankitgarg1234-cell/isk-trading-radar/issues/73)
+
+
+## Momentum-first SEC verification (approved workflow refinement)
+
+The frozen simulator **first requires strictly positive 63-session momentum** before
+the financial G/E/margin gates. Therefore detailed financial-source QA is not
+needed for a constituent conclusively failing r63 on **independently reviewed**
+calendar-matched frozen-adjusted prices. The complete S&P constituent universe
+and all 127 required price sessions still must be accounted for.
+
+**New standalone read-only prioritizer**:
+`gem_data/gem_sec_momentum_priority.py` validates compressed Marketstack
+observation hashes and computes a provisional 63-observation return at a
+requested completed month-end. `vendor_adj_close` is **NOT** presumed identical
+to the frozen adjusted vendor-close basis. Current secondary membership is
+**NOT** proven effective-dated. Its provisional output has exactly three
+non-certifying queues:
+
+- `SEC_REVIEW_FIRST`: provisional r63>0 and intact 64-observation evidence,
+  prioritized for deeper SEC original-filing diagnostics;
+- `DEFER_SEC_PENDING_PRICE_QA`: provisional r63<=0; **not** a certified
+  momentum exclusion, and never ignored when releasing a final ranked universe;
+- `PRICE_REPAIR_FIRST`: no receipt, missing/rejected session, hash mismatch,
+  invalid adjusted close or inconsistent calendar. This cannot count as a
+  negative-momentum gate failure.
+
+`gem_data/gem_monthly_signal.py` and
+`gem_data/gem_source_feature_verifier.py` on PR #103 now omit the SEC
+six-fact requirement **only** when the full frozen price/identity
+screen has passed its existing validation and `r63<=0`. A positive or
+unknown momentum stock still requires all as-of SEC quarterly facts.
+Full-universe memberships, split-adjustment QA, corporate actions, calendar,
+SPY and independent ranking review **continue to block release** when missing.
+
+No code publishes a verified exclusion from a provisional Marketstack return.
+
+### Offline operator command (restricted GEM SELECT-only role)
+
+```bash
+# Current secondary-universe September preview: no new provider requests.
+python scripts/gem_sec_momentum_priority_cli.py \
+  --signal-day 2026-09-30 --all --include-rows > momentum_preview.json
+
+# Run only up to 25 provisionally positive issuers' original SEC diagnostics;
+# offset is into POSITIVE candidate queue, not the full S&P universe.
+python scripts/gem_sec_momentum_parity_cli.py \
+  --signal-day 2026-09-30 --limit 25 --offset 0 > sec_positive_batch0.json
+python scripts/gem_sec_momentum_parity_cli.py \
+  --signal-day 2026-09-30 --limit 25 --offset 25 > sec_positive_batch1.json
+```
+
+The integrated runner performs a current-member price scan and then reads
+only the selected SEC submissions/companyfacts ZIP member pairs for positive
+provisional CIKs. Missing issuer identities or pairs remain explicit holds,
+and dual-class tickers sharing an issuer CIK reuse one original receipt pair.
+No SEC HTTP fetching, vendor market requests, DB writes or broker integration.
+
+**Release implications:** even a successful 25-issuer parity batch is
+`MATCHED_DIAGNOSTIC_NOT_CERTIFIED`, not a source certificate. First prove
+full point-in-time membership and frozen price adjustment parity; then
+definitively exclude validated negative-r63 constituents and verify SEC
+financials for every still-competitive positive-r63 security. Never treat
+unresolved price records as excluded or backdate a real trade to 1 October.
