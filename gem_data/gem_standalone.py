@@ -118,6 +118,31 @@ async def _sec_inline_original_resolution_loop():
         await asyncio.sleep(delay)
 
 
+async def _sec_reconciliation_loop():
+    """Persist deterministic issuer resolution states from two original sources.
+
+    Existing original SEC reviews remain append-only. This worker never
+    certifies facts, modifies a strategy ranking, or places an order.
+    """
+    from gem_data.gem_sec_reconcile_worker import reconcile_batch, SECReconcileWorkerHold
+    await asyncio.sleep(110)
+    while True:
+        delay = 3600
+        try:
+            report = await asyncio.to_thread(reconcile_batch,max_issuers=25)
+            _log.warning(
+                "GEM SEC reconciliation: matched=%d written=%d remaining=%d categories=%s",
+                report["unresolved_with_original_review"],report["written"],
+                report.get("remaining_after_estimate",0),report["categories"])
+            if report.get("remaining_after_estimate",0)>0:
+                delay=20
+        except SECReconcileWorkerHold:
+            _log.warning("GEM SEC reconciliation HOLD: restricted database roles not ready")
+        except Exception as exc:
+            _log.warning("GEM SEC reconciliation failed (%s)",type(exc).__name__)
+        await asyncio.sleep(delay)
+
+
 async def _sec_corporate_discovery_loop():
     """Bounded original SEC 8-K review queue; never adjusts held positions."""
     from gem_data.sec_event_scan_worker import scan_batch, SECEventScanHold
@@ -182,6 +207,8 @@ async def _lifespan(app):
     tasks = []
     if os.getenv("GEM_SEC_INLINE_REVIEW_ENABLED") == "yes":
         tasks.append(asyncio.create_task(_sec_inline_original_resolution_loop()))
+    if os.getenv("GEM_SEC_RECONCILIATION_ENABLED") == "yes":
+        tasks.append(asyncio.create_task(_sec_reconciliation_loop()))
     if os.getenv("GEM_SEC_ACTION_SCAN_ENABLED") == "yes":
         tasks.append(asyncio.create_task(_sec_corporate_discovery_loop()))
     if os.getenv("GEM_MARKETSTACK_BACKFILL_ENABLED") == "yes":
