@@ -141,12 +141,13 @@ def signal_snapshot():
     }
 
 
-def test_selection_preserves_archived_negative_r63_eligibility():
+def test_selection_excludes_negative_r63_under_frozen_engine():
     report = select_monthly(signal_snapshot(), fixture_min_members=2)
     assert report["data_status"] == "REVIEWED_COMPLETE"  # fewer than five is allowed
-    assert report["qualified_count"] == 2\n    assert report["selected"] == ["B", "A"]
-    assert report["provisional_top5"] == ["B", "A"]
-    assert report["positive_momentum_disagreements"] == ["A"]
+    assert report["qualified_count"] == 1
+    assert report["selected"] == ["B"]
+    assert report["provisional_top5"] == ["B"]
+    assert report["positive_momentum_disagreements"] == []
     assert report["automatic_execution"] is False
 
 
