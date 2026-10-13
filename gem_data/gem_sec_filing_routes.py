@@ -72,3 +72,47 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere} .note{border-left:4px solid #cf
     return HTMLResponse(html_doc,headers={"Cache-Control":"no-store",
         "Content-Security-Policy":"default-src 'none'; style-src 'unsafe-inline'",
         "X-Content-Type-Options":"nosniff"})
+
+
+@router.get("/gem-sec-filings", response_class=HTMLResponse)
+def sec_original_filings_index():
+    from html import escape
+    from gem_data.gem_sec_exception_queue import (
+        read_sec_exception_queue, SECExceptionQueueUnavailable,
+    )
+    try:
+        report=read_sec_exception_queue(limit=600)
+    except SECExceptionQueueUnavailable:
+        raise HTTPException(503,"SEC review records unavailable") from None
+    cells=[]
+    for item in report["review_queue"]:
+        cik=escape(item["cik"])
+        ref="/gem-sec-filing/"+cik
+        issues=escape(", ".join(item["blockers"]))
+        stage=escape(item["review_stage"].replace("_"," ").title())
+        reviewed=escape(item["original_inline_reviewed_at"] or "Not yet reviewed")
+        cells.append('<tr><td><a href="'+ref+'">'+cik+'</a></td><td>'+issues
+             +'</td><td>'+stage+'</td><td>'+reviewed+'</td></tr>')
+    page='''<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GEM original SEC filings</title><style>
+body{background:#0c1320;color:#ecf2ff;font:14px/1.5 system-ui;max-width:1050px;margin:30px auto;padding:0 24px}
+a{color:#9cc7ff}table{width:100%;border-collapse:collapse}
+td,th{padding:10px;border-bottom:1px solid #38465e;text-align:left}
+th{position:sticky;top:0;background:#1b2739}
+p{color:#becadd}.scroller{overflow:auto}
+</style></head><body>
+<a href="/gem-portfolio">← GEM portfolio</a><h1>SEC original financial filings — open exceptions</h1>
+<p>Click any CIK to inspect original 10-Q, 10-K, accession dates, SEC viewer links,
+and successfully extracted source financial facts.</p>
+<p>All outstanding source exceptions: '''+str(report["unresolved"])+''' · Original filings reviewed:
+'''+str(report["original_inline_scanned"])+''' · Six-fact candidate sets recovered:
+'''+str(report["original_inline_six_candidate_sets"])+''' (not independently certified)</p>
+<div class="scroller"><table><thead><tr><th>CIK</th><th>Financial-data issue</th>
+<th>Review status</th><th>Last original review (UTC)</th></tr></thead><tbody>'''+''.join(cells)+'''</tbody></table></div>
+<p>Machine-assessed candidates do not confer investment approval. The frozen GEMv1
+quarterly source rule requires separate verification before portfolio ranking.</p>
+</body></html>'''
+    return HTMLResponse(page,headers={"Cache-Control":"no-store",
+        "Content-Security-Policy":"default-src 'none'; style-src 'unsafe-inline'",
+        "X-Content-Type-Options":"nosniff"})
