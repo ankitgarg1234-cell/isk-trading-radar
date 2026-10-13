@@ -62,8 +62,10 @@ def _agree(a, b):
             return False
     if abs(a["volume"] - b["volume"]) > max(100, .01 * max(a["volume"], b["volume"])):
         return False
-    for key in ("split_factor", "dividend"):
-        if a.get(key) != b.get(key):
+    for key, neutral in (("split_factor", 1.0), ("dividend", 0.0)):
+        # Some raw-OHLCV providers omit explicit no-event fields. Accept
+        # missing vs neutral, but NEVER assume an omitted nontrivial action.
+        if a.get(key, neutral) != b.get(key, neutral):
             return False
     return True
 
