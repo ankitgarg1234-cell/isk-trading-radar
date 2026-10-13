@@ -41,6 +41,7 @@ jobs:
             tests/test_gem_source_health.py \
             tests/test_gem_integrity_stages.py \
             tests/test_gem_marketstack_initial_backfill.py \
+            tests/test_gem_marketstack_speed.py \
             tests/test_gem_calendar_benchmark_members.py \
             tests/test_gem_source_pipeline_additions.py \
             tests/test_gem_portfolio_routes.py \
