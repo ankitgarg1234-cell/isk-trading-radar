@@ -105,7 +105,16 @@ def describe_stages(key, *, providers, membership_count, wiki_metrics,
             "Fetch actual SPY prices and cash distributions, then reconcile total returns",
         ),
     }
+    tags = {
+        "membership": f"{membership_count} MATCHED" if identity_match else "LISTS IN REVIEW",
+        "prices": f"{marketstack_observed} OBSERVED" if marketstack_observed else "NO STORED EOD",
+        "sec": f"{sec_assessed} ASSESSED" if sec_assessed else "SEC QA PENDING",
+        "actions": f"{action_scan_count} SCANNED" if action_scan_count else "EVENT SCAN PENDING",
+        "calendar": "SCHEDULE LOADED" if exchange else "CALENDAR PENDING",
+        "benchmark": "SCHEDULE LOADED" if spy_schedule else "SPY SOURCE PENDING",
+    }
     return {
+        "progress_tag": tags[key],
         "stages": [{"name": name, "state": state}
                    for name, state in zip(names, checks[key])],
         "progress_summary": captions[key][0],
