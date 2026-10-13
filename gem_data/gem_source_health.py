@@ -141,6 +141,7 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
         "generated_at": _iso(checked_at or datetime.now(timezone.utc)),
         "investment_release": "DATA_HOLD",
         "manual_broker_only": True,
+        "corporate_issuer_scans": int(action_scan_count),
         "approved_monthly_signals": int(approved_signals),
         "membership_security_lines": int(membership_count),
         "wikipedia": {"securities":wiki_metrics.get("security_lines"),
@@ -319,6 +320,14 @@ def read_source_integrity():
                     if provider and ticker:
                         verified_price_tickers.setdefault(provider.upper(), set()).add(ticker)
                 cur.execute("""
+                    SELECT COUNT(DISTINCT details->>'cik')
+                    FROM gem_source_probe
+                    WHERE experiment_id=%s AND source_type='actions'
+                      AND probe_id LIKE 'gem-sec-corporate-8k-%%'
+                      AND details->>'classification'='SEC_8K_CANDIDATE_ONLY'
+                """, (EXPERIMENT,))
+                action_scan_count = int(cur.fetchone()[0] or 0)
+                cur.execute("""
                     SELECT COUNT(*) FROM gem_signal
                     WHERE experiment_id=%s AND state IN ('APPROVED','RELEASED')
                 """, (EXPERIMENT,))
@@ -335,6 +344,7 @@ def read_source_integrity():
             sec_exception_categories=sec_exception_categories,
             marketstack_rejected_bars=marketstack_rejected_bars,
             marketstack_errors=marketstack_errors,
+            action_scan_count=action_scan_count,
         )
         report["data_access"] = "CONNECTED"
         return report
