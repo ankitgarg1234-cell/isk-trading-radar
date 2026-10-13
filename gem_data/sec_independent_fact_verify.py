@@ -233,12 +233,21 @@ def verify_receipt_pair(submissions_receipt: dict, companyfacts_receipt: dict,
     try:
         submissions = decode_original_receipt(submissions_receipt, cik, "submissions")
         facts = decode_original_receipt(companyfacts_receipt, cik, "companyfacts")
-        result = verify_six_candidates(submissions, facts, as_of)
-        result["receipt_integrity"] = "PASS"
     except VerificationHold as exc:
         result = {"receipt_integrity": "FAIL", "fact_status": "UNKNOWN",
                   "six_facts": {}, "blockers": [str(exc)],
                   "certified": False}
+    else:
+        # Source integrity and financial semantic QA are separate gates:
+        # a malformed financial context must not mislabel intact original
+        # SEC bytes as a failed SHA256 integrity check.
+        try:
+            result = verify_six_candidates(submissions, facts, as_of)
+        except VerificationHold as exc:
+            result = {"fact_status": "UNKNOWN", "six_facts": {},
+                      "blockers": ["financial_context_hold: " + str(exc)],
+                      "certified": False}
+        result["receipt_integrity"] = "PASS"
     evidence = {
         "cik": cik, "as_of": as_of.isoformat(),
         "submissions_sha256": str(submissions_receipt.get("source_sha256", "")).strip(),
