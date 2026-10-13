@@ -22,6 +22,7 @@ from dual_momentum.gem_dashboard import router as gem_readonly_router
 from gem_data.gem_manual_routes import router as gem_manual_router
 from gem_data.gem_portfolio_routes import router as gem_portfolio_router
 from gem_data.gem_sec_filing_routes import router as gem_sec_filing_router
+from gem_data.gem_sec_reconciliation_routes import router as gem_sec_reconciliation_router
 
 _log = logging.getLogger(__name__)
 
@@ -292,3 +293,4 @@ app.include_router(gem_readonly_router, dependencies=[Depends(require_gem_login)
 app.include_router(gem_manual_router, dependencies=[Depends(require_gem_login)])
 app.include_router(gem_portfolio_router, dependencies=[Depends(require_gem_login)])
 app.include_router(gem_sec_filing_router, dependencies=[Depends(require_gem_login)])
+app.include_router(gem_sec_reconciliation_router, dependencies=[Depends(require_gem_login)])
