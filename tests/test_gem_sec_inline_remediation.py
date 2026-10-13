@@ -111,3 +111,16 @@ def test_original_filing_staleness_is_not_a_six_fact_recovery():
         "primaryDocument":["quarter.htm","quarter.htm"]}}}
     with pytest.raises(InlineReviewHold,match="stale"):
         select_original_filing_pair(d,cutoff=date(2026,10,12))
+
+
+def test_large_original_10q_limit_is_explicit_and_bounded():
+    from gem_data.sec_original_collector import SecOriginalCollector, SEC_MAX_BYTES
+    from gem_data.sec_inline_xbrl_evidence import MAX_HTML_BYTES
+    assert SEC_MAX_BYTES == 6_000_000
+    assert MAX_HTML_BYTES == 24_000_000
+    with SecOriginalCollector("GEM Evidence Test sec-contact@example.org",
+                              max_bytes=24_000_000) as collector:
+        assert collector.max_bytes == 24_000_000
+    with pytest.raises(ValueError,match="24 MB"):
+        SecOriginalCollector("GEM Evidence Test sec-contact@example.org",
+                             max_bytes=24_000_001)
