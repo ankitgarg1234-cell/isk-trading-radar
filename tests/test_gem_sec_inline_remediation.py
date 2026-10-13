@@ -124,3 +124,9 @@ def test_large_original_10q_limit_is_explicit_and_bounded():
     with pytest.raises(ValueError,match="24 MB"):
         SecOriginalCollector("GEM Evidence Test sec-contact@example.org",
                              max_bytes=24_000_001)
+
+
+def test_financial_institution_revenue_and_pretax_fact_not_automatically_mapped():
+    from gem_data.sec_inline_xbrl_evidence import _tag_category
+    assert _tag_category("us-gaap:RevenuesNetOfInterestExpense")=="BANK_REVENUE_REVIEW_ONLY"
+    assert _tag_category("us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest")=="PRETAX_INCOME_NOT_OPERATING_INCOME_REVIEW_ONLY"
