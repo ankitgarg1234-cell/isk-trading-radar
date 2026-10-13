@@ -117,7 +117,11 @@ async def _marketstack_backfill_loop():
     while True:
         try:
             report = await asyncio.to_thread(collect_batch, max_tickers=5)
-            _log.info("GEM Marketstack bounded observation summary: %s", report)
+            if report.get("failed"):
+                _log.warning("GEM Marketstack observations held: %s",
+                             [(item["ticker"],item["reason_code"]) for item in report["failed"]])
+            else:
+                _log.info("GEM Marketstack bounded observation summary: %s", report)
         except MarketstackBackfillHold:
             _log.warning("GEM Marketstack collection on HOLD: missing key, cap or restricted roles")
         except Exception as exc:
@@ -127,7 +131,7 @@ async def _marketstack_backfill_loop():
 
 @asynccontextmanager
 async def _lifespan(app):
-    _log.info("GEM Marketstack configuration: key_present=%s backfill_opt_in=%s monthly_cap_present=%s",
+    _log.warning("GEM Marketstack configuration: key_present=%s backfill_opt_in=%s monthly_cap_present=%s",
               bool(os.getenv("MARKETSTACK_API_KEY")),
               os.getenv("GEM_MARKETSTACK_BACKFILL_ENABLED") == "yes",
               bool(os.getenv("GEM_MARKETSTACK_MONTHLY_CREDIT_CAP")))
