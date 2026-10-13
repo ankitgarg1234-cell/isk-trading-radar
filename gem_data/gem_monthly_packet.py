@@ -31,6 +31,10 @@ def build_monthly_packet(bundle: dict) -> dict:
     """
     if not isinstance(bundle, dict) or bundle.get("schema") != "gem-manual-month-packet-v1":
         raise ValueError("Invalid manual month packet")
+    if not isinstance(bundle.get("source_month"), dict):
+        raise ValueError("Missing source-month evidence bundle")
+    if not isinstance(bundle.get("price_gap_reviews", []), list):
+        raise ValueError("Malformed vendor gap review inventory")
     gaps = []
     for review in bundle.get("price_gap_reviews", []):
         if not isinstance(review, dict):
