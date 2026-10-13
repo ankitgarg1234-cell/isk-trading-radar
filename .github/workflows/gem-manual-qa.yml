@@ -39,6 +39,7 @@ jobs:
             tests/test_gem_archive_ranking_parity.py \
             tests/test_gem_monthly_packet.py \
             tests/test_gem_source_health.py \
+            tests/test_gem_calendar_benchmark_members.py \
             tests/test_gem_source_pipeline_additions.py \
             tests/test_gem_portfolio_routes.py \
             tests/test_gem_standalone.py
