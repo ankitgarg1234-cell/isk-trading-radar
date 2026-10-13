@@ -1,0 +1,24 @@
+name: GEMv1 frozen-rule parity (isolated)
+on:
+  push:
+    branches:
+      - fix/gemv1-frozen-parity-manual-20261013
+  pull_request:
+    branches:
+      - draft/gem-standalone-render-20261012
+permissions:
+  contents: read
+jobs:
+  frozen-rule-parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile changed GEM-only Python modules
+        run: |
+          python -m compileall -q gem_data/gem_monthly_signal.py gem_data/gem_source_feature_verifier.py gem_data/gem_manual_ops.py gem_data/gem_monthly_packet.py
+      - name: Frozen GEMv1 manual workflow regression
+        run: |
+          python -m unittest discover -s tests -p 'test_gem_frozen_parity_manual.py' -v
