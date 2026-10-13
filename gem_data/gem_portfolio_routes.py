@@ -190,10 +190,10 @@ function renderPositions(){
  input.type="number";input.min="0";input.max="1000000000";input.step="any";input.value=item.shares;
  input.addEventListener("change",()=>{const num=Number(input.value);
  if(!Number.isFinite(num)||num<0||num>1000000000){input.value=item.shares;return}
- item.shares=String(num);renderPositions()});
+ item.shares=String(num);if(num>0)item.last_nonzero=String(num);renderPositions()});
  el("td",Number(item.shares)===0?"Draft closed":"Draft open",tr);
  const action=el("td",null,tr),button=el("button",Number(item.shares)===0?"Reopen draft":"Mark closed (draft)",action);
- button.addEventListener("click",()=>{item.shares=Number(item.shares)===0?"1":"0";renderPositions()});
+ button.addEventListener("click",()=>{item.shares=Number(item.shares)===0?(item.last_nonzero||"0"):"0";renderPositions()});
  });
  $("export").disabled=false;
 }
@@ -208,14 +208,14 @@ $("parse").onclick=async()=>{
  const res=await fetch("/api/gem-portfolio/import",{method:"POST",body});
  const obj=await res.json();
  if(!res.ok)throw Error(obj.detail||"File import failed");
- draft=obj.holdings;renderPositions();
+ draft=obj.holdings.map(item=>({...item,last_nonzero:item.shares}));renderPositions();
  $("importstate").textContent=obj.positions+" positions imported to a draft. Verify tickers and quantities before use; nothing saved.";
  }catch(err){$("importstate").textContent=String(err.message)}
 };
 $("export").onclick=()=>{
  if(!draft.length)return;
  const obj={schema:"gem-reviewed-holdings-draft-v1",review_required:true,
-             not_a_broker_order:true,server_saved:false,holdings:draft};
+             not_a_broker_order:true,server_saved:false,holdings:draft.map(item=>({ticker:item.ticker,shares:item.shares}))};
  const a=document.createElement("a"),blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"});
  const url=URL.createObjectURL(blob);a.href=url;a.download="gem-positions-reviewed-draft.json";a.click();URL.revokeObjectURL(url);
 };
