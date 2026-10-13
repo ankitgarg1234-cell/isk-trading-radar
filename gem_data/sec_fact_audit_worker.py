@@ -38,6 +38,13 @@ def qa_as_of(*, observed=None):
         raise QAHold("Naive QA clock not accepted")
     raw = os.getenv("GEM_SEC_QA_AS_OF", "")
     if not raw:
+        # Optional rolling preliminary month-end machine QA. This uses a
+        # calendar-month cutoff, NOT an independently verified NYSE session.
+        # A GEM signal still needs separate calendar/acceptance certification.
+        if os.getenv("GEM_SEC_QA_AUTO_ROLL") == "yes":
+            first = observed.astimezone(timezone.utc).date().replace(day=1)
+            prior_calendar_month_end = first - timedelta(days=1)
+            return max(AS_OF, prior_calendar_month_end)
         return AS_OF
     try:
         cutoff = date.fromisoformat(raw)
