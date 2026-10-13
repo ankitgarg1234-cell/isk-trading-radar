@@ -304,6 +304,7 @@ def verify_receipt_pair(submissions_receipt: dict, companyfacts_receipt: dict,
         "blockers": result["blockers"],
         "latest_original_10q": result.get("latest_original_10q"),
     }
+    result["latest_original_10q"] = result.get("latest_original_10q")
     result["evidence_sha256"] = sha256(
         json.dumps(evidence, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
