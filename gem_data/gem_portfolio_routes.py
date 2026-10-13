@@ -131,7 +131,7 @@ You place every trade manually. This dashboard never sends broker orders.</div>
 <div class="muted" id="sectext">Waiting for SEC audit records</div></div>
 <div class="warn">Incomplete/unknown companies do <strong>not</strong> automatically drop out of the investment universe. Their financials must be resolved, or they must be demonstrably unable to displace the top five.</div></section>
 <section class="panel"><div class="sourceheader">
-<div><h2>SEC remediation queue · 185 original filing exceptions</h2>
+<div><h2>SEC financial exceptions · original filing review queue</h2>
 <p>Company-level reasons and review actions. Nothing here is certified or silently removed from the investment universe.</p></div>
 <button type="button" id="loadsecqueue">Load exception list</button>
 </div><div id="secqueuestate" class="muted">Load to see remaining CIKs and what original SEC evidence is required.</div>
