@@ -181,6 +181,8 @@ def read_sec_exception_queue(*, limit=250):
                 reviews={
                    cik:{"classification":classification,
                         "six_candidates":six=="true",
+                        "current_types":list(current_facts) if isinstance(current_facts,dict) else [],
+                        "prior_types":list(prior_facts) if isinstance(prior_facts,dict) else [],
                         "filing_urls":filing_urls if isinstance(filing_urls,list) else [],
                         "last_reviewed":last_reviewed.astimezone(timezone.utc).isoformat()
                                          if last_reviewed is not None else None}
