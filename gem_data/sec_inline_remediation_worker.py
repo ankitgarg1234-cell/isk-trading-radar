@@ -213,28 +213,63 @@ def review_batch(*, max_ciks=2, collector_factory=SecOriginalCollector):
     with collector_factory(agent,max_bytes=24_000_000) as client:
         for cik,key,receipt in batch:
             evidence = None
-            urls=[]
-            reason=None
+            annual_evidence = None
+            urls = []
+            reason = None
+            annual_reason = None
             try:
                 submission=decode_original_receipt(receipt,cik,"submissions")
-                current,prior=select_original_filing_pair(submission,cutoff=as_of)
-                analyzed=[]
-                for filing in (current,prior):
-                    url=original_primary_url(cik,filing)
-                    source,raw=client.get(url)
-                    urls.append(url)
-                    candidate=extract_inline_candidates(raw,cik=cik,
-                          accession=filing["accession"],source_uri=url)
-                    analyzed.append({**filing,"evidence":candidate})
-                    report["original_documents_fetched"]+=1
-                evidence=summarize_pair(*analyzed)
-                if evidence["all_six_standard_category_candidates"]:
-                    report["six_direct_candidates_found"]+=1
-            except (VerificationHold,InlineReviewHold,InlineEvidenceHold,
-                    SourceUnavailable,ValueError,TypeError) as exc:
-                # Fixed error classes, no original filing HTML, secrets or PII.
+                try:
+                    current,prior=select_original_filing_pair(submission,cutoff=as_of)
+                    analyzed=[]
+                    for filing in (current,prior):
+                        url=original_primary_url(cik,filing)
+                        _source,raw=client.get(url)
+                        urls.append(url)
+                        candidate=extract_inline_candidates(raw,cik=cik,
+                              accession=filing["accession"],source_uri=url)
+                        analyzed.append({**filing,"evidence":candidate})
+                        report["original_documents_fetched"]+=1
+                    evidence=summarize_pair(*analyzed)
+                    if evidence["all_six_standard_category_candidates"]:
+                        report["six_direct_candidates_found"]+=1
+                except (InlineReviewHold,InlineEvidenceHold,SourceUnavailable,
+                        ValueError,TypeError) as exc:
+                    reason=type(exc).__name__+":"+str(exc)[:90]
+                # Fetch the issuer's original 10-K as separately classified
+                # supplementary evidence, including fiscal-Q4 context.
+                # This NEVER converts an annual fact into an eligible 10-Q
+                # direct-quarter input or bypasses stale/missing-quarter holds.
+                annual=select_annual_original(submission,cutoff=as_of)
+                if annual is not None:
+                    try:
+                        url=original_primary_url(cik,annual)
+                        _source,raw=client.get(url)
+                        urls.append(url)
+                        annual_evidence=summarize_annual_original(
+                            raw,cik=cik,filing=annual,source_uri=url)
+                        report["original_documents_fetched"]+=1
+                    except (InlineEvidenceHold,SourceUnavailable,ValueError,
+                            TypeError) as exc:
+                        annual_reason=type(exc).__name__+":"+str(exc)[:90]
+                else:
+                    annual_reason="NO_ELIGIBLE_ORIGINAL_10K_AT_CUTOFF"
+            except (VerificationHold,InlineReviewHold,ValueError,
+                    TypeError) as exc:
                 reason=type(exc).__name__+":"+str(exc)[:90]
+            if annual_evidence is not None:
+                if evidence is None:
+                    evidence={
+                        "status":"ANNUAL_10K_SUPPLEMENT_ONLY_10Q_DISCREPANCY_OPEN",
+                        "all_six_standard_category_candidates":False,
+                        "certified":False,"trading_authorized":False,
+                    }
+                evidence["original_10k_supplement"]=annual_evidence
+            if reason is not None:
                 report["held"].append({"cik":cik,"reason":reason})
+            if annual_reason is not None and annual_reason != "NO_ELIGIBLE_ORIGINAL_10K_AT_CUTOFF":
+                report.setdefault("annual_source_holds",[]).append(
+                    {"cik":cik,"reason":annual_reason})
             # Network outages may retry on the NEXT UTC day only.
             # Structural/context failures remain blocked until SEC source
             # receipts or the machine signal cutoff change.
@@ -255,6 +290,8 @@ def review_batch(*, max_ciks=2, collector_factory=SecOriginalCollector):
                     "filing_urls":urls,"classification":(
                         evidence["status"] if evidence else "ORIGINAL_SEC_FILING_RETRIEVAL_HOLD"),
                     "evidence":evidence,"blocker":reason,
+                    "annual_10k_source_hold":annual_reason,
+                    "original_10k_supplement_collected":annual_evidence is not None,
                     "issuer_source_qa_approved":False,
                     "human_reviewer_approved":False,
                     "certified":False,"trading_authorized":False,
