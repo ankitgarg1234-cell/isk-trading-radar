@@ -39,7 +39,7 @@ def _category(blockers):
     return "ORIGINAL_ACCESSION_MANUAL_REVIEW"
 
 
-def categorize(latest, *, captured_at=None, limit=250):
+def categorize(latest, *, captured_at=None, limit=250, inline_reviews=None):
     """Latest audit observations for distinct CIKs, oldest / hardest still visible.
 
     Caller should supply only one latest observation per CIK after SQL
@@ -47,6 +47,7 @@ def categorize(latest, *, captured_at=None, limit=250):
     """
     if type(limit) is not int or not 1 <= limit <= 600:
         raise ValueError("Invalid review queue limit")
+    inline_reviews = inline_reviews or {}
     seen = set()
     items = []
     completed = 0
@@ -75,6 +76,10 @@ def categorize(latest, *, captured_at=None, limit=250):
             "resolved_by_machine": False,
             "source_context_certified": False,
             "investment_eligible": None,
+            "original_inline_review_status": inline_reviews.get(cik, {}).get(
+                "classification", "NOT_YET_SCANNED"),
+            "original_inline_candidate_six": bool(
+                inline_reviews.get(cik, {}).get("six_candidates", False)),
         })
     counts = Counter(item["category"] for item in items)
     items.sort(key=lambda x: (x["category"],x["cik"]))
@@ -90,6 +95,10 @@ def categorize(latest, *, captured_at=None, limit=250):
         "review_queue_displayed": min(len(items),limit),
         "more_not_displayed": max(0,len(items)-limit),
         "independently_certified": 0,
+        "original_inline_scanned": sum(item["original_inline_review_status"] != "NOT_YET_SCANNED"
+                                      for item in items),
+        "original_inline_six_candidate_sets": sum(item["original_inline_candidate_six"]
+                                                for item in items),
         "auto_certification": False,
         "missing_competitors_may_not_be_silently_excluded": True,
         "next_review": "Inspect original accession-specific 10-Q Inline XBRL and validate context, scope and cutoff. Derived YTD quarters remain candidates until reviewed.",
@@ -128,6 +137,25 @@ def read_sec_exception_queue(*, limit=250):
                     rows.append({"cik": cik,"status": status,"blockers": blockers,
                                  "as_of": as_of,
                                  "last_audit": last_audit.astimezone(timezone.utc).isoformat()})
-        return categorize(rows, limit=limit)
+                cur.execute("""
+                    WITH latest AS (
+                      SELECT DISTINCT ON (details->>'cik')
+                         details->>'cik' cik,
+                         details->>'classification' classification,
+                         details->'evidence'->>'all_six_standard_category_candidates'
+                            AS six_candidates
+                      FROM gem_source_probe
+                      WHERE experiment_id=%s AND source_type='sec'
+                        AND probe_id LIKE 'gem-sec-inline-review-%%'
+                        AND details->>'cik' IS NOT NULL
+                      ORDER BY details->>'cik', observed_at DESC, probe_id DESC
+                    ) SELECT cik,classification,six_candidates FROM latest
+                """,(EXPERIMENT,))
+                reviews={
+                   cik:{"classification":classification,
+                        "six_candidates":six=="true"}
+                   for cik,classification,six in cur.fetchall()
+                }
+        return categorize(rows, limit=limit, inline_reviews=reviews)
     except (psycopg.Error,ValueError,TypeError) as exc:
         raise SECExceptionQueueUnavailable("SEC exception queue is unavailable") from None
