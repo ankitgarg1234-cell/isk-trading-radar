@@ -155,6 +155,7 @@ def audit_batch(*, max_pairs: int = 5) -> dict:
                     "companyfacts_receipt_id": fact_id,
                     "receipt_integrity": integrity,
                     "fact_status": status,
+                    "latest_original_10q": evidence.get("latest_original_10q"),
                     "six_facts": evidence["six_facts"],
                     "blockers": evidence["blockers"],
                     "evidence_sha256": evidence["evidence_sha256"],
