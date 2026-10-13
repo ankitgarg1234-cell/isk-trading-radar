@@ -176,6 +176,19 @@ def _derive_observed_quarters(raw, cutoff):
         ]
         # Latest earlier fiscal-quarter endpoint, then newest admissible filing.
         if not eligible:
+            # The SAME SEC accession may also disclose a directly measured
+            # three-month quarter. In that case the unsupported cumulative
+            # presentation is unnecessary; otherwise we must HOLD.
+            direct_same_filing = any(
+                x["standard_concept"] == row["standard_concept"]
+                and x["source_tag"] == row["source_tag"]
+                and x["accession"] == row["accession"]
+                and x["period_end"] == row["period_end"]
+                and 60 <= x["period_span_days"] <= 125
+                for x in raw
+            )
+            if direct_same_filing:
+                continue
             raise SECParityHold("Cumulative SEC YTD fact lacks proven prior-period operand")
         endpoint = max(x["period_end"] for x in eligible)
         same = [x for x in eligible if x["period_end"] == endpoint]
