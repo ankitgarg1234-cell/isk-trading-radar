@@ -112,19 +112,28 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
             evidence = ["Official exchange calendar received; completed-session audit pending"]
         else:
             evidence = ["Official distribution schedule received; total-return reconstruction pending"]
-        inspected_stage = (key == "sec" and inspected > 0)
+        milestone = describe_stages(
+            key,
+            providers=providers,
+            membership_count=membership_count,
+            wiki_metrics=wiki_metrics,
+            sec_pairs=pairs,
+            sec_assessed=inspected,
+            sec_candidate_complete=machine_complete,
+            marketstack_observed=observed_marketstack,
+            verified_tickers=len(marketstack | ibkr | others),
+            action_scan_count=action_scan_count,
+        )
         sections.append({
             "key": key, "title": title, "requirement": requirement,
             "status": "PARTIAL" if (key in receipt_by_type or key in probe_by_type) else "NO_EVIDENCE",
             "last_refreshed": receipt_by_type.get(key),
             "last_checked": _iso(pr.get("last_checked")),
             "last_audited": _iso(sec_stats.get("last_audited")) if key == "sec" else None,
-            "stages": [
-                {"name": "Collected", "state": "PARTIAL" if (key in receipt_by_type or key in probe_by_type) else "PENDING"},
-                {"name": "Coverage", "state": "PARTIAL" if key == "sec" and pairs else "PENDING"},
-                {"name": "Fact / event QA", "state": "PARTIAL" if inspected_stage else "PENDING"},
-                {"name": "Certified", "state": "PENDING"},
-            ],
+            "stages": milestone["stages"],
+            "progress_summary": milestone["progress_summary"],
+            "next_step": milestone["next_step"],
+            "source_approval": milestone["source_approval"],
             "evidence": evidence,
         })
     return {
