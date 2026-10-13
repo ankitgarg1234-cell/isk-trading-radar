@@ -77,11 +77,11 @@ async def _sec_fact_qa_loop():
     while True:
         interval = 3600
         try:
-            bound = int(os.getenv("GEM_SEC_FACT_AUDIT_CIK_LIMIT", "5"))
+            bound = int(os.getenv("GEM_SEC_FACT_AUDIT_CIK_LIMIT", "10"))
             report = await asyncio.to_thread(audit_batch, max_pairs=bound)
             _log.info("GEM SEC independent machine QA (NOT certified): %s", report)
             if report["remaining_after_estimate"]:
-                interval = 120
+                interval = 25
         except QAHold as exc:
             _log.warning("GEM SEC machine QA HOLD: %s", str(exc)[:160])
         except Exception as exc:
