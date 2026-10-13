@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from tests.test_gem_edgartools_exception import CIK, original_submissions
+CIK = "0001000000"
 from scripts import gem_sec_edgartools_fallback_cli as runner
 
 
@@ -40,8 +40,14 @@ def test_only_momentum_positive_SEC_HOLD_tickers_get_filing_plans(monkeypatch):
     monkeypatch.setattr(psycopg,"connect",lambda *a,**kw:Conn())
     def original_lookup(conn,ciks):
         assert ciks==[CIK]
-        return [(CIK,{"submissions":original_submissions()})]
+        return [(CIK,{"submissions":{"provider":"SEC_ZIP_SUBMISSIONS"}})]
     monkeypatch.setattr(runner,"read_priority_receipts",original_lookup)
+    monkeypatch.setattr(runner,"plan_filing_exceptions",
+        lambda receipt,cik,session:{
+            "status":"PLANNED_UNCERTIFIED",
+            "filings":[{"cik":cik,"accession":f"{cik}-26-000001",
+                        "form":"10-Q","filed":"2026-08-01",
+                        "report_period":"2026-06-30"}]})
     report=runner.plan_exception_batch(
         signal_day="2026-09-30",limit=5,
         dsn="postgresql://gem_web_readonly:x@localhost/gem_forward")
