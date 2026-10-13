@@ -63,7 +63,7 @@ def _amount(text, attrs):
         scale = int(attrs.get("scale", "0"))
         if not -8 <= scale <= 12:
             return None
-        number *= 10 ** scale
+        number *= Decimal(10) ** scale
         if parens or attrs.get("sign") == "-":
             number *= -1
         if not number.is_finite():
