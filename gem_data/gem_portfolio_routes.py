@@ -133,7 +133,8 @@ You place every trade manually. This dashboard never sends broker orders.</div>
 <section class="panel"><div class="sourceheader">
 <div><h2>SEC financial exceptions · original filing review queue</h2>
 <p>Company-level reasons and review actions. Nothing here is certified or silently removed from the investment universe.</p>
-<p><a href="/gem-sec-filings">Browse the original SEC 10-Q / 10-K documents and extracted facts for every outstanding CIK</a></p></div>
+<p><a href="/gem-sec-filings">Browse the original SEC 10-Q / 10-K documents and extracted facts for every outstanding CIK</a></p>
+<p><a href="/gem-sec-reconciliation">View all issuer reconciliation outcomes and download the SEC exception report</a></p></div>
 <button type="button" id="loadsecqueue">Load exception list</button>
 </div><div id="secqueuestate" class="muted">Load to see remaining CIKs and what original SEC evidence is required.</div>
 <div id="secqueue"></div>
