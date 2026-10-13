@@ -17,7 +17,7 @@ from dual_momentum.gem_dashboard import gem_status
 
 router = APIRouter()
 _MAX_BODY = 8_000_000
-_OPERATIONS = {"signal", "verify", "gaps", "tickets", "ledger", "history"}
+_OPERATIONS = {"signal", "verify", "gaps", "tickets", "ledger", "history", "monthly"}
 
 
 @router.get("/api/gem-manual/mode")
@@ -87,7 +87,7 @@ This page <strong>does not save your data</strong>. Export the report before clo
 <span class="em">Unverified sources remain on HOLD.</span></p>
 <label for="op">Choose the operation</label>
 <select id="op">
-<option value="verify">Full price/SEC recomputation and ranking</option>\n<option value="signal">Precomputed complete-universe ranking (diagnostic)</option>
+<option value="monthly">Full month-end manual decision packet</option>\n<option value="verify">Full price/SEC recomputation and ranking</option>\n<option value="signal">Precomputed complete-universe ranking (diagnostic)</option>
 <option value="gaps">Vendor price gap reconciliation</option>
 <option value="tickets">Indicative manual trade sheet</option>
 <option value="ledger">Manual fills and broker statement reconciliation</option>
