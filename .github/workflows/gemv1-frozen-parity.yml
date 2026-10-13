@@ -22,3 +22,7 @@ jobs:
       - name: Frozen GEMv1 manual workflow regression
         run: |
           python -m unittest discover -s tests -p 'test_gem_frozen_parity_manual.py' -v
+      - name: List GEM-only test modules
+        run: find tests -name '*gem*.py' -type f -print | sort
+      - name: Run existing and new GEM-only regression suite
+        run: python -m unittest discover -s tests -p 'test_gem*.py' -v
