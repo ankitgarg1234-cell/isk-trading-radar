@@ -67,6 +67,25 @@ async def _sec_bulk_loop():
         await asyncio.sleep(interval)
 
 
+async def _sec_fact_qa_loop():
+    """Separate, opt-in automated original-byte QA; NEVER SEC certification."""
+    from gem_data.sec_fact_audit_worker import audit_batch, QAHold
+    await asyncio.sleep(65)  # bulk ingestion gets first access to the service
+    while True:
+        interval = 3600
+        try:
+            bound = int(os.getenv("GEM_SEC_FACT_AUDIT_CIK_LIMIT", "5"))
+            report = await asyncio.to_thread(audit_batch, max_pairs=bound)
+            _log.info("GEM SEC independent machine QA (NOT certified): %s", report)
+            if report["remaining_after_estimate"]:
+                interval = 120
+        except QAHold as exc:
+            _log.warning("GEM SEC machine QA HOLD: %s", str(exc)[:160])
+        except Exception as exc:
+            _log.warning("GEM SEC machine QA failed closed (%s)", type(exc).__name__)
+        await asyncio.sleep(interval)
+
+
 @asynccontextmanager
 async def _lifespan(app):
     tasks = []
@@ -74,6 +93,8 @@ async def _lifespan(app):
         tasks.append(asyncio.create_task(_public_source_loop()))
     if os.getenv("GEM_SEC_BULK_ENABLED") == "yes":
         tasks.append(asyncio.create_task(_sec_bulk_loop()))
+    if os.getenv("GEM_SEC_FACT_AUDIT_ENABLED") == "yes":
+        tasks.append(asyncio.create_task(_sec_fact_qa_loop()))
     try:
         yield
     finally:
