@@ -1,0 +1,1 @@
+Independent SEC data verification workstream. No trading changes; audit findings remain non-certified pending qualified review.
