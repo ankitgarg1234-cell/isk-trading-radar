@@ -27,7 +27,7 @@ def membership():
 def test_membership_integrity_and_bounded_input():
     digest, metadata=membership()
     assert len(_members(digest,metadata))==500
-    with pytest.raises(ValueError,match="hash"):
+    with pytest.raises(ValueError,match="source bytes invalid"):
         _members("0"*64,metadata)
 
 
