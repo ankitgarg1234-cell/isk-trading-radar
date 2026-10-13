@@ -8,12 +8,13 @@ eligibility must never be collapsed into one success flag.
 from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
+from gem_data.gem_sec_gate_triage import preliminary_revenue_gate
 from hashlib import sha256
 import json
 import re
 
 
-REVISION = "gem-sec-reconcile-20261013-v1"
+REVISION = "gem-sec-reconcile-20261013-v2-revenue-prescreen"
 CIK_RE = re.compile(r"^[0-9]{10}$")
 HASH_RE = re.compile(r"^[a-f0-9]{64}$")
 KINDS = ("STANDARD_REVENUE", "STANDARD_OPERATING_INCOME",
@@ -147,6 +148,7 @@ def reconcile_one(cik, machine, source, *, as_of):
     else:
         code="SOURCE_CONTEXT_UNRESOLVED"
         candidate=None
+    revenue_only=preliminary_revenue_gate(doc,as_of=as_of)
     return {
         "schema":"gem-sec-machine-reconciliation-v1",
         "cik":cik,"as_of":as_of,
@@ -154,6 +156,8 @@ def reconcile_one(cik, machine, source, *, as_of):
         "original_filing_review_completed":parsed or bool(doc.get("original_10k_supplement")),
         "six_original_quarter_fact_candidates":all_six,
         "facts_candidate_metrics":candidate,
+        "revenue_only_preliminary_screen":revenue_only,
+        "provisional_revenue_gate_fail":revenue_only["provisional_revenue_gate_fail"],
         "original_filing_urls":source.get("filing_urls",[])[:3],
         "original_10k_is_supplementary_only":True,
         "machine_original_status":machine.get("fact_status"),
