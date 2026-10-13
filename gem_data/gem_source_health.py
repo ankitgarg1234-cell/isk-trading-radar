@@ -38,7 +38,8 @@ def _iso(value):
 def classify(receipts, probes, sec_stats, *, membership_count=0,
              ibkr_sample_count=0, approved_signals=0, checked_at=None, verified_price_tickers=None,
              observed_marketstack=0, marketstack_requests=0, wiki_metrics=None,
-             sec_exception_categories=None):
+             sec_exception_categories=None, marketstack_rejected_bars=0,
+             marketstack_errors=None):
     """Pure testable projection. Explicitly fail closed on absent evidence."""
     receipt_by_type = {}
     providers = {}
@@ -77,6 +78,7 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
     others -= marketstack | ibkr
     wiki_metrics = wiki_metrics or {}
     sec_exception_categories = sec_exception_categories or {}
+    marketstack_errors = marketstack_errors or {}
     sections = []
     for key, title, requirement in SOURCES:
         pr = probe_by_type.get(key, {})
@@ -89,6 +91,10 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
             evidence = [f"{len(marketstack | ibkr | others)} complete independently reviewed 127-session security histories in stored receipts",
                         f"IBKR limited diagnostic: {ibkr_sample_count} sampled tickers" if ibkr_sample_count else "No IBKR full-universe ingestion established",
                         f"Marketstack EOD stored for {observed_marketstack} tickers; {marketstack_requests} requests reserved this month",
+                        f"Marketstack date gaps detected: {marketstack_rejected_bars}",
+                        "Marketstack failure codes: " + ", ".join(
+                            f"{code}: {count}" for code,count in marketstack_errors.items()) if marketstack_errors else
+                            "No stored provider failure explanations",
                         "Observed prices still require independent adjustment and calendar QA"]
         elif key == "sec":
             evidence = [f"{pairs} company source pairs collected",
@@ -138,6 +144,8 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
             "ibkr_diagnostic_sample": int(ibkr_sample_count),
             "marketstack_observed_not_certified": int(observed_marketstack),
             "marketstack_monthly_requests_reserved": int(marketstack_requests),
+            "marketstack_rejected_bars": int(marketstack_rejected_bars),
+            "marketstack_errors": marketstack_errors,
             "coverage_note": "Counts require persisted per-ticker 127-session calendar coverage, reviewed price-adjustment parity, a source fingerprint, and source QA PASS. Unverified vendor responses and IBKR samples are not counted.",
         },
         "sec": {
@@ -261,6 +269,108 @@ def read_source_integrity():
                     GROUP BY reason ORDER BY COUNT(*) DESC LIMIT 20
                 """, (EXPERIMENT,))
                 sec_exception_categories={name:int(n) for name,n in cur.fetchall()}
+                cur.execute("""
+                    SELECT COALESCE(SUM(
+                        CASE WHEN (metadata->>'rejected_session_count') ~ '^[0-9]{1,5}
+                # source and adjustment evidence; raw vendor calls do not count.
+                cur.execute("""
+                    SELECT provider, metadata->>'ticker'
+                    FROM gem_source_receipt
+                    WHERE experiment_id=%s AND source_type='prices'
+                      AND metadata->>'source_qa_status'='PASS'
+                      AND metadata->>'adjustment_parity_reviewed'='true'
+                      AND metadata->>'last_completed_session'=metadata->>'signal_session'
+                      AND LENGTH(COALESCE(metadata->>'source_raw_sha256',''))=64
+                      AND CASE WHEN (metadata->>'completed_sessions') ~ '^[0-9]{1,5}$'
+                            THEN (metadata->>'completed_sessions')::integer >= 127
+                            ELSE FALSE END
+                """, (EXPERIMENT,))
+                verified_price_tickers = {}
+                for provider, ticker in cur.fetchall():
+                    if provider and ticker:
+                        verified_price_tickers.setdefault(provider.upper(), set()).add(ticker)
+                cur.execute("""
+                    SELECT COUNT(*) FROM gem_signal
+                    WHERE experiment_id=%s AND state IN ('APPROVED','RELEASED')
+                """, (EXPERIMENT,))
+                approved_signals = int(cur.fetchone()[0] or 0)
+        report = classify(
+            receipts, probes,
+            {"inspected": assessed, "machine_complete": complete,
+             "certified": certified, "last_audited": last_audit,
+             "verified_receipts": receipt_pass},
+            membership_count=membership_count, ibkr_sample_count=len(samples),
+            approved_signals=approved_signals, verified_price_tickers=verified_price_tickers,
+            observed_marketstack=observed_marketstack, marketstack_requests=marketstack_requests,
+            wiki_metrics=wiki_metrics,
+            sec_exception_categories=sec_exception_categories,
+            marketstack_rejected_bars=marketstack_rejected_bars,
+            marketstack_errors=marketstack_errors,
+        )
+        report["data_access"] = "CONNECTED"
+        return report
+    except (psycopg.Error, ValueError, TypeError):
+        raise IntegrityUnavailable("GEM isolated read-only source integrity unavailable") from None
+
+def unavailable_integrity():
+    """Render all six data-source cards on database/network failure.
+
+    Never substitute zero for an unknown number or imply a successful audit.
+    """
+    report = classify([], [], {},
+                      checked_at=datetime.now(timezone.utc))
+    report["data_access"] = "UNAVAILABLE"
+    report["approved_monthly_signals"] = None
+    report["membership_security_lines"] = None
+    report["wikipedia"] = {"securities":None,"unique_ciks":None,"secondary_comparison":None,"certified":False}
+    for key in ("security_lines_target", "marketstack_fully_verified",
+                "ibkr_fully_verified", "other_fully_verified",
+                "overall_fully_verified", "ibkr_diagnostic_sample"):
+        report["prices"][key] = None
+    report["prices"]["marketstack_observed_not_certified"] = None
+    report["prices"]["marketstack_monthly_requests_reserved"] = None
+    report["prices"]["marketstack_rejected_bars"] = None
+    report["prices"]["marketstack_errors"] = {}
+    report["prices"]["coverage_note"] = (
+        "Source database unavailable. Provider coverage is UNKNOWN, not zero.")
+    for key in ("unique_submissions", "unique_companyfacts", "source_pairs",
+                "machine_assessed", "machine_candidate_complete_not_certified",
+                "machine_incomplete_or_unknown", "not_machine_assessed",
+                "independently_certified", "receipt_integrity_pass"):
+        report["sec"][key] = None
+    report["sec"]["last_machine_audit"] = None
+    report["sec"]["exception_categories"] = {}
+    for source in report["sources"]:
+        source["status"] = "UNAVAILABLE"
+        source["last_refreshed"] = None
+        source["last_checked"] = None
+        source["last_audited"] = None
+        source["stages"] = [
+            {"name": stage["name"], "state": "PENDING"}
+            for stage in source["stages"]
+        ]
+        source["evidence"] = [
+            "Database source unavailable. Coverage and verification cannot be inferred.",
+            "Try Refresh evidence; source collection state is not represented as zero.",
+        ]
+    return report
+
+                        THEN (metadata->>'rejected_session_count')::integer ELSE 0 END),0)
+                    FROM gem_source_receipt
+                    WHERE experiment_id=%s AND provider='MARKETSTACK'
+                      AND source_type='prices' AND metadata->>'retrieval_month'=%s
+                """,(EXPERIMENT,datetime.now(timezone.utc).strftime('%Y%m')))
+                marketstack_rejected_bars = int(cur.fetchone()[0] or 0)
+                cur.execute("""
+                    SELECT details->>'reason_code',COUNT(*)
+                    FROM gem_source_probe
+                    WHERE experiment_id=%s AND source_type='prices'
+                      AND probe_id LIKE %s
+                      AND details->>'reason_code' IS NOT NULL
+                    GROUP BY details->>'reason_code'
+                """,(EXPERIMENT,
+                     'gem-marketstack-failed-'+datetime.now(timezone.utc).strftime('%Y%m')+'%'))
+                marketstack_errors={reason:int(n) for reason,n in cur.fetchall()}
                 # Price receipts are counted only after independently reviewed
                 # source and adjustment evidence; raw vendor calls do not count.
                 cur.execute("""
