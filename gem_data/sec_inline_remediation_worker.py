@@ -223,6 +223,7 @@ def review_batch(*, max_ciks=2, collector_factory=SecOriginalCollector):
             urls = []
             reason = None
             annual_reason = None
+            history_receipts = []
             try:
                 submission=decode_original_receipt(receipt,cik,"submissions")
                 try:
