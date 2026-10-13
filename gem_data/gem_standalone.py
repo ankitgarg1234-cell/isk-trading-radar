@@ -20,6 +20,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from dual_momentum.gem_dashboard import router as gem_readonly_router
 from gem_data.gem_manual_routes import router as gem_manual_router
+from gem_data.gem_portfolio_routes import router as gem_portfolio_router
 
 _log = logging.getLogger(__name__)
 
@@ -161,9 +162,10 @@ def health():
 
 @app.get("/", include_in_schema=False)
 def home():
-    return RedirectResponse(url="/gem-trial", status_code=302)
+    return RedirectResponse(url="/gem-portfolio", status_code=302)
 
 
 # Router dependencies also protect all future GET routes added to GEM router.
 app.include_router(gem_readonly_router, dependencies=[Depends(require_gem_login)])
 app.include_router(gem_manual_router, dependencies=[Depends(require_gem_login)])
+app.include_router(gem_portfolio_router, dependencies=[Depends(require_gem_login)])
