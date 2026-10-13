@@ -100,6 +100,7 @@ def categorize(latest, *, captured_at=None, limit=250, inline_reviews=None):
             "review_stage": review_stage,
             "original_inline_review_status": filing_state,
             "original_inline_candidate_six": bool(inline.get("six_candidates", False)),
+            "original_sec_missing_fact_types": missing_facts if filing_state != "NOT_YET_SCANNED" else None,
             "original_inline_reviewed_at": inline.get("last_reviewed"),
             "original_filing_urls": inline.get("filing_urls", [])[:2],
         })
