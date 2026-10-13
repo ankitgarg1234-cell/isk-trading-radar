@@ -37,4 +37,5 @@ jobs:
             tests/test_gem_historical_evidence_audit.py \
             tests/test_gem_paper_plan.py \
             tests/test_gem_archive_ranking_parity.py \
+            tests/test_gem_monthly_packet.py \
             tests/test_gem_standalone.py
