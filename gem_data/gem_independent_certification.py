@@ -30,7 +30,16 @@ def verify_receipt(receipt: dict) -> dict:
         encoded = metadata["source_raw_zlib_base64"]
         if not isinstance(encoded, str) or len(encoded) > MAX_ENCODED_BYTES:
             raise ValueError("encoded size limit")
-        if provider not in SEC_KINDS:\n            raise ValueError("unsupported SEC provider")\n        if metadata.get("archive_url") not in {\n            "https://www.sec.gov/Archives/edgar/daily-index/bulkdata/submissions.zip",\n            "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip",\n        }:\n            raise ValueError("archive provenance missing or invalid")\n        if (provider == "SEC_ZIP_SUBMISSIONS") != metadata["archive_url"].endswith("/submissions.zip"):\n            raise ValueError("archive/provider mismatch")\n        compressed = base64.b64decode(encoded, validate=True)
+        if provider not in SEC_KINDS:
+            raise ValueError("unsupported SEC provider")
+        if metadata.get("archive_url") not in {
+            "https://www.sec.gov/Archives/edgar/daily-index/bulkdata/submissions.zip",
+            "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip",
+        }:
+            raise ValueError("archive provenance missing or invalid")
+        if (provider == "SEC_ZIP_SUBMISSIONS") != metadata["archive_url"].endswith("/submissions.zip"):
+            raise ValueError("archive/provider mismatch")
+        compressed = base64.b64decode(encoded, validate=True)
         inflater = zlib.decompressobj()
         original = inflater.decompress(compressed, MAX_ORIGINAL_BYTES + 1)
         if len(original) > MAX_ORIGINAL_BYTES or inflater.unconsumed_tail:
