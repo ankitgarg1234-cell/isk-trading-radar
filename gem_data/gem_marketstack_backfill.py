@@ -108,13 +108,40 @@ def _universe_and_spend(reader, month, today):
     return tickers, count, done, attempted
 
 
-def _reserve_request(writer, symbol, stamp):
+def _reserve_request(reader, writer, symbol, stamp, cap):
+    """Atomically serialize GEM Marketstack budget reservations across restarts.
+
+    Writer retains INSERT-only GEM permissions; the separate SELECT-only role
+    reads reservation counts *after* a writer-owned advisory lock is acquired.
+    All app workers must use this function; unrelated consumers of the same
+    Marketstack account are outside this isolated budget.
+    """
     key = _RESERVE_PREFIX + stamp.strftime("%Y%m") + "-" + stamp.strftime("%Y%m%d") + "-" + symbol
+    prefix = _RESERVE_PREFIX + stamp.strftime("%Y%m") + "-%"
     digest = sha256(key.encode()).hexdigest()
     with psycopg.connect(writer, connect_timeout=6) as conn:
         with conn.cursor() as cur:
             cur.execute("SET TRANSACTION READ WRITE")
             cur.execute("SET LOCAL statement_timeout=10000")
+            cur.execute("SELECT pg_advisory_xact_lock(%s)", (20261013001,))
+            with psycopg.connect(reader, connect_timeout=6) as ro:
+                with ro.cursor() as probe:
+                    probe.execute("SET TRANSACTION READ ONLY")
+                    probe.execute("SET LOCAL statement_timeout=10000")
+                    probe.execute("""
+                        SELECT COUNT(*) FROM gem_source_probe
+                        WHERE experiment_id=%s AND source_type='prices'
+                          AND probe_id LIKE %s
+                    """, (EXPERIMENT, prefix))
+                    already = int(probe.fetchone()[0])
+                    if already >= cap:
+                        return False
+                    probe.execute("""
+                        SELECT 1 FROM gem_source_probe
+                        WHERE experiment_id=%s AND probe_id=%s LIMIT 1
+                    """, (EXPERIMENT, key))
+                    if probe.fetchone() is not None:
+                        return False
             cur.execute("""
                 INSERT INTO gem_source_probe
                 (probe_id,experiment_id,source_type,state,observed_at,
@@ -225,7 +252,7 @@ def collect_batch(*, max_tickers=5, observed=None, fetch_fn=None):
         return report
     probe = fetch_fn
     for symbol in chosen:
-        if not _reserve_request(writer, symbol, observed):
+        if not _reserve_request(reader, writer, symbol, observed, cap):
             continue
         report["new_reserved"] += 1
         try:
