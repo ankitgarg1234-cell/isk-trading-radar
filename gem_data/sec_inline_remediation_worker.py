@@ -226,7 +226,19 @@ def review_batch(*, max_ciks=2, collector_factory=SecOriginalCollector):
             try:
                 submission=decode_original_receipt(receipt,cik,"submissions")
                 try:
-                    current,prior=select_original_filing_pair(submission,cutoff=as_of)
+                    try:
+                        current,prior=select_original_filing_pair(submission,cutoff=as_of)
+                    except InlineReviewHold as missing_prior:
+                        if "Prior year original 10-Q filing missing" not in str(missing_prior):
+                            raise
+                        fragments=[]
+                        for uri in historical_fragment_urls(submission,cik,cutoff=as_of):
+                            _,source_bytes=client.get(uri)
+                            fragments.append((uri,source_bytes))
+                        if not fragments:
+                            raise
+                        expanded,history_receipts=merge_archived_filings(submission,fragments)
+                        current,prior=select_original_filing_pair(expanded,cutoff=as_of)
                     analyzed=[]
                     for filing in (current,prior):
                         url=original_primary_url(cik,filing)
