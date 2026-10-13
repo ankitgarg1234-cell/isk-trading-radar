@@ -157,7 +157,9 @@ def test_missing_competitor_and_missing_provenance_hold():
     with pytest.raises(MonthlySignalHold):
         select_monthly(snap, fixture_min_members=2)
     snap = signal_snapshot()
-    snap["features"][0]["financial_source"] = "UNKNOWN"
+    # A is conclusively negative-r63 and does not need SEC docs.
+    # B is positive-r63; its unverified financials MUST hold the full signal.
+    snap["features"][1]["financial_source"] = "UNKNOWN"
     report = select_monthly(snap, fixture_min_members=2)
     assert report["selected"] == []
-    assert report["blockers"][0]["ticker"] == "A"
+    assert report["blockers"][0]["ticker"] == "B"
