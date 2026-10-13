@@ -271,8 +271,23 @@ def read_source_integrity():
                 sec_exception_categories={name:int(n) for name,n in cur.fetchall()}
                 cur.execute("""
                     SELECT COALESCE(SUM(
-                        CASE WHEN (metadata->>'rejected_session_count') ~ '^[0-9]{1,5}
-                # source and adjustment evidence; raw vendor calls do not count.
+                        CASE WHEN (metadata->>'rejected_session_count') ~ '^[0-9]{1,5}$'
+                        THEN (metadata->>'rejected_session_count')::integer ELSE 0 END),0)
+                    FROM gem_source_receipt
+                    WHERE experiment_id=%s AND provider='MARKETSTACK'
+                      AND source_type='prices' AND metadata->>'retrieval_month'=%s
+                """,(EXPERIMENT,datetime.now(timezone.utc).strftime('%Y%m')))
+                marketstack_rejected_bars=int(cur.fetchone()[0] or 0)
+                cur.execute("""
+                    SELECT details->>'reason_code',COUNT(*)
+                    FROM gem_source_probe
+                    WHERE experiment_id=%s AND source_type='prices'
+                      AND probe_id LIKE %s AND details->>'reason_code' IS NOT NULL
+                    GROUP BY details->>'reason_code'
+                """,(EXPERIMENT,
+                     'gem-marketstack-failed-'+datetime.now(timezone.utc).strftime('%Y%m')+'%'))
+                marketstack_errors={reason:int(n) for reason,n in cur.fetchall()}
+                # Price receipts require independent adjustment evidence.
                 cur.execute("""
                     SELECT provider, metadata->>'ticker'
                     FROM gem_source_receipt
