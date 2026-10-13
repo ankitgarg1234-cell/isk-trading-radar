@@ -40,6 +40,7 @@ jobs:
             tests/test_gem_monthly_packet.py \
             tests/test_gem_source_health.py \
             tests/test_gem_sec_exception_queue.py \
+            tests/test_gem_sec_inline_remediation.py \
             tests/test_gem_integrity_stages.py \
             tests/test_gem_marketstack_initial_backfill.py \
             tests/test_gem_marketstack_speed.py \
