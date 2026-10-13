@@ -228,15 +228,15 @@ def _record_failed_observation(writer, symbol, observed, reason):
         write_observation(conn,None,probe)
 
 
-def collect_batch(*, max_tickers=5, observed=None, fetch_fn=None):
+def collect_batch(*, max_tickers=20, observed=None, fetch_fn=None):
     """One explicit batch; no HTTP request is triggered by dashboard views.
 
-    Bounded at five symbols per call; one provider page per symbol (period 220
+    Bounded at twenty symbols per call; one provider page per symbol (period 220
     calendar days). A whole month is budget-capped by persisted reservations.
     API failures consume their reserved request and remain visible as gaps.
     """
-    if type(max_tickers) is not int or not 1 <= max_tickers <= 5:
-        raise MarketstackBackfillHold("One batch limited to 1..5 tickers")
+    if type(max_tickers) is not int or not 1 <= max_tickers <= 20:
+        raise MarketstackBackfillHold("One batch limited to 1..20 tickers")
     reader, writer, cap = _db_urls()
     observed = observed or datetime.now(timezone.utc)
     if observed.tzinfo is None:
@@ -257,6 +257,7 @@ def collect_batch(*, max_tickers=5, observed=None, fetch_fn=None):
         report["status"] = "MONTHLY_BUDGET_EXHAUSTED_OR_ALL_ALREADY_OBSERVED"
         return report
     probe = fetch_fn
+    consecutive_failures = 0
     for symbol in chosen:
         if not _reserve_request(reader, writer, symbol, observed, cap):
             continue
@@ -270,6 +271,7 @@ def collect_batch(*, max_tickers=5, observed=None, fetch_fn=None):
             count = _persist_observation(writer, symbol, observed, rows, receipt)
             report["observed_symbols"] += 1
             report["observed_bars"] += count
+            consecutive_failures = 0
         except (MarketstackProbeError, ValueError, psycopg.Error) as exc:
             reason = str(exc)[:90] if isinstance(exc,MarketstackProbeError) else type(exc).__name__
             report["failed"].append({"ticker":symbol,"reason_code":reason})
@@ -277,6 +279,16 @@ def collect_batch(*, max_tickers=5, observed=None, fetch_fn=None):
                 _record_failed_observation(writer,symbol,observed,reason)
             except psycopg.Error:
                 report["failure_receipt_write_error"]=True
+            consecutive_failures += 1
+            # A systemic provider/auth/quota issue should never burn hundreds
+            # of prepaid attempts just because the backfill batch is large.
+            if (reason in ("MARKETSTACK_HTTP_401", "MARKETSTACK_HTTP_402",
+                           "MARKETSTACK_HTTP_403", "MARKETSTACK_HTTP_429")
+                    or reason.startswith("MARKETSTACK_API_ERROR_")
+                    or consecutive_failures >= 3):
+                report["status"] = "PROVIDER_OR_SYSTEMIC_FAILURE_PAUSED"
+                report["pause_reason"] = reason
+                return report
     report["status"]="OBSERVATIONS_ONLY_NOT_APPROVED"
     return report
 
