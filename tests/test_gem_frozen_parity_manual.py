@@ -4,6 +4,11 @@ The strategy source is pinned at d59b93d3d9a87d582045b4ae71ff9a6f696a48be.
 These tests exercise the standalone operator, not production or broker routes.
 """
 import unittest
+import ast
+import hashlib
+from collections import defaultdict
+from datetime import date, timedelta
+from pathlib import Path
 from unittest.mock import patch
 
 from gem_data.gem_monthly_signal import FROZEN, select_monthly
@@ -47,6 +52,31 @@ def _fact(period_start, period_end, value, *, form="10-Q", filed="2026-08-01"):
         "accepted_at": filed + "T14:00:00+00:00",
         "value": value,
     }
+
+
+def _pinned_original_pit_store(rows):
+    # Execute only the original quarterly selector; no app imports or providers.
+    path = Path(__file__).resolve().parents[1] / "scripts/wf3_offline_valuein.py"
+    source = path.read_bytes()
+    expected = "521d6327ba932bde5e548b1b44cc2469afbb69c31e0428f13e2260678468b6d8"
+    if hashlib.sha256(source).hexdigest() != expected:
+        raise AssertionError("Original GEM PIT selector hash changed")
+    cls = next(n for n in ast.parse(source.decode()).body
+               if isinstance(n, ast.ClassDef) and n.name == "PITFundamentals")
+    def d(v):
+        try:
+            return date.fromisoformat(str(v)[:10]) if v else None
+        except ValueError:
+            return None
+    def fv(v):
+        try:
+            return float(v) if v is not None else None
+        except (TypeError, ValueError):
+            return None
+    ns = {"defaultdict": defaultdict, "date": date, "timedelta": timedelta,
+          "d": d, "fv": fv}
+    exec(compile(ast.Module(body=[cls], type_ignores=[]), str(path), "exec"), ns)
+    return ns["PITFundamentals"]({"facts": {"AAA": rows}})
 
 
 class FrozenGemManualParityTests(unittest.TestCase):
@@ -154,6 +184,38 @@ class FrozenGemManualParityTests(unittest.TestCase):
         self.assertEqual(result["status"], "INDICATIVE_SHEET_READY_FOR_USER_REVIEW")
         self.assertEqual(len(result["manual_trade_sheet"]["tickets"]), 2)
         self.assertFalse(result["automatic_execution"])
+
+    def test_frozen_pit_latest_amendment_wins_for_same_quarter(self):
+        def row(form, filing, value):
+            return {"standard_concept": "TotalRevenue",
+                    "form_type": form, "filing_date": filing,
+                    "accepted_at": filing + "T12:00:00",
+                    "period_start": "2026-04-01", "period_end": "2026-06-30",
+                    "period_span_days": 90, "numeric_value": value}
+        store = _pinned_original_pit_store([
+            row("10-Q", "2026-07-20", 111.0),
+            row("10-Q/A", "2026-08-20", 125.0)])
+        q = store.quarter("AAA", "TotalRevenue", date(2026, 9, 29))
+        self.assertEqual(q[-1][1], 125.0)
+        self.assertEqual(q[-1][2]["form_type"], "10-Q/A")
+
+    def test_frozen_pit_derived_quarter_remains_unimplemented_in_adapter(self):
+        row = {"standard_concept": "TotalRevenue", "form_type": "10-Q",
+               "filing_date": "2026-08-01",
+               "accepted_at": "2026-08-01T12:00:00",
+               "period_start": "2026-01-01", "period_end": "2026-06-30",
+               "period_span_days": 180, "numeric_value": 240.0,
+               "derived_quarterly_value": 125.0}
+        store = _pinned_original_pit_store([row])
+        q = store.quarter("AAA", "TotalRevenue", date(2026, 9, 29))
+        self.assertEqual(q[-1][1], 125.0)
+        derived = _fact("2026-01-01", "2026-06-30", 125.0)
+        facts = {k: derived for k in (
+            "revenue_now", "revenue_prior", "income_now", "income_prior",
+            "operating_now", "operating_prior")}
+        # This documents an unresolved parity gap without weakening HOLD.
+        with self.assertRaises(SourceFeatureHold):
+            verify_financial_features(facts, signal_day="2026-09-30")
 
     def test_selected_holding_reduces_at_frozen_fee_inclusive_target(self):
         # Frozen simulator: desired=floor(open_equity*0.20/(open*1.002)).
