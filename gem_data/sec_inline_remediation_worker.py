@@ -126,6 +126,7 @@ def summarize_pair(now, previous):
 
 
 def _work_items(conn, as_of, limit):
+    """Read only receipt keys for the queue; fetch raw bytes for selected CIKs."""
     with conn.cursor() as cur:
         cur.execute("""
             WITH latest AS (
@@ -138,10 +139,10 @@ def _work_items(conn, as_of, limit):
               ORDER BY substring(details->>'scope' FROM 'CIK ([0-9]{10})'),
                        observed_at DESC,probe_id DESC
             )
-            SELECT latest.cik,receipt_id,provider,source_sha256,source_uri,metadata
+            SELECT latest.cik,src.receipt_id
             FROM latest
             JOIN LATERAL (
-               SELECT receipt_id,provider,source_sha256,source_uri,metadata
+               SELECT receipt_id
                FROM gem_source_receipt
                WHERE experiment_id=%s AND provider='SEC_ZIP_SUBMISSIONS'
                  AND metadata->>'zip_member_name'='CIK'||latest.cik||'.json'
@@ -156,13 +157,30 @@ def _work_items(conn, as_of, limit):
             WHERE experiment_id=%s AND probe_id LIKE %s
         """,(EXPERIMENT,PREFIX+as_of.strftime("%Y%m%d")+"-%"))
         completed={x[0] for x in cur.fetchall()}
-    remaining=[]
-    for cik,rid,provider,sha,uri,metadata in candidates:
-        key=PREFIX+as_of.strftime("%Y%m%d")+"-"+cik+"-"+REV+"-"+sha256(rid.encode()).hexdigest()[:12]
-        if key not in completed:
-            remaining.append((cik,key,{"provider":provider,"source_sha256":sha,
-                                      "source_uri":uri,"metadata":metadata}))
-    return remaining[:limit],len(remaining)
+        remaining=[]
+        for cik,rid in candidates:
+            key=(PREFIX+as_of.strftime("%Y%m%d")+"-"+cik+"-"+REV
+                 +"-"+sha256(rid.encode()).hexdigest()[:12])
+            if key not in completed:
+                remaining.append((cik,key,rid))
+        selected=remaining[:limit]
+        ids=[rid for _cik,_key,rid in selected]
+        receipts={}
+        if ids:
+            cur.execute("""
+                SELECT receipt_id,provider,source_sha256,source_uri,metadata
+                FROM gem_source_receipt
+                WHERE experiment_id=%s AND receipt_id=ANY(%s)
+            """,(EXPERIMENT,ids))
+            receipts={rid:{"provider":provider,"source_sha256":sha,
+                           "source_uri":uri,"metadata":metadata}
+                      for rid,provider,sha,uri,metadata in cur.fetchall()}
+    chosen=[]
+    for cik,key,rid in selected:
+        if rid not in receipts:
+            raise InlineReviewHold("Stored original SEC submissions receipt missing")
+        chosen.append((cik,key,receipts[rid]))
+    return chosen,len(remaining)
 
 
 def review_batch(*, max_ciks=2, collector_factory=SecOriginalCollector):
