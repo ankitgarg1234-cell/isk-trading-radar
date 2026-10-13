@@ -218,7 +218,7 @@ def manual_trade_sheet(signal, ledger, reference_prices, *, bps=20):
     positions = dict(shares)
     tickets = []
     for s in sorted(symbols):
-        wanted = int((target / prices[s]).to_integral_value(rounding=ROUND_FLOOR)) if s in selected else 0
+        wanted = int((target / (prices[s] * (1 + fee_factor))).to_integral_value(rounding=ROUND_FLOOR)) if s in selected else 0
         amount = max(0, positions.get(s, 0) - wanted)
         if amount:
             cash += prices[s] * amount * (1-fee_factor)
