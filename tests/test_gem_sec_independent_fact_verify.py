@@ -48,10 +48,14 @@ def originals():
 def receipt(kind, data):
     raw = json.dumps(data, sort_keys=True).encode()
     digest = sha256(raw).hexdigest()
+    from gem_data.sec_independent_fact_verify import OFFICIAL_ARCHIVES
+    url = OFFICIAL_ARCHIVES[kind]
     return {
         "provider": "SEC_ZIP_" + kind.upper(),
+        "source_uri": url + "#" + f"CIK{CIK}.json",
         "source_sha256": digest,
         "metadata": {
+            "archive_url": url,
             "zip_member_name": f"CIK{CIK}.json",
             "source_raw_zlib_base64": base64.b64encode(zlib.compress(raw)).decode(),
             "member_original_sha256": digest,
@@ -199,3 +203,14 @@ def test_malformed_quarter_context_is_unknown_not_sha_failure():
     assert result["receipt_integrity"] == "PASS"
     assert result["fact_status"] == "UNKNOWN"
     assert "financial_context_hold" in result["blockers"][0]
+
+
+
+def test_source_uri_provenance_fails_closed():
+    subs, facts = originals()
+    a = receipt("submissions", subs)
+    b = receipt("companyfacts", facts)
+    b["source_uri"] = "https://example.com/forged.zip#CIK0001000000.json"
+    result = verify_receipt_pair(a, b, CIK)
+    assert result["receipt_integrity"] == "FAIL"
+    assert "source URI" in result["blockers"][0]
