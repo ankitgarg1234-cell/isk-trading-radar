@@ -181,7 +181,11 @@ def verify_six_candidates(submissions: dict, companyfacts: dict,
                 "certified": False}
     newest = max(k[2] for k in groups)
     if (as_of-newest).days > 210:
-        blockers.append("current_quarter_older_than_210_days")
+        # Do not mislabel last year's quarter as "current" when current
+        # quarter data is absent or only YTD cumulative facts are present.
+        return {"fact_status": "UNKNOWN", "six_facts": {},
+                "blockers": ["current_quarter_older_than_210_days"],
+                "certified": False}
     current = [k for k in groups if k[2] == newest]
     current.sort(key=lambda k: (groups[k]["accepted"], groups[k]["filed"], k[0]),
                  reverse=True)
