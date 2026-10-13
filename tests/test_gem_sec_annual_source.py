@@ -99,3 +99,36 @@ def test_sec_file_detail_route_requires_dashboard_auth(monkeypatch):
                             auth=("gemowner","at-least-twenty-chars-sec-source"))
         assert response.status_code in (200,422)
         assert response.status_code!=404
+
+
+
+def test_sec_issuer_index_and_human_facts_page(monkeypatch):
+    from fastapi.testclient import TestClient
+    from gem_data.gem_standalone import app
+    from gem_data import gem_sec_filing_routes
+    from gem_data import gem_sec_exception_queue
+    monkeypatch.setenv("GEM_DASHBOARD_USERNAME","gemowner")
+    monkeypatch.setenv("GEM_DASHBOARD_PASSWORD","at-least-twenty-chars-sec-source")
+    source=summarize_original_filings(submissions(),CIK,as_of=date(2026,10,12))
+    source["original_xbrl_review_status"]="SIX_DIRECT_STANDARD_CANDIDATES_NEED_CONTEXT_REVIEW"
+    source["original_10k_extracted_facts"]=summarize_annual_original(
+        ixbrl(),cik=CIK,filing=select_annual_original(submissions(),cutoff=date(2026,10,12)),
+        source_uri=URL)
+    source["original_10q_six_fact_candidates"]=None
+    monkeypatch.setattr(gem_sec_filing_routes,"lookup_filing",lambda cik:source)
+    monkeypatch.setattr(gem_sec_exception_queue,"read_sec_exception_queue",lambda limit:{
+         "review_queue":[{"cik":CIK,"blockers":["current_quarter_older_than_210_days"],
+             "review_stage":"SIX_FACT_CANDIDATES_UNCERTIFIED","original_inline_reviewed_at":None}],
+         "unresolved":1,"original_inline_scanned":1,"original_inline_six_candidate_sets":1})
+    with TestClient(app) as client:
+        auth=("gemowner","at-least-twenty-chars-sec-source")
+        assert client.get("/gem-sec-filings").status_code==401
+        index=client.get("/gem-sec-filings",auth=auth)
+        assert index.status_code==200
+        assert ("/gem-sec-filing/"+CIK) in index.text
+        details=client.get("/gem-sec-filing/"+CIK,auth=auth)
+        assert details.status_code==200
+        assert "254248" not in details.text  # The fixture is synthetic, never real financial data
+        assert "200000000000" in details.text
+        assert "cah-20260630.htm" in details.text
+        assert "not automatically eligible" in details.text.lower() or "not automatically" in details.text.lower()
