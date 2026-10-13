@@ -67,6 +67,13 @@ def categorize(latest, *, captured_at=None, limit=250, inline_reviews=None):
             blockers = ["missing_or_malformed_original_filing_evidence"]
         tasks = triage(blockers)
         inline = inline_reviews.get(cik, {})
+        required = ("STANDARD_REVENUE","STANDARD_OPERATING_INCOME",
+                    "STANDARD_PARENT_NET_INCOME")
+        missing_facts = {
+            period: [metric for metric in required
+                     if metric not in inline.get(period+"_types", [])]
+            for period in ("current","prior")
+        }
         filing_state = inline.get("classification") or "NOT_YET_SCANNED"
         if filing_state == "NOT_YET_SCANNED":
             review_stage = "AWAITING_ORIGINAL_10Q_REVIEW"
