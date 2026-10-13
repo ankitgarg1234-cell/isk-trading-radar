@@ -45,8 +45,12 @@ def _db_urls():
         monthly_cap = int(os.getenv("GEM_MARKETSTACK_MONTHLY_CREDIT_CAP", "0"))
     except ValueError:
         raise MarketstackBackfillHold("Invalid request budget") from None
-    if not 1 <= monthly_cap <= 100000:
-        raise MarketstackBackfillHold("Explicit monthly request cap required")
+    if not 1 <= monthly_cap <= 1000:
+        raise MarketstackBackfillHold("Initial backfill explicitly capped at 1000 requests")
+    # User authorized initial October backfill, not a fresh recurring
+    # 1000-credit monthly allocation in perpetuity.
+    if datetime.now(timezone.utc).strftime("%Y%m") != "202610":
+        raise MarketstackBackfillHold("Initial October 2026 authorization expired")
     return reader, writer, monthly_cap
 
 
@@ -239,6 +243,8 @@ def collect_batch(*, max_tickers=5, observed=None, fetch_fn=None):
         raise MarketstackBackfillHold("Timezone-aware observation required")
     observed = observed.astimezone(timezone.utc)
     month = observed.strftime("%Y%m")
+    if month != "202610":
+        raise MarketstackBackfillHold("Initial October 2026 authorization expired")
     symbols, used, complete, attempted = _universe_and_spend(reader, month, observed.date())
     remaining = min(max_tickers, max(0, cap-used))
     chosen = [sym for sym in symbols if sym not in complete and sym not in attempted][:remaining]
