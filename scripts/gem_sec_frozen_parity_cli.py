@@ -66,9 +66,11 @@ def read_pairs(conn, *, limit, offset):
                 "provider": provider, "source_uri": source_uri,
                 "source_sha256": str(raw_sha).strip(), "metadata": metadata,
             }
+        if any(not CIK_MEMBER.fullmatch(m or "") or len(selected.get(m, {})) != 2
+               for m in members):
+            raise ValueError("Paired original SEC receipts incomplete or malformed")
         return [(CIK_MEMBER.fullmatch(m).group(1), selected[m])
-                for m in members
-                if CIK_MEMBER.fullmatch(m) and len(selected.get(m, {})) == 2]
+                for m in members]
 
 
 def read_only_run(*, signal_day, limit=10, offset=0, dsn=None):
