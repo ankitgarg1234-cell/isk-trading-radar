@@ -188,3 +188,14 @@ def test_machine_qa_worker_is_append_only_idempotent_and_never_certifies(monkeyp
     second = audit_batch(max_pairs=1)
     assert second["audited"] == 0
     assert len(captured) == 1
+
+
+
+def test_malformed_quarter_context_is_unknown_not_sha_failure():
+    subs, facts = originals()
+    facts["facts"]["us-gaap"]["NetIncomeLoss"]["units"]["USD"][0].pop("start")
+    result = verify_receipt_pair(receipt("submissions", subs),
+                                 receipt("companyfacts", facts), CIK)
+    assert result["receipt_integrity"] == "PASS"
+    assert result["fact_status"] == "UNKNOWN"
+    assert "financial_context_hold" in result["blockers"][0]
