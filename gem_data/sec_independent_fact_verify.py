@@ -227,7 +227,10 @@ def verify_six_candidates(submissions: dict, companyfacts: dict,
         # Do not mislabel last year's quarter as "current" when current
         # quarter data is absent or only YTD cumulative facts are present.
         return {"fact_status": "UNKNOWN", "six_facts": {},
-                "blockers": ["current_quarter_older_than_210_days"],
+                "blockers": ["fresh_10q_exists_but_standard_facts_unrecognized"]
+                            if latest_original_10q and latest_original_10q["age_days"] <= 210
+                            else ["current_quarter_older_than_210_days"],
+                "latest_original_10q": latest_original_10q,
                 "certified": False}
     current = [k for k in groups if k[2] == newest]
     current.sort(key=lambda k: (groups[k]["accepted"], groups[k]["filed"], k[0]),
