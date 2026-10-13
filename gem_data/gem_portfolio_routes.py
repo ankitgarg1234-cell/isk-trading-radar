@@ -165,6 +165,9 @@ async function refresh(){
   });
   const details=el("details",null,card);el("summary","Evidence and gaps",details);
   const ul=el("ul",null,details);s.evidence.forEach(line=>el("li",line,ul));
+  if(s.key==="membership" && data.wikipedia && data.wikipedia.securities!=null){
+   el("li","Wikipedia: "+data.wikipedia.securities+" security lines / "+data.wikipedia.unique_ciks+" unique CIKs",ul);
+  }
  });
  const sec=$("secstats");sec.replaceChildren();
  stat(sec,data.sec.source_pairs,"Company source pairs");
@@ -177,12 +180,15 @@ async function refresh(){
      :data.sec.machine_incomplete_or_unknown+" assessed incomplete/unknown · "
      +data.sec.not_machine_assessed+" not assessed · "
      +(data.sec.receipt_integrity_pass==null?"Receipt-audit details not readable with the restricted dashboard account":data.sec.receipt_integrity_pass+" independent receipt integrity passes")
-     +" · Last machine audit: "+fmt(data.sec.last_machine_audit);
+     +" · Last machine audit: "+fmt(data.sec.last_machine_audit)
+     +" · Top blockers: "+Object.entries(data.sec.exception_categories||{}).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,v])=>k+": "+v).join("; ");
  const prices=$("pricestats");prices.replaceChildren();
  stat(prices,data.prices.marketstack_fully_verified,"Marketstack verified");
  stat(prices,data.prices.ibkr_fully_verified,"IBKR verified");
  stat(prices,data.prices.overall_fully_verified,"Overall verified");
  stat(prices,data.prices.security_lines_target,"Security lines targeted");
+ stat(prices,data.prices.marketstack_observed_not_certified,"Marketstack observed (QA pending)");
+ stat(prices,data.prices.marketstack_monthly_requests_reserved,"Monthly Marketstack requests reserved");
  $("priceexplain").textContent=data.prices.coverage_note+(data.prices.ibkr_diagnostic_sample==null?"":" IBKR diagnostic sample: "+data.prices.ibkr_diagnostic_sample+".");
  }catch(err){
   $("generated").textContent="SOURCE STATUS UNAVAILABLE — "+String(err.message)+"; all six categories remain UNKNOWN.";
