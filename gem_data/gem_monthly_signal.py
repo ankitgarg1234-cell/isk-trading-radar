@@ -92,40 +92,54 @@ def select_monthly(snapshot, *, fixture_min_members=None):
             r63 = _n(row.get("r63"), ticker + ".r63")
             nominal = _n(row.get("nominal_close"), ticker + ".nominal_close")
             adv20 = _n(row.get("adv20"), ticker + ".adv20")
-            rev = _n(row.get("revenue_yoy"), ticker + ".revenue_yoy")
-            margin = _n(row.get("margin_delta_pp"), ticker + ".margin_delta_pp")
-            income_now = _n(row.get("net_income_now"), ticker + ".net_income_now")
-            income_before = _n(row.get("net_income_prior"), ticker + ".net_income_prior")
-            if type(row.get("earnings_improvement")) is not bool:
-                raise MonthlySignalHold("Missing independently derived earnings gate")
         except MonthlySignalHold:
-            problem.append("MISSING_NUMERIC_FEATURE_OR_EARNINGS_GATE")
-            r63 = nominal = adv20 = rev = margin = income_now = income_before = None
+            problem.append("MISSING_NUMERIC_PRICE_OR_MOMENTUM")
+            r63 = nominal = adv20 = None
         if row.get("price_last_session") != signal.isoformat() or row.get("price_sessions", 0) < 127:
             problem.append("PRICE_STALE_OR_INCOMPLETE")
         if row.get("price_basis") != "FROZEN_VERIFIED":
             problem.append("PRICE_ADJUSTMENT_PARITY_UNVERIFIED")
-        if row.get("financial_source") != "SEC_ORIGINAL_QA_REVIEWED":
-            problem.append("SEC_PROVENANCE_UNVERIFIED")
-        try:
-            financial_cutoff = datetime.fromisoformat(row.get("latest_accepted_at", "").replace("Z", "+00:00"))
-            if financial_cutoff.tzinfo is None or financial_cutoff.astimezone(timezone.utc).date() >= signal:
-                problem.append("FINANCIAL_FILING_AFTER_CUTOFF")
-        except (ValueError, AttributeError):
-            problem.append("FINANCIAL_ACCEPTANCE_MISSING")
         if row.get("security_identity_reviewed") is not True:
             problem.append("IDENTITY_EVIDENCE_MISSING")
+        # The pinned engine applies the strictly positive r63 gate BEFORE G/E.
+        # Financials are unnecessary only if the full required price/identity
+        # evidence is present and the adjusted 63-session return is nonpositive.
+        # Unverified, missing or provisional prices NEVER exempt SEC review.
+        sec_facts_required = bool(problem) or r63 is None or r63 > 0
+        rev = margin = income_now = income_before = None
+        if sec_facts_required:
+            try:
+                rev = _n(row.get("revenue_yoy"), ticker + ".revenue_yoy")
+                margin = _n(row.get("margin_delta_pp"), ticker + ".margin_delta_pp")
+                income_now = _n(row.get("net_income_now"), ticker + ".net_income_now")
+                income_before = _n(row.get("net_income_prior"), ticker + ".net_income_prior")
+                if type(row.get("earnings_improvement")) is not bool:
+                    raise MonthlySignalHold("Missing independently derived earnings gate")
+            except MonthlySignalHold:
+                problem.append("MISSING_NUMERIC_FINANCIAL_OR_EARNINGS_GATE")
+            if row.get("financial_source") != "SEC_ORIGINAL_QA_REVIEWED":
+                problem.append("SEC_PROVENANCE_UNVERIFIED")
+            try:
+                financial_cutoff = datetime.fromisoformat(
+                    row.get("latest_accepted_at", "").replace("Z", "+00:00"))
+                if (financial_cutoff.tzinfo is None
+                        or financial_cutoff.astimezone(timezone.utc).date() >= signal):
+                    problem.append("FINANCIAL_FILING_AFTER_CUTOFF")
+            except (ValueError, AttributeError):
+                problem.append("FINANCIAL_ACCEPTANCE_MISSING")
         if problem:
             blockers.append({"ticker": ticker, "reasons": problem})
         # Original archived engine: G = rev>0.2; E = earnings_improvement;
-        # margin_delta_pp>3. Pre-price and ADV20 gates are panel construction.
-        qualifying = (not problem and r63 > 0 and nominal >= 5 and adv20 >= 10_000_000
-                      and rev > .2 and income_now > 0
+        # margin_delta_pp>3. Pre-price/ADV20 gates are panel construction.
+        qualifying = (not problem and r63 is not None and r63 > 0
+                      and nominal >= 5 and adv20 >= 10_000_000
+                      and rev is not None and rev > .2 and income_now > 0
                       and row["earnings_improvement"] is True and margin > 3)
         scored.append({
             "ticker": ticker, "security_id": sec, "r63": r63,
             "eligible": qualifying,
             "positive_r63": (r63 is not None and r63 > 0),
+            "sec_facts_required": sec_facts_required,
             "reason": "MISSING_COMPETITOR_EVIDENCE" if problem else
                       "PASS" if qualifying else "FAILED_FROZEN_GATE",
         })
