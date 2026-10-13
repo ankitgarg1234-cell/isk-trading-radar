@@ -107,6 +107,15 @@ def lookup_filing(cik, *, as_of=date(2026,10,12)):
                     ORDER BY collected_at DESC,receipt_id DESC LIMIT 1
                 """,(EXPERIMENT,"CIK"+cik+".json"))
                 row=cur.fetchone()
+                cur.execute("""
+                    SELECT details->'evidence' AS evidence, details->>'classification'
+                    FROM gem_source_probe
+                    WHERE experiment_id=%s AND source_type='sec'
+                      AND details->>'cik'=%s
+                      AND probe_id LIKE 'gem-sec-inline-review-%%'
+                    ORDER BY observed_at DESC, probe_id DESC LIMIT 1
+                """,(EXPERIMENT,cik))
+                review_row=cur.fetchone()
         if row is None:
             raise FilingLookupHold("Original SEC submissions source not stored for CIK")
         provider,sha,uri,meta=row
@@ -115,6 +124,22 @@ def lookup_filing(cik, *, as_of=date(2026,10,12)):
              "metadata":meta},cik,"submissions")
         result=summarize_original_filings(original,cik,as_of=as_of)
         result["original_submissions_sha256"]=sha
+        if review_row is not None:
+            evidence,classification=review_row
+            result["original_xbrl_review_status"]=classification
+            if isinstance(evidence,dict):
+                result["original_10k_extracted_facts"]=evidence.get("original_10k_supplement")
+                result["original_10q_six_fact_candidates"]={
+                    "current":evidence.get("current"),
+                    "prior":evidence.get("prior"),
+                    "all_six_standard_category_candidates":evidence.get(
+                        "all_six_standard_category_candidates",False),
+                    "source_certified":False,
+                }
+        else:
+            result["original_xbrl_review_status"]="NOT_YET_REVIEWED"
+            result["original_10k_extracted_facts"]=None
+            result["original_10q_six_fact_candidates"]=None
         return result
     except (psycopg.Error,VerificationHold) as exc:
         raise FilingLookupHold("Original SEC submissions cannot be verified") from exc
