@@ -189,6 +189,7 @@ async function refresh(){
  stat(prices,data.prices.security_lines_target,"Security lines targeted");
  stat(prices,data.prices.marketstack_observed_not_certified,"Marketstack observed (QA pending)");
  stat(prices,data.prices.marketstack_monthly_requests_reserved,"Monthly Marketstack requests reserved");
+ stat(prices,data.prices.marketstack_rejected_bars,"Marketstack invalid session rows");
  $("priceexplain").textContent=data.prices.coverage_note+(data.prices.ibkr_diagnostic_sample==null?"":" IBKR diagnostic sample: "+data.prices.ibkr_diagnostic_sample+".");
  }catch(err){
   $("generated").textContent="SOURCE STATUS UNAVAILABLE — "+String(err.message)+"; all six categories remain UNKNOWN.";
