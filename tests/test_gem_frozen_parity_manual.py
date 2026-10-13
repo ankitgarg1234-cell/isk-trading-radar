@@ -4,13 +4,14 @@ The strategy source is pinned at d59b93d3d9a87d582045b4ae71ff9a6f696a48be.
 These tests exercise the standalone operator, not production or broker routes.
 """
 import unittest
-from datetime import datetime, timezone
+from unittest.mock import patch
 
 from gem_data.gem_monthly_signal import FROZEN, select_monthly
 from gem_data.gem_source_feature_verifier import (
     SourceFeatureHold, verify_financial_features,
 )
 from gem_data.gem_manual_ops import manual_trade_sheet
+from gem_data import gem_monthly_packet
 
 
 def _feature(ticker, r63):
@@ -108,6 +109,51 @@ class FrozenGemManualParityTests(unittest.TestCase):
         self.assertEqual([t["side"] for t in sheet["tickets"]], ["BUY", "BUY"])
         self.assertGreater(float(sheet["estimated_cash_after"]), 5900.0)
         self.assertEqual(sheet["broker_orders_sent"], 0)
+
+    def test_missing_competitor_source_holds_all_top5_publication(self):
+        features = [_feature("VALID", .12), _feature("UNKNOWN", .22)]
+        features[1]["financial_source"] = "HOLD"
+        snapshot = {
+            "schema": "gem-monthly-features-v1",
+            "frozen_commit": FROZEN,
+            "signal_session": "2026-09-30",
+            "next_session": "2026-10-01",
+            "calendar_verified": True,
+            "universe": [
+                {"ticker": row["ticker"], "security_id": row["security_id"]}
+                for row in features
+            ],
+            "features": features,
+            "membership_reviewed": True,
+            "actions_reviewed": True,
+            "benchmark_reviewed": True,
+            "source_manifest_reviewed": True,
+        }
+        ranked = select_monthly(snapshot, fixture_min_members=2)
+        self.assertEqual(ranked["data_status"], "HOLD")
+        self.assertEqual(ranked["selected"], [])
+        self.assertEqual(ranked["provisional_top5"], ["VALID"])
+
+    def test_end_to_end_manual_packet_permits_cash_slots(self):
+        signal = {"selected": ["AAA", "BBB"], "data_status": "REVIEWED_COMPLETE",
+                  "signal_session": "2026-09-30"}
+        ledger = {"statement_status": "NO_STATEMENT_ENTERED",
+                  "shares": {}, "cash": "10000"}
+        bundle = {
+            "schema": "gem-manual-month-packet-v1",
+            "source_month": {"signal_session": "2026-09-30"},
+            "initial_cash": 10000,
+            "manual_events": [],
+            "reference_prices": {"AAA": 100, "BBB": 200},
+        }
+        with (patch.object(gem_monthly_packet, "recompute_full_month", return_value=signal),
+              patch.object(gem_monthly_packet, "audit_historical_claims",
+                           return_value={"certification": "NOT_CERTIFIED"}),
+              patch.object(gem_monthly_packet, "replay_manual_events", return_value=ledger)):
+            result = gem_monthly_packet.build_monthly_packet(bundle)
+        self.assertEqual(result["status"], "INDICATIVE_SHEET_READY_FOR_USER_REVIEW")
+        self.assertEqual(len(result["manual_trade_sheet"]["tickets"]), 2)
+        self.assertFalse(result["automatic_execution"])
 
     def test_no_qualifiers_can_sell_to_cash_without_broker(self):
         sheet = manual_trade_sheet(
