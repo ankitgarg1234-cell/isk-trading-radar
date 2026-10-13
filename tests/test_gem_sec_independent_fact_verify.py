@@ -248,3 +248,27 @@ def test_malformed_base64_receipt_fails_closed():
     assert result["receipt_integrity"] == "FAIL"
     assert result["fact_status"] == "UNKNOWN"
     assert result["certified"] is False
+
+
+def test_recent_quarter_filing_not_mislabeled_stale_when_tagged_facts_older():
+    subs, facts = originals()
+    subs["filings"]["recent"]["reportDate"]=["2026-06-30","2025-06-30"]
+    subs["filings"]["recent"]["primaryDocument"]=["c-20260630.htm","c-20250630.htm"]
+    for concept in facts["facts"]["us-gaap"].values():
+        concept["units"]["USD"] = concept["units"]["USD"][1:]
+    result=verify_six_candidates(subs,facts)
+    assert result["fact_status"]=="UNKNOWN"
+    assert result["blockers"]==["fresh_10q_exists_but_standard_facts_unrecognized"]
+    assert result["latest_original_10q"]["accession"]==CUR
+    assert result["latest_original_10q"]["report_period"]=="2026-06-30"
+    assert result["certified"] is False
+
+
+def test_actual_old_original_filing_stays_stale():
+    subs, facts=originals()
+    subs["filings"]["recent"]["reportDate"]=["2025-06-30","2024-06-30"]
+    for concept in facts["facts"]["us-gaap"].values():
+        concept["units"]["USD"]=concept["units"]["USD"][1:]
+    result=verify_six_candidates(subs,facts)
+    assert result["fact_status"]=="UNKNOWN"
+    assert result["blockers"]==["current_quarter_older_than_210_days"]
