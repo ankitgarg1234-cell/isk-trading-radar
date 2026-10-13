@@ -27,7 +27,7 @@ from gem_data.sec_original_collector import SecOriginalCollector, SourceUnavaila
 _ACC = re.compile(r"^[0-9]{10}-[0-9]{2}-[0-9]{6}$")
 _DOC = re.compile(r"^[A-Za-z0-9_.-]{1,128}$")
 PREFIX = "gem-sec-inline-review-"
-REV = "20261013-v4-historical-submissions"
+REV = "20261013-v5-archive-and-bank-tags"
 
 
 class InlineReviewHold(ValueError):
