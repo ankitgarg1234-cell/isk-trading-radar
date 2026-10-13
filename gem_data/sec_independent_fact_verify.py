@@ -268,6 +268,7 @@ def verify_six_candidates(submissions: dict, companyfacts: dict,
         "six_facts": six,
         "blockers": sorted(set(blockers)),
         "certified": False,
+        "latest_original_10q": latest_original_10q,
         "source_quarter_contexts_only": True,
         "original_accession_inline_xbrl_certified": False,
     }
@@ -301,6 +302,7 @@ def verify_receipt_pair(submissions_receipt: dict, companyfacts_receipt: dict,
         "receipt_integrity": result["receipt_integrity"],
         "fact_status": result["fact_status"], "six_facts": result["six_facts"],
         "blockers": result["blockers"],
+        "latest_original_10q": result.get("latest_original_10q"),
     }
     result["evidence_sha256"] = sha256(
         json.dumps(evidence, sort_keys=True, separators=(",", ":")).encode()
