@@ -120,7 +120,7 @@ def fetch_one(client: httpx.Client, source: str) -> tuple[bytes, dict]:
                 response.url.scheme != "https" or response.url.host != "en.wikipedia.org"):
                 raise InvalidEvidence("Wikipedia source host changed")
             if response.status_code != 200:
-                raise InvalidEvidence("source HTTP not OK")
+                raise InvalidEvidence("source HTTP " + str(response.status_code))
             content_type = response.headers.get("content-type", "").lower()
             if media_type not in content_type:
                 raise InvalidEvidence("source media type changed")
@@ -236,8 +236,13 @@ def capture_and_persist(*, observed: datetime | None = None) -> dict:
     observed = observed or datetime.now(timezone.utc)
     result = {}
     membership_raw = None
+    # Wikimedia and SEC expect a genuine operator contact in automated
+    # User-Agent headers. Reuse an operator-configured agent if available;
+    # never invent an email address or claim a source was verified on HTTP 403.
+    agent = (os.getenv("GEM_PUBLIC_USER_AGENT") or os.getenv("SEC_USER_AGENT")
+             or "GEMv1 read-only public source research").strip()
     with httpx.Client(timeout=18.0, follow_redirects=False, headers={
-        "User-Agent": "GEMv1 read-only public source research"
+        "User-Agent": agent
     }) as client:
         for source in TARGETS:
             try:
