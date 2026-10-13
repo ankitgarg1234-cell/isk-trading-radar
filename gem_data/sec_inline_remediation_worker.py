@@ -306,7 +306,8 @@ def review_batch(*, max_ciks=2, collector_factory=SecOriginalCollector):
                 "details":{
                     "scope":f"Original 10-Q Inline XBRL remediation for CIK {cik}",
                     "cik":cik,"as_of":as_of.isoformat(),
-                    "filing_urls":urls,"classification":(
+                    "filing_urls":urls,"historical_archive_provenance":history_receipts,
+                    "classification":(
                         evidence["status"] if evidence else "ORIGINAL_SEC_FILING_RETRIEVAL_HOLD"),
                     "evidence":evidence,"blocker":reason,
                     "annual_10k_source_hold":annual_reason,
