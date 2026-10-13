@@ -96,7 +96,7 @@ async def _sec_inline_original_resolution_loop():
     content never enters service logs.
     """
     from gem_data.sec_inline_remediation_worker import review_batch, InlineReviewHold
-    await asyncio.sleep(195)
+    await asyncio.sleep(45)
     while True:
         delay = 3600
         try:
