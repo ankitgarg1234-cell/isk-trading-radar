@@ -189,7 +189,7 @@ def evidence_records(source: str, observed: datetime, raw: bytes | None,
         }
     probe = {
         "probe_id": f"gem-{source}-probe-{key}-{digest[:16]}",
-        "source_type": source,
+        "source_type": "membership" if source == "membership_wikipedia" else source,
         "state": state,
         "observed_at": observed,
         "diagnostic_hash": digest,
