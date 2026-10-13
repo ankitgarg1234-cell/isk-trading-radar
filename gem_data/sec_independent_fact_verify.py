@@ -7,6 +7,7 @@ A complete candidate set is NOT certified until original accession-specific
 from __future__ import annotations
 
 import base64
+import binascii
 from datetime import date, timedelta
 from hashlib import sha256
 import json
@@ -73,7 +74,7 @@ def decode_original_receipt(receipt: dict, cik: str, kind: str) -> dict:
                 or not inflater.eof or inflater.unused_data):
             raise VerificationHold("SEC zlib stream incomplete or exceeds bound")
         raw += inflater.flush()
-    except (ValueError, zlib.error) as exc:
+    except (ValueError, binascii.Error, zlib.error) as exc:
         raise VerificationHold("SEC original zlib decompression invalid") from exc
     if len(raw) > MAX_ORIGINAL or len(raw) != metadata.get("member_uncompressed_bytes"):
         raise VerificationHold("SEC original uncompressed byte count differs")
