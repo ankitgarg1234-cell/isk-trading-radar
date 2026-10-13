@@ -20,6 +20,7 @@ from io import BytesIO
 
 import httpx
 from pypdf import PdfReader
+from gem_data.wiki_membership import URL as WIKIPEDIA, parse_wikipedia_membership, compare_secondary_membership, MembershipHold
 import psycopg
 
 EXPERIMENT = "gem-v1-forward-2026-10"
@@ -28,7 +29,8 @@ SECONDARY = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/ma
 SPY_DISTRIBUTION_SCHEDULE = "https://www.ssga.com/library-content/products/fund-data/etfs/us/distribution/SPDR_Dividend_Distribution_Schedule.pdf"
 TARGETS = {"calendar": (NYSE, "text/html", 250000),
            "membership": (SECONDARY, "text/plain", 500000),
-           "benchmark": (SPY_DISTRIBUTION_SCHEDULE, "application/pdf", 1000000)}
+           "benchmark": (SPY_DISTRIBUTION_SCHEDULE, "application/pdf", 1000000),
+           "membership_wikipedia": (WIKIPEDIA, "text/html", 3000000)}
 MARKERS = ("Holidays & Trading Hours", "Core Trading Session",
            "Friday, June 19", "Friday, July 3",
            "Friday, November 27, 2026", "Thursday, December 24, 2026")
@@ -83,6 +85,12 @@ def _verify(source: str, raw: bytes) -> dict:
             raise InvalidEvidence("secondary membership identities inconsistent")
         return {"security_lines": len(rows), "unique_issuers": len(set(ciks)),
                 "official_point_in_time_membership": False}
+    if source == "membership_wikipedia":
+        snapshot = parse_wikipedia_membership(raw)
+        return {"security_lines": snapshot["securities"],
+                "unique_issuers": snapshot["unique_ciks"],
+                "cik_normalized": True,
+                "official_point_in_time_membership": False}
     if source == "benchmark":
         if not raw.startswith(b"%PDF-") or b"%%EOF" not in raw[-1024:]:
             raise InvalidEvidence("official SPY distribution schedule is not PDF")
@@ -107,7 +115,10 @@ def fetch_one(client: httpx.Client, source: str) -> tuple[bytes, dict]:
         raise InvalidEvidence("source not allowlisted")
     url, media_type, limit = TARGETS[source]
     try:
-        with client.stream("GET", url, follow_redirects=False) as response:
+        with client.stream("GET", url, follow_redirects=(source == "membership_wikipedia")) as response:
+            if source == "membership_wikipedia" and (
+                response.url.scheme != "https" or response.url.host != "en.wikipedia.org"):
+                raise InvalidEvidence("Wikipedia source host changed")
             if response.status_code != 200:
                 raise InvalidEvidence("source HTTP not OK")
             content_type = response.headers.get("content-type", "").lower()
@@ -151,7 +162,7 @@ def evidence_records(source: str, observed: datetime, raw: bytes | None,
             "Published exchange schedule; emergencies and completed sessions not independently certified"
             if source == "calendar" else
             "Secondary current membership only; authoritative effective dates missing"
-            if source == "membership" else
+            if source in ("membership", "membership_wikipedia") else
             "Provider SPY ex/pay-date schedule only; actual cash amounts, price bars and total returns missing"
         )
         sample = 1
@@ -161,6 +172,7 @@ def evidence_records(source: str, observed: datetime, raw: bytes | None,
             "receipt_id": f"gem-{source}-{key}-{digest[:16]}",
             "provider": ("NYSE_OFFICIAL" if source == "calendar" else
                         "SECONDARY_GITHUB_SP500" if source == "membership" else
+                        "WIKIPEDIA_SP500_CIK_CURRENT" if source == "membership_wikipedia" else
                         "STATE_STREET_OFFICIAL_SPY_SCHEDULE"),
             "observed_at": observed,
             "source_uri": uri,
@@ -235,7 +247,11 @@ def capture_and_persist(*, observed: datetime | None = None) -> dict:
                 receipt, probe = evidence_records(source, observed, raw, metrics)
                 if source == "membership":
                     membership_raw = raw
-            except InvalidEvidence as exc:
+                if source == "membership_wikipedia" and membership_raw is not None:
+                    comparison = compare_secondary_membership(
+                        parse_wikipedia_membership(raw), membership_raw)
+                    metrics["secondary_comparison"] = comparison
+            except (InvalidEvidence, MembershipHold) as exc:
                 receipt, probe = evidence_records(
                     source, observed, None, None, reason=str(exc))
             # Isolated per-source transaction: a bad response never becomes
