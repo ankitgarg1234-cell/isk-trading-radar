@@ -103,8 +103,11 @@ def _submissions(original: dict, as_of: date):
         if not ACCESSION.fullmatch(accession):
             raise VerificationHold("SEC accession format invalid")
         fd, ad = _iso_date(filed), _iso_date(accepted)
-        if ad < fd:
-            raise VerificationHold("SEC acceptance precedes filing")
+        # EDGAR can accept an after-hours filing on one calendar date
+        # and assign its official filing date on the next business day.
+        # Do not falsely reject legitimate SEC accession provenance.
+        if (fd - ad).days > 4:
+            raise VerificationHold("SEC acceptance too far before filing")
         if fd <= as_of and ad <= as_of:
             acc[accession] = {"form": form, "filed": fd, "accepted": ad}
     return acc
