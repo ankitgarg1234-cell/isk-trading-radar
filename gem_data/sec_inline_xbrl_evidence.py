@@ -17,7 +17,7 @@ class InlineEvidenceHold(ValueError):
     pass
 
 
-MAX_HTML_BYTES = 6_000_000
+MAX_HTML_BYTES = 24_000_000
 MAX_CONTEXTS = 7000
 MAX_FACTS = 150000
 _NUMBER = re.compile(r"^[-+]?\d{1,20}(?:\.\d{1,12})?$")
