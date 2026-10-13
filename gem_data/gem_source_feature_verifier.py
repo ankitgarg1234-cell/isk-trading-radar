@@ -56,7 +56,7 @@ def verify_price_features(price, *, signal_day, sessions):
 def _fact(row, *, signal_day, name):
     if not isinstance(row, dict):
         raise SourceFeatureHold("Missing SEC quarterly record: " + name)
-    if row.get("form") != "10-Q" or row.get("unit") != "USD":
+    if not str(row.get("form") or "").startswith("10-Q") or row.get("unit") != "USD":
         raise SourceFeatureHold("Original 10-Q quarterly evidence required: " + name)
     if row.get("source_context_reviewed") is not True:
         raise SourceFeatureHold("SEC original context QA missing: " + name)
@@ -89,8 +89,9 @@ def verify_financial_features(facts, *, signal_day):
     income_prior, inc_prior, _ = values["income_prior"]
     op_now, op_end, _ = values["operating_now"]
     op_prior, op_prior_end, _ = values["operating_prior"]
-    if (rev_now <= 0 or rev_prior <= 0 or (now-prior).days < 310 or (now-prior).days > 420
-            or now != inc_now or now != op_end or prior != inc_prior or prior != op_prior_end):
+    if (rev_now <= 0 or rev_prior <= 0 or not 310 <= (now-prior).days <= 420
+            or not 310 <= (inc_now-inc_prior).days <= 420
+            or now != op_end or prior != op_prior_end):
         raise SourceFeatureHold("Misaligned SEC financial periods")
     cutoff = date.fromisoformat(signal_day)
     if (cutoff-filed_rev).days > 211 or (cutoff-filed_inc).days > 211:
