@@ -52,7 +52,7 @@ def _tag_category(name):
 
 
 def _amount(text, attrs):
-    v = "".join(text.split()).replace(",", "").replace("$", "")
+    v = "".join("".join(text).split()).replace(",", "").replace("$", "")
     parens = v.startswith("(") and v.endswith(")")
     if parens:
         v = v[1:-1]
