@@ -88,9 +88,34 @@ async def _sec_fact_qa_loop():
         await asyncio.sleep(interval)
 
 
+async def _marketstack_backfill_loop():
+    """Bounded 5-symbol hourly read-only EOD collector, opt-in only.
+
+    All billable attempts count against a monthly cap that must be explicitly
+    configured. Never run as part of health checks or HTTP page loading.
+    """
+    from gem_data.gem_marketstack_backfill import collect_batch, MarketstackBackfillHold
+    await asyncio.sleep(120)
+    while True:
+        try:
+            report = await asyncio.to_thread(collect_batch, max_tickers=5)
+            _log.info("GEM Marketstack bounded observation summary: %s", report)
+        except MarketstackBackfillHold:
+            _log.warning("GEM Marketstack collection on HOLD: missing key, cap or restricted roles")
+        except Exception as exc:
+            _log.warning("GEM Marketstack observation failure (%s)", type(exc).__name__)
+        await asyncio.sleep(3600)
+
+
 @asynccontextmanager
 async def _lifespan(app):
+    _log.info("GEM Marketstack configuration: key_present=%s backfill_opt_in=%s monthly_cap_present=%s",
+              bool(os.getenv("MARKETSTACK_API_KEY")),
+              os.getenv("GEM_MARKETSTACK_BACKFILL_ENABLED") == "yes",
+              bool(os.getenv("GEM_MARKETSTACK_MONTHLY_CREDIT_CAP")))
     tasks = []
+    if os.getenv("GEM_MARKETSTACK_BACKFILL_ENABLED") == "yes":
+        tasks.append(asyncio.create_task(_marketstack_backfill_loop()))
     if os.getenv("GEM_PUBLIC_COLLECTION_ENABLED") == "yes":
         tasks.append(asyncio.create_task(_public_source_loop()))
     if os.getenv("GEM_SEC_BULK_ENABLED") == "yes":
