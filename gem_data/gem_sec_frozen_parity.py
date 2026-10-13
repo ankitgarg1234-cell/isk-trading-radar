@@ -255,6 +255,10 @@ def diagnose_receipts(submissions_receipt, companyfacts_receipt, cik, signal_day
                 raise SECParityHold("Frozen/reference quarter precedence disagreement: "+concept)
             if len(actual) < 2:
                 raise SECParityHold("Insufficient current/prior-year quarterly source: "+concept)
+            if concept in ("TotalRevenue", "NetIncome"):
+                latest_filing = _day(actual[-1][2]["filing_date"])
+                if (cutoff - latest_filing).days > 210:
+                    raise SECParityHold("Stale latest quarterly financial filing: "+concept)
             newest = actual[-1][0]
             previous = [x for x in actual[:-1] if 310 <= (newest-x[0]).days <= 420]
             if not previous:
