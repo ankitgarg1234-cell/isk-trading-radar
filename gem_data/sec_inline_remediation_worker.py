@@ -25,7 +25,7 @@ from gem_data.sec_original_collector import SecOriginalCollector, SourceUnavaila
 _ACC = re.compile(r"^[0-9]{10}-[0-9]{2}-[0-9]{6}$")
 _DOC = re.compile(r"^[A-Za-z0-9_.-]{1,128}$")
 PREFIX = "gem-sec-inline-review-"
-REV = "20261013-v1"
+REV = "20261013-v2-24mb"
 
 
 class InlineReviewHold(ValueError):
@@ -204,7 +204,7 @@ def review_batch(*, max_ciks=2, collector_factory=SecOriginalCollector):
             "six_direct_candidates_found":0,"held":[],"certified":0}
     if not batch:
         return report
-    with collector_factory(agent) as client:
+    with collector_factory(agent,max_bytes=24_000_000) as client:
         for cik,key,receipt in batch:
             evidence = None
             urls=[]
