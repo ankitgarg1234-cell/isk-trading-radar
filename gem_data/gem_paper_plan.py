@@ -29,7 +29,7 @@ def propose_rebalance(ranking: dict, portfolio: dict, next_open: dict, *, cost_b
     if ranking.get("state") != "INDEPENDENTLY_CERTIFIED_FOR_PAPER" or ranking.get("paper_execution_authorized") is not True:
         raise PaperHold("Ranking not independently certified for paper")
     picks = ranking.get("selected")
-    if not isinstance(picks, list) or len(picks) > 5 or len(set(picks)) != 5:
+    if not isinstance(picks, list) or len(picks) > 5 or len(set(picks)) != len(picks):
         raise PaperHold("At most five distinct qualified selections required")
     if not isinstance(next_open, dict) or not isinstance(portfolio, dict):
         raise PaperHold("Missing portfolio or next-open prices")
@@ -51,7 +51,7 @@ def propose_rebalance(ranking: dict, portfolio: dict, next_open: dict, *, cost_b
     orders = []
     holdings = dict(positions)
     for name in sorted(names):
-        wanted = math.floor(target / prices[name]) if name in picks else 0
+        wanted = math.floor(target / (prices[name] * (1 + bps / 10000))) if name in picks else 0
         sell = max(0, holdings.get(name, 0) - wanted)
         if sell:
             gross = sell * prices[name]
