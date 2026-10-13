@@ -130,13 +130,20 @@ def test_neon_reader_failure_is_fail_closed_without_dm_database(monkeypatch):
 def test_neon_reader_verifies_both_gem_accounts_without_writes(monkeypatch):
     monkeypatch.setenv("GEM_READONLY_DATABASE_URL", "postgresql://gem-only-reader")
     calls = []
+    protection_commands = []
     class Cursor:
         count = 0
         def __enter__(self): return self
         def __exit__(self, *args): pass
-        def execute(self, sql, params):
+        def execute(self, sql, params=None):
+            statement = sql.strip().upper()
+            if statement.startswith("SET "):
+                assert statement in ("SET TRANSACTION READ ONLY",
+                                     "SET LOCAL STATEMENT_TIMEOUT = 4500")
+                protection_commands.append(statement)
+                return
             calls.append((sql, params))
-            assert sql.strip().upper().startswith("SELECT")
+            assert statement.startswith("SELECT")
             assert "dual_momentum" not in sql
             self.count += 1
         def fetchall(self):
@@ -158,3 +165,5 @@ def test_neon_reader_verifies_both_gem_accounts_without_writes(monkeypatch):
     assert state["gem_db"]["forward_signals"] == 0
     assert state["execution"] == "DISABLED"
     assert len(calls) == 4
+    assert protection_commands == ["SET TRANSACTION READ ONLY",
+                                   "SET LOCAL STATEMENT_TIMEOUT = 4500"]
