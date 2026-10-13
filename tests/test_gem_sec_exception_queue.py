@@ -85,3 +85,24 @@ def test_explicit_review_cutoff_overrides_auto_month_end(monkeypatch):
     monkeypatch.setenv("GEM_SEC_QA_AUTO_ROLL","yes")
     monkeypatch.setenv("GEM_SEC_QA_AS_OF","2026-10-30")
     assert qa_as_of(observed=datetime(2026,11,2,tzinfo=timezone.utc)).isoformat()=="2026-10-30"
+
+
+def test_original_quarter_filing_separate_from_missing_recognized_facts():
+    from gem_data.sec_independent_fact_verify import verify_six_candidates
+    from datetime import date
+    current="0000831001-26-000045"
+    prior="0000831001-25-000045"
+    submissions={"filings":{"recent":{
+       "form":["10-Q","10-Q"],"accessionNumber":[current,prior],
+       "filingDate":["2026-08-06","2025-08-06"],
+       "acceptanceDateTime":["2026-08-06T16:00:00","2025-08-06T16:00:00"],
+       "reportDate":["2026-06-30","2025-06-30"]}}}
+    old={"accn":prior,"form":"10-Q","filed":"2025-08-06",
+         "fp":"Q2","start":"2025-04-01","end":"2025-06-30","val":100}
+    facts={"facts":{"us-gaap":{
+       concept:{"units":{"USD":[old]}}
+       for concept in ("Revenues","OperatingIncomeLoss","NetIncomeLoss")}}}
+    result=verify_six_candidates(submissions,facts,date(2026,10,12))
+    assert result["blockers"]==["fresh_10q_exists_but_standard_facts_unrecognized"]
+    assert result["latest_original_10q"]["accession"]==current
+    assert result["certified"] is False
