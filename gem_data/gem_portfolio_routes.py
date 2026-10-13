@@ -1,0 +1,232 @@
+"""Authenticated GEMv1 main portfolio and data-integrity dashboard.
+
+This page never publishes a ranked stock until approved source evidence exists.
+Holdings imports are review-only drafts; no broker, automatic order or
+unreviewed portfolio account mutations.
+"""
+from __future__ import annotations
+
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi.responses import HTMLResponse, JSONResponse
+
+from gem_data.gem_source_health import IntegrityUnavailable, read_source_integrity
+from gem_data.gem_positions_import import (
+    MAX_BYTES, PositionImportHold, parse_tabular_positions, parse_opted_in_image
+)
+
+router = APIRouter()
+
+
+@router.get("/api/gem-portfolio/integrity")
+def source_integrity():
+    try:
+        return JSONResponse(read_source_integrity(), headers={"Cache-Control": "no-store"})
+    except IntegrityUnavailable:
+        raise HTTPException(503, "Source database not available; coverage is unknown") from None
+
+
+@router.post("/api/gem-portfolio/import")
+async def import_positions(file: UploadFile = File(...), image_consent: str = Form("no")):
+    try:
+        raw = await file.read(MAX_BYTES + 1)
+        name = file.filename or ""
+        if name.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
+            media_type = {"png": "image/png", "jpg": "image/jpeg",
+                          "jpeg": "image/jpeg", "webp": "image/webp"}[name.rsplit(".", 1)[-1].lower()]
+            report = parse_opted_in_image(raw, media_type,
+                                         explicit_consent=(image_consent == "yes"))
+        else:
+            report = parse_tabular_positions(name, raw)
+        return JSONResponse(report, headers={"Cache-Control": "no-store"})
+    except PositionImportHold as exc:
+        raise HTTPException(422, "Position import HOLD: " + str(exc)[:200]) from None
+    finally:
+        await file.close()
+
+
+_HTML = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GEMv1 | Monthly portfolio &amp; source integrity</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color-scheme:dark;background:#0c1320;color:#e8eef8}
+*{box-sizing:border-box} body{margin:0 auto;max-width:1250px;padding:28px 24px 75px;line-height:1.45}
+a{color:#a5ceff} header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+h1{font-size:29px;margin:5px 0 8px;font-weight:720}h2{font-size:19px;margin:0 0 11px}h3{font-size:15px;margin:0}
+p{margin:7px 0;color:#b9c5d5}small,.muted{font-size:12px;color:#9cabc0}
+.nav{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;padding-top:10px}
+.panel{background:#151e2d;border:1px solid #334157;border-radius:13px;padding:20px;margin-top:22px}
+.kpis,.sourcegrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.kpi{background:#1c2839;padding:15px;border-radius:10px}.kpi strong{font-size:25px;display:block;margin:4px 0}
+.tag{font-size:12px;border:1px solid #a07e32;border-radius:20px;padding:5px 10px;color:#f0cf7f;background:#332b1b}
+.status{font-size:11px;border-radius:5px;background:#493620;color:#ffd393;padding:4px 8px}
+.stocklist,.holdings{width:100%;border-collapse:collapse}.stocklist td,.stocklist th,
+.holdings td,.holdings th{border-bottom:1px solid #314057;padding:11px 6px;text-align:left}
+.stocklist td:last-child,.stocklist th:last-child{text-align:right}
+.source{background:#1b2636;border:1px solid #3b4b62;border-radius:11px;padding:16px}
+.sourceheader{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.flow{display:flex;gap:6px;margin:14px 0 10px}
+.step{min-width:0;flex:1;height:8px;border-radius:3px;background:#414c60}
+.step.partial{background:#ca9847}.step.pending{background:#465067}.step.verified{background:#2f9879}
+.flowtext{display:flex;justify-content:space-between;gap:5px;font-size:10px;color:#a8b8c9}
+dl{display:grid;grid-template-columns:auto 1fr;column-gap:12px;row-gap:5px;margin:15px 0 8px;font-size:12px}
+dt{color:#9bb0c6}dd{margin:0;overflow-wrap:anywhere}
+details{font-size:12px;color:#c0ccdb}summary{cursor:pointer;color:#b8d9ff}
+ul{padding-left:19px;margin:9px 0}li{margin:5px 0}
+progress{width:100%;height:15px;accent-color:#3e9e82}
+.secsummary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.secsummary strong{display:block;font-size:24px}
+.controls{display:flex;gap:11px;align-items:center;flex-wrap:wrap;margin:12px 0}
+button,.linkbutton{background:#29567c;color:#edf6ff;border:1px solid #4c779e;border-radius:7px;cursor:pointer;padding:10px 13px;font-size:13px}
+button:disabled{opacity:.5;cursor:not-allowed}input[type=file],input[type=number]{color:#e4edfa}
+input[type=number]{background:#202e42;border:1px solid #53647c;padding:6px;border-radius:5px;width:100px}
+.warn{background:#302716;border-left:3px solid #c99b43;padding:12px;color:#f0d5a2;font-size:13px;margin:13px 0}
+.draft{background:#152e29;border-left:3px solid #529b7d;padding:12px;margin:10px 0;color:#b9ebdc}
+#positions{overflow-x:auto}
+footer{padding-top:22px;color:#8ea1bb;font-size:12px}
+@media(max-width:950px){.sourcegrid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.kpis,.sourcegrid{grid-template-columns:1fr}.secsummary{grid-template-columns:repeat(2,1fr)}body{padding:20px 14px}}
+</style></head>
+<body>
+<header><div><div class="muted">S&amp;P 500 / Frozen growth_margin5</div>
+<h1>GEMv1 · Monthly portfolio</h1>
+<p>Monthly stock selections, manual trade review and independently tracked data quality.</p></div>
+<div class="nav"><a href="/gem-trial">Legacy diagnostics</a><a href="/gem-manual">Developer workbench</a></div></header>
+<div class="warn"><strong>Data HOLD:</strong> No verified five-stock recommendation is currently approved.
+You place every trade manually. This dashboard never sends broker orders.</div>
+<div class="kpis" style="margin-top:18px">
+<div class="kpi"><small>Next evaluation</small><strong>Month end</strong><small>After the official completed NYSE session</small></div>
+<div class="kpi"><small>Target portfolio</small><strong>5 stocks</strong><small>20% target allocation each</small></div>
+<div class="kpi"><small>Approved monthly signals</small><strong id="approved">—</strong><small>Only independently reviewed signals count</small></div>
+</div>
+<section class="panel"><h2>Monthly stock recommendations</h2>
+<p>Recommendations appear only when all potentially competing S&amp;P 500 securities have sufficiently verified inputs.</p>
+<table class="stocklist"><thead><tr><th>Stock</th><th>Data evidence</th><th>Target weight</th></tr></thead><tbody>
+<tr><td>Awaiting verified selection 1</td><td>HOLD</td><td>20%</td></tr>
+<tr><td>Awaiting verified selection 2</td><td>HOLD</td><td>20%</td></tr>
+<tr><td>Awaiting verified selection 3</td><td>HOLD</td><td>20%</td></tr>
+<tr><td>Awaiting verified selection 4</td><td>HOLD</td><td>20%</td></tr>
+<tr><td>Awaiting verified selection 5</td><td>HOLD</td><td>20%</td></tr>
+</tbody></table></section>
+<section class="panel"><div class="sourceheader"><div><h2>Data integrity at a glance</h2>
+<p>Live evidence inventory from the isolated GEM database. Latest collection and audit times are shown separately.</p></div>
+<button id="refresh" type="button">Refresh evidence</button></div>
+<div class="muted" id="generated">Reading source records…</div>
+<div class="sourcegrid" id="sources"></div></section>
+<section class="panel"><h2>SEC fundamentals — per-company verification</h2>
+<p>Source receipts and machine-complete candidates are not equivalent to independently certified investment inputs.</p>
+<div class="secsummary" id="secstats"><div><strong>—</strong><small>Source pairs</small></div></div>
+<div style="margin-top:16px"><progress id="secprogress" max="500" value="0"></progress>
+<div class="muted" id="sectext">Waiting for SEC audit records</div></div>
+<div class="warn">Incomplete/unknown companies do <strong>not</strong> automatically drop out of the investment universe. Their financials must be resolved, or they must be demonstrably unable to displace the top five.</div></section>
+<section class="panel"><h2>Market-data provider coverage</h2>
+<p>Measured as verified 127-session price histories for the full current constituent list — not API requests or isolated sample tickers.</p>
+<div class="secsummary" id="pricestats"><div><strong>—</strong><small>Marketstack</small></div></div>
+<p class="muted" id="priceexplain"></p>
+<p class="muted">Fallback order: Marketstack → independently checked IBKR nominal OHLCV → adjustment reconciliation. Alternate data is not automatically accepted as equivalent to frozen adjusted prices.</p></section>
+<section class="panel"><h2>My holdings · manual management</h2>
+<p>Import a CSV/Excel holdings export, or an image if image recognition has been enabled. Review and edit the draft below. Nothing is saved to your account or broker by importing.</p>
+<div class="controls"><input type="file" id="holdingfile" accept=".csv,.xlsx,.png,.jpg,.jpeg,.webp" aria-label="Select holdings file">
+<button id="parse" type="button">Import &amp; review</button>
+<button id="export" type="button" disabled>Export reviewed draft</button></div>
+<label class="muted"><input type="checkbox" id="consent"> If importing an image, I consent to sending it to OpenAI for position extraction. Do not include account numbers or other personal identifiers.</label>
+<div id="importstate" class="muted" style="margin:11px 0">No positions imported. CSV/XLSX requires Ticker or Symbol and Shares or Quantity columns.</div>
+<div id="positions"></div>
+<p class="muted">Update a quantity or mark a holding closed in this <strong>draft</strong>; this is not a recorded sale. After you trade manually, the confirmed date, quantity, fill price and fees must be entered into the <a href="/gem-manual">manual reconciliation ledger</a>. Persistent brokerage-account synchronization is intentionally disabled.</p></section>
+<footer>GEMv1 isolated service · Research diagnostics and manual portfolio planning only · No brokerage API or automatic execution</footer>
+<script>
+const $=id=>document.getElementById(id);
+let draft=[];
+const fmt=x=>x?new Date(x).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short",timeZone:"UTC"})+" UTC":"Not yet recorded";
+function el(tag,txt,parent,cls){const node=document.createElement(tag);if(txt!=null)node.textContent=txt;if(cls)node.className=cls;parent.appendChild(node);return node}
+function stat(parent,value,label){const div=el("div",null,parent);el("strong",String(value),div);el("small",label,div)}
+async function refresh(){
+ $("generated").textContent="Refreshing evidence…";
+ try{
+ const response=await fetch("/api/gem-portfolio/integrity",{cache:"no-store"});
+ if(!response.ok)throw new Error("Source evidence unavailable; verified coverage cannot be inferred");
+ const data=await response.json();
+ $("generated").textContent="Snapshot: "+fmt(data.generated_at)+" · Read-only source evidence · Investment release: "+data.investment_release;
+ $("approved").textContent=String(data.approved_monthly_signals);
+ const box=$("sources");box.replaceChildren();
+ data.sources.forEach(s=>{
+  const card=el("article",null,box,"source"),head=el("div",null,card,"sourceheader");
+  el("h3",s.title,head);el("span",s.status,head,"status");
+  el("p",s.requirement,card,"muted");
+  const flow=el("div",null,card,"flow"),labels=el("div",null,card,"flowtext");
+  s.stages.forEach(t=>{el("span",null,flow,"step "+t.state.toLowerCase());el("span",t.name,labels)});
+  const dl=el("dl",null,card);
+  [["Last collected",s.last_refreshed],["Last checked",s.last_checked],["Last audited",s.last_audited]].forEach(pair=>{
+   el("dt",pair[0],dl);el("dd",fmt(pair[1]),dl)
+  });
+  const details=el("details",null,card);el("summary","Evidence and gaps",details);
+  const ul=el("ul",null,details);s.evidence.forEach(line=>el("li",line,ul));
+ });
+ const sec=$("secstats");sec.replaceChildren();
+ stat(sec,data.sec.source_pairs,"Company source pairs");
+ stat(sec,data.sec.machine_assessed,"Machine-assessed");
+ stat(sec,data.sec.machine_candidate_complete_not_certified,"Candidate complete (NOT certified)");
+ stat(sec,data.sec.independently_certified,"Independently certified");
+ $("secprogress").max=Math.max(1,data.sec.source_pairs);$("secprogress").value=data.sec.machine_assessed;
+ $("sectext").textContent=data.sec.machine_incomplete_or_unknown+" assessed incomplete/unknown · "
+     +data.sec.not_machine_assessed+" not assessed · "+data.sec.receipt_integrity_pass
+     +" raw source receipts passed independent integrity QA · Last machine audit: "+fmt(data.sec.last_machine_audit);
+ const prices=$("pricestats");prices.replaceChildren();
+ stat(prices,data.prices.marketstack_fully_verified,"Marketstack verified");
+ stat(prices,data.prices.ibkr_fully_verified,"IBKR verified");
+ stat(prices,data.prices.overall_fully_verified,"Overall verified");
+ stat(prices,data.prices.security_lines_target,"Security lines targeted");
+ $("priceexplain").textContent=data.prices.coverage_note+" IBKR diagnostic sample: "+data.prices.ibkr_diagnostic_sample+".";
+ }catch(err){$("generated").textContent=String(err.message);$("approved").textContent="Unknown";$("sources").replaceChildren()}
+}
+function renderPositions(){
+ const root=$("positions");root.replaceChildren();
+ if(!draft.length)return;
+ const table=el("table",null,root,"holdings"),head=el("thead",null,table),hr=el("tr",null,head);
+ ["Ticker","Shares (editable)","Status","Action"].forEach(t=>el("th",t,hr));
+ const body=el("tbody",null,table);
+ draft.forEach((item,i)=>{
+ const tr=el("tr",null,body);el("td",item.ticker,tr);
+ const inputcell=el("td",null,tr),input=el("input",null,inputcell);
+ input.type="number";input.min="0";input.max="1000000000";input.step="any";input.value=item.shares;
+ input.addEventListener("change",()=>{const num=Number(input.value);
+ if(!Number.isFinite(num)||num<0||num>1000000000){input.value=item.shares;return}
+ item.shares=String(num);renderPositions()});
+ el("td",Number(item.shares)===0?"Draft closed":"Draft open",tr);
+ const action=el("td",null,tr),button=el("button",Number(item.shares)===0?"Reopen draft":"Mark closed (draft)",action);
+ button.addEventListener("click",()=>{item.shares=Number(item.shares)===0?"1":"0";renderPositions()});
+ });
+ $("export").disabled=false;
+}
+$("refresh").onclick=refresh;
+$("parse").onclick=async()=>{
+ const f=$("holdingfile").files[0];if(!f){$("importstate").textContent="Choose a file first";return}
+ const image=/\.(png|jpe?g|webp)$/i.test(f.name);
+ if(image&&!$("consent").checked){$("importstate").textContent="Image parsing requires explicit cloud-processing consent. Alternatively upload a CSV/XLSX.";return}
+ $("importstate").textContent="Parsing review-only draft…";
+ const body=new FormData();body.append("file",f);body.append("image_consent",image?"yes":"no");
+ try{
+ const res=await fetch("/api/gem-portfolio/import",{method:"POST",body});
+ const obj=await res.json();
+ if(!res.ok)throw Error(obj.detail||"File import failed");
+ draft=obj.holdings;renderPositions();
+ $("importstate").textContent=obj.positions+" positions imported to a draft. Verify tickers and quantities before use; nothing saved.";
+ }catch(err){$("importstate").textContent=String(err.message)}
+};
+$("export").onclick=()=>{
+ if(!draft.length)return;
+ const obj={schema:"gem-reviewed-holdings-draft-v1",review_required:true,
+             not_a_broker_order:true,server_saved:false,holdings:draft};
+ const a=document.createElement("a"),blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"});
+ const url=URL.createObjectURL(blob);a.href=url;a.download="gem-positions-reviewed-draft.json";a.click();URL.revokeObjectURL(url);
+};
+refresh();
+</script></body></html>"""
+
+
+@router.get("/gem-portfolio", response_class=HTMLResponse)
+def portfolio_dashboard():
+    return HTMLResponse(_HTML, headers={
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; connect-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'",
+    })
