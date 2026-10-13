@@ -36,7 +36,8 @@ def _iso(value):
 
 
 def classify(receipts, probes, sec_stats, *, membership_count=0,
-             ibkr_sample_count=0, approved_signals=0, checked_at=None, verified_price_tickers=None):
+             ibkr_sample_count=0, approved_signals=0, checked_at=None, verified_price_tickers=None,
+             observed_marketstack=0, marketstack_requests=0, wiki_metrics=None):
     """Pure testable projection. Explicitly fail closed on absent evidence."""
     receipt_by_type = {}
     providers = {}
@@ -73,17 +74,20 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
         if provider not in ("MARKETSTACK", "IBKR"):
             others.update(tickers)
     others -= marketstack | ibkr
+    wiki_metrics = wiki_metrics or {}
     sections = []
     for key, title, requirement in SOURCES:
         pr = probe_by_type.get(key, {})
         evidence = []
         if key == "membership":
             evidence = [f"{membership_count} current security lines in secondary snapshot" if membership_count else "No countable membership snapshot",
+                        "Wikipedia/CIK cross-check: " + ("MATCH" if (wiki_metrics.get("secondary_comparison") or {}).get("identity_match") is True else "NOT RECONCILED"),
                         "Primary effective-date verification pending"]
         elif key == "prices":
             evidence = [f"{len(marketstack | ibkr | others)} complete independently reviewed 127-session security histories in stored receipts",
                         f"IBKR limited diagnostic: {ibkr_sample_count} sampled tickers" if ibkr_sample_count else "No IBKR full-universe ingestion established",
-                        "Marketstack provider probe exists; no stored complete-universe ingest"]
+                        f"Marketstack EOD stored for {observed_marketstack} tickers; {marketstack_requests} requests reserved this month",
+                        "Observed prices still require independent adjustment and calendar QA"]
         elif key == "sec":
             evidence = [f"{pairs} company source pairs collected",
                         f"{inspected} machine-assessed; {machine_complete} candidate-complete, {unknown} incomplete/unknown, {unaudited} not assessed",
@@ -116,6 +120,10 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
         "manual_broker_only": True,
         "approved_monthly_signals": int(approved_signals),
         "membership_security_lines": int(membership_count),
+        "wikipedia": {"securities":wiki_metrics.get("security_lines"),
+                      "unique_ciks":wiki_metrics.get("unique_issuers"),
+                      "secondary_comparison":wiki_metrics.get("secondary_comparison"),
+                      "certified":False},
         "prices": {
             "security_lines_target": int(membership_count),
             "marketstack_fully_verified": len(marketstack),
@@ -123,6 +131,8 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
             "other_fully_verified": len(others),
             "overall_fully_verified": len(marketstack | ibkr | others),
             "ibkr_diagnostic_sample": int(ibkr_sample_count),
+            "marketstack_observed_not_certified": int(observed_marketstack),
+            "marketstack_monthly_requests_reserved": int(marketstack_requests),
             "coverage_note": "Counts require persisted per-ticker 127-session calendar coverage, reviewed price-adjustment parity, a source fingerprint, and source QA PASS. Unverified vendor responses and IBKR samples are not counted.",
         },
         "sec": {
@@ -207,6 +217,28 @@ def read_source_integrity():
                 # gem_sec_independent_receipt_audit. Do not broaden database
                 # privileges or turn an unavailable count into a fake zero.
                 receipt_pass = None
+                cur.execute("""
+                    SELECT metadata->'metrics'
+                    FROM gem_source_receipt
+                    WHERE experiment_id=%s AND provider='WIKIPEDIA_SP500_CIK_CURRENT'
+                    ORDER BY collected_at DESC LIMIT 1
+                """, (EXPERIMENT,))
+                wiki_row = cur.fetchone()
+                wiki_metrics = wiki_row[0] if wiki_row and isinstance(wiki_row[0],dict) else {}
+                cur.execute("""
+                    SELECT COUNT(DISTINCT metadata->>'ticker')
+                    FROM gem_source_receipt
+                    WHERE experiment_id=%s AND provider='MARKETSTACK'
+                      AND source_type='prices' AND metadata->>'ticker' IS NOT NULL
+                """, (EXPERIMENT,))
+                observed_marketstack = int(cur.fetchone()[0] or 0)
+                cur.execute("""
+                    SELECT COUNT(*) FROM gem_source_probe
+                    WHERE experiment_id=%s AND source_type='prices'
+                      AND probe_id LIKE %s
+                """, (EXPERIMENT,
+                       'gem-marketstack-request-'+datetime.now(timezone.utc).strftime('%Y%m')+'-%'))
+                marketstack_requests = int(cur.fetchone()[0] or 0)
                 # Price receipts are counted only after independently reviewed
                 # source and adjustment evidence; raw vendor calls do not count.
                 cur.execute("""
@@ -237,6 +269,8 @@ def read_source_integrity():
              "verified_receipts": receipt_pass},
             membership_count=membership_count, ibkr_sample_count=len(samples),
             approved_signals=approved_signals, verified_price_tickers=verified_price_tickers,
+            observed_marketstack=observed_marketstack, marketstack_requests=marketstack_requests,
+            wiki_metrics=wiki_metrics,
         )
         report["data_access"] = "CONNECTED"
         return report
@@ -253,10 +287,13 @@ def unavailable_integrity():
     report["data_access"] = "UNAVAILABLE"
     report["approved_monthly_signals"] = None
     report["membership_security_lines"] = None
+    report["wikipedia"] = {"securities":None,"unique_ciks":None,"secondary_comparison":None,"certified":False}
     for key in ("security_lines_target", "marketstack_fully_verified",
                 "ibkr_fully_verified", "other_fully_verified",
                 "overall_fully_verified", "ibkr_diagnostic_sample"):
         report["prices"][key] = None
+    report["prices"]["marketstack_observed_not_certified"] = None
+    report["prices"]["marketstack_monthly_requests_reserved"] = None
     report["prices"]["coverage_note"] = (
         "Source database unavailable. Provider coverage is UNKNOWN, not zero.")
     for key in ("unique_submissions", "unique_companyfacts", "source_pairs",
