@@ -128,7 +128,8 @@ You place every trade manually. This dashboard never sends broker orders.</div>
 <p>Source receipts and machine-complete candidates are not equivalent to independently certified investment inputs.</p>
 <div class="secsummary" id="secstats"><div><strong>—</strong><small>Source pairs</small></div></div>
 <div style="margin-top:16px"><progress id="secprogress" max="500" value="0"></progress>
-<div class="muted" id="sectext">Waiting for SEC audit records</div></div>
+<div class="muted" id="sectext">Waiting for SEC audit records</div>
+<div id="secreconciled" class="muted" style="margin-top:12px">Checking original-filing reconciliation separately…</div></div>
 <div class="warn">Incomplete/unknown companies do <strong>not</strong> automatically drop out of the investment universe. Their financials must be resolved, or they must be demonstrably unable to displace the top five.</div></section>
 <section class="panel"><div class="sourceheader">
 <div><h2>SEC financial exceptions · original filing review queue</h2>
@@ -194,7 +195,7 @@ async function refresh(){
  const sec=$("secstats");sec.replaceChildren();
  stat(sec,data.sec.source_pairs,"Company source pairs");
  stat(sec,data.sec.machine_assessed,"Machine-assessed");
- stat(sec,data.sec.machine_candidate_complete_not_certified,"Candidate complete (NOT certified)");
+ stat(sec,data.sec.machine_candidate_complete_not_certified,"Standardized six-fact candidates (not certified)");
  stat(sec,data.sec.independently_certified,"Independently certified");
  $("secprogress").max=Math.max(1,data.sec.source_pairs||1);$("secprogress").value=data.sec.machine_assessed||0;
  $("sectext").textContent=data.data_access!=="CONNECTED"
@@ -204,6 +205,34 @@ async function refresh(){
      +(data.sec.receipt_integrity_pass==null?"Receipt-audit details not readable with the restricted dashboard account":data.sec.receipt_integrity_pass+" independent receipt integrity passes")
      +" · Last machine audit: "+fmt(data.sec.last_machine_audit)
      +" · Top blockers: "+Object.entries(data.sec.exception_categories||{}).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,v])=>k+": "+v).join("; ");
+ // A second read-only SEC evidence view distinguishes machine candidates from
+ // original 10-Q candidates. Never silently promote either to certified.
+ try{
+  const reconResponse=await fetch("/api/gem-portfolio/sec-reconciliation",{cache:"no-store"});
+  if(!reconResponse.ok)throw Error("SEC reconciliation unavailable");
+  const recon=await reconResponse.json();
+  if(recon.schema!=="gem-sec-reconciliation-coverage-v1" ||
+     typeof recon.issuers_machine_assessed!=="number" ||
+     recon.issuers_machine_assessed!==data.sec.machine_assessed ||
+     recon.machine_candidate_complete_not_certified!==data.sec.machine_candidate_complete_not_certified)
+     throw Error("Machine audit and original-source reconciliation not synchronized");
+  stat(sec,recon.original_six_fact_candidates_recovered_not_certified,
+       "Extra original 10-Q six-fact candidates (not certified)");
+  stat(sec,recon.combined_machine_or_original_candidates_not_certified,
+       "Combined six-fact candidates (not certified)");
+  stat(sec,recon.still_no_six_fact_set,"Still missing comparable six-fact set");
+  $("secreconciled").textContent=
+     "Original filings classified: "+recon.original_review_reconciled+" / "+recon.machine_unresolved+
+     " exceptions; "+recon.original_review_pending+" awaiting reconciliation. "+
+     "Six-fact source candidate coverage: "+
+     recon.combined_machine_or_original_candidates_not_certified+" / "+recon.issuers_machine_assessed+
+     ". Independently certified: "+data.sec.independently_certified+
+     ". This is NOT a ranking release.";
+ }catch(reconErr){
+  $("secreconciled").textContent=
+     "Original filing reconciliation counts unavailable or out of sync; "+
+     "machine-only counts above are not source certification.";
+ }
  const prices=$("pricestats");prices.replaceChildren();
  stat(prices,data.prices.marketstack_fully_verified,"Marketstack verified");
  stat(prices,data.prices.ibkr_fully_verified,"IBKR verified");
@@ -216,6 +245,7 @@ async function refresh(){
  }catch(err){
   $("generated").textContent="SOURCE STATUS UNAVAILABLE — "+String(err.message)+"; all six categories remain UNKNOWN.";
   $("approved").textContent="Unknown";
+  $("secreconciled").textContent="Original-filing reconciliation status unavailable.";
   const fallback=$("sources");fallback.replaceChildren();
   [["membership","S&P 500 membership"],["prices","Daily prices and liquidity"],
    ["sec","SEC financial statements"],["actions","Corporate actions"],
