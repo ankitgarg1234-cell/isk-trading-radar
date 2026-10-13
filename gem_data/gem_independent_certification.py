@@ -45,7 +45,7 @@ def verify_receipt(receipt: dict) -> dict:
             raise ValueError("original byte count mismatch")
         if provider in SEC_KINDS:
             member = metadata.get("zip_member_name", "")
-            match = re.search(r"CIK(\\d{10})\\.json$", member)
+            match = re.search(r"CIK(\d{10})\.json$", member)
             if not match:
                 raise ValueError("member name invalid")
             payload = json.loads(original)
@@ -66,9 +66,10 @@ def audit_batch(limit: int = 25) -> dict:
     url = os.environ.get("GEM_CERT_READONLY_DATABASE_URL", "")
     if not url.startswith("postgresql://"):
         raise RuntimeError("Dedicated read-only GEM credential required")
-    with psycopg.connect(url, connect_timeout=6, options="-c statement_timeout=15000") as conn:
+    with psycopg.connect(url, connect_timeout=6) as conn:
         with conn.cursor() as cur:
             cur.execute("SET TRANSACTION READ ONLY")
+            cur.execute("SET LOCAL statement_timeout = 15000")
             cur.execute(
                 """SELECT receipt_id, provider, source_sha256, metadata
                    FROM gem_source_receipt
