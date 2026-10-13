@@ -70,3 +70,18 @@ def test_future_qa_cutoff_fails_closed(monkeypatch):
     monkeypatch.setenv("GEM_SEC_QA_AS_OF","tomorrow")
     with pytest.raises(QAHold):
         qa_as_of(observed=datetime(2026,11,2,tzinfo=timezone.utc))
+
+
+def test_opted_in_preliminary_qa_rolls_each_calendar_month(monkeypatch):
+    # Rolling machine QA is not itself confirmation of an NYSE signal day.
+    monkeypatch.delenv("GEM_SEC_QA_AS_OF",raising=False)
+    monkeypatch.setenv("GEM_SEC_QA_AUTO_ROLL","yes")
+    assert qa_as_of(observed=datetime(2026,10,20,tzinfo=timezone.utc)).isoformat()=="2026-10-12"
+    assert qa_as_of(observed=datetime(2026,11,2,tzinfo=timezone.utc)).isoformat()=="2026-10-31"
+    assert qa_as_of(observed=datetime(2026,12,2,tzinfo=timezone.utc)).isoformat()=="2026-11-30"
+
+
+def test_explicit_review_cutoff_overrides_auto_month_end(monkeypatch):
+    monkeypatch.setenv("GEM_SEC_QA_AUTO_ROLL","yes")
+    monkeypatch.setenv("GEM_SEC_QA_AS_OF","2026-10-30")
+    assert qa_as_of(observed=datetime(2026,11,2,tzinfo=timezone.utc)).isoformat()=="2026-10-30"
