@@ -19,6 +19,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from dual_momentum.gem_dashboard import router as gem_readonly_router
+from gem_data.gem_manual_routes import router as gem_manual_router
 
 _log = logging.getLogger(__name__)
 
@@ -165,3 +166,4 @@ def home():
 
 # Router dependencies also protect all future GET routes added to GEM router.
 app.include_router(gem_readonly_router, dependencies=[Depends(require_gem_login)])
+app.include_router(gem_manual_router, dependencies=[Depends(require_gem_login)])
