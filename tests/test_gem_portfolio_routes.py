@@ -65,3 +65,21 @@ def test_duplicate_tickers_not_silently_merged():
 def test_invalid_quantity_rejected():
     with pytest.raises(PositionImportHold):
         parse_tabular_positions("holdings.csv",b"ticker,shares\nAAPL,-5\n")
+
+def test_source_api_six_cards_on_database_failure(monkeypatch):
+    from gem_data import gem_portfolio_routes
+    from gem_data.gem_source_health import IntegrityUnavailable
+    def down():
+        raise IntegrityUnavailable("test unavailable")
+    monkeypatch.setattr(gem_portfolio_routes, "read_source_integrity", down)
+    monkeypatch.setenv("GEM_DASHBOARD_USERNAME","gemowner")
+    monkeypatch.setenv("GEM_DASHBOARD_PASSWORD","manual-pw-longer-than-twenty-characters")
+    with TestClient(app) as client:
+        response = client.get("/api/gem-portfolio/integrity",headers=auth())
+        assert response.status_code == 503
+        payload = response.json()
+        assert payload["data_access"] == "UNAVAILABLE"
+        assert len(payload["sources"]) == 6
+        assert [s["key"] for s in payload["sources"]] == [
+            "membership","prices","sec","actions","calendar","benchmark"]
+        assert all(s["status"] == "UNAVAILABLE" for s in payload["sources"])
