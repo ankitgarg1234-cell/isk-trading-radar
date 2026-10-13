@@ -41,7 +41,7 @@ def select_monthly(snapshot, *, fixture_min_members=None):
     """Return a QA-held ranked report until ALL inputs and reviews are sound.
 
     Candidate feature values MUST be independently source-derived upstream.
-    Retrospective archived selection does NOT add an r63>0 filter.
+    Retrospective archived selection DOES require r63 > 0, as in frozen run_research.py.
     """
     if not isinstance(snapshot, dict) or snapshot.get("schema") != "gem-monthly-features-v1":
         raise MonthlySignalHold("Invalid GEM monthly feature bundle")
@@ -119,7 +119,7 @@ def select_monthly(snapshot, *, fixture_min_members=None):
             blockers.append({"ticker": ticker, "reasons": problem})
         # Original archived engine: G = rev>0.2; E = earnings_improvement;
         # margin_delta_pp>3. Pre-price and ADV20 gates are panel construction.
-        qualifying = (not problem and nominal >= 5 and adv20 >= 10_000_000
+        qualifying = (not problem and r63 > 0 and nominal >= 5 and adv20 >= 10_000_000
                       and rev > .2 and income_now > 0
                       and row["earnings_improvement"] is True and margin > 3)
         scored.append({
@@ -150,7 +150,7 @@ def select_monthly(snapshot, *, fixture_min_members=None):
         "data_status": "REVIEWED_COMPLETE" if not blockers else "HOLD",
         "automatic_execution": False,
         "broker_orders_sent": 0,
-        "frozen_gate_note": "No explicit positive-r63 requirement in archived simulator",
+        "frozen_gate_note": "Frozen simulator requires strictly positive r63 before ranking",
         "qa_scope": "INPUT_REVIEW_FLAGS_NOT_EXTERNAL_CERTIFICATION",
     }
     result["report_sha256"] = _stable_hash(result)
