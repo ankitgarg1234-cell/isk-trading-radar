@@ -85,6 +85,7 @@ def categorize(latest, *, captured_at=None, limit=250, inline_reviews=None):
             "sec_filing_lookup": "https://www.sec.gov/edgar/browse/?CIK=" + cik,
             "original_sec_document_details": "/gem-sec-filing/" + cik,
             "source_as_of": row.get("as_of"),
+            "latest_filing_found_by_machine": row.get("latest_original_10q"),
             "last_machine_audit": row.get("last_audit"),
             "resolved_by_machine": False,
             "source_context_certified": False,
