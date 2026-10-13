@@ -88,7 +88,15 @@ def summarize_original_filings(submissions, cik, *, as_of=date(2026,10,12)):
     }
 
 
-def lookup_filing(cik, *, as_of=date(2026,10,12)):
+def lookup_filing(cik, *, as_of=None):
+    if as_of is None:
+        from gem_data.sec_fact_audit_worker import qa_as_of, QAHold
+        try:
+            as_of=qa_as_of()
+        except QAHold:
+            raise FilingLookupHold("SEC filing cutoff needs review") from None
+    if not isinstance(as_of,date):
+        raise FilingLookupHold("SEC filing cutoff must be an explicit date")
     if not isinstance(cik,str) or not CIK_RE.fullmatch(cik):
         raise FilingLookupHold("CIK must contain exactly 10 digits")
     url=os.getenv("GEM_READONLY_DATABASE_URL","")
