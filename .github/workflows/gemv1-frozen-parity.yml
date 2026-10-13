@@ -18,7 +18,7 @@ jobs:
           python-version: '3.12'
       - name: Compile changed GEM-only Python modules
         run: |
-          python -m compileall -q gem_data/gem_monthly_signal.py gem_data/gem_source_feature_verifier.py gem_data/gem_manual_ops.py gem_data/gem_monthly_packet.py gem_data/gem_sec_frozen_parity.py
+          python -m compileall -q gem_data/gem_monthly_signal.py gem_data/gem_source_feature_verifier.py gem_data/gem_manual_ops.py gem_data/gem_monthly_packet.py gem_data/gem_sec_frozen_parity.py gem_data/gem_edgartools_exception.py scripts/gem_sec_edgartools_fallback_cli.py
       - name: Frozen GEMv1 manual workflow regression
         run: |
           python -m unittest discover -s tests -p 'test_gem_frozen_parity_manual.py' -v
@@ -30,3 +30,12 @@ jobs:
           python -m pip install -r requirements.txt pytest
       - name: Run existing and new GEM-only regression suite
         run: python -m pytest -q tests/test_gem_*.py
+      - name: Smoke-test pinned EdgarTools API (NO SEC network calls)
+        run: |
+          python -m pip install -r requirements-gem-sec-xbrl.txt
+          python - <<'PY'
+          from edgar import get_by_accession_number, set_identity
+          assert callable(get_by_accession_number)
+          assert callable(set_identity)
+          print("EdgarTools accession and SEC identity APIs import successfully")
+          PY
