@@ -180,7 +180,7 @@ class FrozenGemManualParityTests(unittest.TestCase):
                 {"ticker": t, "security_id": "sid-" + t,
                  "prices": {"ticker": t}, "facts": None,
                  "identity_reviewed": True} for t in ("NEG","POS")],
-            "completed_sessions": [f"DAY{i:03d}" for i in range(126)] + ["2026-09-30"],
+            "completed_sessions": sorted((date(2026, 9, 30)-timedelta(days=i)).isoformat() for i in range(127)),
             "signal_session": "2026-09-30", "next_session": "2026-10-01",
             "calendar_verified": True,
             "membership_reviewed": True, "actions_reviewed": True,
