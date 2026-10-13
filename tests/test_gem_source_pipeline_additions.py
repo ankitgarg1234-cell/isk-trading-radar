@@ -129,3 +129,22 @@ def test_marketstack_http_error_does_not_expose_api_key():
             vendor.fetch("AAPL",date(2026,4,1),date(2026,10,12))
         assert "sensitive-test-key" not in str(exc.value)
     client.close()
+
+def test_marketstack_retains_valid_dates_and_reports_missing_close():
+    import httpx
+    from datetime import date
+    from gem_data.marketstack_eod_probe import MarketstackEODProbe
+    def bar(day, close):
+        return {"symbol":"AAPL","date":day,"open":100,"high":105,
+                "low":95,"close":close,"volume":1000,
+                "adj_close":close,"split_factor":1,"dividend":0}
+    rows=[bar("2026-10-08",100),bar("2026-10-09",None),bar("2026-10-12",102)]
+    def handle(request):
+        return httpx.Response(200,json={"pagination":{"total":3,"count":3,"offset":0},"data":rows})
+    client=httpx.Client(transport=httpx.MockTransport(handle))
+    with MarketstackEODProbe(key="test",client=client,max_credits=1) as probe:
+        valid,receipt=probe.fetch("AAPL",date(2026,10,8),date(2026,10,12))
+        assert len(valid)==2
+        assert receipt.rejected_sessions==("2026-10-09",)
+        assert "close" in receipt.rejected_reasons[0][1]
+    client.close()
