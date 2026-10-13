@@ -6,6 +6,8 @@ on:
       - "gem_data/sec_bulk_zip_ingest.py"
       - "gem_data/sec_zip_index.py"
       - "gem_data/sec_independent_fact_verify.py"
+      - "gem_data/sec_fact_audit_worker.py"
+      - "gem_data/gem_standalone.py"
       - "tests/test_gem_sec_bulk_zip_ingest.py"
       - "tests/test_gem_sec_independent_fact_verify.py"
       - ".github/workflows/gem-sec-delta-tests.yml"
