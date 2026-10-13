@@ -131,6 +131,7 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
             "last_checked": _iso(pr.get("last_checked")),
             "last_audited": _iso(sec_stats.get("last_audited")) if key == "sec" else None,
             "stages": milestone["stages"],
+            "progress_tag": milestone["progress_tag"],
             "progress_summary": milestone["progress_summary"],
             "next_step": milestone["next_step"],
             "source_approval": milestone["source_approval"],
@@ -382,6 +383,7 @@ def unavailable_integrity():
     report["sec"]["exception_categories"] = {}
     for source in report["sources"]:
         source["status"] = "UNAVAILABLE"
+        source["progress_tag"] = "STATUS UNKNOWN"
         source["progress_summary"] = "Current evidence unavailable"
         source["next_step"] = "Restore read-only source access; do not infer source certification"
         source["last_refreshed"] = None
