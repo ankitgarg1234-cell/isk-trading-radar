@@ -19,6 +19,13 @@ import hashlib
 
 
 def _env(monkeypatch, cap="1000"):
+    # Freeze authorization-month clock; regression remains valid after Oct 2026.
+    from gem_data import gem_marketstack_backfill as worker
+    class October2026(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2026, 10, 13, 12, tzinfo=timezone.utc)
+    monkeypatch.setattr(worker, "datetime", October2026)
     monkeypatch.setenv("GEM_MARKETSTACK_BACKFILL_ENABLED", "yes")
     monkeypatch.setenv("MARKETSTACK_API_KEY", "unit-test-not-real")
     monkeypatch.setenv("GEM_READONLY_DATABASE_URL",
