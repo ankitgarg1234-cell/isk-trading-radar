@@ -194,7 +194,7 @@ def manual_trade_sheet(signal, ledger, reference_prices, *, bps=20):
         raise ManualLedgerHold("Missing signal or portfolio")
     selected = signal.get("selected")
     if (not isinstance(selected, list) or len(selected) > 5
-            or len(set(selected)) != 5 or any(not isinstance(s, str) or not s for s in selected)):
+            or len(set(selected)) != len(selected) or any(not isinstance(s, str) or not s for s in selected)):
         raise ManualLedgerHold("At most five distinct selected tickers required")
     quality = signal.get("data_status")
     if quality != "REVIEWED_COMPLETE":
