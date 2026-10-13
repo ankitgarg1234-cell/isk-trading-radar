@@ -37,7 +37,8 @@ def _iso(value):
 
 def classify(receipts, probes, sec_stats, *, membership_count=0,
              ibkr_sample_count=0, approved_signals=0, checked_at=None, verified_price_tickers=None,
-             observed_marketstack=0, marketstack_requests=0, wiki_metrics=None):
+             observed_marketstack=0, marketstack_requests=0, wiki_metrics=None,
+             sec_exception_categories=None):
     """Pure testable projection. Explicitly fail closed on absent evidence."""
     receipt_by_type = {}
     providers = {}
@@ -75,6 +76,7 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
             others.update(tickers)
     others -= marketstack | ibkr
     wiki_metrics = wiki_metrics or {}
+    sec_exception_categories = sec_exception_categories or {}
     sections = []
     for key, title, requirement in SOURCES:
         pr = probe_by_type.get(key, {})
@@ -91,7 +93,10 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
         elif key == "sec":
             evidence = [f"{pairs} company source pairs collected",
                         f"{inspected} machine-assessed; {machine_complete} candidate-complete, {unknown} incomplete/unknown, {unaudited} not assessed",
-                        (f"{reviewed_receipts} receipt integrity checks passed" if reviewed_receipts is not None else "Independent receipt-audit count unavailable to read-only dashboard") + f"; {certified} independently certified"]
+                        (f"{reviewed_receipts} receipt integrity checks passed" if reviewed_receipts is not None else "Independent receipt-audit count unavailable to read-only dashboard") + f"; {certified} independently certified",
+                        "Primary SEC exceptions: " + ", ".join(
+                            f"{key}={val}" for key,val in sorted(
+                                sec_exception_categories.items(),key=lambda x:-x[1])[:4])]
         elif key == "actions":
             evidence = ["Limited corporate-action diagnostics; full issuer event ledger pending"]
         elif key == "calendar":
@@ -145,6 +150,7 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
             "not_machine_assessed": unaudited,
             "independently_certified": certified,
             "receipt_integrity_pass": reviewed_receipts,
+            "exception_categories": sec_exception_categories,
             "last_machine_audit": _iso(sec_stats.get("last_audited")),
             "selection_note": "Incomplete/unknown companies must be resolved or proven incapable of displacing the top five; they cannot be silently removed from the universe.",
         },
@@ -239,6 +245,22 @@ def read_source_integrity():
                 """, (EXPERIMENT,
                        'gem-marketstack-request-'+datetime.now(timezone.utc).strftime('%Y%m')+'-%'))
                 marketstack_requests = int(cur.fetchone()[0] or 0)
+                cur.execute("""
+                    WITH latest AS (
+                      SELECT DISTINCT ON (details->>'scope')
+                          details->'blockers' AS blockers
+                      FROM gem_source_probe
+                      WHERE experiment_id=%s AND source_type='sec'
+                        AND details ? 'fact_status'
+                      ORDER BY details->>'scope', observed_at DESC
+                    )
+                    SELECT reason, COUNT(*)
+                    FROM latest,
+                         LATERAL jsonb_array_elements_text(COALESCE(blockers,'[]'::jsonb))
+                            AS item(reason)
+                    GROUP BY reason ORDER BY COUNT(*) DESC LIMIT 20
+                """, (EXPERIMENT,))
+                sec_exception_categories={name:int(n) for name,n in cur.fetchall()}
                 # Price receipts are counted only after independently reviewed
                 # source and adjustment evidence; raw vendor calls do not count.
                 cur.execute("""
@@ -271,6 +293,7 @@ def read_source_integrity():
             approved_signals=approved_signals, verified_price_tickers=verified_price_tickers,
             observed_marketstack=observed_marketstack, marketstack_requests=marketstack_requests,
             wiki_metrics=wiki_metrics,
+            sec_exception_categories=sec_exception_categories,
         )
         report["data_access"] = "CONNECTED"
         return report
@@ -302,6 +325,7 @@ def unavailable_integrity():
                 "independently_certified", "receipt_integrity_pass"):
         report["sec"][key] = None
     report["sec"]["last_machine_audit"] = None
+    report["sec"]["exception_categories"] = {}
     for source in report["sources"]:
         source["status"] = "UNAVAILABLE"
         source["last_refreshed"] = None
