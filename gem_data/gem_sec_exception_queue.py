@@ -176,7 +176,7 @@ def read_sec_exception_queue(*, limit=250):
                         AND probe_id LIKE 'gem-sec-inline-review-%%'
                         AND details->>'cik' IS NOT NULL
                       ORDER BY details->>'cik', observed_at DESC, probe_id DESC
-                    ) SELECT cik,classification,six_candidates,filing_urls,last_reviewed FROM latest
+                    ) SELECT cik,classification,six_candidates,filing_urls,current_fact_types,prior_fact_types,last_reviewed FROM latest
                 """,(EXPERIMENT,))
                 reviews={
                    cik:{"classification":classification,
@@ -184,7 +184,7 @@ def read_sec_exception_queue(*, limit=250):
                         "filing_urls":filing_urls if isinstance(filing_urls,list) else [],
                         "last_reviewed":last_reviewed.astimezone(timezone.utc).isoformat()
                                          if last_reviewed is not None else None}
-                   for cik,classification,six,filing_urls,last_reviewed in cur.fetchall()
+                   for cik,classification,six,filing_urls,current_facts,prior_facts,last_reviewed in cur.fetchall()
                 }
         return categorize(rows, limit=limit, inline_reviews=reviews)
     except (psycopg.Error,ValueError,TypeError) as exc:
