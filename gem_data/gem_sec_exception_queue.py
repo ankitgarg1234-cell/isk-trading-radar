@@ -81,6 +81,7 @@ def categorize(latest, *, captured_at=None, limit=250, inline_reviews=None):
             "blockers": sorted(set(blockers)),
             "actions": [t["action"] for t in tasks],
             "sec_filing_lookup": "https://www.sec.gov/edgar/browse/?CIK=" + cik,
+            "original_sec_document_details": "/gem-sec-filing/" + cik,
             "source_as_of": row.get("as_of"),
             "last_machine_audit": row.get("last_audit"),
             "resolved_by_machine": False,
