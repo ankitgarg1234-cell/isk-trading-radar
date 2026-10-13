@@ -163,7 +163,8 @@ def test_machine_qa_worker_is_append_only_idempotent_and_never_certifies(monkeyp
                 self.rows = [(p,) for p in saved]
             elif "SELECT receipt_id,provider" in query:
                 self.rows = [(rid, raw[rid][0], raw[rid][1]["source_sha256"],
-                              raw[rid][1]["metadata"]) for rid in args[1]]
+                              raw[rid][1]["source_uri"], raw[rid][1]["metadata"])
+                             for rid in args[1]]
             elif "INSERT INTO gem_source_probe" in query:
                 captured.append(args)
                 saved.add(args[0])
