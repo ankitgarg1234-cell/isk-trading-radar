@@ -144,3 +144,10 @@ def home():
 
 # Router dependencies also protect all future GET routes added to GEM router.
 app.include_router(gem_readonly_router, dependencies=[Depends(require_gem_login)])
+
+
+@app.get("/gem-pipeline-health")
+def gem_pipeline_health(_: None = Depends(require_gem_login)):
+    """Authenticated source health, independent of HTTP liveness."""
+    from gem_data.gem_pipeline_health import pipeline_health
+    return pipeline_health()
