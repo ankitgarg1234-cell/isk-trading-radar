@@ -264,7 +264,11 @@ def diagnose_receipts(submissions_receipt, companyfacts_receipt, cik, signal_day
                 "latest_period": newest.isoformat(), "latest_value": actual[-1][1],
                 "prior_period": old[0].isoformat(), "prior_value": old[1],
                 "latest_accession": actual[-1][2]["accession"],
+                "prior_accession": old[2]["accession"],
                 "latest_derivation": actual[-1][2]["derivation"],
+                "prior_derivation": old[2]["derivation"],
+                "latest_operands": actual[-1][2]["operands"],
+                "prior_operands": old[2]["operands"],
                 "reference_matched": True,
             }
         revenue = report["comparisons"]["TotalRevenue"]
@@ -283,6 +287,9 @@ def diagnose_receipts(submissions_receipt, companyfacts_receipt, cik, signal_day
                 ops["latest_value"] / revenue["latest_value"] -
                 ops["prior_value"] / revenue["prior_value"]),
         }
+        report["calculated"]["G_revenue_gate"] = report["calculated"]["revenue_yoy"] > .2
+        report["calculated"]["E_earnings_gate"] = report["calculated"]["earnings_improvement"]
+        report["calculated"]["operating_margin_gate"] = report["calculated"]["margin_delta_pp"] > 3
         report["status"] = "MATCHED_DIAGNOSTIC_NOT_CERTIFIED"
     except (VerificationHold, SECParityHold, KeyError, ValueError, TypeError, OSError) as exc:
         report["blockers"] = [str(exc)[:240]]
