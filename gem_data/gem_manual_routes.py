@@ -15,7 +15,7 @@ from gem_data.gem_manual_cli import calculate
 
 router = APIRouter()
 _MAX_BODY = 8_000_000
-_OPERATIONS = {"signal", "gaps", "tickets", "ledger", "history"}
+_OPERATIONS = {"signal", "verify", "gaps", "tickets", "ledger", "history"}
 
 
 @router.get("/api/gem-manual/mode")
@@ -80,7 +80,7 @@ This page <strong>does not save your data</strong>. Export the report before clo
 <span class="em">Unverified sources remain on HOLD.</span></p>
 <label for="op">Choose the operation</label>
 <select id="op">
-<option value="signal">Monthly complete-universe ranking</option>
+<option value="verify">Full price/SEC recomputation and ranking</option>\n<option value="signal">Precomputed complete-universe ranking (diagnostic)</option>
 <option value="gaps">Vendor price gap reconciliation</option>
 <option value="tickets">Indicative manual trade sheet</option>
 <option value="ledger">Manual fills and broker statement reconciliation</option>
