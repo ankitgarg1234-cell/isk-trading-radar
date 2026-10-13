@@ -84,8 +84,13 @@ def read_only_priority_parity(*, signal_day, limit=25, offset=0, dsn=None):
             with conn.cursor() as cur:
                 cur.execute("SET TRANSACTION READ ONLY")
                 cur.execute("SET LOCAL statement_timeout=30000")
-            for candidate,(cik,pair) in zip(
-                    selected,read_priority_receipts(conn,[x["cik"] for x in selected])):
+            # Multiple share classes can share one SEC issuer CIK; fetch
+            # the original SEC source only once per issuer, not per ticker.
+            requested = list(dict.fromkeys(x["cik"] for x in selected))
+            originals = dict(read_priority_receipts(conn, requested))
+            for candidate in selected:
+                cik = candidate["cik"]
+                pair = originals[cik]
                 if len(pair)!=2:
                     reports.append({
                         "ticker":candidate["ticker"],"cik":cik,
