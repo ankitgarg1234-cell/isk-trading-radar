@@ -238,7 +238,7 @@ def verify_six_candidates(submissions: dict, companyfacts: dict,
                  reverse=True)
     current_key = current[0]
     prior = [k for k in groups if k[3] == current_key[3]
-             and 340 <= (newest-k[2]).days <= 390
+             and 310 <= (newest-k[2]).days <= 420
              and abs(((current_key[2]-current_key[1]) -
                       (k[2]-k[1])).days) <= 10]
     prior.sort(key=lambda k: (abs((newest-k[2]).days-365),
