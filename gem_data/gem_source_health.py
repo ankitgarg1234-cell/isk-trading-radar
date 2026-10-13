@@ -60,7 +60,9 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
     inspected = int(sec_stats.get("inspected", 0))
     machine_complete = int(sec_stats.get("machine_complete", 0))
     certified = int(sec_stats.get("certified", 0))
-    reviewed_receipts = int(sec_stats.get("verified_receipts", 0))
+    reviewed_receipts = sec_stats.get("verified_receipts")
+    if reviewed_receipts is not None:
+        reviewed_receipts = int(reviewed_receipts)
     unknown = max(0, inspected - machine_complete)
     unaudited = max(0, pairs - inspected)
     verified_price_tickers = verified_price_tickers or {}
@@ -85,7 +87,7 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
         elif key == "sec":
             evidence = [f"{pairs} company source pairs collected",
                         f"{inspected} machine-assessed; {machine_complete} candidate-complete, {unknown} incomplete/unknown, {unaudited} not assessed",
-                        f"{reviewed_receipts} receipt integrity checks passed; {certified} independently certified"]
+                        (f"{reviewed_receipts} receipt integrity checks passed" if reviewed_receipts is not None else "Independent receipt-audit count unavailable to read-only dashboard") + f"; {certified} independently certified"]
         elif key == "actions":
             evidence = ["Limited corporate-action diagnostics; full issuer event ledger pending"]
         elif key == "calendar":
@@ -201,11 +203,10 @@ def read_source_integrity():
                     FROM latest WHERE cik IS NOT NULL
                 """, (EXPERIMENT,))
                 assessed, complete, certified, last_audit = cur.fetchone()
-                cur.execute("""
-                    SELECT COUNT(*) FROM gem_sec_independent_receipt_audit
-                    WHERE experiment_id=%s AND integrity_status='PASS'
-                """, (EXPERIMENT,))
-                receipt_pass = int(cur.fetchone()[0] or 0)
+                # The read-only dashboard role intentionally cannot SELECT
+                # gem_sec_independent_receipt_audit. Do not broaden database
+                # privileges or turn an unavailable count into a fake zero.
+                receipt_pass = None
                 # Price receipts are counted only after independently reviewed
                 # source and adjustment evidence; raw vendor calls do not count.
                 cur.execute("""
@@ -229,7 +230,7 @@ def read_source_integrity():
                     WHERE experiment_id=%s AND state IN ('APPROVED','RELEASED')
                 """, (EXPERIMENT,))
                 approved_signals = int(cur.fetchone()[0] or 0)
-        return classify(
+        report = classify(
             receipts, probes,
             {"inspected": assessed, "machine_complete": complete,
              "certified": certified, "last_audited": last_audit,
@@ -237,5 +238,44 @@ def read_source_integrity():
             membership_count=membership_count, ibkr_sample_count=len(samples),
             approved_signals=approved_signals, verified_price_tickers=verified_price_tickers,
         )
+        report["data_access"] = "CONNECTED"
+        return report
     except (psycopg.Error, ValueError, TypeError):
         raise IntegrityUnavailable("GEM isolated read-only source integrity unavailable") from None
+
+def unavailable_integrity():
+    """Render all six data-source cards on database/network failure.
+
+    Never substitute zero for an unknown number or imply a successful audit.
+    """
+    report = classify([], [], {},
+                      checked_at=datetime.now(timezone.utc))
+    report["data_access"] = "UNAVAILABLE"
+    report["approved_monthly_signals"] = None
+    report["membership_security_lines"] = None
+    for key in ("security_lines_target", "marketstack_fully_verified",
+                "ibkr_fully_verified", "other_fully_verified",
+                "overall_fully_verified", "ibkr_diagnostic_sample"):
+        report["prices"][key] = None
+    report["prices"]["coverage_note"] = (
+        "Source database unavailable. Provider coverage is UNKNOWN, not zero.")
+    for key in ("unique_submissions", "unique_companyfacts", "source_pairs",
+                "machine_assessed", "machine_candidate_complete_not_certified",
+                "machine_incomplete_or_unknown", "not_machine_assessed",
+                "independently_certified", "receipt_integrity_pass"):
+        report["sec"][key] = None
+    report["sec"]["last_machine_audit"] = None
+    for source in report["sources"]:
+        source["status"] = "UNAVAILABLE"
+        source["last_refreshed"] = None
+        source["last_checked"] = None
+        source["last_audited"] = None
+        source["stages"] = [
+            {"name": stage["name"], "state": "PENDING"}
+            for stage in source["stages"]
+        ]
+        source["evidence"] = [
+            "Database source unavailable. Coverage and verification cannot be inferred.",
+            "Try Refresh evidence; source collection state is not represented as zero.",
+        ]
+    return report
