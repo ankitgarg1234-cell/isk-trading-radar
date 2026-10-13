@@ -101,7 +101,7 @@ async def _sec_inline_original_resolution_loop():
     while True:
         delay = 3600
         try:
-            report = await asyncio.to_thread(review_batch, max_ciks=3)
+            report = await asyncio.to_thread(review_batch, max_ciks=6)
             _log.warning(
                 "GEM SEC original 10-Q remediation: reviewed=%d originals=%d six_candidates=%d remaining=%d holds=%d",
                 report["attempted"],report["original_documents_fetched"],
