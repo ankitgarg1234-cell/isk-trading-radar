@@ -12,6 +12,8 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
 from gem_data.gem_manual_cli import calculate
+from gem_data.gem_readiness_monitor import audit_readiness
+from dual_momentum.gem_dashboard import gem_status
 
 router = APIRouter()
 _MAX_BODY = 8_000_000
@@ -28,6 +30,11 @@ def manual_mode():
         "functions": sorted(_OPERATIONS),
         "release": "RESEARCH_DIAGNOSTIC_QA_HOLD",
     }
+
+
+@router.get("/api/gem-manual/readiness")
+def manual_readiness():
+    return audit_readiness(gem_status())
 
 
 @router.post("/api/gem-manual/run/{operation}")
@@ -88,7 +95,7 @@ This page <strong>does not save your data</strong>. Export the report before clo
 </select>
 <div class="grid"><section><h2>Input JSON</h2><textarea id="input" spellcheck="false"
 placeholder='Paste a source-reviewed JSON bundle. No example stocks are preselected.'>{}</textarea>
-<button id="run" type="button">Validate and calculate</button></section>
+<button id="run" type="button">Validate and calculate</button>\n<button id="ready" type="button">View live readiness alerts</button></section>
 <section><h2>Result</h2><pre id="output">No calculation made. No trades authorized.</pre>
 <button id="copy" type="button">Copy result</button>
 <button id="save" type="button">Save JSON report</button></section></div>
@@ -109,7 +116,7 @@ document.getElementById("run").onclick=async()=>{
   out.textContent=JSON.stringify(report,null,2);
  }catch(e){out.textContent=String(e)}
 };
-document.getElementById("copy").onclick=()=>navigator.clipboard.writeText(out.textContent);
+document.getElementById("ready").onclick=async()=>{\n const response=await fetch("/api/gem-manual/readiness");\n out.textContent=JSON.stringify(await response.json(),null,2);\n};\ndocument.getElementById("copy").onclick=()=>navigator.clipboard.writeText(out.textContent);
 document.getElementById("save").onclick=()=>{
  const blob=new Blob([out.textContent],{type:"application/json"});
  const url=URL.createObjectURL(blob),a=document.createElement("a");
