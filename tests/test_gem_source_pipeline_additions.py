@@ -118,3 +118,14 @@ def test_marketstack_membership_source_sha_is_checked():
     assert len(_unpack_membership(meta,sha256(data).hexdigest()))==500
     with pytest.raises(MarketstackBackfillHold):
         _unpack_membership(meta,"0"*64)
+
+def test_marketstack_http_error_does_not_expose_api_key():
+    import httpx
+    from datetime import date
+    from gem_data.marketstack_eod_probe import MarketstackEODProbe,MarketstackProbeError
+    client=httpx.Client(transport=httpx.MockTransport(lambda _:httpx.Response(403,json={"error":"denied"})))
+    with MarketstackEODProbe(key="sensitive-test-key",max_credits=1,client=client) as vendor:
+        with pytest.raises(MarketstackProbeError,match="MARKETSTACK_HTTP_403") as exc:
+            vendor.fetch("AAPL",date(2026,4,1),date(2026,10,12))
+        assert "sensitive-test-key" not in str(exc.value)
+    client.close()
