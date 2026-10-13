@@ -127,14 +127,21 @@ class MarketstackEODProbe:
             try:
                 resp = self._client.get(_ENDPOINT, params=params)
                 status = resp.status_code
-                resp.raise_for_status()
+                if status != 200:
+                    raise MarketstackProbeError("MARKETSTACK_HTTP_" + str(status))
                 raw = resp.content
                 payload = resp.json()
             except (httpx.HTTPError, ValueError) as exc:
                 # Do not include the request URL: it contains the access key.
                 raise MarketstackProbeError("Marketstack EOD request or JSON failed") from None
-            if not isinstance(payload, dict) or payload.get("error"):
-                raise MarketstackProbeError("Marketstack returned an API error or invalid envelope")
+            if not isinstance(payload, dict):
+                raise MarketstackProbeError("MARKETSTACK_INVALID_ENVELOPE")
+            if payload.get("error"):
+                detail = payload["error"]
+                code = detail.get("code") if isinstance(detail,dict) else "UNKNOWN"
+                if not isinstance(code,(str,int)) or not re.fullmatch(r"[A-Za-z0-9_]{1,45}",str(code)):
+                    code = "UNKNOWN"
+                raise MarketstackProbeError("MARKETSTACK_API_ERROR_" + str(code))
             data = payload.get("data")
             meta = payload.get("pagination")
             if not isinstance(data, list) or not isinstance(meta, dict):
