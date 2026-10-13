@@ -198,8 +198,8 @@ def _work_items(conn, as_of, limit):
 
 
 def review_batch(*, max_ciks=2, collector_factory=SecOriginalCollector):
-    if type(max_ciks) is not int or not 1<=max_ciks<=3:
-        raise InlineReviewHold("Inline XBRL batch capped at 3 issuers")
+    if type(max_ciks) is not int or not 1<=max_ciks<=6:
+        raise InlineReviewHold("Inline XBRL batch capped at 6 issuers")
     read=os.getenv("GEM_READONLY_DATABASE_URL","")
     write=os.getenv("GEM_INGEST_DATABASE_URL","")
     if (not read.startswith("postgresql://gem_web_readonly:")
