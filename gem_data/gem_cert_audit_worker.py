@@ -67,7 +67,10 @@ def process_pending(limit: int = MAX_BATCH) -> dict:
                     "source_sha256": source_hash, "metadata": metadata,
                 })
                 checks = result["checks"]
-                cik = str(checks.get("cik") or (metadata or {}).get("zip_member_name", "")).replace("CIK", "").replace(".json", "")
+                import re
+                member = (metadata or {}).get("zip_member_name", "")
+                match = re.fullmatch(r"CIK([0-9]{10})[.]json", member)
+                cik = match.group(1) if match else ""
                 if not (len(cik) == 10 and cik.isdigit()):
                     # The DB requires a CIK. Unattributable receipts must stay
                     # pending/blocked rather than be given a fabricated identity.
