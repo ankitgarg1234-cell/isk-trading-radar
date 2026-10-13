@@ -233,11 +233,18 @@ def test_edgar_after_hours_acceptance_before_filing_date_is_valid():
     assert "too far before" in bad["blockers"][0]
 
 
-def test_audit_keys_include_verifier_code_hash():
-    from gem_data.sec_fact_audit_worker import _key, CODE_SHA256
-    key = _key(CIK, {"submissions": ("sub-id", "a"*64),
-                     "companyfacts": ("facts-id", "b"*64)}, date(2026, 10, 12))
-    assert CODE_SHA256[:12] in key
+def test_audit_keys_include_verifier_code_hash(monkeypatch):
+    from gem_data import sec_fact_audit_worker as worker
+    pair = {"submissions": ("sub-id", "a"*64),
+            "companyfacts": ("facts-id", "b"*64)}
+    cutoff = date(2026, 10, 12)
+    key = worker._key(CIK, pair, cutoff)
+    version = sha256((worker.CODE_SHA256 + worker.WORKER_REV).encode()).hexdigest()[:12]
+    assert version in key
+    assert key.startswith("gem-sec-fact-qa-20261012-")
+    monkeypatch.setattr(worker, "CODE_SHA256", "0"*64)
+    assert worker._key(CIK, pair, cutoff) != key
+    assert worker._key(CIK, pair, date(2026, 10, 13)) != key
 
 
 def test_malformed_base64_receipt_fails_closed():
