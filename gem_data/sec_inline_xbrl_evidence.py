@@ -20,8 +20,8 @@ class InlineEvidenceHold(ValueError):
 MAX_HTML_BYTES = 6_000_000
 MAX_CONTEXTS = 7000
 MAX_FACTS = 150000
-_NUMBER = re.compile(r"^[-+]?\\d{1,20}(?:\\.\\d{1,12})?$")
-_DATE = re.compile(r"^\\d{4}-\\d{2}-\\d{2}$")
+_NUMBER = re.compile(r"^[-+]?\d{1,20}(?:\.\d{1,12})?$")
+_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _US_GAAP_REVENUE = frozenset({
     "revenuefromcontractwithcustomerexcludingassessedtax",
     "revenuefromcontractwithcustomerincludingassessedtax",
