@@ -10,6 +10,8 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from gem_data.gem_source_health import IntegrityUnavailable, read_source_integrity, unavailable_integrity
+from gem_data.gem_sec_exception_queue import (read_sec_exception_queue,
+                                              SECExceptionQueueUnavailable)
 from gem_data.gem_positions_import import (
     MAX_BYTES, PositionImportHold, parse_tabular_positions, parse_opted_in_image
 )
@@ -24,6 +26,15 @@ def source_integrity():
     except IntegrityUnavailable:
         return JSONResponse(unavailable_integrity(), status_code=503,
                             headers={"Cache-Control": "no-store"})
+
+
+@router.get("/api/gem-portfolio/sec-exceptions")
+def sec_exception_queue():
+    try:
+        return JSONResponse(read_sec_exception_queue(limit=250),
+                            headers={"Cache-Control":"no-store"})
+    except SECExceptionQueueUnavailable:
+        raise HTTPException(503,"SEC exception details temporarily unavailable") from None
 
 
 @router.post("/api/gem-portfolio/import")
@@ -119,6 +130,13 @@ You place every trade manually. This dashboard never sends broker orders.</div>
 <div style="margin-top:16px"><progress id="secprogress" max="500" value="0"></progress>
 <div class="muted" id="sectext">Waiting for SEC audit records</div></div>
 <div class="warn">Incomplete/unknown companies do <strong>not</strong> automatically drop out of the investment universe. Their financials must be resolved, or they must be demonstrably unable to displace the top five.</div></section>
+<section class="panel"><div class="sourceheader">
+<div><h2>SEC remediation queue · 185 original filing exceptions</h2>
+<p>Company-level reasons and review actions. Nothing here is certified or silently removed from the investment universe.</p></div>
+<button type="button" id="loadsecqueue">Load exception list</button>
+</div><div id="secqueuestate" class="muted">Load to see remaining CIKs and what original SEC evidence is required.</div>
+<div id="secqueue"></div>
+</section>
 <section class="panel"><h2>Market-data provider coverage</h2>
 <p>Measured as verified 127-session price histories for the full current constituent list — not API requests or isolated sample tickers.</p>
 <div class="secsummary" id="pricestats"><div><strong>—</strong><small>Marketstack</small></div></div>
@@ -231,6 +249,33 @@ function renderPositions(){
  });
  $("export").disabled=false;
 }
+$("loadsecqueue").onclick=async()=>{
+ const root=$("secqueue");root.replaceChildren();
+ $("secqueuestate").textContent="Loading exception queue…";
+ try{
+  const response=await fetch("/api/gem-portfolio/sec-exceptions",{cache:"no-store"});
+  if(!response.ok)throw Error("SEC review evidence currently unavailable");
+  const data=await response.json();
+  if(data.schema!=="gem-sec-exception-review-v1")throw Error("Invalid source review response");
+  $("secqueuestate").textContent=data.unresolved+" unresolved / "+data.machine_assessed
+    +" machine-assessed; "+data.candidate_complete_not_certified+" candidate-complete (not certified).";
+  const details=el("details",null,root);
+  const summary=el("summary","Review "+data.review_queue_displayed+" CIK filing exceptions and actions",details);
+  const cat=el("p","Categories: "+Object.entries(data.categories).map(
+    ([name,count])=>name.replaceAll("_"," ").toLowerCase()+" "+count).join(" · "),details,"muted");
+  const table=el("table",null,details,"holdings"),head=el("thead",null,table),hr=el("tr",null,head);
+  ["CIK / SEC filing","Issue","Next original-source review"].forEach(t=>el("th",t,hr));
+  const body=el("tbody",null,table);
+  data.review_queue.forEach(item=>{
+   const row=el("tr",null,body),cell=el("td",null,row);
+   const link=el("a",item.cik,cell);
+   link.href="https://www.sec.gov/edgar/browse/?CIK="+encodeURIComponent(item.cik);
+   link.rel="noopener noreferrer";link.target="_blank";
+   el("td",item.blockers.join("; "),row);
+   el("td",item.actions.join("; ").replaceAll("_"," ").toLowerCase(),row);
+  });
+ }catch(err){$("secqueuestate").textContent=String(err.message)}
+};
 $("refresh").onclick=refresh;
 $("parse").onclick=async()=>{
  const f=$("holdingfile").files[0];if(!f){$("importstate").textContent="Choose a file first";return}
