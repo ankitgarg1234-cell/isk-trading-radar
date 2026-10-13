@@ -9,6 +9,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import os
 import psycopg
+from gem_data.gem_integrity_stages import describe_stages
 
 EXPERIMENT = "gem-v1-forward-2026-10"
 SOURCES = (
@@ -39,7 +40,7 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
              ibkr_sample_count=0, approved_signals=0, checked_at=None, verified_price_tickers=None,
              observed_marketstack=0, marketstack_requests=0, wiki_metrics=None,
              sec_exception_categories=None, marketstack_rejected_bars=0,
-             marketstack_errors=None):
+             marketstack_errors=None, action_scan_count=0):
     """Pure testable projection. Explicitly fail closed on absent evidence."""
     receipt_by_type = {}
     providers = {}
@@ -104,7 +105,9 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
                             f"{key}={val}" for key,val in sorted(
                                 sec_exception_categories.items(),key=lambda x:-x[1])[:4])]
         elif key == "actions":
-            evidence = ["Limited corporate-action diagnostics; full issuer event ledger pending"]
+            evidence = [f"{action_scan_count} SEC issuer submissions screened for 8-K candidates",
+                        "Event candidates do not establish actual splits or distributions",
+                        "Issuer economic terms, ex/pay dates and the final portfolio ledger still require review"]
         elif key == "calendar":
             evidence = ["Official exchange calendar received; completed-session audit pending"]
         else:
