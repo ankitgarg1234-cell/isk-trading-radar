@@ -29,8 +29,8 @@ def propose_rebalance(ranking: dict, portfolio: dict, next_open: dict, *, cost_b
     if ranking.get("state") != "INDEPENDENTLY_CERTIFIED_FOR_PAPER" or ranking.get("paper_execution_authorized") is not True:
         raise PaperHold("Ranking not independently certified for paper")
     picks = ranking.get("selected")
-    if not isinstance(picks, list) or len(picks) != 5 or len(set(picks)) != 5:
-        raise PaperHold("Exactly five distinct qualified selections required")
+    if not isinstance(picks, list) or len(picks) > 5 or len(set(picks)) != 5:
+        raise PaperHold("At most five distinct qualified selections required")
     if not isinstance(next_open, dict) or not isinstance(portfolio, dict):
         raise PaperHold("Missing portfolio or next-open prices")
     positions = portfolio.get("shares")
