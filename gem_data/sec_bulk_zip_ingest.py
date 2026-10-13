@@ -334,6 +334,10 @@ def capture_bulk_batch(*, client: httpx.Client | None = None,
                     "remaining_before": len(pending) + len(seed_pending),
                 }
                 new_count = skipped_count = seeded_count = 0
+                # A weekly full original-byte recheck bounds the lifetime of
+                # CRC32-only delta heuristics. Sunday UTC is reconciliation day.
+                weekly_full_recheck = now.weekday() == 6
+                result["kind"][kind]["weekly_full_recheck"] = weekly_full_recheck
                 spent = 0
                 # One bounded directory pass per archive, cached for all 500
                 # CIKs. No complete ZIP download and no giant in-memory index.
@@ -359,7 +363,7 @@ def capture_bulk_batch(*, client: httpx.Client | None = None,
                         try:
                             fp = archive.member_fingerprint(member_name)
                             sha12 = prior.get((cik, fp))
-                            if sha12:
+                            if sha12 and not weekly_full_recheck:
                                 # CRC32/size is a cheap delta heuristic, not a
                                 # cryptographic claim about this night's bytes.
                                 write_observation(conn, None, _delta_probe(
