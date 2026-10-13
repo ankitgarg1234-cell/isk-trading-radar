@@ -21,6 +21,7 @@ import tempfile
 
 from gem_data.gem_manual_ops import manual_trade_sheet, replay_manual_events, ManualLedgerHold
 from gem_data.gem_monthly_signal import select_monthly, MonthlySignalHold
+from gem_data.gem_source_feature_verifier import recompute_full_month, SourceFeatureHold
 from gem_data.market_data_patch import reconcile_prices, PricePatchHold
 from gem_data.historical_evidence_audit import audit_historical_claims
 
@@ -48,7 +49,7 @@ def atomic_save(path, result):
         tmp.write(raw)
         scratch = tmp.name
     try:
-        os.replace(scratch, target)
+        os.link(scratch, target)  # atomic create-if-absent, never overwrite existing audit
     finally:
         if os.path.exists(scratch):
             os.unlink(scratch)
@@ -57,6 +58,8 @@ def atomic_save(path, result):
 def calculate(command, item):
     if command == "signal":
         return select_monthly(item)
+    if command == "verify":
+        return recompute_full_month(item)
     if command == "gaps":
         return reconcile_prices(item["ticker"], item["sessions"], item["sources"])
     if command == "tickets":
@@ -70,7 +73,7 @@ def calculate(command, item):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="GEMv1 manual-only offline workbench")
-    parser.add_argument("operation", choices=("signal", "gaps", "tickets", "ledger", "history"))
+    parser.add_argument("operation", choices=("signal", "verify", "gaps", "tickets", "ledger", "history"))
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
@@ -78,7 +81,7 @@ def main(argv=None):
         result = calculate(args.operation, load(args.input))
         atomic_save(args.out, result)
     except (OSError, ValueError, KeyError, TypeError, ManualLedgerHold,
-            MonthlySignalHold, PricePatchHold) as exc:
+            MonthlySignalHold, SourceFeatureHold, PricePatchHold) as exc:
         print(json.dumps({"operation": args.operation, "status": "HOLD",
                           "error": str(exc)}), file=sys.stderr)
         return 2
