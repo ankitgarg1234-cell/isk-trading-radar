@@ -3,6 +3,7 @@
 -- Apply with an authorized GEM database migration identity.
 CREATE TABLE IF NOT EXISTS gem_manual_entry (
     entry_id text PRIMARY KEY,
+    event_order bigint GENERATED ALWAYS AS IDENTITY,
     experiment_id text NOT NULL REFERENCES gem_experiment(experiment_id)
         CHECK (experiment_id = 'gem-v1-forward-2026-10'),
     event_kind text NOT NULL CHECK (event_kind IN (
@@ -16,8 +17,10 @@ CREATE TABLE IF NOT EXISTS gem_manual_entry (
     created_at timestamptz NOT NULL DEFAULT now(),
     CHECK (payload->>'source' IS DISTINCT FROM 'BROKER_API')
 );
+CREATE UNIQUE INDEX IF NOT EXISTS gem_manual_entry_event_order_idx
+    ON gem_manual_entry (event_order);
 CREATE INDEX IF NOT EXISTS gem_manual_entry_experiment_order_idx
-    ON gem_manual_entry (experiment_id, trade_date, created_at, entry_id);
+    ON gem_manual_entry (experiment_id, event_order);
 -- Separately append human-imported statements; equality is not proof of
 -- independent statement authenticity, only recorded reconciliation evidence.
 CREATE TABLE IF NOT EXISTS gem_manual_statement (
