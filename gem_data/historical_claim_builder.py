@@ -57,9 +57,9 @@ def build_claims(archived, *, trades=(), signals=(), start="2025-01-01", end="20
     for ticker, obj in market.items():
         if not isinstance(obj, dict):
             continue
-        affected = _held_on(trades, ticker, end)
-        impact = ("HELD_DURING_REPLAY" if affected else
-                  "SIGNAL_SELECTED" if ticker in selected else "OTHER_CONSTITUENT")
+        def impact_on(day):
+            return ("HELD_DURING_REPLAY" if _held_on(trades, ticker, day) else
+                    "SIGNAL_SELECTED" if ticker in selected else "OTHER_CONSTITUENT")
         for entry in obj.get("splits", []):
             day = entry.get("date", "")
             if start <= day <= end:
@@ -68,7 +68,7 @@ def build_claims(archived, *, trades=(), signals=(), start="2025-01-01", end="20
                     "kind": "CORPORATE_ACTION", "ticker": ticker,
                     "effective_date": day, "change": "SPLIT",
                     "ratio": [entry.get("numerator"), entry.get("denominator")],
-                    "impact": impact, "archive_origin": "FROZEN_VENDOR_SPLIT",
+                    "impact": impact_on(day), "archive_origin": "FROZEN_VENDOR_SPLIT",
                     "required_proof": "Issuer split effective date and economic ratio",
                 })
         for entry in obj.get("dividends", []):
@@ -78,7 +78,7 @@ def build_claims(archived, *, trades=(), signals=(), start="2025-01-01", end="20
                     "claim_id": f"action:{day}:DIVIDEND:{ticker}",
                     "kind": "CORPORATE_ACTION", "ticker": ticker,
                     "effective_date": day, "change": "DIVIDEND",
-                    "amount": entry.get("amount"), "impact": impact,
+                    "amount": entry.get("amount"), "impact": impact_on(day),
                     "archive_origin": "VENDOR_DISTRIBUTION_DATE_UNVERIFIED",
                     "required_proof": "Issuer ex-date, record-date, payable-date, cash per share",
                 })
