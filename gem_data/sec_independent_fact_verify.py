@@ -187,6 +187,33 @@ def verify_six_candidates(submissions: dict, companyfacts: dict,
     """
     accessions = _submissions(submissions, as_of)
     groups = _eligible_facts(companyfacts, accessions, as_of)
+    filing_rows = (submissions.get("filings") or {}).get("recent") or {}
+    latest_original_10q = None
+    forms = filing_rows.get("form", [])
+    ids = filing_rows.get("accessionNumber", [])
+    reports = filing_rows.get("reportDate", [])
+    docs = filing_rows.get("primaryDocument", [])
+    if len(forms) == len(ids) == len(reports):
+        for index, (form, accession, raw_end) in enumerate(zip(forms, ids, reports)):
+            if form not in ("10-Q", "10-Q/A") or accession not in accessions:
+                continue
+            try:
+                end = _iso_date(raw_end)
+            except VerificationHold:
+                continue
+            if end > as_of:
+                continue
+            record = {"form": form, "accession": accession,
+                      "filed": accessions[accession]["filed"].isoformat(),
+                      "report_period": end.isoformat(),
+                      "age_days": (as_of-end).days}
+            if index < len(docs) and isinstance(docs[index],str):
+                if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", docs[index]):
+                    record["primary_document"] = docs[index]
+            if (latest_original_10q is None
+                    or (record["report_period"],record["filed"])
+                       > (latest_original_10q["report_period"],latest_original_10q["filed"])):
+                latest_original_10q = record
     blockers, six = [], {}
     if not groups:
         return {"fact_status": "UNKNOWN", "six_facts": {},
