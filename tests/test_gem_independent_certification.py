@@ -16,7 +16,9 @@ def sample(cik="0000320193"):
         "provider": "SEC_ZIP_COMPANYFACTS",
         "source_sha256": digest,
         "metadata": {
-            "zip_member_name": f"CIK{cik}.json",\n            "archive_url": "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip",\n            "archive_content_length": 1410000000,
+            "zip_member_name": f"CIK{cik}.json",
+            "archive_url": "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip",
+            "archive_content_length": 1410000000,
             "source_raw_zlib_base64": base64.b64encode(zlib.compress(raw)).decode(),
             "member_original_sha256": digest,
             "member_uncompressed_bytes": len(raw),
@@ -43,7 +45,17 @@ class ReceiptVerifierTests(unittest.TestCase):
         r["metadata"]["source_raw_zlib_base64"] = "invalid!"
         self.assertEqual(verify_receipt(r)["status"], "FAIL")
 
-    def test_wrong_archive_provenance_fails(self):\n        r = sample()\n        r["metadata"]["archive_url"] = "https://example.com/companyfacts.zip"\n        self.assertEqual(verify_receipt(r)["status"], "FAIL")\n\n    def test_missing_digest_metadata_fails(self):\n        r = sample()\n        del r["metadata"]["member_original_sha256"]\n        self.assertEqual(verify_receipt(r)["status"], "FAIL")\n\n    def test_oversized_encoded_input_fails(self):
+    def test_wrong_archive_provenance_fails(self):
+        r = sample()
+        r["metadata"]["archive_url"] = "https://example.com/companyfacts.zip"
+        self.assertEqual(verify_receipt(r)["status"], "FAIL")
+
+    def test_missing_digest_metadata_fails(self):
+        r = sample()
+        del r["metadata"]["member_original_sha256"]
+        self.assertEqual(verify_receipt(r)["status"], "FAIL")
+
+    def test_oversized_encoded_input_fails(self):
         r = sample()
         r["metadata"]["source_raw_zlib_base64"] = "A" * 18_000_001
         self.assertEqual(verify_receipt(r)["status"], "FAIL")
