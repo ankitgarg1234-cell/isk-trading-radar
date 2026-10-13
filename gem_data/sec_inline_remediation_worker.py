@@ -97,6 +97,7 @@ def summarize_pair(now, previous):
         doc=item["evidence"]
         standard={}
         extensions=[]
+        alternative_financial_facts=[]
         for f in doc["candidates"]:
             try:
                 duration=(end-date.fromisoformat(f["start"])).days
@@ -106,12 +107,15 @@ def summarize_pair(now, previous):
                 continue
             if f["category"].startswith("STANDARD_"):
                 standard.setdefault(f["category"],set()).add(f["amount_usd"])
-            elif f["category"]=="ISSUER_EXTENSION_REVIEW_ONLY":
-                extensions.append(f["concept"])
+            elif f["category"].endswith("_REVIEW_ONLY"):
+                alternative_financial_facts.append({"concept":f["concept"],"value_usd":f["amount_usd"],"source_class":f["category"]})
+                if f["category"]=="ISSUER_EXTENSION_REVIEW_ONLY":
+                    extensions.append(f["concept"])
         rows[label]={
             "period_end":end.isoformat(),
             "standard_unique_values":{tag:sorted(vals) for tag,vals in standard.items()},
             "issuer_extensions_to_review":sorted(set(extensions))[:35],
+            "nonstandard_financial_facts": alternative_financial_facts[:35],
             "ambiguous_standard_concepts":[tag for tag,vals in standard.items() if len(vals)>1],
             "direct_quarter_category_count":sum(len(vals)==1 for vals in standard.values()),
             "missing_standard_categories":[category for category in
