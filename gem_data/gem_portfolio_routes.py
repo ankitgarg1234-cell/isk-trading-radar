@@ -161,7 +161,7 @@ async function refresh(){
   const flow=el("div",null,card,"flow"),labels=el("div",null,card,"flowtext");
   s.stages.forEach(t=>{const bar=el("span",null,flow,"step "+t.state.toLowerCase());bar.title=t.name+": "+t.state;const mark=el("span",t.name,labels);mark.title=t.state;});
   const dl=el("dl",null,card);
-  [["Last collected",s.last_refreshed],["Last checked",s.last_checked],["Last audited",s.last_audited]].forEach(pair=>{
+  [["Last collected",s.last_refreshed],["Last checked",s.last_checked],[s.audit_label||"Last independent audit",s.last_audited]].forEach(pair=>{
    el("dt",pair[0],dl);el("dd",fmt(pair[1]),dl)
   });
   if(s.next_step)el("p","Next: "+s.next_step,card,"muted");
