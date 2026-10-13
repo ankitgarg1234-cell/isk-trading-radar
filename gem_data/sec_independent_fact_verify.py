@@ -216,8 +216,11 @@ def verify_six_candidates(submissions: dict, companyfacts: dict,
                 latest_original_10q = record
     blockers, six = [], {}
     if not groups:
+        fresh = latest_original_10q and latest_original_10q["age_days"] <= 210
         return {"fact_status": "UNKNOWN", "six_facts": {},
-                "blockers": ["no_eligible_original_10q_usd_quarter_contexts"],
+                "blockers": ["fresh_10q_exists_but_standard_facts_unrecognized"]
+                            if fresh else ["no_eligible_original_10q_usd_quarter_contexts"],
+                "latest_original_10q": latest_original_10q,
                 "certified": False}
     newest = max(k[2] for k in groups)
     if (as_of-newest).days > 210:
