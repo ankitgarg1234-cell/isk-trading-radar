@@ -72,9 +72,15 @@ def audit_batch(limit: int = 25) -> dict:
             cur.execute("SET LOCAL statement_timeout = 15000")
             cur.execute(
                 """SELECT receipt_id, provider, source_sha256, metadata
-                   FROM gem_source_receipt
-                   WHERE experiment_id=%s AND provider=ANY(%s)
-                   ORDER BY collected_at, receipt_id LIMIT %s""",
+                   FROM gem_source_receipt r
+                   WHERE r.experiment_id=%s AND r.provider=ANY(%s)
+                     AND NOT EXISTS (
+                       SELECT 1 FROM gem_sec_independent_receipt_audit a
+                       WHERE a.receipt_id=r.receipt_id
+                         AND a.source_sha256=r.source_sha256
+                         AND a.integrity_status IN ('PASS', 'FAIL')
+                     )
+                   ORDER BY r.collected_at, r.receipt_id LIMIT %s""",
                 (EXPERIMENT, list(SEC_KINDS), limit),
             )
             keys = ("receipt_id", "provider", "source_sha256", "metadata")
