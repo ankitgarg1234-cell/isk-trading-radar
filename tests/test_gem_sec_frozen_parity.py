@@ -131,6 +131,27 @@ def test_missing_ytd_operand_stays_on_hold_instead_of_using_older_quarter():
     assert "operand" in result["blockers"][0]
 
 
+
+def test_same_accession_direct_quarter_overrides_unprovable_ytd_presentation():
+    submissions, facts = originals(cumulative=True, omit_q1=True)
+    direct = {
+        "TotalRevenue": (100,125),
+        "NetIncome": (12,30),
+        "OperatingIncome": (28,40),
+    }
+    for concept, tag in TAGS.items():
+        usd = facts["facts"]["us-gaap"][tag]["units"]["USD"]
+        assert len(usd)==2
+        for old, value in zip(list(usd), direct[concept]):
+            obs = dict(old, start=old["start"][:4]+"-04-01", val=value)
+            usd.append(obs)
+    result = diagnose_receipts(receipt("submissions",submissions),
+                              receipt("companyfacts",facts),CIK,END)
+    assert result["status"]=="MATCHED_DIAGNOSTIC_NOT_CERTIFIED"
+    assert result["comparisons"]["TotalRevenue"]["latest_value"]==125
+    assert result["comparisons"]["TotalRevenue"]["latest_derivation"]=="DIRECT_10Q"
+
+
 def test_tampered_original_sec_evidence_is_held():
     submissions, facts = originals()
     a, b = receipt("submissions", submissions), receipt("companyfacts", facts)
