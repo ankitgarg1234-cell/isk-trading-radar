@@ -155,7 +155,7 @@ async function refresh(){
  const box=$("sources");box.replaceChildren();
  data.sources.forEach(s=>{
   const card=el("article",null,box,"source"),head=el("div",null,card,"sourceheader");
-  el("h3",s.title,head);el("span",s.status,head,"status");
+  el("h3",s.title,head);const progress=el("span",s.progress_tag||s.status,head,"muted");progress.title="Overall certification: "+s.status+"; release: "+s.source_approval;
   el("p",s.requirement,card,"muted");
   if(s.progress_summary)el("p",s.progress_summary,card,"milestone");
   const flow=el("div",null,card,"flow"),labels=el("div",null,card,"flowtext");
