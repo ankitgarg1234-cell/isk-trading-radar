@@ -94,6 +94,7 @@ def read_only_priority_parity(*, signal_day, limit=25, offset=0, dsn=None):
                 if len(pair)!=2:
                     reports.append({
                         "ticker":candidate["ticker"],"cik":cik,
+                        "r63_preliminary":candidate["r63_preliminary"],
                         "status":"HOLD",
                         "blockers":["No paired SEC original receipts for prioritized CIK"],
                         "certified":False,"manual_trading_authorized":False})
