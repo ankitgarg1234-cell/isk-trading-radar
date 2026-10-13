@@ -88,12 +88,14 @@ def _universe_and_spend(reader, month, today):
                 raise MarketstackBackfillHold("No validated current membership source")
             tickers = _unpack_membership(source[0], str(source[1]).strip())
             cur.execute("""
-                SELECT count(*)
+                SELECT probe_id
                 FROM gem_source_probe
                 WHERE experiment_id=%s AND source_type='prices'
                   AND probe_id LIKE %s
             """, (EXPERIMENT, _RESERVE_PREFIX + month + "-%"))
-            count = int(cur.fetchone()[0])
+            reservations = [x[0] for x in cur.fetchall()]
+            count = len(reservations)
+            attempted = {key[len(_RESERVE_PREFIX)+16:] for key in reservations}
             cur.execute("""
                 SELECT DISTINCT metadata->>'ticker'
                 FROM gem_source_receipt
@@ -103,7 +105,7 @@ def _universe_and_spend(reader, month, today):
                   AND metadata->>'ticker' IS NOT NULL
             """, (EXPERIMENT, month))
             done = {x[0] for x in cur.fetchall()}
-    return tickers, count, done
+    return tickers, count, done, attempted
 
 
 def _reserve_request(writer, symbol, stamp):
@@ -173,6 +175,21 @@ def _persist_observation(writer, symbol, observed, bars, receipt):
     return len(bars)
 
 
+def _record_failed_observation(writer, symbol, observed, reason):
+    """A provider attempt remains visible even when no usable EOD bars returned."""
+    key = "gem-marketstack-failed-" + observed.strftime("%Y%m%d") + "-" + symbol
+    digest = sha256((key + reason).encode()).hexdigest()
+    probe = {
+        "probe_id":key, "source_type":"prices","state":"BLOCKED",
+        "observed_at":observed,"diagnostic_hash":digest,"sample_count":0,
+        "details":{"provider":"MARKETSTACK","ticker":symbol,
+                   "reason_code":reason,"validation":"NO_USABLE_EOD_OBSERVATION",
+                   "trading_authorized":False},
+    }
+    with psycopg.connect(writer,connect_timeout=6) as conn:
+        write_observation(conn,None,probe)
+
+
 def collect_batch(*, max_tickers=5, observed=None, fetch_fn=None):
     """One explicit batch; no HTTP request is triggered by dashboard views.
 
@@ -188,9 +205,9 @@ def collect_batch(*, max_tickers=5, observed=None, fetch_fn=None):
         raise MarketstackBackfillHold("Timezone-aware observation required")
     observed = observed.astimezone(timezone.utc)
     month = observed.strftime("%Y%m")
-    symbols, used, complete = _universe_and_spend(reader, month, observed.date())
+    symbols, used, complete, attempted = _universe_and_spend(reader, month, observed.date())
     remaining = min(max_tickers, max(0, cap-used))
-    chosen = [sym for sym in symbols if sym not in complete][ :remaining]
+    chosen = [sym for sym in symbols if sym not in complete and sym not in attempted][:remaining]
     report = {"universe_symbols":len(symbols),"monthly_cap":cap,
               "reserved_before":used,"new_reserved":0,
               "observed_symbols":0,"observed_bars":0,
@@ -213,8 +230,13 @@ def collect_batch(*, max_tickers=5, observed=None, fetch_fn=None):
             count = _persist_observation(writer, symbol, observed, rows, receipt)
             report["observed_symbols"] += 1
             report["observed_bars"] += count
-        except (MarketstackProbeError, ValueError, psycopg.Error):
-            report["failed"].append({"ticker":symbol,"status":"DATA_OR_NETWORK_HOLD"})
+        except (MarketstackProbeError, ValueError, psycopg.Error) as exc:
+            reason = str(exc)[:90] if isinstance(exc,MarketstackProbeError) else type(exc).__name__
+            report["failed"].append({"ticker":symbol,"reason_code":reason})
+            try:
+                _record_failed_observation(writer,symbol,observed,reason)
+            except psycopg.Error:
+                report["failure_receipt_write_error"]=True
     report["status"]="OBSERVATIONS_ONLY_NOT_APPROVED"
     return report
 
