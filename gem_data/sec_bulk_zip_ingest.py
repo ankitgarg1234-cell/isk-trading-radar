@@ -103,10 +103,15 @@ class SECByteRangeFile(io.RawIOBase):
         self.calls += 1
         self.last_request = time.monotonic()
         try:
-            with self.client.stream("GET", self.url, headers={
-                "Range": f"bytes={start}-{end}",
-                "Accept-Encoding": "identity",
-            }, follow_redirects=False) as response:
+            headers = {"Range": f"bytes={start}-{end}", "Accept-Encoding": "identity"}
+            # If the nightly archive changes during a batch, If-Range forces
+            # a 200, which we reject before reading the multi-GB response.
+            if self.etag and not self.etag.startswith("W/"):
+                headers["If-Range"] = self.etag
+            elif self.modified:
+                headers["If-Range"] = self.modified
+            with self.client.stream("GET", self.url, headers=headers,
+                                    follow_redirects=False) as response:
                 # Check 206 BEFORE reading response body. A 200 is a possible
                 # multi-gigabyte full archive: never call client.get() here.
                 if response.status_code != 206:
@@ -182,14 +187,95 @@ def parse_selected_member(kind: str, cik: str, raw: bytes) -> dict:
             "six_financial_fact_values_certified": False}
 
 
-def _existing_ids(conn, kind: str, archive_id: str) -> set[str]:
-    # Collector has only receipt_id column SELECT, not full source-payload read.
+def _receipt_refs(conn, kind: str, archive_id: str) -> dict[str, str]:
+    """Current archive's completed original receipts; key-only SELECT role."""
     prefix = f"gem-sec-zip-{kind}-{archive_id}-"
+    pattern = re.compile(re.escape(prefix) + r"([0-9]{10})-([a-f0-9]{12})$")
     with conn.cursor() as cur:
-        cur.execute(
-            "SELECT receipt_id FROM gem_source_receipt WHERE receipt_id LIKE %s",
-            (prefix+"%",))
-        return {row[0] for row in cur.fetchall()}
+        cur.execute("SELECT receipt_id FROM gem_source_receipt WHERE receipt_id LIKE %s",
+                    (prefix + "%",))
+        result = {}
+        for (rid,) in cur.fetchall():
+            match = pattern.fullmatch(rid)
+            if match:
+                result[match.group(1)] = match.group(2)
+        return result
+
+
+def _delta_done(conn, kind: str, archive_id: str) -> set[str]:
+    """Archive-specific metadata-only unchanged observations (no raw receipt)."""
+    prefix = f"gem-sec-delta-{kind}-{archive_id}-"
+    pattern = re.compile(re.escape(prefix) + r"([0-9]{10})-([a-f0-9]{24})$")
+    with conn.cursor() as cur:
+        cur.execute("SELECT probe_id FROM gem_source_probe WHERE probe_id LIKE %s",
+                    (prefix + "%",))
+        return {m.group(1) for (rid,) in cur.fetchall()
+                if (m := pattern.fullmatch(rid))}
+
+
+def _fingerprint_refs(conn, kind: str) -> dict[tuple[str, str], str | None]:
+    """Previously CRC-checked originals, stored as immutable probe IDs.
+
+    Restricted writer can SELECT only probe_id; never raw financial payload.
+    A conflicting fingerprint-to-SHA mapping fails closed (None = download).
+    """
+    prefix = f"gem-sec-fp-{kind}-"
+    pattern = re.compile(re.escape(prefix) +
+                         r"([0-9]{10})-([a-f0-9]{24})-([a-f0-9]{12})$")
+    result: dict[tuple[str, str], str | None] = {}
+    with conn.cursor() as cur:
+        cur.execute("SELECT probe_id FROM gem_source_probe WHERE probe_id LIKE %s",
+                    (prefix + "%",))
+        for (rid,) in cur.fetchall():
+            match = pattern.fullmatch(rid)
+            if match:
+                key, sha12 = (match.group(1), match.group(2)), match.group(3)
+                if key in result and result[key] != sha12:
+                    result[key] = None
+                elif key not in result:
+                    result[key] = sha12
+    return result
+
+
+def _fingerprint_probe(kind: str, cik: str, fingerprint: str, sha12: str,
+                       archive_id: str, observed: datetime) -> dict:
+    # Only after a genuine SHA256-hashed original receipt was inserted (or
+    # after matching an already persisted receipt for this SAME archive).
+    rid = f"gem-sec-fp-{kind}-{cik}-{fingerprint}-{sha12}"
+    return {
+        "probe_id": rid, "source_type": "sec", "state": "PARTIAL",
+        "observed_at": observed,
+        "diagnostic_hash": sha256(rid.encode()).hexdigest(),
+        "sample_count": 0,
+        "details": {
+            "source": ARCHIVES[kind], "scope": f"ZIP member {cik}",
+            "archive_identity": archive_id,
+            "zip_crc_size_fingerprint_not_sha256": fingerprint,
+            "prior_original_sha256_prefix": sha12,
+            "proof": "CRC/size metadata references a previously extracted and hashed original",
+            "certified": False, "trading_authorized": False,
+        },
+    }
+
+
+def _delta_probe(kind: str, cik: str, fingerprint: str, sha12: str,
+                 archive_id: str, observed: datetime) -> dict:
+    rid = f"gem-sec-delta-{kind}-{archive_id}-{cik}-{fingerprint}"
+    return {
+        "probe_id": rid, "source_type": "sec", "state": "PARTIAL",
+        "observed_at": observed,
+        "diagnostic_hash": sha256(f"{rid}|{sha12}".encode()).hexdigest(),
+        "sample_count": 0,
+        "details": {
+            "source": ARCHIVES[kind], "scope": f"ZIP member {cik}",
+            "archive_identity": archive_id,
+            "zip_crc_size_fingerprint_not_sha256": fingerprint,
+            "prior_original_sha256_prefix": sha12,
+            "proof": "Unchanged ZIP CRC32/size/method; original member NOT downloaded this archive",
+            "independent_original_sha256_this_archive": False,
+            "certified": False, "trading_authorized": False,
+        },
+    }
 
 
 def capture_bulk_batch(*, client: httpx.Client | None = None,
@@ -231,28 +317,60 @@ def capture_bulk_batch(*, client: httpx.Client | None = None,
         with psycopg.connect(url, connect_timeout=6) as conn:
             for kind, archive_uri in ARCHIVES.items():
                 stream = SECByteRangeFile(client, archive_uri)
-                # Empty or stale server modification metadata does not count
-                # as cryptographic proof of archive identity.
-                existing = _existing_ids(conn, kind, stream.archive_id)
-                pending = [c for c in ciks if not any(
-                    id_.startswith(f"gem-sec-zip-{kind}-{stream.archive_id}-{c}-")
-                    for id_ in existing)]
+                current = _receipt_refs(conn, kind, stream.archive_id)
+                prior = _fingerprint_refs(conn, kind)
+                delta_done = _delta_done(conn, kind, stream.archive_id)
+                pending = [c for c in ciks if c not in current and c not in delta_done]
+                # One-time migration: register ZIP directory fingerprints for
+                # previously collected originals, without re-downloading them.
+                already_fingerprinted = {c for (c, _fp) in prior}
+                seed_pending = [c for c in ciks
+                                if c in current and c not in already_fingerprinted]
                 result["kind"][kind] = {
                     "archive_size": stream.length,
                     "archive_id": stream.archive_id,
-                    "already_collected": len(ciks) - len(pending),
-                    "remaining_before": len(pending),
+                    "already_collected": len(current),
+                    "already_skipped_unchanged": len(delta_done),
+                    "remaining_before": len(pending) + len(seed_pending),
                 }
-                count, spent = 0, 0
-                # SelectedRemoteZip parses huge central directories incrementally
-                # and caches only matching CIK member offsets, not all SEC filers.
-                archive = SelectedRemoteZip(stream, {
-                    f"CIK{c}.json" for c in pending[:max_ciks]
-                })
-                for cik in pending[:max_ciks]:
+                new_count = skipped_count = seeded_count = 0
+                # A weekly full original-byte recheck bounds the lifetime of
+                # CRC32-only delta heuristics. Sunday UTC is reconciliation day.
+                weekly_full_recheck = now.weekday() == 6
+                result["kind"][kind]["weekly_full_recheck"] = weekly_full_recheck
+                spent = 0
+                # One bounded directory pass per archive, cached for all 500
+                # CIKs. No complete ZIP download and no giant in-memory index.
+                if pending or seed_pending:
+                    archive = SelectedRemoteZip(stream, {
+                        f"CIK{c}.json" for c in ciks
+                    })
+                    for cik in seed_pending[:max_ciks]:
+                        try:
+                            fp = archive.member_fingerprint(f"CIK{cik}.json")
+                            write_observation(conn, None, _fingerprint_probe(
+                                kind, cik, fp, current[cik], stream.archive_id, now))
+                            conn.commit()
+                            prior[(cik, fp)] = current[cik]
+                            seeded_count += 1
+                        except (KeyError, BulkSourceHold, RemoteZipHold):
+                            # Failed seed is not a successful fingerprint; it
+                            # will be retried, not silently marked complete.
+                            result["blocked"] += 1
+                    for cik in pending[:max_ciks]:
                         member_name = f"CIK{cik}.json"
                         result["attempted_ciks"] += 1
                         try:
+                            fp = archive.member_fingerprint(member_name)
+                            sha12 = prior.get((cik, fp))
+                            if sha12 and not weekly_full_recheck:
+                                # CRC32/size is a cheap delta heuristic, not a
+                                # cryptographic claim about this night's bytes.
+                                write_observation(conn, None, _delta_probe(
+                                    kind, cik, fp, sha12, stream.archive_id, now))
+                                conn.commit()
+                                skipped_count += 1
+                                continue
                             raw = archive.read_member(member_name)
                             metrics = parse_selected_member(kind, cik, raw)
                             compressed = zlib.compress(raw, 9)
@@ -260,13 +378,13 @@ def capture_bulk_batch(*, client: httpx.Client | None = None,
                                     or spent + len(compressed) > MAX_BATCH_COMPRESSED):
                                 raise BulkSourceHold("SEC bulk per-member/batch evidence budget reached")
                             spent += len(compressed)
-                            sha = sha256(raw).hexdigest()
-                            rid = f"gem-sec-zip-{kind}-{stream.archive_id}-{cik}-{sha[:12]}"
+                            digest = sha256(raw).hexdigest()
+                            rid = f"gem-sec-zip-{kind}-{stream.archive_id}-{cik}-{digest[:12]}"
                             receipt = {
                                 "receipt_id": rid, "provider": f"SEC_ZIP_{kind.upper()}",
                                 "observed_at": now,
                                 "source_uri": archive_uri + "#" + member_name,
-                                "source_sha256": sha, "coverage_status": "UNKNOWN",
+                                "source_sha256": digest, "coverage_status": "UNKNOWN",
                                 "metadata": {
                                     "zip_member_name": member_name,
                                     "archive_url": archive_uri,
@@ -274,7 +392,8 @@ def capture_bulk_batch(*, client: httpx.Client | None = None,
                                     "archive_http_etag": stream.etag,
                                     "archive_http_last_modified": stream.modified,
                                     "archive_identity_not_full_archive_sha": stream.archive_id,
-                                    "member_original_sha256": sha,
+                                    "zip_crc_size_fingerprint_not_sha256": fp,
+                                    "member_original_sha256": digest,
                                     "member_uncompressed_bytes": len(raw),
                                     "source_raw_zlib_base64": base64.b64encode(compressed).decode("ascii"),
                                     "original_member_metrics": metrics,
@@ -282,28 +401,54 @@ def capture_bulk_batch(*, client: httpx.Client | None = None,
                                     "original_six_fact_values_certified": False,
                                 },
                             }
-                            state = "PARTIAL"
-                            count += 1
-                        except (KeyError, BulkSourceHold, RemoteZipHold, zipfile.BadZipFile, OSError) as exc:
-                            receipt, state = None, "BLOCKED"
-                            sha = sha256((kind+cik+type(exc).__name__).encode()).hexdigest()
+                            probe = {
+                                "probe_id": f"gem-sec-bulk-{kind}-{stream.archive_id}-{cik}-{digest[:12]}",
+                                "source_type": "sec", "state": "PARTIAL",
+                                "observed_at": now, "diagnostic_hash": digest,
+                                "sample_count": 1,
+                                "details": {
+                                    "source": archive_uri, "scope": f"{kind} member {cik}",
+                                    "certified": False, "trading_authorized": False,
+                                    "original_full_xbrl_verified": False,
+                                    "proof": "Original SEC ZIP member captured; independent filing QA outstanding",
+                                },
+                            }
+                            # Original and metadata fingerprint are persisted in
+                            # one transaction; never create a fingerprint for
+                            # an unpersisted raw original.
+                            write_observation(conn, receipt, probe)
+                            write_observation(conn, None, _fingerprint_probe(
+                                kind, cik, fp, digest[:12], stream.archive_id, now))
+                            conn.commit()
+                            new_count += 1
+                        except (KeyError, BulkSourceHold, RemoteZipHold,
+                                zipfile.BadZipFile, OSError) as exc:
                             result["blocked"] += 1
-                        probe = {
-                            "probe_id": f"gem-sec-bulk-{kind}-{stream.archive_id}-{cik}-{sha[:12]}",
-                            "source_type": "sec", "state": state,
-                            "observed_at": now, "diagnostic_hash": sha,
-                            "sample_count": int(receipt is not None),
-                            "details": {"source": archive_uri, "scope": f"{kind} member {cik}",
-                                        "certified": False, "trading_authorized": False,
-                                        "original_full_xbrl_verified": False,
-                                        "proof": "Bulk original member captured; original accession XBRL independent QA outstanding"},
-                        }
-                        write_observation(conn, receipt, probe)
-                        conn.commit()
-                result["new_members"] += count
-                result["kind"][kind]["new_members"] = count
-                result["kind"][kind]["remaining_after_estimate"] = len(pending)-count
-                result["kind"][kind]["range_http_calls"] = stream.calls
+                            fail_sha = sha256((kind+cik+type(exc).__name__).encode()).hexdigest()
+                            blocked_probe = {
+                                "probe_id": f"gem-sec-bulk-{kind}-{stream.archive_id}-{cik}-{fail_sha[:12]}",
+                                "source_type": "sec", "state": "BLOCKED",
+                                "observed_at": now, "diagnostic_hash": fail_sha,
+                                "sample_count": 0,
+                                "details": {
+                                    "source": archive_uri, "scope": f"{kind} member {cik}",
+                                    "certified": False, "trading_authorized": False,
+                                    "proof": "Original SEC ZIP member or delta metadata failed closed",
+                                },
+                            }
+                            write_observation(conn, None, blocked_probe)
+                            conn.commit()
+                result["new_members"] += new_count
+                result["kind"][kind].update({
+                    "new_members": new_count,
+                    "unchanged_skipped": skipped_count,
+                    "fingerprints_seeded": seeded_count,
+                    "remaining_after_estimate": (
+                        len(pending) - new_count - skipped_count
+                        + len(seed_pending) - seeded_count
+                    ),
+                    "range_http_calls": stream.calls,
+                })
         return result
     finally:
         if not supplied_client:

@@ -7,11 +7,14 @@ from __future__ import annotations
 
 import struct
 import zlib
+from hashlib import sha256
 
 MAX_DIRECTORY = 150_000_000
 MAX_MEMBERS = 2_000_000
 MAX_MEMBER = 12_000_000
 _MEMBER_CACHE = {}
+MAX_CACHE_ARCHIVES = 3
+MAX_SELECTED_CIKS = 550
 
 
 class RemoteZipHold(ValueError):
@@ -22,7 +25,7 @@ class SelectedRemoteZip:
     def __init__(self, source, desired):
         self.source = source
         desired = set(desired)
-        if len(desired) > 100:
+        if len(desired) > MAX_SELECTED_CIKS:
             raise RemoteZipHold("Too many requested ZIP members")
         key = source.archive_id
         existing = _MEMBER_CACHE.get(key)
@@ -85,7 +88,31 @@ class SelectedRemoteZip:
             source.seek(p)
             if len(self.members) == len(desired):
                 break
+        # Cache only a few archive indexes: ~500 tiny offset records each.
+        # An archive rotation must not accumulate indexes indefinitely.
+        if key not in _MEMBER_CACHE and len(_MEMBER_CACHE) >= MAX_CACHE_ARCHIVES:
+            _MEMBER_CACHE.pop(next(iter(_MEMBER_CACHE)))
         _MEMBER_CACHE[key] = {"searched": desired, "members": self.members.copy()}
+
+    def member_fingerprint(self, name: str) -> str:
+        """Metadata-only change detector, NOT a cryptographic content hash.
+
+        The SEC ZIP directory's CRC32/size/method can cheaply detect likely
+        unchanged member contents. A matching fingerprint authorizes skipping
+        an unchanged download only if a previously extracted, SHA256-hashed
+        original member was recorded. It never certifies financial facts.
+        """
+        m = self.members.get(name)
+        if m is None:
+            raise KeyError("SEC ZIP selected member not found")
+        if (m["flags"] & 1 or m["method"] not in (0, 8)
+                or m["size"] <= 0 or m["size"] > MAX_MEMBER
+                or m["compressed"] > MAX_MEMBER
+                or m["offset"] == 0xffffffff):
+            raise RemoteZipHold("SEC ZIP member metadata unsafe for delta")
+        parts = (m["crc"], m["size"], m["compressed"], m["method"], m["flags"])
+        return sha256(("zip-member-fingerprint-v1|" +
+                       "|".join(str(p) for p in parts)).encode()).hexdigest()[:24]
 
     def read_member(self, name):
         m = self.members.get(name)
