@@ -42,6 +42,10 @@ def _tag_category(name):
             return "STANDARD_OPERATING_INCOME"
         if concept in _GAAP_NET:
             return "STANDARD_PARENT_NET_INCOME"
+        if "revenue" in concept and "interestexpense" in concept:
+            return "BANK_REVENUE_REVIEW_ONLY"
+        if "beforeincometaxes" in concept or "incomecontinuingoperationsbeforetax" in concept:
+            return "PRETAX_INCOME_NOT_OPERATING_INCOME_REVIEW_ONLY"
         return None
     # Custom taxonomy names are *review leads*, not equivalent metrics.
     if taxonomy not in ("us-gaap", "dei", "country", "iso4217"):
