@@ -216,19 +216,9 @@ def read_source_integrity():
                       AND metadata->>'adjustment_parity_reviewed'='true'
                       AND metadata->>'last_completed_session'=metadata->>'signal_session'
                       AND LENGTH(COALESCE(metadata->>'source_raw_sha256',''))=64
-                      AND (metadata->>'completed_sessions') ~ '^[0-9]+
-        return classify(
-            receipts, probes,
-            {"inspected": assessed, "machine_complete": complete,
-             "certified": certified, "last_audited": last_audit,
-             "verified_receipts": receipt_pass},
-            membership_count=membership_count, ibkr_sample_count=len(samples),
-            approved_signals=approved_signals, verified_price_tickers=verified_price_tickers,
-        )
-    except (psycopg.Error, ValueError, TypeError):
-        raise IntegrityUnavailable("GEM isolated read-only source integrity unavailable") from None
-
-                      AND (metadata->>'completed_sessions')::integer >= 127
+                      AND CASE WHEN (metadata->>'completed_sessions') ~ '^[0-9]{1,5}$'
+                            THEN (metadata->>'completed_sessions')::integer >= 127
+                            ELSE FALSE END
                 """, (EXPERIMENT,))
                 verified_price_tickers = {}
                 for provider, ticker in cur.fetchall():
@@ -245,7 +235,7 @@ def read_source_integrity():
              "certified": certified, "last_audited": last_audit,
              "verified_receipts": receipt_pass},
             membership_count=membership_count, ibkr_sample_count=len(samples),
-            approved_signals=approved_signals,
+            approved_signals=approved_signals, verified_price_tickers=verified_price_tickers,
         )
     except (psycopg.Error, ValueError, TypeError):
         raise IntegrityUnavailable("GEM isolated read-only source integrity unavailable") from None
