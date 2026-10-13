@@ -215,3 +215,26 @@ def test_source_uri_provenance_fails_closed():
     result = verify_receipt_pair(a, b, CIK)
     assert result["receipt_integrity"] == "FAIL"
     assert "source URI" in result["blockers"][0]
+
+
+
+def test_edgar_after_hours_acceptance_before_filing_date_is_valid():
+    subs, facts = originals()
+    subs["filings"]["recent"]["acceptanceDateTime"][0] = "2026-07-31T21:30:00"
+    result = verify_receipt_pair(receipt("submissions", subs),
+                                 receipt("companyfacts", facts), CIK)
+    assert result["receipt_integrity"] == "PASS"
+    assert result["fact_status"] == "CANDIDATE_COMPLETE_NOT_CERTIFIED"
+    subs["filings"]["recent"]["acceptanceDateTime"][0] = "2026-07-20T21:30:00"
+    bad = verify_receipt_pair(receipt("submissions", subs),
+                              receipt("companyfacts", facts), CIK)
+    assert bad["receipt_integrity"] == "PASS"
+    assert bad["fact_status"] == "UNKNOWN"
+    assert "too far before" in bad["blockers"][0]
+
+
+def test_audit_keys_include_verifier_code_hash():
+    from gem_data.sec_fact_audit_worker import _key, CODE_SHA256
+    key = _key(CIK, {"submissions": ("sub-id", "a"*64),
+                     "companyfacts": ("facts-id", "b"*64)})
+    assert CODE_SHA256[:12] in key
