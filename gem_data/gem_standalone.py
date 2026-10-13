@@ -109,7 +109,7 @@ async def _sec_inline_original_resolution_loop():
                 report.get("remaining_after_estimate",0),len(report["held"]),
             )
             if report.get("remaining_after_estimate"):
-                delay = 60 if not report["held"] else 600
+                delay = 25 if not report["held"] else 90
         except InlineReviewHold as exc:
             _log.warning("GEM SEC original Inline XBRL remediation HOLD: %s", str(exc)[:140])
         except Exception as exc:
