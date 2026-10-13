@@ -9,7 +9,7 @@ from __future__ import annotations
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from gem_data.gem_source_health import IntegrityUnavailable, read_source_integrity
+from gem_data.gem_source_health import IntegrityUnavailable, read_source_integrity, unavailable_integrity
 from gem_data.gem_positions_import import (
     MAX_BYTES, PositionImportHold, parse_tabular_positions, parse_opted_in_image
 )
@@ -22,7 +22,8 @@ def source_integrity():
     try:
         return JSONResponse(read_source_integrity(), headers={"Cache-Control": "no-store"})
     except IntegrityUnavailable:
-        raise HTTPException(503, "Source database not available; coverage is unknown") from None
+        return JSONResponse(unavailable_integrity(), status_code=503,
+                            headers={"Cache-Control": "no-store"})
 
 
 @router.post("/api/gem-portfolio/import")
@@ -138,15 +139,19 @@ const $=id=>document.getElementById(id);
 let draft=[];
 const fmt=x=>x?new Date(x).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short",timeZone:"UTC"})+" UTC":"Not yet recorded";
 function el(tag,txt,parent,cls){const node=document.createElement(tag);if(txt!=null)node.textContent=txt;if(cls)node.className=cls;parent.appendChild(node);return node}
-function stat(parent,value,label){const div=el("div",null,parent);el("strong",String(value),div);el("small",label,div)}
+function stat(parent,value,label){const div=el("div",null,parent);el("strong",value==null?"Unknown":String(value),div);el("small",label,div)}
 async function refresh(){
  $("generated").textContent="Refreshing evidence…";
  try{
  const response=await fetch("/api/gem-portfolio/integrity",{cache:"no-store"});
- if(!response.ok)throw new Error("Source evidence unavailable; verified coverage cannot be inferred");
  const data=await response.json();
- $("generated").textContent="Snapshot: "+fmt(data.generated_at)+" · Read-only source evidence · Investment release: "+data.investment_release;
- $("approved").textContent=String(data.approved_monthly_signals);
+ if(!data || !Array.isArray(data.sources) || data.sources.length!==6)
+   throw new Error("Six-source integrity response missing");
+ const accessible=response.ok&&data.data_access==="CONNECTED";
+ $("generated").textContent=accessible
+   ?"Snapshot: "+fmt(data.generated_at)+" · Read-only source evidence · Investment release: "+data.investment_release
+   :"SOURCE DATA UNAVAILABLE — all six sources shown as UNKNOWN; please retry. No trade approval inferred.";
+ $("approved").textContent=data.approved_monthly_signals==null?"Unknown":String(data.approved_monthly_signals);
  const box=$("sources");box.replaceChildren();
  data.sources.forEach(s=>{
   const card=el("article",null,box,"source"),head=el("div",null,card,"sourceheader");
@@ -166,17 +171,34 @@ async function refresh(){
  stat(sec,data.sec.machine_assessed,"Machine-assessed");
  stat(sec,data.sec.machine_candidate_complete_not_certified,"Candidate complete (NOT certified)");
  stat(sec,data.sec.independently_certified,"Independently certified");
- $("secprogress").max=Math.max(1,data.sec.source_pairs);$("secprogress").value=data.sec.machine_assessed;
- $("sectext").textContent=data.sec.machine_incomplete_or_unknown+" assessed incomplete/unknown · "
-     +data.sec.not_machine_assessed+" not assessed · "+data.sec.receipt_integrity_pass
-     +" raw source receipts passed independent integrity QA · Last machine audit: "+fmt(data.sec.last_machine_audit);
+ $("secprogress").max=Math.max(1,data.sec.source_pairs||1);$("secprogress").value=data.sec.machine_assessed||0;
+ $("sectext").textContent=data.data_access!=="CONNECTED"
+     ?"SEC coverage UNKNOWN until source database connection is restored"
+     :data.sec.machine_incomplete_or_unknown+" assessed incomplete/unknown · "
+     +data.sec.not_machine_assessed+" not assessed · "
+     +(data.sec.receipt_integrity_pass==null?"Receipt-audit details not readable with the restricted dashboard account":data.sec.receipt_integrity_pass+" independent receipt integrity passes")
+     +" · Last machine audit: "+fmt(data.sec.last_machine_audit);
  const prices=$("pricestats");prices.replaceChildren();
  stat(prices,data.prices.marketstack_fully_verified,"Marketstack verified");
  stat(prices,data.prices.ibkr_fully_verified,"IBKR verified");
  stat(prices,data.prices.overall_fully_verified,"Overall verified");
  stat(prices,data.prices.security_lines_target,"Security lines targeted");
- $("priceexplain").textContent=data.prices.coverage_note+" IBKR diagnostic sample: "+data.prices.ibkr_diagnostic_sample+".";
- }catch(err){$("generated").textContent=String(err.message);$("approved").textContent="Unknown";$("sources").replaceChildren()}
+ $("priceexplain").textContent=data.prices.coverage_note+(data.prices.ibkr_diagnostic_sample==null?"":" IBKR diagnostic sample: "+data.prices.ibkr_diagnostic_sample+".");
+ }catch(err){
+  $("generated").textContent="SOURCE STATUS UNAVAILABLE — "+String(err.message)+"; all six categories remain UNKNOWN.";
+  $("approved").textContent="Unknown";
+  const fallback=$("sources");fallback.replaceChildren();
+  [["membership","S&P 500 membership"],["prices","Daily prices and liquidity"],
+   ["sec","SEC financial statements"],["actions","Corporate actions"],
+   ["calendar","NYSE trading calendar"],["benchmark","SPY benchmark"]].forEach(([key,title])=>{
+     const c=el("article",null,fallback,"source"),h=el("div",null,c,"sourceheader");
+     el("h3",title,h);el("span","UNAVAILABLE",h,"status");
+     el("p","Data source unavailable; no verified status or timestamp can be inferred.",c,"muted");
+     const stages=el("div",null,c,"flow");for(let i=0;i<4;i++)el("span",null,stages,"step pending");
+   });
+  $("sectext").textContent="SEC status unavailable";
+  $("priceexplain").textContent="Price coverage unavailable";
+ }
 }
 function renderPositions(){
  const root=$("positions");root.replaceChildren();
