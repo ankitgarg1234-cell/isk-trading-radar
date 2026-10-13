@@ -38,8 +38,11 @@ def summarize_original_filings(submissions, cik, *, as_of=date(2026,10,12)):
     cols=[recent.get(k) for k in required]
     if any(not isinstance(c,list) for c in cols) or len(set(map(len,cols)))!=1:
         raise FilingLookupHold("Original SEC filings table incomplete")
+    accepted_times=recent.get("acceptanceDateTime")
+    if not isinstance(accepted_times,list) or len(accepted_times)!=len(cols[0]):
+        accepted_times=[None]*len(cols[0])
     records=[]
-    for form,accn,filed,report,doc in zip(*cols):
+    for form,accn,filed,report,doc,accepted in zip(*cols,accepted_times):
         if form not in ("10-Q","10-Q/A","10-K","10-K/A"):
             continue
         if not isinstance(accn,str) or not ACCESSION_RE.fullmatch(accn):
@@ -60,7 +63,11 @@ def summarize_original_filings(submissions, cik, *, as_of=date(2026,10,12)):
             "age_days_since_report":(as_of-report_day).days,
             "age_days_since_filing":(as_of-filed_day).days,
             "document_url":root+quote(doc,safe=""),
+            "ix_viewer_url":("https://www.sec.gov/ix?doc=/Archives/edgar/data/"
+                             +cik+"/"+accn.replace("-","")+"/"+quote(doc,safe="")),
             "filing_index_url":root+accn+"-index.htm",
+            "accepted_at":accepted if isinstance(accepted,str) else None,
+            "source_fact_extraction":"NOT_AUTOMATICALLY_CERTIFIED",
         }
         records.append(record)
     records.sort(key=lambda x:(x["filed"],x["report_period"],x["accession"]),reverse=True)
@@ -73,6 +80,7 @@ def summarize_original_filings(submissions, cik, *, as_of=date(2026,10,12)):
         "as_of":as_of.isoformat(),
         "latest_original_10q":latest_q,
         "latest_original_10k":latest_k,
+        "annual_10k_role":"SUPPLEMENTARY_CONTEXT_ONLY_FROZEN_GEM_REQUIRES_10Q",
         "filings":records[:12],
         "original_source_validated":True,
         "financial_facts_certified":False,
