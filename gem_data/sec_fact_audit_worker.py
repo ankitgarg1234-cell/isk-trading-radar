@@ -58,7 +58,9 @@ def _paired_latest(read_conn):
 
 def _key(cik, pair):
     ids = "|".join(pair[k][0] for k in ("submissions", "companyfacts"))
-    return QA_PREFIX + cik + "-" + sha256(ids.encode()).hexdigest()[:20]
+    # Re-audit when the independent verifier code changes; a prior
+    # candidate PASS from an older algorithm is never silently reused.
+    return QA_PREFIX + cik + "-" + CODE_SHA256[:12] + "-" + sha256(ids.encode()).hexdigest()[:20]
 
 
 def audit_batch(*, max_pairs: int = 5) -> dict:
