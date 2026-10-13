@@ -30,5 +30,33 @@ class GateTests(unittest.TestCase):
             process_pending(11)
 
 
+from gem_data.gem_six_fact_gate import evaluate_gemv1_frozen_gate
+
+
+class FrozenGemV1Tests(unittest.TestCase):
+    def _facts(self, revenue=130, income=15, operating=22):
+        return {k: {"value_usd": v} for k, v in {
+            "current_revenue": revenue, "prior_revenue": 100,
+            "current_net_income": income, "prior_net_income": 10,
+            "current_operating_income": operating,
+            "prior_operating_income": 12}.items()}
+
+    def test_original_thresholds_pass(self):
+        self.assertEqual(evaluate_gemv1_frozen_gate(self._facts())["status"], "PASS")
+
+    def test_revenue_growth_below_threshold_fails(self):
+        self.assertEqual(evaluate_gemv1_frozen_gate(self._facts(revenue=115))["status"], "FAIL")
+
+    def test_missing_fact_unknown(self):
+        facts = self._facts()
+        del facts["prior_operating_income"]
+        self.assertEqual(evaluate_gemv1_frozen_gate(facts)["status"], "UNKNOWN")
+
+    def test_no_financial_certification_from_candidates(self):
+        result = evaluate_gemv1_frozen_gate(self._facts())
+        self.assertFalse(result["financial_facts_certified"])
+        self.assertFalse(result["dashboard_publication_authorized"])
+
+
 if __name__ == "__main__":
     unittest.main()
