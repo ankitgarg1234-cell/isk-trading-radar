@@ -19,6 +19,25 @@ MAX_BATCH = 10
 QA_IDENTITY = "gem-independent-sec-worker-v1"
 
 
+def check_audit_permissions() -> dict:
+    """Check the configured role without attempting a write."""
+    url = os.getenv("GEM_CERT_AUDIT_DATABASE_URL", "")
+    if not url.startswith(("postgresql://", "postgres://")):
+        return {"ready": False, "reason": "AUDIT_CREDENTIAL_MISSING"}
+    with psycopg.connect(url, connect_timeout=6) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SET TRANSACTION READ ONLY")
+            cur.execute("SET LOCAL statement_timeout = 5000")
+            cur.execute("""SELECT
+                has_table_privilege(current_user, 'gem_source_receipt', 'SELECT'),
+                has_table_privilege(current_user, 'gem_sec_independent_receipt_audit', 'SELECT'),
+                has_table_privilege(current_user, 'gem_sec_independent_receipt_audit', 'INSERT')""")
+            source_read, audit_read, audit_write = cur.fetchone()
+    return {"ready": bool(source_read and audit_read and audit_write),
+            "source_read": bool(source_read), "audit_read": bool(audit_read),
+            "audit_insert": bool(audit_write)}
+
+
 def process_pending(limit: int = MAX_BATCH) -> dict:
     if not 1 <= limit <= MAX_BATCH:
         raise ValueError("bounded batch required")
