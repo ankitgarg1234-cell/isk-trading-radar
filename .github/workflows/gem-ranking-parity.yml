@@ -1,0 +1,35 @@
+name: GEM archived ranking parity
+on:
+  push:
+    branches:
+      - research/gem-2025-2026-validation-2026-10-11
+    paths:
+      - 'research_5x/gem_2025_2026_validation/compare_frozen_rankings.py'
+      - 'research_5x/gem_2025_2026_validation/test_compare_frozen_rankings.py'
+      - '.github/workflows/gem-ranking-parity.yml'
+  workflow_dispatch:
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run deterministic tests
+        run: |
+          cd research_5x/gem_2025_2026_validation
+          python -m pip install pytest
+          python -m pytest test_compare_frozen_rankings.py -q
+      - name: Recalculate archived features
+        run: |
+          cd research_5x/gem_2025_2026_validation
+          python compare_frozen_rankings.py
+          cat parity/summary.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gem-ranking-parity
+          path: research_5x/gem_2025_2026_validation/parity/
