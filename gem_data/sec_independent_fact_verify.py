@@ -16,6 +16,10 @@ import zlib
 AS_OF = date(2026, 10, 12)
 MAX_COMPRESSED = 650_000
 MAX_ORIGINAL = 12_000_000
+OFFICIAL_ARCHIVES = {
+    "submissions": "https://www.sec.gov/Archives/edgar/daily-index/bulkdata/submissions.zip",
+    "companyfacts": "https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip",
+}
 ACCESSION = re.compile(r"^[0-9]{10}-[0-9]{2}-[0-9]{6}$")
 METRICS = {
     "revenue": ("RevenueFromContractWithCustomerExcludingAssessedTax",
@@ -49,8 +53,13 @@ def decode_original_receipt(receipt: dict, cik: str, kind: str) -> dict:
     metadata = receipt.get("metadata")
     if not isinstance(metadata, dict):
         raise VerificationHold("Missing SEC source metadata")
-    if metadata.get("zip_member_name") != f"CIK{cik}.json":
+    member_name = f"CIK{cik}.json"
+    official = OFFICIAL_ARCHIVES[kind]
+    if metadata.get("zip_member_name") != member_name:
         raise VerificationHold("SEC ZIP member CIK mismatch")
+    if (metadata.get("archive_url") != official
+            or receipt.get("source_uri") != official + "#" + member_name):
+        raise VerificationHold("SEC original source URI not official archive")
     b64 = metadata.get("source_raw_zlib_base64")
     if not isinstance(b64, str) or len(b64) > 900_000:
         raise VerificationHold("SEC compressed source missing or oversized")
