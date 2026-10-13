@@ -238,3 +238,13 @@ def test_audit_keys_include_verifier_code_hash():
     key = _key(CIK, {"submissions": ("sub-id", "a"*64),
                      "companyfacts": ("facts-id", "b"*64)})
     assert CODE_SHA256[:12] in key
+
+
+def test_malformed_base64_receipt_fails_closed():
+    subs, facts = originals()
+    bad = receipt("submissions", subs)
+    bad["metadata"]["source_raw_zlib_base64"] = "not-valid-base64!!"
+    result = verify_receipt_pair(bad, receipt("companyfacts", facts), CIK)
+    assert result["receipt_integrity"] == "FAIL"
+    assert result["fact_status"] == "UNKNOWN"
+    assert result["certified"] is False
