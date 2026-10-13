@@ -32,6 +32,8 @@ def _category(blockers):
         return "PARENT_NET_INCOME_CONTEXT_REVIEW"
     if "missing_revenue" in text:
         return "ISSUER_SPECIFIC_REVENUE_REVIEW"
+    if "fresh_10q_exists_but_standard_facts_unrecognized" in text:
+        return "FRESH_FILING_FINANCIAL_TAG_RECONCILIATION"
     if "older_than_210_days" in text:
         return "FILING_FRESHNESS_REVIEW"
     if "no_eligible_original_10q" in text:
