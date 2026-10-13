@@ -36,7 +36,7 @@ def _iso(value):
 
 
 def classify(receipts, probes, sec_stats, *, membership_count=0,
-             ibkr_sample_count=0, approved_signals=0, checked_at=None):
+             ibkr_sample_count=0, approved_signals=0, checked_at=None, verified_price_tickers=None):
     """Pure testable projection. Explicitly fail closed on absent evidence."""
     receipt_by_type = {}
     providers = {}
@@ -63,6 +63,14 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
     reviewed_receipts = int(sec_stats.get("verified_receipts", 0))
     unknown = max(0, inspected - machine_complete)
     unaudited = max(0, pairs - inspected)
+    verified_price_tickers = verified_price_tickers or {}
+    marketstack = set(verified_price_tickers.get("MARKETSTACK", []))
+    ibkr = set(verified_price_tickers.get("IBKR", [])) - marketstack
+    others = set()
+    for provider, tickers in verified_price_tickers.items():
+        if provider not in ("MARKETSTACK", "IBKR"):
+            others.update(tickers)
+    others -= marketstack | ibkr
     sections = []
     for key, title, requirement in SOURCES:
         pr = probe_by_type.get(key, {})
@@ -71,7 +79,7 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
             evidence = [f"{membership_count} current security lines in secondary snapshot" if membership_count else "No countable membership snapshot",
                         "Primary effective-date verification pending"]
         elif key == "prices":
-            evidence = ["0 full-universe verified price histories in isolated source receipts",
+            evidence = [f"{len(marketstack | ibkr | others)} complete independently reviewed 127-session security histories in stored receipts",
                         f"IBKR limited diagnostic: {ibkr_sample_count} sampled tickers" if ibkr_sample_count else "No IBKR full-universe ingestion established",
                         "Marketstack provider probe exists; no stored complete-universe ingest"]
         elif key == "sec":
@@ -108,12 +116,12 @@ def classify(receipts, probes, sec_stats, *, membership_count=0,
         "membership_security_lines": int(membership_count),
         "prices": {
             "security_lines_target": int(membership_count),
-            "marketstack_fully_verified": 0,
-            "ibkr_fully_verified": 0,
-            "other_fully_verified": 0,
-            "overall_fully_verified": 0,
+            "marketstack_fully_verified": len(marketstack),
+            "ibkr_fully_verified": len(ibkr),
+            "other_fully_verified": len(others),
+            "overall_fully_verified": len(marketstack | ibkr | others),
             "ibkr_diagnostic_sample": int(ibkr_sample_count),
-            "coverage_note": "No verified per-symbol 127-session price inventory is persisted in the isolated database. Counts mean verifiable completeness, not total external vendor requests.",
+            "coverage_note": "Counts require persisted per-ticker 127-session calendar coverage, reviewed price-adjustment parity, a source fingerprint, and source QA PASS. Unverified vendor responses and IBKR samples are not counted.",
         },
         "sec": {
             "unique_submissions": statements,
@@ -198,6 +206,34 @@ def read_source_integrity():
                     WHERE experiment_id=%s AND integrity_status='PASS'
                 """, (EXPERIMENT,))
                 receipt_pass = int(cur.fetchone()[0] or 0)
+                # Price receipts are counted only after independently reviewed
+                # source and adjustment evidence; raw vendor calls do not count.
+                cur.execute("""
+                    SELECT provider, metadata->>'ticker'
+                    FROM gem_source_receipt
+                    WHERE experiment_id=%s AND source_type='prices'
+                      AND metadata->>'source_qa_status'='PASS'
+                      AND metadata->>'adjustment_parity_reviewed'='true'
+                      AND metadata->>'last_completed_session'=metadata->>'signal_session'
+                      AND LENGTH(COALESCE(metadata->>'source_raw_sha256',''))=64
+                      AND (metadata->>'completed_sessions') ~ '^[0-9]+
+        return classify(
+            receipts, probes,
+            {"inspected": assessed, "machine_complete": complete,
+             "certified": certified, "last_audited": last_audit,
+             "verified_receipts": receipt_pass},
+            membership_count=membership_count, ibkr_sample_count=len(samples),
+            approved_signals=approved_signals, verified_price_tickers=verified_price_tickers,
+        )
+    except (psycopg.Error, ValueError, TypeError):
+        raise IntegrityUnavailable("GEM isolated read-only source integrity unavailable") from None
+
+                      AND (metadata->>'completed_sessions')::integer >= 127
+                """, (EXPERIMENT,))
+                verified_price_tickers = {}
+                for provider, ticker in cur.fetchall():
+                    if provider and ticker:
+                        verified_price_tickers.setdefault(provider.upper(), set()).add(ticker)
                 cur.execute("""
                     SELECT COUNT(*) FROM gem_signal
                     WHERE experiment_id=%s AND state IN ('APPROVED','RELEASED')
