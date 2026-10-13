@@ -134,7 +134,18 @@ def recompute_full_month(bundle, *, fixture_min_members=None):
             raise SourceFeatureHold("Missing/incorrect security source identity")
         try:
             prices = verify_price_features(row.get("prices"), signal_day=signal, sessions=sessions)
-            financial = verify_financial_features(row.get("facts"), signal_day=signal)
+            # Frozen simulator applies positive r63 BEFORE quarterly G/E checks.
+            # Only source-reviewed, calendar-matched adjusted closes can reach
+            # here; a rejected/stale price raises SourceFeatureHold above.
+            # This is NOT permission to use provisional Marketstack values.
+            if prices["r63"] <= 0:
+                financial = {"revenue_yoy": None, "margin_delta_pp": None,
+                             "net_income_now": None, "net_income_prior": None,
+                             "earnings_improvement": None,
+                             "financial_source": "NOT_REQUIRED_AFTER_FROZEN_R63_FAIL",
+                             "latest_accepted_at": None}
+            else:
+                financial = verify_financial_features(row.get("facts"), signal_day=signal)
             mapped.append({"security_id": key, "ticker": ticker, **prices, **financial,
                            "security_identity_reviewed": row.get("identity_reviewed") is True})
         except (SourceFeatureHold, TypeError, ValueError) as exc:
