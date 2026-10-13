@@ -21,12 +21,13 @@ from gem_data.sec_independent_fact_verify import decode_original_receipt, Verifi
 from gem_data.sec_fact_audit_worker import qa_as_of
 from gem_data.sec_inline_xbrl_evidence import extract_inline_candidates, InlineEvidenceHold
 from gem_data.gem_sec_annual_context import select_annual_original, summarize_annual_original
+from gem_data.sec_historical_submissions import (historical_fragment_urls, merge_archived_filings, ArchiveHistoryHold)
 from gem_data.sec_original_collector import SecOriginalCollector, SourceUnavailable, validate_sec_user_agent
 
 _ACC = re.compile(r"^[0-9]{10}-[0-9]{2}-[0-9]{6}$")
 _DOC = re.compile(r"^[A-Za-z0-9_.-]{1,128}$")
 PREFIX = "gem-sec-inline-review-"
-REV = "20261013-v3-annual-evidence"
+REV = "20261013-v4-historical-submissions"
 
 
 class InlineReviewHold(ValueError):
