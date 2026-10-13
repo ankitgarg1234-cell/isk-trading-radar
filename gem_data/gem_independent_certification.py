@@ -22,11 +22,13 @@ SEC_KINDS = {"SEC_ZIP_COMPANYFACTS", "SEC_ZIP_SUBMISSIONS"}
 
 def verify_receipt(receipt: dict) -> dict:
     """Recompute SHA-256 from stored original bytes, independently of collector."""
-    provider = receipt["provider"]
-    metadata = receipt["metadata"]
-    rid = receipt["receipt_id"]
+    provider = receipt.get("provider")
+    metadata = receipt.get("metadata")
+    rid = receipt.get("receipt_id")
     result = {"receipt_id": rid, "provider": provider, "status": "FAIL", "checks": {}}
     try:
+        if not isinstance(metadata, dict):
+            raise ValueError("metadata invalid")
         encoded = metadata["source_raw_zlib_base64"]
         if not isinstance(encoded, str) or len(encoded) > MAX_ENCODED_BYTES:
             raise ValueError("encoded size limit")
@@ -39,6 +41,8 @@ def verify_receipt(receipt: dict) -> dict:
             raise ValueError("archive provenance missing or invalid")
         if (provider == "SEC_ZIP_SUBMISSIONS") != metadata["archive_url"].endswith("/submissions.zip"):
             raise ValueError("archive/provider mismatch")
+        if not isinstance(metadata.get("archive_content_length"), int) or metadata["archive_content_length"] <= 0:
+            raise ValueError("archive content length invalid")
         compressed = base64.b64decode(encoded, validate=True)
         inflater = zlib.decompressobj()
         original = inflater.decompress(compressed, MAX_ORIGINAL_BYTES + 1)
@@ -54,7 +58,7 @@ def verify_receipt(receipt: dict) -> dict:
             raise ValueError("original byte count mismatch")
         if provider in SEC_KINDS:
             member = metadata.get("zip_member_name", "")
-            match = re.search(r"CIK(\d{10})\.json$", member)
+            match = re.fullmatch(r"CIK(\d{10})\.json", member)
             if not match:
                 raise ValueError("member name invalid")
             payload = json.loads(original)
