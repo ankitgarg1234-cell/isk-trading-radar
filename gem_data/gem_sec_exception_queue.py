@@ -64,6 +64,16 @@ def categorize(latest, *, captured_at=None, limit=250, inline_reviews=None):
                 not isinstance(x,str) or len(x) > 180 for x in blockers):
             blockers = ["missing_or_malformed_original_filing_evidence"]
         tasks = triage(blockers)
+        inline = inline_reviews.get(cik, {})
+        filing_state = inline.get("classification") or "NOT_YET_SCANNED"
+        if filing_state == "NOT_YET_SCANNED":
+            review_stage = "AWAITING_ORIGINAL_10Q_REVIEW"
+        elif filing_state == "ORIGINAL_SEC_FILING_RETRIEVAL_HOLD":
+            review_stage = "ORIGINAL_DOCUMENT_RETRIEVAL_HOLD"
+        elif filing_state == "SIX_DIRECT_STANDARD_CANDIDATES_NEED_CONTEXT_REVIEW":
+            review_stage = "SIX_FACT_CANDIDATES_UNCERTIFIED"
+        else:
+            review_stage = "ORIGINAL_DOCUMENT_REVIEWED_DISCREPANCY_OPEN"
         items.append({
             "cik": cik,
             "classification": "REVIEW_REQUIRED_NOT_A_FINANCIAL_INELIGIBILITY",
@@ -76,13 +86,15 @@ def categorize(latest, *, captured_at=None, limit=250, inline_reviews=None):
             "resolved_by_machine": False,
             "source_context_certified": False,
             "investment_eligible": None,
-            "original_inline_review_status": inline_reviews.get(cik, {}).get(
-                "classification", "NOT_YET_SCANNED"),
-            "original_inline_candidate_six": bool(
-                inline_reviews.get(cik, {}).get("six_candidates", False)),
+            "review_stage": review_stage,
+            "original_inline_review_status": filing_state,
+            "original_inline_candidate_six": bool(inline.get("six_candidates", False)),
+            "original_inline_reviewed_at": inline.get("last_reviewed"),
+            "original_filing_urls": inline.get("filing_urls", [])[:2],
         })
     counts = Counter(item["category"] for item in items)
-    items.sort(key=lambda x: (x["category"],x["cik"]))
+    stages = Counter(item["review_stage"] for item in items)
+    items.sort(key=lambda x: (x["review_stage"],x["category"],x["cik"]))
     return {
         "schema": "gem-sec-exception-review-v1",
         "generated_at": (captured_at or datetime.now(timezone.utc)).isoformat(),
@@ -91,6 +103,12 @@ def categorize(latest, *, captured_at=None, limit=250, inline_reviews=None):
         "candidate_complete_not_certified": completed,
         "unresolved": len(items),
         "categories": dict(sorted(counts.items())),
+        "review_stages": dict(sorted(stages.items())),
+        "awaiting_original_review": stages["AWAITING_ORIGINAL_10Q_REVIEW"],
+        "original_documents_reviewed_still_unresolved": (
+            stages["ORIGINAL_DOCUMENT_REVIEWED_DISCREPANCY_OPEN"]
+            + stages["SIX_FACT_CANDIDATES_UNCERTIFIED"]),
+        "original_retrieval_holds": stages["ORIGINAL_DOCUMENT_RETRIEVAL_HOLD"],
         "review_queue": items[:limit],
         "review_queue_displayed": min(len(items),limit),
         "more_not_displayed": max(0,len(items)-limit),
@@ -143,18 +161,23 @@ def read_sec_exception_queue(*, limit=250):
                          details->>'cik' cik,
                          details->>'classification' classification,
                          details->'evidence'->>'all_six_standard_category_candidates'
-                            AS six_candidates
+                            AS six_candidates,
+                         details->'filing_urls' AS filing_urls,
+                         observed_at AS last_reviewed
                       FROM gem_source_probe
                       WHERE experiment_id=%s AND source_type='sec'
                         AND probe_id LIKE 'gem-sec-inline-review-%%'
                         AND details->>'cik' IS NOT NULL
                       ORDER BY details->>'cik', observed_at DESC, probe_id DESC
-                    ) SELECT cik,classification,six_candidates FROM latest
+                    ) SELECT cik,classification,six_candidates,filing_urls,last_reviewed FROM latest
                 """,(EXPERIMENT,))
                 reviews={
                    cik:{"classification":classification,
-                        "six_candidates":six=="true"}
-                   for cik,classification,six in cur.fetchall()
+                        "six_candidates":six=="true",
+                        "filing_urls":filing_urls if isinstance(filing_urls,list) else [],
+                        "last_reviewed":last_reviewed.astimezone(timezone.utc).isoformat()
+                                         if last_reviewed is not None else None}
+                   for cik,classification,six,filing_urls,last_reviewed in cur.fetchall()
                 }
         return categorize(rows, limit=limit, inline_reviews=reviews)
     except (psycopg.Error,ValueError,TypeError) as exc:
