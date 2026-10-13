@@ -168,6 +168,8 @@ def read_sec_exception_queue(*, limit=250):
                          details->'evidence'->>'all_six_standard_category_candidates'
                             AS six_candidates,
                          details->'filing_urls' AS filing_urls,
+                         details->'evidence'->'current'->'standard_unique_values' AS current_fact_types,
+                         details->'evidence'->'prior'->'standard_unique_values' AS prior_fact_types,
                          observed_at AS last_reviewed
                       FROM gem_source_probe
                       WHERE experiment_id=%s AND source_type='sec'
