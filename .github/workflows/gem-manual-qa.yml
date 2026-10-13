@@ -1,0 +1,32 @@
+name: GEM manual operations unit QA
+on:
+  push:
+    branches:
+      - draft/gem-standalone-render-20261012
+    paths:
+      - 'gem_data/gem_manual_ops.py'
+      - 'gem_data/market_data_patch.py'
+      - 'gem_data/gem_monthly_signal.py'
+      - 'gem_data/historical_evidence_audit.py'
+      - 'gem_data/gem_manual_cli.py'
+      - 'tests/test_gem_manual_workflow.py'
+      - 'tests/test_gem_historical_evidence_audit.py'
+      - '.github/workflows/gem-manual-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  manual-only-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pytest
+        run: python -m pip install pytest==8.4.2
+      - name: Compile modules
+        run: python -m compileall -q gem_data/gem_manual_ops.py gem_data/market_data_patch.py gem_data/gem_monthly_signal.py gem_data/historical_evidence_audit.py
+      - name: Run isolated unit tests
+        run: python -m pytest -q tests/test_gem_manual_workflow.py tests/test_gem_historical_evidence_audit.py tests/test_gem_paper_plan.py tests/test_gem_archive_ranking_parity.py
