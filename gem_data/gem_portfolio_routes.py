@@ -258,13 +258,15 @@ $("loadsecqueue").onclick=async()=>{
   const data=await response.json();
   if(data.schema!=="gem-sec-exception-review-v1")throw Error("Invalid source review response");
   $("secqueuestate").textContent=data.unresolved+" unresolved / "+data.machine_assessed
-    +" machine-assessed; "+data.candidate_complete_not_certified+" candidate-complete (not certified).";
+    +" machine-assessed; "+data.candidate_complete_not_certified+" candidate-complete (not certified)."
+    +" Original 10-Q review attempted for "+data.original_inline_scanned
+    +" issuers; "+data.original_inline_six_candidate_sets+" six-standard-fact candidate sets recovered (not certified).";
   const details=el("details",null,root);
   const summary=el("summary","Review "+data.review_queue_displayed+" CIK filing exceptions and actions",details);
   const cat=el("p","Categories: "+Object.entries(data.categories).map(
     ([name,count])=>name.replaceAll("_"," ").toLowerCase()+" "+count).join(" · "),details,"muted");
   const table=el("table",null,details,"holdings"),head=el("thead",null,table),hr=el("tr",null,head);
-  ["CIK / SEC filing","Issue","Next original-source review"].forEach(t=>el("th",t,hr));
+  ["CIK / SEC filing","Issue","Original filing recovery","Next source review"].forEach(t=>el("th",t,hr));
   const body=el("tbody",null,table);
   data.review_queue.forEach(item=>{
    const row=el("tr",null,body),cell=el("td",null,row);
@@ -272,6 +274,7 @@ $("loadsecqueue").onclick=async()=>{
    link.href="https://www.sec.gov/edgar/browse/?CIK="+encodeURIComponent(item.cik);
    link.rel="noopener noreferrer";link.target="_blank";
    el("td",item.blockers.join("; "),row);
+   el("td",(item.original_inline_review_status||"NOT_YET_SCANNED").replaceAll("_"," ").toLowerCase(),row);
    el("td",item.actions.join("; ").replaceAll("_"," ").toLowerCase(),row);
   });
  }catch(err){$("secqueuestate").textContent=String(err.message)}
