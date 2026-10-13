@@ -24,6 +24,7 @@ from gem_data.gem_monthly_signal import select_monthly, MonthlySignalHold
 from gem_data.gem_source_feature_verifier import recompute_full_month, SourceFeatureHold
 from gem_data.market_data_patch import reconcile_prices, PricePatchHold
 from gem_data.historical_evidence_audit import audit_historical_claims
+from gem_data.gem_monthly_packet import build_monthly_packet
 
 
 def load(path):
@@ -68,12 +69,14 @@ def calculate(command, item):
         return replay_manual_events(item["initial_cash"], item["events"], item.get("statement"))
     if command == "history":
         return audit_historical_claims(item["claims"], item["evidence"])
+    if command == "monthly":
+        return build_monthly_packet(item)
     raise ValueError("Unknown offline operation")
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="GEMv1 manual-only offline workbench")
-    parser.add_argument("operation", choices=("signal", "verify", "gaps", "tickets", "ledger", "history"))
+    parser.add_argument("operation", choices=("signal", "verify", "gaps", "tickets", "ledger", "history", "monthly"))
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
