@@ -147,7 +147,7 @@ def select_monthly(snapshot, *, fixture_min_members=None):
         "provisional_top5": [r["ticker"] for r in eligible[:5]],
         "positive_momentum_disagreements": [r["ticker"] for r in eligible if not r["positive_r63"]],
         "candidate_audit": scored, "blockers": blockers,
-        "data_status": "REVIEWED_COMPLETE" if not blockers and len(eligible) >= 5 else "HOLD",
+        "data_status": "REVIEWED_COMPLETE" if not blockers else "HOLD",
         "automatic_execution": False,
         "broker_orders_sent": 0,
         "frozen_gate_note": "No explicit positive-r63 requirement in archived simulator",
