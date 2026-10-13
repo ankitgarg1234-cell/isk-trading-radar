@@ -360,6 +360,7 @@ def unavailable_integrity():
                       checked_at=datetime.now(timezone.utc))
     report["data_access"] = "UNAVAILABLE"
     report["approved_monthly_signals"] = None
+    report["corporate_issuer_scans"] = None
     report["membership_security_lines"] = None
     report["wikipedia"] = {"securities":None,"unique_ciks":None,"secondary_comparison":None,"certified":False}
     for key in ("security_lines_target", "marketstack_fully_verified",
@@ -381,6 +382,8 @@ def unavailable_integrity():
     report["sec"]["exception_categories"] = {}
     for source in report["sources"]:
         source["status"] = "UNAVAILABLE"
+        source["progress_summary"] = "Current evidence unavailable"
+        source["next_step"] = "Restore read-only source access; do not infer source certification"
         source["last_refreshed"] = None
         source["last_checked"] = None
         source["last_audited"] = None
