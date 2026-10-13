@@ -7,7 +7,7 @@ DELETE, Marketstack, signals, orders, or trading database permissions.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from hashlib import sha256
 import json
 import os
@@ -23,14 +23,40 @@ CIK_MEMBER = re.compile(r"^CIK([0-9]{10})\.json$")
 CODE_SHA256 = sha256(
     Path(__file__).with_name("sec_independent_fact_verify.py").read_bytes()
 ).hexdigest()
-QA_PREFIX = f"gem-sec-fact-qa-{AS_OF:%Y%m%d}-"
+WORKER_REV = "20261013-signal-asof-v1"
+
+
+def qa_as_of(*, observed=None):
+    """One explicit historical decision cutoff, never silently use future facts.
+
+    The deployment may set GEM_SEC_QA_AS_OF after the official month-end
+    exchange session is independently established. With no validated override,
+    retain the original frozen October 12 QA snapshot for reproducibility.
+    """
+    observed = observed or datetime.now(timezone.utc)
+    if observed.tzinfo is None:
+        raise QAHold("Naive QA clock not accepted")
+    raw = os.getenv("GEM_SEC_QA_AS_OF", "")
+    if not raw:
+        return AS_OF
+    try:
+        cutoff = date.fromisoformat(raw)
+    except (TypeError,ValueError):
+        raise QAHold("GEM_SEC_QA_AS_OF must be ISO date") from None
+    if not AS_OF <= cutoff < observed.astimezone(timezone.utc).date():
+        raise QAHold("SEC QA cutoff not a completed past date")
+    return cutoff
+
+
+def qa_prefix(as_of):
+    return f"gem-sec-fact-qa-{as_of:%Y%m%d}-"
 
 
 class QAHold(RuntimeError):
     pass
 
 
-def _paired_latest(read_conn):
+def _paired_latest(read_conn, prefix):
     with read_conn.cursor() as cur:
         # Metadata is not returned here: read only ten raw receipts at a time.
         cur.execute("""
@@ -51,16 +77,16 @@ def _paired_latest(read_conn):
             kind = "submissions" if provider == "SEC_ZIP_SUBMISSIONS" else "companyfacts"
             groups.setdefault(m.group(1), {})[kind] = (receipt_id, str(digest).strip())
         cur.execute("SELECT probe_id FROM gem_source_probe WHERE probe_id LIKE %s",
-                    (QA_PREFIX+"%",))
+                    (prefix+"%",))
         done = {row[0] for row in cur.fetchall()}
     return groups, done
 
 
-def _key(cik, pair):
+def _key(cik, pair, as_of):
     ids = "|".join(pair[k][0] for k in ("submissions", "companyfacts"))
     # Re-audit when the independent verifier code changes; a prior
     # candidate PASS from an older algorithm is never silently reused.
-    return QA_PREFIX + cik + "-" + CODE_SHA256[:12] + "-" + sha256(ids.encode()).hexdigest()[:20]
+    return qa_prefix(as_of) + cik + "-" + sha256((CODE_SHA256+WORKER_REV).encode()).hexdigest()[:12] + "-" + sha256(ids.encode()).hexdigest()[:20]
 
 
 def audit_batch(*, max_pairs: int = 5) -> dict:
@@ -73,10 +99,11 @@ def audit_batch(*, max_pairs: int = 5) -> dict:
     if not writer.startswith("postgresql://gem_source_ingest_limited:"):
         raise QAHold("SEC QA INSERT-only evidence role unavailable")
     now = datetime.now(timezone.utc)
+    as_of = qa_as_of(observed=now)
     with psycopg.connect(reader, connect_timeout=6) as conn:
-        groups, done = _paired_latest(conn)
-        pairs = [(cik, pair, _key(cik, pair)) for cik, pair in sorted(groups.items())
-                 if len(pair) == 2 and _key(cik, pair) not in done]
+        groups, done = _paired_latest(conn, qa_prefix(as_of))
+        pairs = [(cik, pair, _key(cik, pair, as_of)) for cik, pair in sorted(groups.items())
+                 if len(pair) == 2 and _key(cik, pair, as_of) not in done]
         chosen = pairs[:max_pairs]
         receipt_ids = [pair[k][0] for _cik, pair, _keyid in chosen
                        for k in ("submissions", "companyfacts")]
@@ -92,7 +119,7 @@ def audit_batch(*, max_pairs: int = 5) -> dict:
                               "source_sha256": digest, "source_uri": source_uri,
                               "metadata": metadata}
                         for rid, provider, digest, source_uri, metadata in cur.fetchall()}
-    result = {"paired_issuers": sum(len(x) == 2 for x in groups.values()),
+    result = {"as_of": as_of.isoformat(), "paired_issuers": sum(len(x) == 2 for x in groups.values()),
               "already_audited_current_receipts": len(done),
               "audited": 0, "integrity_pass": 0, "candidate_complete": 0,
               "fact_unknown": 0, "integrity_fail": 0,
@@ -104,7 +131,7 @@ def audit_batch(*, max_pairs: int = 5) -> dict:
             sub_id, fact_id = pair["submissions"][0], pair["companyfacts"][0]
             if sub_id not in rows or fact_id not in rows:
                 raise QAHold("SEC independent QA original receipt disappeared")
-            evidence = verify_receipt_pair(rows[sub_id], rows[fact_id], cik, AS_OF)
+            evidence = verify_receipt_pair(rows[sub_id], rows[fact_id], cik, as_of)
             integrity = evidence["receipt_integrity"]
             status = evidence["fact_status"]
             probe = {
@@ -116,7 +143,7 @@ def audit_batch(*, max_pairs: int = 5) -> dict:
                 "details": {
                     "source": "SEC original submissions + companyfacts ZIP member pair",
                     "scope": f"Independent automated recomputation for CIK {cik}",
-                    "as_of": AS_OF.isoformat(),
+                    "as_of": as_of.isoformat(),
                     "submissions_receipt_id": sub_id,
                     "companyfacts_receipt_id": fact_id,
                     "receipt_integrity": integrity,
