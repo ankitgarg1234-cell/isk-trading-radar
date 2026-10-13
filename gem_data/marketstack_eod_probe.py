@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from datetime import date
 import hashlib
 import json
+import math
 import os
 import re
 
@@ -49,6 +50,8 @@ class ProbeReceipt:
     first_session: date
     last_session: date
     observed_sessions: int
+    rejected_sessions: tuple[str, ...] = ()
+    rejected_reasons: tuple[tuple[str, str], ...] = ()
     status: str = "UNVERIFIED_VENDOR_OBSERVATION"
 
 
@@ -109,6 +112,7 @@ class MarketstackEODProbe:
         rows: list[EODBar] = []
         hashes: list[str] = []
         seen: set[date] = set()
+        rejected = []
         pages = 0
         while True:
             if self.consumed_credits >= self.max_credits:
@@ -168,27 +172,38 @@ class MarketstackEODProbe:
                 if session < date_from or session > date_to or session in seen:
                     raise MarketstackProbeError("duplicate or out-of-window vendor session")
                 seen.add(session)
-                op = self._number(item, "open")
-                hi = self._number(item, "high")
-                lo = self._number(item, "low")
-                cl = self._number(item, "close")
-                vol = self._number(item, "volume", nonnegative=True)
-                adj = self._number(item, "adj_close")
-                if hi < max(op, cl, lo) or lo > min(op, cl, hi):
-                    raise MarketstackProbeError("invalid vendor nominal OHLC geometry")
-                split = item.get("split_factor")
-                dividend = item.get("dividend")
-                rows.append(EODBar(
-                    symbol=symbol, session=session, open=op, high=hi,
-                    low=lo, close=cl, volume=vol, vendor_adj_close=adj,
-                    split_factor=float(split) if split is not None else None,
-                    dividend=float(dividend) if dividend is not None else None,
-                ))
+                try:
+                    op = self._number(item, "open")
+                    hi = self._number(item, "high")
+                    lo = self._number(item, "low")
+                    cl = self._number(item, "close")
+                    vol = self._number(item, "volume", nonnegative=True)
+                    adj = self._number(item, "adj_close")
+                    if hi < max(op, cl, lo) or lo > min(op, cl, hi):
+                        raise MarketstackProbeError("invalid vendor nominal OHLC geometry")
+                    split = item.get("split_factor")
+                    dividend = item.get("dividend")
+                    if split is not None:
+                        split = float(split)
+                        if not math.isfinite(split) or split <= 0:
+                            raise ValueError()
+                    if dividend is not None:
+                        dividend = float(dividend)
+                        if not math.isfinite(dividend) or dividend < 0:
+                            raise ValueError()
+                    rows.append(EODBar(
+                        symbol=symbol, session=session, open=op, high=hi,
+                        low=lo, close=cl, volume=vol, vendor_adj_close=adj,
+                        split_factor=split, dividend=dividend,
+                    ))
+                except (MarketstackProbeError,ValueError,TypeError) as exc:
+                    reason = str(exc)[:90] if isinstance(exc,MarketstackProbeError) else "invalid split/dividend metadata"
+                    rejected.append((session.isoformat(), reason))
             offset += len(data)
             if offset >= total:
                 break
         if not rows:
-            raise MarketstackProbeError("no vendor historical prices found")
+            raise MarketstackProbeError("no valid vendor historical prices found")
         rows.sort(key=lambda b: b.session)
         receipt = ProbeReceipt(
             symbol=symbol, date_from=date_from, date_to=date_to,
@@ -196,6 +211,8 @@ class MarketstackEODProbe:
             response_sha256=tuple(hashes),
             first_session=rows[0].session, last_session=rows[-1].session,
             observed_sessions=len(rows),
+            rejected_sessions=tuple(date for date,_ in rejected),
+            rejected_reasons=tuple(rejected),
         )
         return rows, receipt
 
