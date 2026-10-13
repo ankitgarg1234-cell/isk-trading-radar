@@ -88,6 +88,35 @@ async def _sec_fact_qa_loop():
         await asyncio.sleep(interval)
 
 
+async def _sec_inline_original_resolution_loop():
+    """Bounded and opt-in primary SEC original-filing remediation.
+
+    Only research evidence: no source certification, rankings or orders.
+    Progress is recorded as append-only GEM source-probes, and original SEC
+    content never enters service logs.
+    """
+    from gem_data.sec_inline_remediation_worker import review_batch, InlineReviewHold
+    await asyncio.sleep(195)
+    while True:
+        delay = 3600
+        try:
+            report = await asyncio.to_thread(review_batch, max_ciks=3)
+            _log.warning(
+                "GEM SEC original 10-Q remediation: reviewed=%d originals=%d six_candidates=%d remaining=%d holds=%d",
+                report["attempted"],report["original_documents_fetched"],
+                report["six_direct_candidates_found"],
+                report.get("remaining_after_estimate",0),len(report["held"]),
+            )
+            if report.get("remaining_after_estimate"):
+                delay = 60 if not report["held"] else 600
+        except InlineReviewHold as exc:
+            _log.warning("GEM SEC original Inline XBRL remediation HOLD: %s", str(exc)[:140])
+        except Exception as exc:
+            _log.warning("GEM SEC original Inline XBRL remediation failed (%s)",
+                         type(exc).__name__)
+        await asyncio.sleep(delay)
+
+
 async def _sec_corporate_discovery_loop():
     """Bounded original SEC 8-K review queue; never adjusts held positions."""
     from gem_data.sec_event_scan_worker import scan_batch, SECEventScanHold
@@ -150,6 +179,8 @@ async def _lifespan(app):
               os.getenv("GEM_MARKETSTACK_BACKFILL_ENABLED") == "yes",
               bool(os.getenv("GEM_MARKETSTACK_MONTHLY_CREDIT_CAP")))
     tasks = []
+    if os.getenv("GEM_SEC_INLINE_REVIEW_ENABLED") == "yes":
+        tasks.append(asyncio.create_task(_sec_inline_original_resolution_loop()))
     if os.getenv("GEM_SEC_ACTION_SCAN_ENABLED") == "yes":
         tasks.append(asyncio.create_task(_sec_corporate_discovery_loop()))
     if os.getenv("GEM_MARKETSTACK_BACKFILL_ENABLED") == "yes":
