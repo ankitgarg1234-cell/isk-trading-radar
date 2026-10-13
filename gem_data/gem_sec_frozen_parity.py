@@ -176,7 +176,7 @@ def _derive_observed_quarters(raw, cutoff):
         ]
         # Latest earlier fiscal-quarter endpoint, then newest admissible filing.
         if not eligible:
-            continue
+            raise SECParityHold("Cumulative SEC YTD fact lacks proven prior-period operand")
         endpoint = max(x["period_end"] for x in eligible)
         same = [x for x in eligible if x["period_end"] == endpoint]
         latest_filing = max((x["filing_date"], x["accepted_at"]) for x in same)
