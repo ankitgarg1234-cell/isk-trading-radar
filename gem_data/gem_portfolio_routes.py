@@ -67,11 +67,11 @@ p{margin:7px 0;color:#b9c5d5}small,.muted{font-size:12px;color:#9cabc0}
 .sourceheader{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .flow{display:flex;gap:6px;margin:14px 0 10px}
 .step{min-width:0;flex:1;height:8px;border-radius:3px;background:#414c60}
-.step.partial{background:#ca9847}.step.pending{background:#465067}.step.verified{background:#2f9879}
+.step.partial{background:#ca9847}.step.pending{background:#465067}.step.verified,.step.complete{background:#2f9879}
 .flowtext{display:flex;justify-content:space-between;gap:5px;font-size:10px;color:#a8b8c9}
 dl{display:grid;grid-template-columns:auto 1fr;column-gap:12px;row-gap:5px;margin:15px 0 8px;font-size:12px}
 dt{color:#9bb0c6}dd{margin:0;overflow-wrap:anywhere}
-details{font-size:12px;color:#c0ccdb}summary{cursor:pointer;color:#b8d9ff}
+.milestone{font-size:13px;color:#d7e8f7;font-weight:600;margin:10px 0 1px}details{font-size:12px;color:#c0ccdb}summary{cursor:pointer;color:#b8d9ff}
 ul{padding-left:19px;margin:9px 0}li{margin:5px 0}
 progress{width:100%;height:15px;accent-color:#3e9e82}
 .secsummary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
@@ -157,12 +157,14 @@ async function refresh(){
   const card=el("article",null,box,"source"),head=el("div",null,card,"sourceheader");
   el("h3",s.title,head);el("span",s.status,head,"status");
   el("p",s.requirement,card,"muted");
+  if(s.progress_summary)el("p",s.progress_summary,card,"milestone");
   const flow=el("div",null,card,"flow"),labels=el("div",null,card,"flowtext");
-  s.stages.forEach(t=>{el("span",null,flow,"step "+t.state.toLowerCase());el("span",t.name,labels)});
+  s.stages.forEach(t=>{const bar=el("span",null,flow,"step "+t.state.toLowerCase());bar.title=t.name+": "+t.state;const mark=el("span",t.name,labels);mark.title=t.state;});
   const dl=el("dl",null,card);
   [["Last collected",s.last_refreshed],["Last checked",s.last_checked],["Last audited",s.last_audited]].forEach(pair=>{
    el("dt",pair[0],dl);el("dd",fmt(pair[1]),dl)
   });
+  if(s.next_step)el("p","Next: "+s.next_step,card,"muted");
   const details=el("details",null,card);el("summary","Evidence and gaps",details);
   const ul=el("ul",null,details);s.evidence.forEach(line=>el("li",line,ul));
   if(s.key==="membership" && data.wikipedia && data.wikipedia.securities!=null){
