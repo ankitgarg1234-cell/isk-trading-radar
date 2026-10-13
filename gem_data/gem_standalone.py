@@ -88,6 +88,24 @@ async def _sec_fact_qa_loop():
         await asyncio.sleep(interval)
 
 
+async def _sec_corporate_discovery_loop():
+    """Bounded original SEC 8-K review queue; never adjusts held positions."""
+    from gem_data.sec_event_scan_worker import scan_batch, SECEventScanHold
+    await asyncio.sleep(150)
+    while True:
+        delay=3600
+        try:
+            report=await asyncio.to_thread(scan_batch,max_ciks=5)
+            _log.info("GEM SEC action candidates (unverified): %s",report)
+            if report["remaining_after"]:
+                delay=120
+        except SECEventScanHold:
+            _log.warning("GEM SEC corporate event review disabled: restricted roles missing")
+        except Exception as exc:
+            _log.warning("GEM SEC corporate event review failure (%s)",type(exc).__name__)
+        await asyncio.sleep(delay)
+
+
 async def _marketstack_backfill_loop():
     """Bounded 5-symbol hourly read-only EOD collector, opt-in only.
 
@@ -114,6 +132,8 @@ async def _lifespan(app):
               os.getenv("GEM_MARKETSTACK_BACKFILL_ENABLED") == "yes",
               bool(os.getenv("GEM_MARKETSTACK_MONTHLY_CREDIT_CAP")))
     tasks = []
+    if os.getenv("GEM_SEC_ACTION_SCAN_ENABLED") == "yes":
+        tasks.append(asyncio.create_task(_sec_corporate_discovery_loop()))
     if os.getenv("GEM_MARKETSTACK_BACKFILL_ENABLED") == "yes":
         tasks.append(asyncio.create_task(_marketstack_backfill_loop()))
     if os.getenv("GEM_PUBLIC_COLLECTION_ENABLED") == "yes":
