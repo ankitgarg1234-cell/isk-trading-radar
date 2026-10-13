@@ -161,7 +161,8 @@ def _work_items(conn, as_of, limit):
         for cik,rid in candidates:
             key=(PREFIX+as_of.strftime("%Y%m%d")+"-"+cik+"-"+REV
                  +"-"+sha256(rid.encode()).hexdigest()[:12])
-            if key not in completed:
+            today_retry=key+"-retry-"+datetime.now(timezone.utc).strftime("%Y%m%d")
+            if key not in completed and today_retry not in completed:
                 remaining.append((cik,key,rid))
         selected=remaining[:limit]
         ids=[rid for _cik,_key,rid in selected]
@@ -226,11 +227,17 @@ def review_batch(*, max_ciks=2, collector_factory=SecOriginalCollector):
                 # Fixed error classes, no original filing HTML, secrets or PII.
                 reason=type(exc).__name__+":"+str(exc)[:90]
                 report["held"].append({"cik":cik,"reason":reason})
+            # Network outages may retry on the NEXT UTC day only.
+            # Structural/context failures remain blocked until SEC source
+            # receipts or the machine signal cutoff change.
+            probe_key=(key+"-retry-"+now.strftime("%Y%m%d")
+                       if reason and reason.startswith("SourceUnavailable:")
+                       else key)
             digest=sha256(json.dumps({
-                "cik":cik,"key":key,"evidence":evidence,"reason":reason
+                "cik":cik,"key":probe_key,"evidence":evidence,"reason":reason
             },sort_keys=True).encode()).hexdigest()
             probe={
-                "probe_id":key,"source_type":"sec",
+                "probe_id":probe_key,"source_type":"sec",
                 "state":"PARTIAL" if evidence else "BLOCKED",
                 "observed_at":now,"diagnostic_hash":digest,
                 "sample_count":len(urls),
