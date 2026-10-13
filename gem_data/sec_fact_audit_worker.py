@@ -82,13 +82,14 @@ def audit_batch(*, max_pairs: int = 5) -> dict:
         if receipt_ids:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT receipt_id,provider,source_sha256,metadata
+                    SELECT receipt_id,provider,source_sha256,source_uri,metadata
                     FROM gem_source_receipt
                     WHERE experiment_id=%s AND receipt_id=ANY(%s)
                 """, (EXPERIMENT, receipt_ids))
                 rows = {rid: {"receipt_id": rid, "provider": provider,
-                              "source_sha256": digest, "metadata": metadata}
-                        for rid, provider, digest, metadata in cur.fetchall()}
+                              "source_sha256": digest, "source_uri": source_uri,
+                              "metadata": metadata}
+                        for rid, provider, digest, source_uri, metadata in cur.fetchall()}
     result = {"paired_issuers": sum(len(x) == 2 for x in groups.values()),
               "already_audited_current_receipts": len(done),
               "audited": 0, "integrity_pass": 0, "candidate_complete": 0,
