@@ -155,6 +155,22 @@ class FrozenGemManualParityTests(unittest.TestCase):
         self.assertEqual(len(result["manual_trade_sheet"]["tickets"]), 2)
         self.assertFalse(result["automatic_execution"])
 
+    def test_selected_holding_reduces_at_frozen_fee_inclusive_target(self):
+        # Frozen simulator: desired=floor(open_equity*0.20/(open*1.002)).
+        # At NAV 10,000 and price 100, the desired amount is 19, not 20.
+        sheet = manual_trade_sheet(
+            {"selected": ["AAA"], "data_status": "REVIEWED_COMPLETE",
+             "signal_session": "2026-09-30"},
+            {"shares": {"AAA": 20}, "cash": "8000"},
+            {"AAA": 100.0},
+        )
+        self.assertEqual(
+            [(ticket["ticker"], ticket["side"], ticket["estimated_shares"])
+             for ticket in sheet["tickets"]],
+            [("AAA", "SELL", 1)],
+            "A selected holding must be reduced to its fee-inclusive frozen target",
+        )
+
     def test_no_qualifiers_can_sell_to_cash_without_broker(self):
         sheet = manual_trade_sheet(
             {"selected": [], "data_status": "REVIEWED_COMPLETE",
