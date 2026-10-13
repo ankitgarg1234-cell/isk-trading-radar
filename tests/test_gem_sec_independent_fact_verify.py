@@ -133,3 +133,58 @@ def test_wrong_cik_and_missing_parent_income_fail_closed():
     result = verify_six_candidates(subs, facts)
     assert result["fact_status"] == "UNKNOWN"
     assert "current_missing_net_income" in result["blockers"]
+
+
+
+def test_machine_qa_worker_is_append_only_idempotent_and_never_certifies(monkeypatch):
+    from gem_data.sec_fact_audit_worker import audit_batch
+    subs, facts = originals()
+    sub = receipt("submissions", subs)
+    fact = receipt("companyfacts", facts)
+    raw = {
+        "sub-id": ("SEC_ZIP_SUBMISSIONS", sub),
+        "fact-id": ("SEC_ZIP_COMPANYFACTS", fact),
+    }
+    saved = set()
+    captured = []
+    class Cursor:
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+        def execute(self, query, args=None):
+            if "SELECT DISTINCT ON" in query:
+                self.rows = [(provider, rid, rec["source_sha256"],
+                              f"CIK{CIK}.json")
+                             for rid, (provider, rec) in raw.items()]
+            elif "SELECT probe_id" in query:
+                self.rows = [(p,) for p in saved]
+            elif "SELECT receipt_id,provider" in query:
+                self.rows = [(rid, raw[rid][0], raw[rid][1]["source_sha256"],
+                              raw[rid][1]["metadata"]) for rid in args[1]]
+            elif "INSERT INTO gem_source_probe" in query:
+                captured.append(args)
+                saved.add(args[0])
+        def fetchall(self): return getattr(self, "rows", [])
+    class Conn:
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+        def cursor(self): return Cursor()
+        def commit(self): pass
+    monkeypatch.setattr("gem_data.sec_fact_audit_worker.psycopg.connect",
+                        lambda *args, **kwargs: Conn())
+    monkeypatch.setenv("GEM_READONLY_DATABASE_URL",
+                       "postgresql://gem_web_readonly:private@localhost/gem_forward")
+    monkeypatch.setenv("GEM_INGEST_DATABASE_URL",
+                       "postgresql://gem_source_ingest_limited:private@localhost/gem_forward")
+    first = audit_batch(max_pairs=1)
+    assert first["audited"] == 1
+    assert first["integrity_pass"] == 1
+    assert first["candidate_complete"] == 1
+    assert len(captured) == 1
+    assert captured[0][3] == "PARTIAL"
+    details = json.loads(captured[0][7])
+    assert details["fact_status"] == "CANDIDATE_COMPLETE_NOT_CERTIFIED"
+    assert details["human_reviewer_approved"] is False
+    assert details["certified"] is False
+    second = audit_batch(max_pairs=1)
+    assert second["audited"] == 0
+    assert len(captured) == 1
