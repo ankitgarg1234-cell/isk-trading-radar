@@ -42,7 +42,7 @@ def preliminary_revenue_gate(document, *, as_of):
                 return hold
             if not _ACC.fullmatch(str(row.get("accession",""))):
                 return hold
-            if row.get("ambiguous_standard_concepts"):
+            if _KEY in (row.get("ambiguous_standard_concepts") or []):
                 return hold
             data=row.get("standard_unique_values")
             if not isinstance(data,dict):
