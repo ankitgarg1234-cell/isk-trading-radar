@@ -120,6 +120,94 @@ class FrozenGemManualParityTests(unittest.TestCase):
         self.assertTrue(result["earnings_improvement"])
         self.assertAlmostEqual(result["margin_delta_pp"], 4.0)
 
+    def test_proven_nonpositive_r63_needs_no_sec_quarter_docs(self):
+        negative = _feature("NEG", -.10)
+        for key in ("revenue_yoy","margin_delta_pp","net_income_now",
+                    "net_income_prior","earnings_improvement","latest_accepted_at"):
+            negative[key] = None
+        negative["financial_source"] = "NOT_REQUIRED_AFTER_FROZEN_R63_FAIL"
+        positive = _feature("POS", .12)
+        snapshot = {"schema": "gem-monthly-features-v1",
+                    "frozen_commit": FROZEN,
+                    "signal_session": "2026-09-30", "next_session": "2026-10-01",
+                    "calendar_verified": True,
+                    "universe": [
+                        {"ticker": r["ticker"], "security_id": r["security_id"]}
+                        for r in (negative, positive)],
+                    "features": [negative, positive],
+                    "membership_reviewed": True, "actions_reviewed": True,
+                    "benchmark_reviewed": True, "source_manifest_reviewed": True}
+        result = select_monthly(snapshot, fixture_min_members=2)
+        self.assertEqual(result["data_status"], "REVIEWED_COMPLETE")
+        self.assertEqual(result["selected"], ["POS"])
+        self.assertFalse(next(r for r in result["candidate_audit"]
+                              if r["ticker"] == "NEG")["sec_facts_required"])
+        self.assertTrue(next(r for r in result["candidate_audit"]
+                             if r["ticker"] == "POS")["sec_facts_required"])
+
+    def test_unverified_negative_momentum_must_not_skip_sec_or_release(self):
+        negative = _feature("NEG", -.10)
+        negative["price_basis"] = "HOLD"
+        negative["financial_source"] = "NOT_REQUIRED_AFTER_FROZEN_R63_FAIL"
+        negative["revenue_yoy"] = None
+        negative["margin_delta_pp"] = None
+        negative["latest_accepted_at"] = None
+        positive = _feature("POS", .12)
+        snapshot = {"schema": "gem-monthly-features-v1",
+                    "frozen_commit": FROZEN,
+                    "signal_session": "2026-09-30", "next_session": "2026-10-01",
+                    "calendar_verified": True,
+                    "universe": [
+                        {"ticker": r["ticker"], "security_id": r["security_id"]}
+                        for r in (negative, positive)],
+                    "features": [negative, positive],
+                    "membership_reviewed": True, "actions_reviewed": True,
+                    "benchmark_reviewed": True, "source_manifest_reviewed": True}
+        result = select_monthly(snapshot, fixture_min_members=2)
+        self.assertEqual(result["data_status"], "HOLD")
+        self.assertEqual(result["selected"], [])
+        self.assertTrue(next(r for r in result["candidate_audit"]
+                             if r["ticker"] == "NEG")["sec_facts_required"])
+
+    def test_recompute_source_month_only_verifies_sec_for_positive_momentum(self):
+        from gem_data import gem_source_feature_verifier as source_verifier
+        members = [{"ticker": t, "security_id": "sid-" + t}
+                   for t in ("NEG","POS")]
+        bundle = {
+            "schema": "gem-source-month-v1",
+            "universe": members,
+            "candidates": [
+                {"ticker": t, "security_id": "sid-" + t,
+                 "prices": {"ticker": t}, "facts": None,
+                 "identity_reviewed": True} for t in ("NEG","POS")],
+            "completed_sessions": [f"DAY{i:03d}" for i in range(126)] + ["2026-09-30"],
+            "signal_session": "2026-09-30", "next_session": "2026-10-01",
+            "calendar_verified": True,
+            "membership_reviewed": True, "actions_reviewed": True,
+            "benchmark_reviewed": True, "source_manifest_reviewed": True,
+        }
+        def price_check(price, **_):
+            return {"r63": -.1 if price["ticker"] == "NEG" else .2,
+                    "nominal_close": 100.0, "adv20": 20_000_000.0,
+                    "price_last_session": "2026-09-30",
+                    "price_sessions": 127, "price_basis": "FROZEN_VERIFIED"}
+        financial = {
+            "revenue_yoy": .25, "margin_delta_pp": 4.0,
+            "net_income_now": 12.0, "net_income_prior": 8.0,
+            "earnings_improvement": True,
+            "financial_source": "SEC_ORIGINAL_QA_REVIEWED",
+            "latest_accepted_at": "2026-08-01T12:00:00+00:00"}
+        with (patch.object(source_verifier,"verify_price_features",
+                           side_effect=price_check) as pv,
+              patch.object(source_verifier,"verify_financial_features",
+                           return_value=financial) as fv):
+            report = source_verifier.recompute_full_month(bundle,
+                                                          fixture_min_members=2)
+        self.assertEqual(report["selected"], ["POS"])
+        self.assertEqual(report["data_status"], "REVIEWED_COMPLETE")
+        self.assertEqual(pv.call_count, 2)
+        self.assertEqual(fv.call_count, 1)
+
     def test_10k_is_not_quarterly_evidence(self):
         fact = _fact("2026-04-01", "2026-06-30", 125.0, form="10-K")
         facts = {key: fact for key in (
