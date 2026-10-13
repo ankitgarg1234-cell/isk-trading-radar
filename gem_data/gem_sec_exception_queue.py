@@ -143,6 +143,7 @@ def read_sec_exception_queue(*, limit=250):
                         details->>'fact_status' AS status,
                         details->'blockers' AS blockers,
                         details->>'as_of' AS as_of,
+                        details->'latest_original_10q' AS latest_original_10q,
                         observed_at AS last_audit
                       FROM gem_source_probe
                       WHERE experiment_id=%s AND source_type='sec'
@@ -151,13 +152,13 @@ def read_sec_exception_queue(*, limit=250):
                       ORDER BY substring(details->>'scope' FROM 'CIK ([0-9]{10})'),
                                observed_at DESC,probe_id DESC
                     )
-                    SELECT cik,status,blockers,as_of,last_audit
+                    SELECT cik,status,blockers,as_of,latest_original_10q,last_audit
                     FROM latest WHERE cik IS NOT NULL ORDER BY cik
                 """,(EXPERIMENT,))
                 rows = []
-                for cik, status, blockers, as_of, last_audit in cur.fetchall():
+                for cik, status, blockers, as_of, latest_10q, last_audit in cur.fetchall():
                     rows.append({"cik": cik,"status": status,"blockers": blockers,
-                                 "as_of": as_of,
+                                 "as_of": as_of,"latest_original_10q":latest_10q,
                                  "last_audit": last_audit.astimezone(timezone.utc).isoformat()})
                 cur.execute("""
                     WITH latest AS (
