@@ -35,3 +35,20 @@ def test_no_evidence_unknown_not_full_coverage():
     assert out["sec"]["source_pairs"]==0
     assert out["prices"]["security_lines_target"]==0
     assert all(s["status"]=="NO_EVIDENCE" for s in out["sources"])
+
+def test_dashboard_unavailable_never_uses_fictitious_zeroes():
+    from gem_data.gem_source_health import unavailable_integrity
+    result = unavailable_integrity()
+    assert result["data_access"] == "UNAVAILABLE"
+    assert len(result["sources"]) == 6
+    assert result["approved_monthly_signals"] is None
+    assert result["prices"]["overall_fully_verified"] is None
+    assert result["sec"]["independently_certified"] is None
+    assert all(s["status"] == "UNAVAILABLE" for s in result["sources"])
+
+
+def test_source_projection_does_not_query_unauthorized_audit_table():
+    import inspect
+    from gem_data.gem_source_health import read_source_integrity
+    source = inspect.getsource(read_source_integrity)
+    assert "FROM gem_sec_independent_receipt_audit" not in source
