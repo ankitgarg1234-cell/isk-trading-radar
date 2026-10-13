@@ -67,6 +67,21 @@ async def _sec_bulk_loop():
         await asyncio.sleep(interval)
 
 
+async def _independent_cert_loop():
+    """Poll for new or backlogged SEC receipts; fail closed without audit access."""
+    from gem_data.gem_cert_audit_worker import process_pending
+    await asyncio.sleep(45)
+    while True:
+        try:
+            result = await asyncio.to_thread(process_pending)
+            _log.info("GEM independent receipt audits: %s", result)
+            delay = 30 if result["audited"] else 120
+        except Exception as exc:
+            _log.warning("GEM independent receipt auditing blocked (%s)", type(exc).__name__)
+            delay = 120
+        await asyncio.sleep(delay)
+
+
 @asynccontextmanager
 async def _lifespan(app):
     tasks = []
@@ -74,6 +89,8 @@ async def _lifespan(app):
         tasks.append(asyncio.create_task(_public_source_loop()))
     if os.getenv("GEM_SEC_BULK_ENABLED") == "yes":
         tasks.append(asyncio.create_task(_sec_bulk_loop()))
+    if os.getenv("GEM_CERT_AUDIT_ENABLED") == "yes":
+        tasks.append(asyncio.create_task(_independent_cert_loop()))
     try:
         yield
     finally:
