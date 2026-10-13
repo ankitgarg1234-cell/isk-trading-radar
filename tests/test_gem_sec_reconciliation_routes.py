@@ -14,6 +14,7 @@ def sample():
         "original_review_reconciled":184,
         "original_review_pending":0,
         "original_six_fact_candidates_recovered_not_certified":2,
+        "preliminary_revenue_growth_gate_fail_not_certified":1,
         "combined_machine_or_original_candidates_not_certified":318,
         "still_no_six_fact_set":182,
         "independently_certified":0,
