@@ -100,3 +100,14 @@ def test_conflicting_revenue_facts_remain_unresolved():
                                                for x in a["candidates"]]}})
     assert result["all_six_standard_category_candidates"] is False
     assert "STANDARD_REVENUE" in result["current"]["ambiguous_standard_concepts"]
+
+
+def test_original_filing_staleness_is_not_a_six_fact_recovery():
+    d={"filings":{"recent":{
+        "form":["10-Q","10-Q"],
+        "accessionNumber":[ACC26,ACC25],
+        "filingDate":["2026-01-02","2025-01-02"],
+        "reportDate":["2025-12-31","2024-12-31"],
+        "primaryDocument":["quarter.htm","quarter.htm"]}}}
+    with pytest.raises(InlineReviewHold,match="stale"):
+        select_original_filing_pair(d,cutoff=date(2026,10,12))
