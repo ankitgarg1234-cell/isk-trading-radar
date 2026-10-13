@@ -10,6 +10,7 @@ No external services, DB writes, or broker behavior in this module.
 from __future__ import annotations
 
 import base64
+import binascii
 from datetime import date
 from hashlib import sha256
 import json
@@ -51,7 +52,7 @@ def _decoded_price_bars(receipt, ticker):
         if len(raw) > MAX_DECOMPRESSED or sha256(raw).hexdigest() != digest:
             raise ValueError("Stored price bars SHA256 mismatch")
         bars = json.loads(raw)
-    except (ValueError, TypeError, zlib.error, UnicodeError, json.JSONDecodeError) as exc:
+    except (ValueError, TypeError, binascii.Error, zlib.error, UnicodeError) as exc:
         raise PriorityEvidenceHold("Stored price receipt bytes cannot be verified") from exc
     if not isinstance(bars, list) or len(bars) > 400:
         raise PriorityEvidenceHold("Invalid price bar array")
@@ -143,7 +144,7 @@ def build_sec_priority_queue(members, receipt_by_ticker, signal_day, *, calendar
             or not isinstance(receipt_by_ticker, dict)
             or not isinstance(signal_day, str)):
         raise PriorityEvidenceHold("Complete input membership manifest required")
-    if any(not isinstance(s, str) or not re.fullmatch(r"[A-Z0-9.\\-]{1,16}", s)
+    if any(not isinstance(s, str) or not re.fullmatch(r"[A-Z0-9.-]{1,16}", s)
            for s in members) or len(set(members)) != len(members):
         raise PriorityEvidenceHold("Malformed or duplicate securities")
     if set(receipt_by_ticker) - set(members):
