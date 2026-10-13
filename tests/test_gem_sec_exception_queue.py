@@ -106,3 +106,21 @@ def test_original_quarter_filing_separate_from_missing_recognized_facts():
     assert result["blockers"]==["fresh_10q_exists_but_standard_facts_unrecognized"]
     assert result["latest_original_10q"]["accession"]==current
     assert result["certified"] is False
+
+
+def test_original_source_review_identifies_missing_operating_income():
+    rows=[{"cik":"0000831001","status":"UNKNOWN",
+           "blockers":["current_missing_operating_income"],
+           "as_of":"2026-10-12","last_audit":"2026-10-13T17:00:00Z"}]
+    review={"0000831001":{
+       "classification":"ORIGINAL_10Q_EXCEPTION_REVIEW_REQUIRED",
+       "six_candidates":False,
+       "current_types":["STANDARD_REVENUE","STANDARD_PARENT_NET_INCOME"],
+       "prior_types":["STANDARD_REVENUE","STANDARD_PARENT_NET_INCOME"],
+    }}
+    result=categorize(rows,inline_reviews=review)
+    case=result["review_queue"][0]
+    assert case["original_sec_missing_fact_types"]["current"]==["STANDARD_OPERATING_INCOME"]
+    assert case["original_sec_missing_fact_types"]["prior"]==["STANDARD_OPERATING_INCOME"]
+    assert case["source_context_certified"] is False
+    assert case["investment_eligible"] is None
