@@ -62,6 +62,8 @@ def select_original_filing_pair(submissions, *, cutoff):
         raise InlineReviewHold("No eligible original 10-Q filing at cutoff")
     selected.sort(key=lambda x:(x["period_end"],x["filed"],x["accession"]),reverse=True)
     current=selected[0]
+    if (cutoff-date.fromisoformat(current["filed"])).days > 210:
+        raise InlineReviewHold("Current financials stale under frozen 210-day rule")
     current_day=date.fromisoformat(current["period_end"])
     prior=[x for x in selected[1:]
            if 310<=(current_day-date.fromisoformat(x["period_end"])).days<=420]
