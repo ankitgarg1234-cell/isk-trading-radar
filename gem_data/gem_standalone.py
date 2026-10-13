@@ -107,26 +107,40 @@ async def _sec_corporate_discovery_loop():
 
 
 async def _marketstack_backfill_loop():
-    """Bounded 5-symbol hourly read-only EOD collector, opt-in only.
+    """Controlled twenty-symbol/ten-minute Marketstack EOD backfill.
 
-    All billable attempts count against a monthly cap that must be explicitly
-    configured. Never run as part of health checks or HTTP page loading.
+    Explicit one-time 1000-request October cap is enforced via the database
+    BEFORE each HTTP call. Systemic provider/auth/quota failures pause the
+    worker for one hour rather than consuming credits across all securities.
+    Research observations only; no trading or ranking release.
     """
     from gem_data.gem_marketstack_backfill import collect_batch, MarketstackBackfillHold
-    await asyncio.sleep(120)
+    await asyncio.sleep(30)
     while True:
+        delay = 600
         try:
-            report = await asyncio.to_thread(collect_batch, max_tickers=5)
+            report = await asyncio.to_thread(collect_batch, max_tickers=20)
+            _log.warning(
+                "GEM Marketstack progress: observed=%d reserved=%d status=%s",
+                report.get("observed_symbols", 0),
+                report.get("new_reserved", 0),
+                report.get("status", "UNKNOWN"),
+            )
             if report.get("failed"):
-                _log.warning("GEM Marketstack observations held: %s",
-                             [(item["ticker"],item["reason_code"]) for item in report["failed"]])
-            else:
-                _log.info("GEM Marketstack bounded observation summary: %s", report)
+                _log.warning("GEM Marketstack individual failures: %s",
+                             [(item["ticker"], item["reason_code"])
+                              for item in report["failed"]])
+            if report.get("status") == "PROVIDER_OR_SYSTEMIC_FAILURE_PAUSED":
+                delay = 3600
+            elif report.get("status") == "MONTHLY_BUDGET_EXHAUSTED_OR_ALL_ALREADY_OBSERVED":
+                delay = 3600
         except MarketstackBackfillHold:
             _log.warning("GEM Marketstack collection on HOLD: missing key, cap or restricted roles")
+            delay = 3600
         except Exception as exc:
             _log.warning("GEM Marketstack observation failure (%s)", type(exc).__name__)
-        await asyncio.sleep(3600)
+            delay = 3600
+        await asyncio.sleep(delay)
 
 
 @asynccontextmanager
