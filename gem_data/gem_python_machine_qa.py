@@ -178,3 +178,36 @@ def read_sec_machine_audit():
     return dict(zip(("paired_issuers","original_sha_pass",
                      "six_fact_candidate_complete","missing_or_ambiguous"),
                     (int(x) for x in row)))
+
+
+def read_ibkr_machine_crosschecks():
+    """Latest append-only IBKR source-agreement states, without promoting QA PASS."""
+    reader=os.getenv("GEM_READONLY_DATABASE_URL","")
+    if not reader.startswith("postgresql://gem_web_readonly:"):
+        raise MachineEvidenceUnavailable("Restricted GEM read-only database required")
+    try:
+        with psycopg.connect(reader,connect_timeout=6) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SET TRANSACTION READ ONLY")
+                cur.execute("SET LOCAL statement_timeout=8000")
+                cur.execute("""
+                    WITH latest AS (
+                        SELECT DISTINCT ON (details->>'ticker',details->>'session')
+                               details
+                        FROM gem_source_probe
+                        WHERE experiment_id=%s AND source_type='prices'
+                          AND probe_id LIKE 'gem-ibkr-independent-price-check-%%'
+                        ORDER BY details->>'ticker',details->>'session',
+                                 observed_at DESC,probe_id DESC
+                    )
+                    SELECT COUNT(*),
+                           COUNT(*) FILTER(WHERE details->>'state'='PROVISIONAL_TWO_SOURCE_PRICE_MATCH'),
+                           COUNT(*) FILTER(WHERE details->>'state'='PROVIDER_DISAGREEMENT_HOLD')
+                    FROM latest
+                """,(EXPERIMENT,))
+                counts=cur.fetchone()
+    except psycopg.Error:
+        raise MachineEvidenceUnavailable("IBKR second-source evidence unavailable") from None
+    if counts is None:
+        raise MachineEvidenceUnavailable("Second-source evidence unreadable")
+    return dict(zip(("compared","agreed","conflicts"),(int(x) for x in counts)))
