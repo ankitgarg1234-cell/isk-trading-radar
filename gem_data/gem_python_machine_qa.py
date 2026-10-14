@@ -86,7 +86,7 @@ def project_machine_qa(integrity,price,sec_audit,*,at=None):
                "Byte/hash/nominal OHLC integrity for stored rows; rejects in vendor source still held",
                "Reconcile vendor-rejected close rows and adjusted basis"),
         _stage("complete_vendor_daily_histories",histories==target and histories127==target and bad==0,
-               histories127-bad if histories127>=bad else 0,target,
+               histories127,target,
                "Full history and zero rejected vendor rows; not independent parity",
                "Use authorized independent history to fix market gaps and short listings"),
         _stage("original_sec_member_sha",paired>=500 and sha_ok==paired,
