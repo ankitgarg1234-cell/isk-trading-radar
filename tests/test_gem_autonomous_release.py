@@ -141,6 +141,11 @@ def test_readiness_api_authenticated_and_all_gates_visible(monkeypatch):
         assert 'id="autonomous-production-readiness"' in page.text
         assert 'id="release-gates"' in page.text
         assert "renderAutonomousReadiness" in page.text
+        assert 'id="live-verification-banner"' in page.text
+        assert "Autonomous verification ACTIVE" in page.text
+        assert "Python research checks are running" in page.text
+        assert 'Data HOLD:</strong>' not in page.text
+        assert "Live trading HOLD" in page.text
 
 
 def test_readiness_api_unavailable_holds(monkeypatch):
