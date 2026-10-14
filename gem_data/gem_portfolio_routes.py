@@ -139,6 +139,9 @@ You place every trade manually. This dashboard never sends broker orders.</div>
 <div class="warn"><strong>Open exceptions:</strong> WBD's pre-delisting history remains unavailable in the two public fallback tests; 57 momentum-screened issuers have unresolved SEC mappings. Observed vendor events (993 dividends and 10 splits) are not a certified corporate-action ledger. Historical index membership and adjusted-price parity still need independent verification.</div>
 <p class="muted">Evidence: <a href="https://github.com/ankitgarg1234-cell/isk-trading-radar/pull/103" target="_blank" rel="noopener noreferrer">isolated research PR #103</a>. The live source cards below continue to read the GEM database. Research numbers above are a dated diagnostic snapshot and will not auto-update until a reviewed evidence-publishing pipeline is connected.</p>
 </section>
+<section class="panel" id="validation-queue"><div class="sourceheader"><div><h2>Automatic validation work queue</h2><p>Live priority ordering from source evidence. The dashboard advances its displayed task as blockers are cleared; it does not independently certify sources or launch paid provider calls.</p></div><span class="status" id="queue-state">Checking</span></div>
+<div id="queue-current" class="milestone">Loading next validation task…</div><div id="queue-list" class="muted" style="margin-top:9px"></div>
+<p class="muted">Evidence refreshes every five minutes while this page is open. Collection and SEC background workers are separately configured on Render; this page cannot enable them. Independent review and shadow validation remain release gates.</p></section>
 <section class="panel"><div class="sourceheader"><div><h2>Data integrity at a glance</h2>
 <p>Live evidence inventory from the isolated GEM database. Latest collection and audit times are shown separately.</p></div>
 <button id="refresh" type="button">Refresh evidence</button></div>
@@ -193,6 +196,16 @@ async function refresh(){
    ?"Snapshot: "+fmt(data.generated_at)+" · Read-only source evidence · Investment release: "+data.investment_release
    :"SOURCE DATA UNAVAILABLE — all six sources shown as UNKNOWN; please retry. No trade approval inferred.";
  $("approved").textContent=data.approved_monthly_signals==null?"Unknown":String(data.approved_monthly_signals);
+ const queue=$("queue-list");queue.replaceChildren();
+ const priority=["prices","sec","membership","actions","calendar","benchmark"];
+ const pending=priority.map(k=>data.sources.find(s=>s.key===k)).filter(Boolean)
+   .filter(s=>s.source_approval!=="APPROVED"&&s.status!=="VERIFIED");
+ const current=pending[0];
+ $("queue-state").textContent=accessible?(current?"BLOCKED / IN PROGRESS":"AWAITING INDEPENDENT RELEASE"):"SOURCE DATA UNAVAILABLE";
+ $("queue-current").textContent=accessible
+   ?(current?"Next: "+current.title+" — "+(current.next_step||"Independent evidence review pending"):"All source cards need independent release review")
+   :"Cannot determine next task without database access";
+ pending.forEach((item,i)=>el("p",(i+1)+". "+item.title+" · "+(item.progress_tag||item.status)+" · "+(item.next_step||"QA pending"),queue,"muted"));
  const box=$("sources");box.replaceChildren();
  data.sources.forEach(s=>{
   const card=el("article",null,box,"source"),head=el("div",null,card,"sourceheader");
@@ -354,6 +367,7 @@ $("export").onclick=()=>{
  const url=URL.createObjectURL(blob);a.href=url;a.download="gem-positions-reviewed-draft.json";a.click();URL.revokeObjectURL(url);
 };
 refresh();
+setInterval(refresh,300000);
 </script></body></html>"""
 
 
