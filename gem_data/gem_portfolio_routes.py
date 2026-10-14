@@ -19,6 +19,17 @@ from gem_data.gem_positions_import import (
 router = APIRouter()
 
 
+@router.get("/api/gem-portfolio/robot")
+def research_robot_status():
+    from gem_data.gem_research_robot import read_recent
+    try:
+        return JSONResponse(read_recent(), headers={"Cache-Control": "no-store"})
+    except (RuntimeError, Exception):
+        return JSONResponse({"schema":"gem-robot-status-v1","release":"DATA_HOLD",
+            "trading_enabled":False,"checks":[],"status":"UNAVAILABLE"},
+            status_code=503,headers={"Cache-Control":"no-store"})
+
+
 @router.get("/api/gem-portfolio/integrity")
 def source_integrity():
     try:
@@ -197,6 +208,15 @@ async function refresh(){
    :"SOURCE DATA UNAVAILABLE — all six sources shown as UNKNOWN; please retry. No trade approval inferred.";
  $("approved").textContent=data.approved_monthly_signals==null?"Unknown":String(data.approved_monthly_signals);
  const queue=$("queue-list");queue.replaceChildren();
+ try {
+  const robotResponse=await fetch("/api/gem-portfolio/robot",{cache:"no-store"});
+  const robot=await robotResponse.json();
+  if(robotResponse.ok && Array.isArray(robot.checks) && robot.checks.length){
+   el("p","Robot last check: "+fmt(robot.checks.map(c=>c.observed_at).sort().at(-1))+
+     " · "+robot.checks.length+" sources · DATA HOLD",queue,"muted");
+  }else el("p","Robot execution: not yet recorded or evidence access unavailable",queue,"muted");
+ }catch(e){el("p","Robot execution: status unavailable",queue,"muted");}
+
  const priority=["prices","sec","membership","actions","calendar","benchmark"];
  const pending=priority.map(k=>data.sources.find(s=>s.key===k)).filter(Boolean)
    .filter(s=>s.source_approval!=="APPROVED"&&s.status!=="VERIFIED");
