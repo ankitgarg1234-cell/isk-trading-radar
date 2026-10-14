@@ -162,6 +162,10 @@ You place every trade manually. This dashboard never sends broker orders.</div>
 <div class="secsummary" id="release-metrics"><div><strong>—</strong><small>Independent gate checks</small></div></div>
 <div id="release-timestamp" class="muted" style="margin-top:8px">No release-check snapshot yet.</div>
 <div id="release-gates" class="sourcegrid" style="margin-top:15px"></div>
+<h3 style="margin-top:19px">Python checks — independent numerical and source-integrity evidence</h3>
+<p class="muted">These can pass automatically when their narrow checks succeed. A storage checksum PASS is not a production price-source approval.</p>
+<div class="secsummary" id="machine-qa-summary"></div>
+<div id="machine-qa-gates" class="sourcegrid" style="margin-top:12px"></div>
 <p class="muted">The source-repair bots collect and machine-audit permitted evidence. External source reconciliation, independent review, prospective shadow validation and broker approval remain separate verifiable gates; failed gates never authorize an order.</p>
 </section>
 <section class="panel" id="price-gap-progress" aria-label="Live price gap remediation">
@@ -242,8 +246,9 @@ const $=id=>document.getElementById(id);
 let draft=[];
 const fmt=x=>x?new Date(x).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short",timeZone:"UTC"})+" UTC":"Not yet recorded";
 function renderAutonomousReadiness(release){
- const metrics=$("release-metrics"),cards=$("release-gates");
- metrics.replaceChildren();cards.replaceChildren();
+ const metrics=$("release-metrics"),cards=$("release-gates"),
+       mach=$("machine-qa-summary"),machCards=$("machine-qa-gates");
+ metrics.replaceChildren();cards.replaceChildren();mach.replaceChildren();machCards.replaceChildren();
  if(!release || release.schema!=="gem-autonomous-production-gates-v1" ||
     !Array.isArray(release.gates) || release.gates.length===0){
    $("release-state").textContent="NO VERIFIED RELEASE CHECK";
@@ -269,6 +274,19 @@ function renderAutonomousReadiness(release){
    if(!gate.passed)el("p","Next: "+(gate.next_action||"Independent review required"),card,"muted");
    el("p","Owner: "+(gate.owner||"UNASSIGNED").replaceAll("_"," "),card,"muted");
  });
+ const machine=release.python_machine_qa;
+ if(machine && machine.schema==="gem-python-machine-qa-v1" &&
+    Array.isArray(machine.checks) && machine.checks.length>0){
+   stat(mach,machine.machine_checks_passed+" / "+machine.machine_checks_total,
+       "Python machine checks passed (not trading approvals)");
+   machine.checks.forEach(item=>{
+     const card=el("article",null,machCards,"source"),head=el("div",null,card,"sourceheader");
+     el("h3",item.key.replaceAll("_"," "),head);
+     el("span",item.passed===true?"MACHINE PASS":"MACHINE HOLD",head,"status");
+     el("p",item.observed+" / "+item.required+" — "+item.scope,card,"muted");
+     if(!item.passed)el("p","Next: "+item.next_action,card,"muted");
+   });
+ }else stat(mach,null,"Machine QA evidence unavailable; no automatic pass");
 }
 
 
