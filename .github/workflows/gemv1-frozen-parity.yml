@@ -72,7 +72,7 @@ jobs:
 
   one-shot-public-equity-503:
     name: One-shot 503-member Yahoo price/volume research triage, no trades
-    if: false  # Disabled after bounded public diagnostic; reenable only on explicitly approved one-shot
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 103
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -86,7 +86,7 @@ jobs:
         env:
           GEM_PUBLIC_UNIVERSE_ALLOW_YFINANCE: 'yes'
         run: |
-          python -m scripts.gem_public_universe_price_probe_cli --run --limit 503 --batch-size 40 --outdir /tmp/gem-yahoo-research-only
+          python -m scripts.gem_public_universe_price_probe_cli --run --pit-sep30 --limit 503 --batch-size 40 --outdir /tmp/gem-yahoo-research-only
       - uses: actions/upload-artifact@v4
         if: always()
         with:
