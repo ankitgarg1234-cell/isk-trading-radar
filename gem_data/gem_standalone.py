@@ -177,9 +177,13 @@ async def _marketstack_backfill_loop():
         try:
             report = await asyncio.to_thread(collect_batch, max_tickers=20)
             _log.warning(
-                "GEM Marketstack progress: observed=%d reserved=%d status=%s",
+                "GEM Marketstack progress: observed=%d reserved=%d pending=%d eligible=%d review_hold=%d local_remaining=%d status=%s",
                 report.get("observed_symbols", 0),
                 report.get("new_reserved", 0),
+                report.get("pending_symbols_before", 0),
+                report.get("retry_eligible", 0),
+                report.get("held_for_source_review", 0),
+                report.get("monthly_remaining_local", 0),
                 report.get("status", "UNKNOWN"),
             )
             if report.get("failed"):
@@ -188,7 +192,10 @@ async def _marketstack_backfill_loop():
                               for item in report["failed"]])
             if report.get("status") == "PROVIDER_OR_SYSTEMIC_FAILURE_PAUSED":
                 delay = 3600
-            elif report.get("status") == "MONTHLY_BUDGET_EXHAUSTED_OR_ALL_ALREADY_OBSERVED":
+            elif report.get("status") in (
+                    "LOCAL_MONTHLY_REQUEST_CAP_REACHED",
+                    "ALL_SYMBOLS_OBSERVED_QA_PENDING",
+                    "RETRY_BACKOFF_OR_SOURCE_REVIEW_REQUIRED"):
                 delay = 3600
         except MarketstackBackfillHold:
             _log.warning("GEM Marketstack collection on HOLD: missing key, cap or restricted roles")
