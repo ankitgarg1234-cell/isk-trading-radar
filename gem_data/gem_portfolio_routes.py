@@ -214,6 +214,13 @@ async function refresh(){
   if(robotResponse.ok && Array.isArray(robot.checks) && robot.checks.length){
    el("p","Robot last check: "+fmt(robot.checks.map(c=>c.observed_at).sort().at(-1))+
      " · "+robot.checks.length+" sources · DATA HOLD",queue,"muted");
+   const priceQA=robot.price_raw_receipt_qa;
+   if(priceQA){
+    el("p","Stored price receipt audit: "+priceQA.audited+" checked · "+
+      priceQA.raw_integrity_pass+" byte-integrity pass · "+
+      priceQA.held_for_resolution+" held · INDEPENDENT PRICE PARITY STILL PENDING",
+      queue,"muted");
+   }
    const priceRecovery=robot.checks.find(c=>c.source==="prices")?.autonomous_recovery;
    if(priceRecovery){
     el("p","Autonomous price recovery: "+priceRecovery.state+
