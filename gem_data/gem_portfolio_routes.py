@@ -139,8 +139,7 @@ footer{padding-top:22px;color:#8ea1bb;font-size:12px}
 <h1>GEMv1 · Monthly portfolio</h1>
 <p>Monthly stock selections, manual trade review and independently tracked data quality.</p></div>
 <div class="nav"><a href="/gem-trial">Legacy diagnostics</a><a href="/gem-manual">Developer workbench</a></div></header>
-<div class="warn"><strong>Data HOLD:</strong> No verified five-stock recommendation is currently approved.
-You place every trade manually. This dashboard never sends broker orders.</div>
+<div class="warn" id="live-verification-banner" aria-live="polite"><strong>Autonomous verification ACTIVE · Live trading HOLD:</strong> Python research checks are running under operator authorization; approved monthly recommendations and broker execution remain blocked until the required data and execution tests actually pass. <span id="live-verification-summary">Loading the latest verified evidence…</span></div>
 <div class="kpis" style="margin-top:18px">
 <div class="kpi"><small>Next evaluation</small><strong>Month end</strong><small>After the official completed NYSE session</small></div>
 <div class="kpi"><small>Target portfolio</small><strong>5 stocks</strong><small>20% target allocation each</small></div>
@@ -185,7 +184,7 @@ You place every trade manually. This dashboard never sends broker orders.</div>
 <section class="panel" id="research-progress" aria-label="Accelerated research progress">
 <div class="sourceheader"><div><h2>Archived research snapshot · 14 October 2026</h2>
 <p>Timestamped isolated research diagnostics, separate from the live Neon source-certification inventory below. These figures are not trading eligibility or a new month-end signal.</p></div>
-<span class="status">RESEARCH ONLY · DATA HOLD</span></div>
+<span class="status">ARCHIVED SNAPSHOT · NOT TRADING AUTHORIZATION</span></div>
 <div class="secsummary">
 <div class="kpi"><small>NYSE published schedule</small><strong>251 / 251</strong><small>Independent XNYS calendar match; actual completed sessions not certified</small></div>
 <div class="kpi"><small>SPY price / dividends</small><strong>196 days</strong><small>3 cash dividends cross-checked; provisional 14.77% total return, 2 Jan–13 Oct</small></div>
@@ -252,11 +251,20 @@ function renderAutonomousReadiness(release){
  if(!release || release.schema!=="gem-autonomous-production-gates-v1" ||
     !Array.isArray(release.gates) || release.gates.length===0){
    $("release-state").textContent="NO VERIFIED RELEASE CHECK";
+   $("live-verification-summary").textContent=" Verification evidence unavailable; broker trading disabled.";
    $("release-timestamp").textContent="Autonomous release evaluation not available; trading disabled.";
    stat(metrics,null,"Validated release gate count unavailable");
    return;
  }
  const passed=release.gates.filter(g=>g.passed===true).length;
+ const machine=release.python_machine_qa;
+ const machineCount=(machine&&machine.schema==="gem-python-machine-qa-v1"
+  && Array.isArray(machine.checks))
+   ?machine.checks.filter(g=>g.passed===true).length:null;
+ $("live-verification-summary").textContent=
+   " Automated source tests "+(machineCount===null?"unavailable":machineCount+" / "+machine.checks.length+" passed")+
+   " · Production release checks "+passed+" / "+release.gates.length+" passed."+
+   " Blanket script approval is active; no broker orders can be sent.";
  $("release-state").textContent=release.production_trading_ready===true
   ?"MANUAL REVIEW REQUIRED":"AUTONOMOUS DIAGNOSTICS · TRADING HOLD";
  stat(metrics,passed+" / "+release.gates.length,"Release gates passed");
@@ -274,7 +282,6 @@ function renderAutonomousReadiness(release){
    if(!gate.passed)el("p","Next: "+(gate.next_action||"Independent review required"),card,"muted");
    el("p","Owner: "+(gate.owner||"UNASSIGNED").replaceAll("_"," "),card,"muted");
  });
- const machine=release.python_machine_qa;
  if(machine && machine.schema==="gem-python-machine-qa-v1" &&
     Array.isArray(machine.checks) && machine.checks.length>0){
    stat(mach,machine.machine_checks_passed+" / "+machine.machine_checks_total,
@@ -362,7 +369,7 @@ async function refresh(){
   const robot=await robotResponse.json();
   if(robotResponse.ok && Array.isArray(robot.checks) && robot.checks.length){
    el("p","Robot last check: "+fmt(robot.checks.map(c=>c.observed_at).sort().at(-1))+
-     " · "+robot.checks.length+" sources · DATA HOLD",queue,"muted");
+     " · "+robot.checks.length+" sources · PYTHON QA ACTIVE · TRADING HOLD",queue,"muted");
    const priceQA=robot.price_raw_receipt_qa;
    if(priceQA){
     el("p","Stored price receipt audit: "+priceQA.audited+" checked · "+
