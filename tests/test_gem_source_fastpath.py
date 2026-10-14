@@ -51,7 +51,7 @@ def test_spy_dividend_reinvestment_does_not_omit_distribution():
     ]
     result=provisional_spy_total_return(rows,
         expected_sessions=["2026-09-17","2026-09-18","2026-09-21"])
-    assert math.isclose(result["total_return"],.01/1.0,rel_tol=1e-12)
+    assert math.isclose(result["total_return"],101/99 - 1,rel_tol=1e-12)
     assert result["dividend_events"]==1
     assert result["reported_index"][1]["total_return_index"]==1.0
     assert not result["total_return_benchmark_certified"]
