@@ -231,6 +231,36 @@ async def _price_receipt_audit_loop():
         await asyncio.sleep(delay)
 
 
+async def _yahoo_personal_gap_loop():
+    """Bounded opt-in Yahoo personal research observations, NEVER price QA PASS.
+
+    This loop produces separate immutable candidate receipts for Marketstack's
+    rejected June sessions. It cannot patch official histories or authorize
+    ranks/orders; external source licensing and price parity remain required.
+    """
+    from gem_data.gem_yahoo_auto_research import research_batch, YahooAutoHold
+    await asyncio.sleep(145)
+    while True:
+        delay=240
+        try:
+            report=await asyncio.to_thread(research_batch,max_tickers=2)
+            _log.info("GEM Yahoo provisional gap research: tickers=%d candidates=%d held=%d state=%s",
+                      report["requested"],report["candidate_bars"],
+                      report["held"],report["state"])
+            if report["state"] in ("NEEDS_REVIEW_OR_NEXT_DAY","NO_TARGETED_GAPS_PENDING"):
+                delay=3600
+            elif report["held"]>0:
+                delay=1800
+        except YahooAutoHold:
+            _log.warning("GEM Yahoo personal research HOLD: source permissions or restricted DB role")
+            delay=3600
+        except Exception as exc:
+            _log.warning("GEM Yahoo personal research failed closed (%s)",
+                         type(exc).__name__)
+            delay=3600
+        await asyncio.sleep(delay)
+
+
 async def _research_robot_loop():
     """Continue evidence checks unattended; never block the dashboard."""
     from gem_data.gem_research_robot import run_once
@@ -255,6 +285,9 @@ async def _lifespan(app):
         tasks.append(asyncio.create_task(_research_robot_loop()))
     if os.getenv("GEM_PRICE_RECEIPT_AUDIT_ENABLED", "yes") == "yes":
         tasks.append(asyncio.create_task(_price_receipt_audit_loop()))
+    if (os.getenv("GEM_YFINANCE_PERSONAL_RESEARCH_OPT_IN") == "yes"
+            and os.getenv("GEM_YFINANCE_PERSONAL_USE_ACK") == "yes"):
+        tasks.append(asyncio.create_task(_yahoo_personal_gap_loop()))
     if os.getenv("GEM_SEC_INLINE_REVIEW_ENABLED") == "yes":
         tasks.append(asyncio.create_task(_sec_inline_original_resolution_loop()))
     if os.getenv("GEM_SEC_RECONCILIATION_ENABLED") == "yes":
