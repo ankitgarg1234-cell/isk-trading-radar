@@ -15,6 +15,7 @@ import math
 import re
 
 from gem_data.gem_nyse_2026_manifest import published_schedule_2026
+from gem_data.gem_sep30_index_reconciliation import adjust_sep30_current_membership
 
 SOURCE = "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv"
 EXISTING_SOURCE_SHA = "a8045f043ea7e68d4254a07470a5e95ca5759ded4656657eac514162e6e82e06"
@@ -74,7 +75,25 @@ def classify_yahoo_security(ticker, bars, *, signal_day, required_sessions):
     except (ValueError,TypeError,KeyError,IndexError) as exc:
         return {**base,"status":"UNRESOLVED_PRICE_QA",
                 "reason":str(exc)[:120]}
+    action_events = []
+    action_columns = all(field in getattr(bars, "columns", []) for field in
+                         ("Dividends", "Stock Splits"))
+    if action_columns:
+        for day in dates:
+            b = by_date[day]
+            for key,kind in (("Dividends","DIVIDEND"),("Stock Splits","SPLIT")):
+                amount = float(b[key])
+                if not math.isfinite(amount) or amount < 0:
+                    action_columns = False
+                    action_events = []
+                    break
+                if amount:
+                    action_events.append({"session":day,"type":kind,"value":amount})
+            if not action_columns:
+                break
     return {**base,"status":"OBSERVED_UNCERTIFIED",
+            "action_fields_observed":action_columns,
+            "action_events_uncertified":action_events,
             "r63":r63,"nominal_close":nominal,"adv20":adv20,
             "positive_momentum_preliminary":r63>0,
             "eligible_price_liquidity_provisional":
@@ -84,7 +103,7 @@ def classify_yahoo_security(ticker, bars, *, signal_day, required_sessions):
 
 def probe_universe(*, signal_day="2026-09-30", asof_day="2026-10-13",
                    max_symbols=503, batch_size=40, raw_fetch=None,
-                   quote_fetch=None):
+                   quote_fetch=None, use_sep30_pit=False):
     if signal_day!="2026-09-30" or asof_day!="2026-10-13":
         raise ValueError("Historical diagnostic sessions are pinned")
     if (type(max_symbols) is not int or not 1<=max_symbols<=503
@@ -104,6 +123,12 @@ def probe_universe(*, signal_day="2026-09-30", asof_day="2026-10-13",
     symbols=parse_membership(raw)
     assert len(symbols)==503
     source_sha=sha256(raw).hexdigest()
+    pit_report = None
+    if use_sep30_pit:
+        if source_sha != EXISTING_SOURCE_SHA:
+            raise ValueError("Known 2026 Sep30 official replacement repair needs stored source SHA")
+        pit_report = adjust_sep30_current_membership(symbols)
+        symbols = pit_report["members"]
     xny=published_schedule_2026()
     required=[d["session"] for d in xny["sessions"] if d["session"]<=signal_day]
     requested=sorted(symbols)[:max_symbols]
@@ -148,7 +173,11 @@ def probe_universe(*, signal_day="2026-09-30", asof_day="2026-10-13",
     observed=[r for r in results if r["status"]=="OBSERVED_UNCERTIFIED"]
     pos=[r for r in observed if r["r63"]>0]
     qualified=[r for r in observed if r["eligible_price_liquidity_provisional"]]
-    top=sorted(qualified,key=lambda r:(-r["r63"],r["ticker"]))[:20]
+    sorted_qualified=sorted(qualified,key=lambda r:(-r["r63"],r["ticker"]))
+    top=sorted_qualified[:20]
+    action_rows=[r for r in observed if r.get("action_fields_observed")]
+    action_events=[{"ticker":r["ticker"],**event} for r in action_rows
+                   for event in r["action_events_uncertified"]]
     report={
         "schema":"gem-public-universe-provisional-r63-20260930-v1",
         "membership_source":SOURCE,
@@ -162,6 +191,19 @@ def probe_universe(*, signal_day="2026-09-30", asof_day="2026-10-13",
         "positive_momentum_observed_not_certified":len(pos),
         "price_liquidity_plus_momentum_observed_not_certified":len(qualified),
         "preliminary_price_momentum_top20_not_trading":top,
+        "all_preliminary_positive_price_liquidity_candidates":sorted_qualified,
+        "corporate_event_fields_observed_uncertified":len(action_rows),
+        "vendor_dividend_event_count_uncertified":sum(
+            event["type"]=="DIVIDEND" for event in action_events),
+        "vendor_split_event_count_uncertified":sum(
+            event["type"]=="SPLIT" for event in action_events),
+        "vendor_corporate_action_events_uncertified":action_events,
+        "known_sep30_s_and_p_index_corrections":({
+            "source":pit_report["official_source"],
+            "removed":pit_report["removed_post_signal"],
+            "restored":pit_report["restored_prior_members"],
+            "full_historical_audit":False,
+        } if pit_report else None),
         "unresolved_symbols":[r for r in results if r["status"]!="OBSERVED_UNCERTIFIED"],
         "signal_day_under_review":signal_day,
         "research_only_retrospective_observation":True,
