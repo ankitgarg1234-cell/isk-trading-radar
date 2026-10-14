@@ -39,3 +39,33 @@ jobs:
           assert callable(set_identity)
           print("EdgarTools accession and SEC identity APIs import successfully")
           PY
+
+  public-nyse-spy-quickwins:
+    name: Public NYSE and SPY diagnostics (not source certification)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install isolated public research dependencies
+        run: python -m pip install 'exchange-calendars>=4.6,<5' 'yfinance>=0.2.65,<1'
+      - name: Verify NYSE 2026 schedule against independent XNYS sessions
+        run: python -m scripts.gem_source_fastpath_ci --outdir /tmp/gem-public-source-quickwins
+      - name: Observe SPY raw closing prices and dividend events
+        env:
+          GEM_SOURCE_FASTPATH_ALLOW_YFINANCE: 'yes'
+        run: |
+          if python -m scripts.gem_source_fastpath_ci --outdir /tmp/gem-public-source-quickwins --fetch-spy; then
+            echo 'SPY_OBSERVED_NOT_SOURCE_CERTIFIED'
+          else
+            echo 'SPY_VENDOR_UNAVAILABLE_OR_QA_HOLD'
+            echo 'SPY_VENDOR_UNAVAILABLE_OR_QA_HOLD' > /tmp/gem-public-source-quickwins/spy-provider-hold.txt
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gem-public-quickwins-uncertified
+          path: /tmp/gem-public-source-quickwins/
+          retention-days: 7
