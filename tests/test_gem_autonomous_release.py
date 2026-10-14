@@ -109,3 +109,46 @@ def test_qa_preview_is_machine_diagnostic_not_review_certificate():
     i["sources"][0]["source_approval"]="APPROVED"
     out=evaluate_release(i,p,l)
     assert "source_membership" in out["blocked_gates"]
+
+
+def test_readiness_api_authenticated_and_all_gates_visible(monkeypatch):
+    import base64
+    from fastapi.testclient import TestClient
+    from gem_data.gem_standalone import app
+    from gem_data import gem_portfolio_routes
+    monkeypatch.setenv("GEM_DASHBOARD_USERNAME","gemowner")
+    monkeypatch.setenv("GEM_DASHBOARD_PASSWORD","test-password-at-least-twenty-characters")
+    report=evaluate_release(*facts(),at=datetime(2026,10,14,14,tzinfo=timezone.utc))
+    monkeypatch.setattr(gem_portfolio_routes,"read_latest_release_diagnostic",lambda:report)
+    headers={"Authorization":"Basic "+base64.b64encode(
+        b"gemowner:test-password-at-least-twenty-characters").decode()}
+    with TestClient(app) as client:
+        assert client.get("/api/gem-portfolio/autonomous-readiness").status_code==401
+        response=client.get("/api/gem-portfolio/autonomous-readiness",headers=headers)
+        assert response.status_code==200
+        assert response.headers["cache-control"]=="no-store"
+        assert response.json()["production_trading_ready"] is False
+        assert "source_prices" in response.json()["blocked_gates"]
+        page=client.get("/gem-portfolio",headers=headers)
+        assert page.status_code==200
+        assert 'id="autonomous-production-readiness"' in page.text
+        assert 'id="release-gates"' in page.text
+        assert "renderAutonomousReadiness" in page.text
+
+
+def test_readiness_api_unavailable_holds(monkeypatch):
+    import base64
+    from fastapi.testclient import TestClient
+    from gem_data.gem_standalone import app
+    from gem_data import gem_portfolio_routes
+    monkeypatch.setenv("GEM_DASHBOARD_USERNAME","gemowner")
+    monkeypatch.setenv("GEM_DASHBOARD_PASSWORD","test-password-at-least-twenty-characters")
+    monkeypatch.setattr(gem_portfolio_routes,"read_latest_release_diagnostic",
+                        lambda:(_ for _ in ()).throw(ReadinessHold("unavailable")))
+    headers={"Authorization":"Basic "+base64.b64encode(
+        b"gemowner:test-password-at-least-twenty-characters").decode()}
+    with TestClient(app) as client:
+        response=client.get("/api/gem-portfolio/autonomous-readiness",headers=headers)
+        assert response.status_code==503
+        assert response.json()["production_trading_ready"] is False
+        assert response.json()["gates"]==[]
