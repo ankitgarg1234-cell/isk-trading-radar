@@ -199,6 +199,19 @@ async def _marketstack_backfill_loop():
         await asyncio.sleep(delay)
 
 
+async def _research_robot_loop():
+    """Continue evidence checks unattended; never block the dashboard."""
+    from gem_data.gem_research_robot import run_once
+    await asyncio.sleep(90)
+    while True:
+        try:
+            result = await asyncio.to_thread(run_once)
+            _log.info("GEM autonomous evidence diagnostics: %s", result)
+        except Exception as exc:
+            _log.warning("GEM autonomous evidence diagnostics HOLD (%s)", type(exc).__name__)
+        await asyncio.sleep(900)
+
+
 @asynccontextmanager
 async def _lifespan(app):
     _log.warning("GEM Marketstack configuration: key_present=%s backfill_opt_in=%s monthly_cap_present=%s",
@@ -206,6 +219,8 @@ async def _lifespan(app):
               os.getenv("GEM_MARKETSTACK_BACKFILL_ENABLED") == "yes",
               bool(os.getenv("GEM_MARKETSTACK_MONTHLY_CREDIT_CAP")))
     tasks = []
+    if os.getenv("GEM_RESEARCH_ROBOT_ENABLED", "yes") == "yes":
+        tasks.append(asyncio.create_task(_research_robot_loop()))
     if os.getenv("GEM_SEC_INLINE_REVIEW_ENABLED") == "yes":
         tasks.append(asyncio.create_task(_sec_inline_original_resolution_loop()))
     if os.getenv("GEM_SEC_RECONCILIATION_ENABLED") == "yes":
