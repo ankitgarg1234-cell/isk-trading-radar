@@ -60,8 +60,9 @@ def project_machine_qa(integrity,price,sec_audit,*,at=None):
         raise MachineEvidenceUnavailable("Malformed machine QA counters")
     (histories,target,histories127,bad,audited,good,paired,sha_ok,
      complete,unresolved,yahoo_candidates,gaps)=quantities
-    if (not 480<=target<=600 or histories>target or audited>histories
-            or good>audited or sha_ok>paired or complete>paired
+    if (not 480<=target<=600 or target!=integrity.get("membership_security_lines")
+            or histories>target or audited>histories or good>audited
+            or sha_ok>paired or complete>paired
             or complete+unresolved>paired or yahoo_candidates>gaps):
         raise MachineEvidenceUnavailable("Inconsistent evidence universe")
     by={x.get("key"):x for x in integrity.get("sources",[]) if isinstance(x,dict)}
