@@ -139,7 +139,7 @@ footer{padding-top:22px;color:#8ea1bb;font-size:12px}
 <h1>GEMv1 · Monthly portfolio</h1>
 <p>Monthly stock selections, manual trade review and independently tracked data quality.</p></div>
 <div class="nav"><a href="/gem-trial">Legacy diagnostics</a><a href="/gem-manual">Developer workbench</a></div></header>
-<div class="warn" id="live-verification-banner" aria-live="polite"><strong>Autonomous verification ACTIVE · Live trading HOLD:</strong> Python research checks are running under operator authorization; approved monthly recommendations and broker execution remain blocked until the required data and execution tests actually pass. <span id="live-verification-summary">Loading the latest verified evidence…</span></div>
+<div class="warn" id="live-verification-banner" aria-live="polite"><strong>Autonomous verification ACTIVE · Live trading HOLD:</strong> Python research checks are running under operator authorization; No verified five-stock recommendation is currently approved; broker execution remains blocked until the required data and execution tests actually pass. <span id="live-verification-summary">Loading the latest verified evidence…</span></div>
 <div class="kpis" style="margin-top:18px">
 <div class="kpi"><small>Next evaluation</small><strong>Month end</strong><small>After the official completed NYSE session</small></div>
 <div class="kpi"><small>Target portfolio</small><strong>5 stocks</strong><small>20% target allocation each</small></div>
