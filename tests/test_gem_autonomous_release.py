@@ -17,7 +17,7 @@ def facts():
     }
     price={"data_access":"CONNECTED",
            "collection":{"security_lines_target":503,"marketstack_histories_stored":499},
-           "stored_receipt_audit":{"raw_integrity_pass":499},
+           "stored_receipt_audit":{"integrity_pass":499},
            "verification":{"independently_certified_price_histories":0}}
     ledger={"experiment_frozen_commit":FROZEN_COMMIT,"mode":"SHADOW",
             "execution_enabled":False,"qa_approved_valid":0,
@@ -37,6 +37,13 @@ def test_current_data_explicitly_blocks_every_production_prerequisite():
     assert "source_sec" in report["blocked_gates"]
     assert "prospective_shadow_20_sessions" in report["blocked_gates"]
     assert "separate_execution_controls" in report["blocked_gates"]
+
+
+def test_release_reports_actual_raw_receipt_hash_count():
+    report=evaluate_release(*facts())
+    raw=next(x for x in report["gates"] if x["key"]=="complete_verified_price_universe")
+    assert "499 intact stored receipts" in raw["evidence"]
+    assert raw["passed"] is False
 
 
 def test_raw_price_sha_success_not_equivalent_to_cross_vendor_approval():
