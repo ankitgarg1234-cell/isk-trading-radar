@@ -45,6 +45,19 @@ def test_two_source_agreement_is_not_price_certification():
     assert result["trading_authorized"] is False
 
 
+def test_prices_can_agree_while_volume_conflicts_without_bar_certification():
+    src=sample()
+    src["data"][0]["v"]=400000
+    other=crosscheck_yahoo_ibkr(yahoo(DAYS[0]),
+                               normalize_ibkr_history(src)[DAYS[0]],ticker="AAPL")
+    assert other["nominal_price_fields_agree"] is True
+    assert other["volume_agrees"] is False
+    assert set(other["matched_ohlcv_fields"])=={"open","high","low","close"}
+    assert "volume" in other["discrepancies"]
+    assert other["source_certified"] is False
+    assert other["trading_authorized"] is False
+
+
 def test_significant_price_conflict_is_not_averaged_away():
     src=sample()
     src["data"][0]["c"]=101.0
