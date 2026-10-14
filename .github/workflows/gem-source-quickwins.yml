@@ -1,15 +1,6 @@
 name: GEM source quickwins (public data diagnostics only)
 
 on:
-  push:
-    branches:
-      - fix/gemv1-frozen-parity-manual-20261013
-    paths:
-      - gem_data/gem_nyse_2026_manifest.py
-      - gem_data/gem_spy_total_return_diagnostic.py
-      - scripts/gem_source_fastpath_ci.py
-      - scripts/gem_spy_fastpath_cli.py
-      - .github/workflows/gem-source-quickwins.yml
   workflow_dispatch:
 
 permissions:
