@@ -113,3 +113,30 @@ def test_gap_api_unavailable_no_source_certification(monkeypatch):
         assert result["data_access"]=="UNAVAILABLE"
         assert result["missing_close_sessions"] is None
         assert result["trading_enabled"] is False
+
+
+def test_autonomous_yahoo_candidate_counts_never_change_approval():
+    out=populated(yahoo_candidate_bars=8,yahoo_symbols=4,
+        yahoo_day_counts={"2026-06-09":3,"2026-06-10":3,"2026-06-15":2},
+        yahoo_attempts=5,yahoo_worker_enabled=True)
+    research=out["yahoo_research"]
+    assert research["worker_enabled"] is True
+    assert research["stored_personal_research_candidates"]==8
+    assert research["targeted_vendor_close_gaps"]==1321
+    assert research["targeted_gap_candidates_remaining"]==1313
+    assert research["state"]=="PRIVATE_PROVISIONAL_CANDIDATES_RECORDED_NOT_APPROVED"
+    assert out["verification"]["independently_certified_price_histories"]==0
+    assert all(d["replacement_bars_approved"]==0 for d in out["missing_close_sessions"])
+
+
+@pytest.mark.parametrize("changes",[
+    {"yahoo_candidate_bars":1},
+    {"yahoo_symbols":500},
+    {"yahoo_attempts":-1},
+    {"yahoo_candidate_bars":480,"yahoo_symbols":1,
+     "yahoo_day_counts":{"2026-06-09":480,"2026-06-10":0,"2026-06-15":0}},
+    {"yahoo_worker_enabled":"yes"},
+])
+def test_yahoo_research_progress_inconsistent_is_held(changes):
+    with pytest.raises(GapProgressUnavailable):
+        populated(**changes)
