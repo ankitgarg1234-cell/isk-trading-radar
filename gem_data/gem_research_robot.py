@@ -100,5 +100,20 @@ def read_recent():
                 ORDER BY details->>'source', observed_at DESC, probe_id DESC""",
                 (EXPERIMENT,PREFIX+"%"))
             rows = cur.fetchall()
+            cur.execute("""
+                SELECT COUNT(*),
+                       COUNT(*) FILTER (WHERE details->>'raw_receipt_integrity_pass'='true'),
+                       COUNT(*) FILTER (WHERE state='BLOCKED')
+                FROM gem_source_probe
+                WHERE experiment_id=%s AND probe_id LIKE %s
+            """, (EXPERIMENT, "gem-price-raw-audit-v1-%"))
+            price_audited, raw_pass, blocked = cur.fetchone()
     return {"schema":"gem-robot-status-v1","release":"DATA_HOLD","trading_enabled":False,
+            "price_raw_receipt_qa":{
+                "audited":int(price_audited),
+                "raw_integrity_pass":int(raw_pass),
+                "held_for_resolution":int(blocked),
+                "independently_certified":0,
+                "interpretation":"Raw bar integrity only; independent price parity and completed-session QA outstanding",
+            },
             "checks":[{"observed_at":t.isoformat(),**detail} for t,detail in rows]}
