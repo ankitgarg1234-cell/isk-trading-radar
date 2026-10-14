@@ -1,0 +1,30 @@
+name: GEM bounded research worker (DATA HOLD)
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: gem-research-diagnostics
+  cancel-in-progress: false
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install calendar validation dependency only
+        run: python -m pip install 'exchange-calendars>=4.6,<5'
+      - name: Run all bounded tasks and retain failures
+        run: python -m scripts.gem_autonomous_research_worker --output /tmp/gem-research-worker --database /tmp/gem-research-worker/progress.sqlite
+      - name: Upload timestamped research evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gem-research-worker-evidence
+          path: /tmp/gem-research-worker/
+          retention-days: 30
