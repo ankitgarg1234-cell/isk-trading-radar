@@ -17,7 +17,8 @@ from gem_data.gem_autonomous_release import (evaluate_release, read_release_ledg
                                               read_latest_release_diagnostic)
 from gem_data.gem_price_gap_progress import read_gap_progress
 from gem_data.gem_python_machine_qa import (
-    project_machine_qa, read_sec_machine_audit, MachineEvidenceUnavailable,
+    project_machine_qa, read_sec_machine_audit, read_ibkr_machine_crosschecks,
+    MachineEvidenceUnavailable,
 )
 
 KEYS = ("prices", "sec", "membership", "actions", "calendar", "benchmark")
@@ -126,7 +127,8 @@ def _evaluate_and_record_release():
     price=read_gap_progress()
     ledger=read_release_ledger()
     try:
-        qa=project_machine_qa(sources,price,read_sec_machine_audit())
+        qa=project_machine_qa(sources,price,read_sec_machine_audit(),
+                              ibkr_audit=read_ibkr_machine_crosschecks())
     except MachineEvidenceUnavailable:
         qa={"schema":"gem-python-machine-qa-v1","state":"EVIDENCE_UNAVAILABLE",
             "machine_checks_passed":0,"machine_checks_total":0,
