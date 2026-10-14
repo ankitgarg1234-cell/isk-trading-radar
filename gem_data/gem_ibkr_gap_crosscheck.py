@@ -24,6 +24,7 @@ from gem_data.gem_public_ingest import EXPERIMENT, write_observation
 from gem_data.gem_yfinance_gap_research import TARGET_DATES
 
 PROBE_PREFIX="gem-ibkr-independent-price-check-"
+ATTEMPT_PREFIX="gem-ibkr-readonly-attempt-"
 URL="https://api.ibkr.com/v1/api/iserver/marketdata/history"
 NY=ZoneInfo("America/New_York")
 
@@ -150,6 +151,31 @@ def _fetch(conid,bearer):
         raise IBKRGatewayHold("IBKR_INVALID_JSON_RESPONSE") from None
 
 
+def _reserve_attempt(writer,symbol,utc_day):
+    """One atomic, append-only IBKR request reservation per symbol per UTC day."""
+    key=ATTEMPT_PREFIX+utc_day+"-"+symbol
+    digest=sha256(key.encode()).hexdigest()
+    with psycopg.connect(writer,connect_timeout=6) as conn:
+        with conn.cursor() as cur:
+            cur.execute("SET TRANSACTION READ WRITE")
+            cur.execute("SET LOCAL statement_timeout=7000")
+            cur.execute("SELECT pg_advisory_xact_lock(%s)",(20261014004,))
+            cur.execute("""
+                INSERT INTO gem_source_probe
+                    (probe_id,experiment_id,source_type,state,observed_at,
+                     diagnostic_hash,sample_count,approved_for_trading,details)
+                VALUES (%s,%s,'prices','PARTIAL',%s,%s,0,FALSE,%s::jsonb)
+                ON CONFLICT (probe_id) DO NOTHING RETURNING probe_id
+            """,(key,EXPERIMENT,datetime.now(timezone.utc),digest,
+                 json.dumps({"provider":"IBKR_WEBAPI_READONLY",
+                     "ticker":symbol,"utc_day":utc_day,
+                     "authorization":"SOURCE_READONLY_PROVISIONAL",
+                     "trading_authorized":False})))
+            reserved=cur.fetchone() is not None
+        conn.commit()
+    return reserved
+
+
 def crosscheck_batch(*, max_symbols=2,fetch_fn=None):
     """Read latest Yahoo candidate gaps, append separate noncertifying IBKR probes.
 
@@ -186,9 +212,21 @@ def crosscheck_batch(*, max_symbols=2,fetch_fn=None):
                 WHERE experiment_id=%s AND probe_id LIKE %s
             """,(EXPERIMENT,PROBE_PREFIX+"%"))
             done={(a,b) for a,b in cur.fetchall()}
+            cur.execute("""
+                SELECT details->>'ticker',details->>'utc_day'
+                FROM gem_source_probe
+                WHERE experiment_id=%s AND probe_id LIKE %s
+            """,(EXPERIMENT,ATTEMPT_PREFIX+"%"))
+            attempts={}
+            for ticker,day in cur.fetchall():
+                if ticker and day:
+                    attempts.setdefault(ticker,[]).append(day)
+    today=datetime.now(timezone.utc).strftime("%Y%m%d")
     candidates={}
     for ticker,session,yahoo,receipt in rows:
-        if ticker not in conids or session not in TARGET_DATES or (ticker,session) in done:
+        prior=attempts.get(ticker,[])
+        if (ticker not in conids or session not in TARGET_DATES or (ticker,session) in done
+                or today in prior or len(prior)>=2):
             continue
         if not isinstance(yahoo,dict):
             continue
@@ -199,6 +237,8 @@ def crosscheck_batch(*, max_symbols=2,fetch_fn=None):
     held=0
     now=datetime.now(timezone.utc)
     for symbol,requested_days in list(candidates.items())[:max_symbols]:
+        if not _reserve_attempt(writer,symbol,today):
+            continue
         try:
             body,digest=(fetch_fn or _fetch)(conids[symbol],bearer)
             bars=normalize_ibkr_history(body,expected_dates=TARGET_DATES)
