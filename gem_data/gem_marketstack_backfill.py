@@ -99,7 +99,27 @@ def _universe_and_spend(reader, month, today):
             """, (EXPERIMENT, _RESERVE_PREFIX + month + "-%"))
             reservations = [x[0] for x in cur.fetchall()]
             count = len(reservations)
-            attempted = {key[len(_RESERVE_PREFIX)+16:] for key in reservations}
+            # Keep the UTC reservation day and number of attempts per symbol.
+            # Previous code treated ANY October request as a permanent attempt,
+            # making all 503 names ineligible after the first sweep even though
+            # 14 had no persisted observation. That was NOT quota exhaustion.
+            attempted = {}
+            prefix = _RESERVE_PREFIX + month + "-"
+            for reservation in reservations:
+                tail = reservation.removeprefix(prefix)
+                day, separator, symbol = tail.partition("-")
+                if separator and len(day) == 8 and day.isdigit() and _SYMBOL.fullmatch(symbol):
+                    attempted.setdefault(symbol, {"days": [], "last_reason": None})["days"].append(day)
+            cur.execute("""
+                SELECT details->>'ticker', details->>'reason_code'
+                FROM gem_source_probe
+                WHERE experiment_id=%s AND source_type='prices'
+                  AND probe_id LIKE %s AND details->>'ticker' IS NOT NULL
+                ORDER BY observed_at ASC, probe_id ASC
+            """, (EXPERIMENT, "gem-marketstack-failed-" + month + "%"))
+            for symbol, reason in cur.fetchall():
+                if symbol in attempted:
+                    attempted[symbol]["last_reason"] = reason
             cur.execute("""
                 SELECT DISTINCT metadata->>'ticker'
                 FROM gem_source_receipt
@@ -110,6 +130,40 @@ def _universe_and_spend(reader, month, today):
             """, (EXPERIMENT, month))
             done = {x[0] for x in cur.fetchall()}
     return tickers, count, done, attempted
+
+
+def _retry_candidates(symbols, complete, attempted, today):
+    """Prefer never-tried symbols, then safe single retries on a later UTC day.
+
+    A maximum of TWO reserved attempts per ticker is allowed for the initial
+    backfill. Malformed/permanently unsupported vendor data needs independent
+    resolution, not blind repeat spending. Supports old set-style test fixtures.
+    """
+    if not isinstance(attempted, dict):
+        eligible = [sym for sym in symbols if sym not in complete and sym not in attempted]
+        return eligible, []
+    fresh, retry, held = [], [], []
+    permanent = ("MARKETSTACK_HTTP_422",
+                 "no valid vendor historical prices found",
+                 "missing or invalid vendor field:",
+                 "invalid vendor numeric field:",
+                 "invalid vendor nominal OHLC")
+    date_key = today.strftime("%Y%m%d")
+    for symbol in symbols:
+        if symbol in complete:
+            continue
+        info = attempted.get(symbol, {})
+        days = info.get("days", [])
+        reason = info.get("last_reason") or ""
+        if any(reason.startswith(code) for code in permanent):
+            held.append(symbol)
+        elif not days:
+            fresh.append(symbol)
+        elif len(days) < 2 and max(days) < date_key:
+            retry.append(symbol)
+        else:
+            held.append(symbol)
+    return fresh + retry, held
 
 
 def _reserve_request(reader, writer, symbol, stamp, cap):
@@ -247,14 +301,23 @@ def collect_batch(*, max_tickers=20, observed=None, fetch_fn=None):
         raise MarketstackBackfillHold("Initial October 2026 authorization expired")
     symbols, used, complete, attempted = _universe_and_spend(reader, month, observed.date())
     remaining = min(max_tickers, max(0, cap-used))
-    chosen = [sym for sym in symbols if sym not in complete and sym not in attempted][:remaining]
+    eligible, held = _retry_candidates(symbols, complete, attempted, observed.date())
+    chosen = eligible[:remaining]
+    pending = sum(sym not in complete for sym in symbols)
     report = {"universe_symbols":len(symbols),"monthly_cap":cap,
-              "reserved_before":used,"new_reserved":0,
+              "reserved_before":used,"monthly_remaining_local":max(0,cap-used),
+              "new_reserved":0,"retry_eligible":len(eligible),
+              "held_for_source_review":len(held),
               "observed_symbols":0,"observed_bars":0,
-              "failed":[], "pending_symbols_before":len(symbols)-len(complete),
+              "failed":[], "pending_symbols_before":pending,
               "certified":False,"automatic_trading":False}
     if not chosen:
-        report["status"] = "MONTHLY_BUDGET_EXHAUSTED_OR_ALL_ALREADY_OBSERVED"
+        if used >= cap:
+            report["status"] = "LOCAL_MONTHLY_REQUEST_CAP_REACHED"
+        elif pending == 0:
+            report["status"] = "ALL_SYMBOLS_OBSERVED_QA_PENDING"
+        else:
+            report["status"] = "RETRY_BACKOFF_OR_SOURCE_REVIEW_REQUIRED"
         return report
     probe = fetch_fn
     consecutive_failures = 0
