@@ -32,7 +32,7 @@ def _gate(key, ready, evidence, action, owner):
             "next_action":action, "owner":owner}
 
 
-def evaluate_release(integrity, gap, ledger, *, at=None):
+def evaluate_release(integrity, gap, ledger, *, at=None, machine_qa=None):
     """Independent pure cross-check of essential production gate evidence.
 
     Values are derived from the current isolated database, not approved
@@ -134,6 +134,21 @@ def evaluate_release(integrity, gap, ledger, *, at=None):
                        "Observe >=20 distinct prospective completed NYSE sessions "
                        "after approved month end, reconcile simulated fills and failures",
                        "AUTOMATED_SHADOW_TRIAL"))
+    # Machine QA is numerically independent of broker and source authority.
+    # Never translate a storage checksum PASS into source_approval=APPROVED.
+    machine_qa=machine_qa if machine_qa is not None else {
+        "schema":"gem-python-machine-qa-v1","state":"NOT_EVALUATED",
+        "machine_checks_passed":0,"machine_checks_total":0,
+        "independent_source_approval":False,"trading_enabled":False,"checks":[]}
+    if (not isinstance(machine_qa,dict) or
+            machine_qa.get("schema")!="gem-python-machine-qa-v1" or
+            machine_qa.get("independent_source_approval") is not False or
+            machine_qa.get("trading_enabled") is not False or
+            not isinstance(machine_qa.get("checks"),list)):
+        raise ReadinessHold("Invalid machine evidence report")
+    if (machine_qa.get("machine_checks_passed") !=
+            sum(x.get("passed") is True for x in machine_qa["checks"])):
+        raise ReadinessHold("Inconsistent machine check counts")
     broker_ready=False  # No trading API in this deliberately read-only service.
     gates.append(_gate("separate_execution_controls",broker_ready,
                        "This GEM service has no broker gateway, order risk layer or signed release",
@@ -157,6 +172,7 @@ def evaluate_release(integrity, gap, ledger, *, at=None):
         "mode":"DIAGNOSTICS_AND_BOUNDED_REMEDIATION",
         "blocked_gates":blocked,
         "gates":gates,
+        "python_machine_qa":machine_qa,
         "next_repair_priority":next((g for g in gates if not g["passed"]),None),
     }
 
