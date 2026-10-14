@@ -33,17 +33,48 @@ def evaluate(report):
                         "certified_by_robot":False,"trading_authorized":False})
     return results
 
+def _recover_prices():
+    """Attempt bounded evidence acquisition, not signal release or certification.
+
+    The shared database reservation lock ensures that the dedicated collector
+    and this recovery task cannot double-charge a ticker on the same day.
+    Provider failures are recorded as holds; no broker is reachable here.
+    """
+    if os.getenv("GEM_MARKETSTACK_BACKFILL_ENABLED") != "yes":
+        return {"state": "DISABLED", "observed": 0, "reserved": 0}
+    try:
+        from gem_data.gem_marketstack_backfill import collect_batch, MarketstackBackfillHold
+        outcome = collect_batch(max_tickers=3)
+        return {"state": outcome["status"],
+                "observed": int(outcome.get("observed_symbols", 0)),
+                "reserved": int(outcome.get("new_reserved", 0)),
+                "retry_eligible": int(outcome.get("retry_eligible", 0)),
+                "held_for_source_review": int(outcome.get("held_for_source_review", 0)),
+                "local_budget_remaining_before": int(outcome.get("monthly_remaining_local", 0))}
+    except MarketstackBackfillHold:
+        return {"state": "CONFIGURATION_OR_SOURCE_HOLD", "observed": 0, "reserved": 0}
+    except Exception as exc:
+        # Never log vendor tokens, URLs, database passwords, or raw responses.
+        return {"state": "RECOVERY_ERROR_" + type(exc).__name__,
+                "observed": 0, "reserved": 0}
+
+
 def run_once():
     writer = os.getenv("GEM_INGEST_DATABASE_URL", "")
     if not writer.startswith("postgresql://gem_source_ingest_limited:"):
         raise RuntimeError("Append-only GEM evidence role unavailable")
     results = evaluate(read_source_integrity())
+    # Perform one real, bounded recovery step per unattended cycle before
+    # writing the diagnostics. Source approval remains exclusively external.
+    price_recovery = _recover_prices()
     observed = datetime.now(timezone.utc)
     stamp = observed.strftime("%Y%m%dT%H%M%SZ")
     with psycopg.connect(writer, connect_timeout=6) as conn:
         for item in results:
             payload = {"schema":"gem-robot-diagnostic-v1",**item,
                        "observed_at":observed.isoformat(),"release":"DATA_HOLD"}
+            if item["source"] == "prices":
+                payload["autonomous_recovery"] = price_recovery
             digest = sha256(json.dumps(payload,sort_keys=True).encode()).hexdigest()
             probe = {"probe_id":f"{PREFIX}{stamp}-{item['source']}-{digest[:10]}",
                      "source_type":item["source"],"state":"PARTIAL",
@@ -52,7 +83,8 @@ def run_once():
             write_observation(conn,None,probe)
             conn.commit()
     return {"checked":len(results),"blocked":sum(x["status"]=="BLOCKED_EVIDENCE" for x in results),
-            "timestamp":observed.isoformat(),"release":"DATA_HOLD"}
+            "timestamp":observed.isoformat(),"release":"DATA_HOLD",
+            "price_recovery":price_recovery}
 
 def read_recent():
     readonly = os.getenv("GEM_READONLY_DATABASE_URL", "")
