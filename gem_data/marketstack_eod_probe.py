@@ -203,6 +203,11 @@ class MarketstackEODProbe:
             if offset >= total:
                 break
         if not rows:
+            # Keep the concrete evidence failure when EVERY returned row
+            # was rejected. Generic "no historical prices" otherwise hides
+            # the actionable root cause and breaks fail-closed diagnosis.
+            if rejected:
+                raise MarketstackProbeError(rejected[0][1])
             raise MarketstackProbeError("no valid vendor historical prices found")
         rows.sort(key=lambda b: b.session)
         receipt = ProbeReceipt(
