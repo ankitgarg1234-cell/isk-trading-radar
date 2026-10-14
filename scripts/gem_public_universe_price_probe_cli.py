@@ -19,11 +19,13 @@ def main(argv=None):
     p.add_argument("--run",action="store_true")
     p.add_argument("--limit",type=int,default=40)
     p.add_argument("--batch-size",type=int,default=40)
+    p.add_argument("--pit-sep30",action="store_true")
     p.add_argument("--outdir",required=True)
     args=p.parse_args(argv)
     if not args.run or os.environ.get("GEM_PUBLIC_UNIVERSE_ALLOW_YFINANCE")!="yes":
         raise ValueError("Explicit operator diagnostic opt-in required")
-    result=probe_universe(max_symbols=args.limit,batch_size=args.batch_size)
+    result=probe_universe(max_symbols=args.limit,batch_size=args.batch_size,
+                          use_sep30_pit=args.pit_sep30)
     out=Path(args.outdir)
     if out.is_symlink():
         raise ValueError("Output must not be symlink")
@@ -37,6 +39,10 @@ def main(argv=None):
         "status_counts","full_history_observed",
         "positive_momentum_observed_not_certified",
         "price_liquidity_plus_momentum_observed_not_certified",
+        "corporate_event_fields_observed_uncertified",
+        "vendor_dividend_event_count_uncertified",
+        "vendor_split_event_count_uncertified",
+        "known_sep30_s_and_p_index_corrections",
         "verified_eligible_competitor_set",
         "source_certified","trading_authorized","report_sha256")}
     print(json.dumps(summary,sort_keys=True))
