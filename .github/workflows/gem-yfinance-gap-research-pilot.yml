@@ -1,0 +1,46 @@
+name: GEM Yahoo Personal-Research Gap Pilot
+on:
+  push:
+    branches: [draft/gem-standalone-render-20261012]
+    paths:
+      - ".github/workflows/gem-yfinance-gap-research-pilot.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  three-symbol-personal-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install optional Yahoo research dependency (not production)
+        run: python -m pip install -r requirements-gem-yfinance-research.txt
+      - name: Query exactly 3 research symbols (no Neon, no broker)
+        run: |
+          python -m gem_data.gem_yfinance_gap_research \
+            --symbols AAPL,MSFT,SPY \
+            --output "$RUNNER_TEMP/gem_yahoo_personal_research.json"
+      - name: Show presence-only evidence, not copyrighted prices
+        run: |
+          python - <<'PY'
+          import json, os
+          path=os.path.join(os.environ["RUNNER_TEMP"],"gem_yahoo_personal_research.json")
+          with open(path) as handle:
+              result=json.load(handle)
+          print("Yahoo June personal research pilot:")
+          print("Requested ticker symbols:",result["tickers_requested"])
+          print("Available candidate bars:",result["possible_replacements"])
+          print("Held ticker/date checks:",len(result["holds"]))
+          print("Held reason classes:",sorted(set(x["reason"] for x in result["holds"])))
+          print("Production trading permitted:",result["allowed_for_live_trading"])
+          if result["allowed_for_live_trading"] is not False:
+              raise SystemExit("Unexpected trading authorization")
+          PY
+      - name: Delete personal research observations
+        if: always()
+        run: rm -f "$RUNNER_TEMP/gem_yahoo_personal_research.json"
