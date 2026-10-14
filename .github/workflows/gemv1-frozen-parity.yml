@@ -93,3 +93,23 @@ jobs:
           name: gem-503-research-only-price-exceptions
           path: /tmp/gem-yahoo-research-only/
           retention-days: 7
+
+  pre-delisting-wbd-recovery:
+    name: One-shot WBD Sept30 price history recovery (read-only)
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 103
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'yfinance>=0.2.65,<1' 'requests>=2.31,<3'
+      - name: Check original 127-session WBD evidence availability
+        run: |
+          python - <<'PY'
+          import json
+          from gem_data.gem_wbd_history_recovery import examine_wbd_daily_prices
+          print("WBD_OBSERVATION_NOT_PRICE_OR_TRADING_CERTIFIED")
+          print(json.dumps(examine_wbd_daily_prices(),sort_keys=True))
+          PY
