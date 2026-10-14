@@ -10,6 +10,8 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from gem_data.gem_source_health import IntegrityUnavailable, read_source_integrity, unavailable_integrity
+from gem_data.gem_price_gap_progress import (GapProgressUnavailable, read_gap_progress,
+                                         unavailable_gap_progress)
 from gem_data.gem_sec_exception_queue import (read_sec_exception_queue,
                                               SECExceptionQueueUnavailable)
 from gem_data.gem_positions_import import (
@@ -37,6 +39,16 @@ def source_integrity():
     except IntegrityUnavailable:
         return JSONResponse(unavailable_integrity(), status_code=503,
                             headers={"Cache-Control": "no-store"})
+
+
+@router.get("/api/gem-portfolio/price-gaps")
+def price_gap_progress():
+    """Read-only stored history repair stages, not a source approval endpoint."""
+    try:
+        return JSONResponse(read_gap_progress(), headers={"Cache-Control":"no-store"})
+    except GapProgressUnavailable:
+        return JSONResponse(unavailable_gap_progress(), status_code=503,
+                            headers={"Cache-Control":"no-store"})
 
 
 @router.get("/api/gem-portfolio/sec-exceptions")
@@ -130,8 +142,22 @@ You place every trade manually. This dashboard never sends broker orders.</div>
 <tr><td>Awaiting verified selection 4</td><td>HOLD</td><td>20%</td></tr>
 <tr><td>Awaiting verified selection 5</td><td>HOLD</td><td>20%</td></tr>
 </tbody></table></section>
+<section class="panel" id="price-gap-progress" aria-label="Live price gap remediation">
+<div class="sourceheader"><div><h2>Live price recovery · Marketstack evidence</h2>
+<p>Real-time counts from the isolated GEM Neon ledger, plus a separate personal-research Yahoo pilot. Raw receipt integrity is not equivalent to verified market prices.</p></div>
+<span class="status" id="gapreleasestate">Loading source records</span></div>
+<div class="secsummary" id="gapmetrics"><div><strong>—</strong><small>Reading source records…</small></div></div>
+<p class="muted" id="gapupdated">Recovery check pending…</p>
+<h3 style="margin-top:18px">Vendor-rejected daily closes · June 2026</h3>
+<p class="muted">Each count is the number of Marketstack ticker histories with a rejected close on the specified session. It is not a count of approved replacements.</p>
+<table class="stocklist" aria-label="Marketstack invalid date evidence">
+<thead><tr><th>Session</th><th>Marketstack histories affected</th><th>Approved replacement bars</th></tr></thead>
+<tbody id="gapdays"><tr><td colspan="3">Reading date-specific evidence…</td></tr></tbody></table>
+<div class="warn"><strong>Yahoo pilot, not live data repair:</strong> Yahoo supplied 9/9 research-only bars for AAPL, MSFT and SPY across those dates. <a href="https://github.com/ankitgarg1234-cell/isk-trading-radar/actions/runs/38568599964" target="_blank" rel="noopener noreferrer">View the actual pilot run</a>. Those bars have <strong>not</strong> been imported into GEM or independently cleared for production. Yahoo's personal-use service is not a licensed unattended trading feed.</div>
+<p class="muted" id="gapnext">Awaiting the next independent source reconciliation milestone…</p>
+</section>
 <section class="panel" id="research-progress" aria-label="Accelerated research progress">
-<div class="sourceheader"><div><h2>Accelerated research progress · 14 October 2026</h2>
+<div class="sourceheader"><div><h2>Archived research snapshot · 14 October 2026</h2>
 <p>Timestamped isolated research diagnostics, separate from the live Neon source-certification inventory below. These figures are not trading eligibility or a new month-end signal.</p></div>
 <span class="status">RESEARCH ONLY · DATA HOLD</span></div>
 <div class="secsummary">
@@ -195,7 +221,50 @@ let draft=[];
 const fmt=x=>x?new Date(x).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short",timeZone:"UTC"})+" UTC":"Not yet recorded";
 function el(tag,txt,parent,cls){const node=document.createElement(tag);if(txt!=null)node.textContent=txt;if(cls)node.className=cls;parent.appendChild(node);return node}
 function stat(parent,value,label){const div=el("div",null,parent);el("strong",value==null?"Unknown":String(value),div);el("small",label,div)}
+async function refreshGapProgress(){
+ const metrics=$("gapmetrics"),table=$("gapdays"),stamp=$("gapupdated");
+ metrics.replaceChildren();table.replaceChildren();
+ $("gapreleasestate").textContent="Checking evidence";
+ try{
+  const response=await fetch("/api/gem-portfolio/price-gaps",{cache:"no-store"});
+  const result=await response.json();
+  if(!response.ok || result.schema!=="gem-price-gap-progress-v1" ||
+     result.data_access!=="CONNECTED" || !Array.isArray(result.missing_close_sessions))
+     throw Error("Restricted price evidence unavailable");
+  const count=result.collection, audit=result.stored_receipt_audit, local=result.marketstack_local_budget;
+  const verified=result.verification, yahoo=result.yahoo_research;
+  if(!count || !audit || !verified || !local || !yahoo)
+     throw Error("Incomplete recovery counters");
+  stat(metrics,count.marketstack_histories_stored+" / "+count.security_lines_target,"Marketstack histories collected");
+  stat(metrics,audit.audited+" / "+count.marketstack_histories_stored,"Stored receipts audited");
+  stat(metrics,audit.integrity_pass,"Stored hashes/OHLC passed (not price QA)");
+  stat(metrics,count.histories_with_rejected_vendor_rows,"Histories with vendor rejects");
+  stat(metrics,count.rejected_vendor_rows,"Rejected vendor rows (all dates)");
+  stat(metrics,verified.independently_certified_price_histories,"Independently certified");
+  stat(metrics,local.requests_reserved+" / "+local.cap,"Locally reserved Marketstack requests");
+  stat(metrics,count.histories_with_at_least_127_bars,"Histories with ≥127 stored bars");
+  result.missing_close_sessions.forEach(item=>{
+   const row=el("tr",null,table);
+   el("td",item.session,row);el("td",String(item.affected_marketstack_histories),row);
+   el("td",String(item.replacement_bars_approved)+" · source HOLD",row);
+  });
+  $("gapreleasestate").textContent="RESEARCH ACTIVE · TRADING HOLD";
+  stamp.textContent="Last raw-receipt audit: "+fmt(audit.last_recorded_at)+
+   " · "+audit.vendor_or_length_holds+" receipts held for source correction or short history."+
+   " Yahoo status: "+yahoo.state.replaceAll("_"," ")+".";
+  $("gapnext").textContent="Next required evidence: "+verified.next_required_step+
+   ". No broker integration or automated trade execution is enabled.";
+ }catch(err){
+  $("gapreleasestate").textContent="EVIDENCE UNAVAILABLE";
+  stat(metrics,null,"Recovery counters unavailable");
+  const row=el("tr",null,table);const cell=el("td","Date-specific source counts unavailable; no replacement is considered approved.",row);
+  cell.colSpan=3;
+  stamp.textContent="Restricted recovery data unavailable. Recheck or use Refresh evidence; no inferred source approval.";
+  $("gapnext").textContent="Price correction not verified; trading remains disabled.";
+ }
+}
 async function refresh(){
+ refreshGapProgress();
  $("generated").textContent="Refreshing evidence…";
  try{
  const response=await fetch("/api/gem-portfolio/integrity",{cache:"no-store"});
