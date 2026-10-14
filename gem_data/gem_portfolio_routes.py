@@ -119,6 +119,26 @@ You place every trade manually. This dashboard never sends broker orders.</div>
 <tr><td>Awaiting verified selection 4</td><td>HOLD</td><td>20%</td></tr>
 <tr><td>Awaiting verified selection 5</td><td>HOLD</td><td>20%</td></tr>
 </tbody></table></section>
+<section class="panel" id="research-progress" aria-label="Accelerated research progress">
+<div class="sourceheader"><div><h2>Accelerated research progress · 14 October 2026</h2>
+<p>Timestamped isolated research diagnostics, separate from the live Neon source-certification inventory below. These figures are not trading eligibility or a new month-end signal.</p></div>
+<span class="status">RESEARCH ONLY · DATA HOLD</span></div>
+<div class="secsummary">
+<div class="kpi"><small>NYSE published schedule</small><strong>251 / 251</strong><small>Independent XNYS calendar match; actual completed sessions not certified</small></div>
+<div class="kpi"><small>SPY price / dividends</small><strong>196 days</strong><small>3 cash dividends cross-checked; provisional 14.77% total return, 2 Jan–13 Oct</small></div>
+<div class="kpi"><small>Current S&amp;P securities</small><strong>503</strong><small>500 issuers; two October replacements corrected for September research</small></div>
+<div class="kpi"><small>Alternative-source price observations</small><strong>500 / 503</strong><small>September month-end; WBD, FDXF and HONA require exception treatment</small></div>
+</div>
+<div class="flowtext" style="margin-top:18px"><span>September 30 retrospective screen · source observations only</span><span>Not independently certified</span></div>
+<div class="secsummary" style="margin-top:8px">
+<div class="kpi"><small>Price + liquidity + r63 candidates</small><strong>186</strong><small>Alternative price basis; not frozen-source parity</small></div>
+<div class="kpi"><small>SEC six-fact sets available by cutoff</small><strong>126</strong><small>Automated source candidates, not audited</small></div>
+<div class="kpi"><small>Provisional financial-gate survivors</small><strong>23</strong><small>Unresolved issuers can change this count</small></div>
+<div class="kpi"><small>Independently approved signals</small><strong>0</strong><small>No final Top 5 and no broker orders</small></div>
+</div>
+<div class="warn"><strong>Open exceptions:</strong> WBD's pre-delisting history remains unavailable in the two public fallback tests; 57 momentum-screened issuers have unresolved SEC mappings. Observed vendor events (993 dividends and 10 splits) are not a certified corporate-action ledger. Historical index membership and adjusted-price parity still need independent verification.</div>
+<p class="muted">Evidence: <a href="https://github.com/ankitgarg1234-cell/isk-trading-radar/pull/103" target="_blank" rel="noopener noreferrer">isolated research PR #103</a>. The live source cards below continue to read the GEM database. Research numbers above are a dated diagnostic snapshot and will not auto-update until a reviewed evidence-publishing pipeline is connected.</p>
+</section>
 <section class="panel"><div class="sourceheader"><div><h2>Data integrity at a glance</h2>
 <p>Live evidence inventory from the isolated GEM database. Latest collection and audit times are shown separately.</p></div>
 <button id="refresh" type="button">Refresh evidence</button></div>
