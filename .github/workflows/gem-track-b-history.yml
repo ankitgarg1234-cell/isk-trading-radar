@@ -1,0 +1,41 @@
+name: GEM archived membership and corporate action worklist
+on:
+  push:
+    branches:
+      - draft/gem-standalone-render-20261012
+    paths:
+      - 'gem_data/historical_claim_builder.py'
+      - 'gem_data/historical_evidence_audit.py'
+      - '.github/workflows/gem-track-b-history.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-historical-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: research/gem-2025-2026-validation-2026-10-11
+          path: frozen_research
+          sparse-checkout: |
+            research_5x/gem_2025_2026_validation/trades.csv
+            research_5x/gem_2025_2026_validation/signals.csv
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build read-only historical claim inventory
+        run: |
+          python -m gem_data.historical_claim_builder \
+            --prices-gz backtests/staged/wf3_prices.json.gz \
+            --trades frozen_research/research_5x/gem_2025_2026_validation/trades.csv \
+            --signals frozen_research/research_5x/gem_2025_2026_validation/signals.csv \
+            --out gem_history_audit/claims_and_gaps.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gem-historical-membership-actions-worklist
+          path: gem_history_audit/claims_and_gaps.json
+          retention-days: 30

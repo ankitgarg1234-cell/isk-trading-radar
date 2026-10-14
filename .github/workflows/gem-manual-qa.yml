@@ -1,0 +1,50 @@
+name: GEM manual-only operations QA
+on:
+  push:
+    branches:
+      - draft/gem-standalone-render-20261012
+    paths:
+      - 'gem_data/**'
+      - 'tests/test_gem_*'
+      - '.github/workflows/gem-manual-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  manual-only-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install application test requirements
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install pytest==8.4.2
+      - name: Compile all GEM Python sources
+        run: python -m compileall -q gem_data
+      - name: Run frozen and manual operations tests
+        run: |
+          python -m pytest -q \
+            tests/test_gem_manual_workflow.py \
+            tests/test_gem_verified_features.py \
+            tests/test_gem_three_stock_cash.py \
+            tests/test_gem_membership_historical.py \
+            tests/test_gem_tiingo_eod_probe.py \
+            tests/test_gem_manual_routes.py \
+            tests/test_gem_historical_evidence_audit.py \
+            tests/test_gem_paper_plan.py \
+            tests/test_gem_archive_ranking_parity.py \
+            tests/test_gem_monthly_packet.py \
+            tests/test_gem_source_health.py \
+            tests/test_gem_sec_exception_queue.py \
+            tests/test_gem_sec_inline_remediation.py \
+            tests/test_gem_integrity_stages.py \
+            tests/test_gem_marketstack_initial_backfill.py \
+            tests/test_gem_marketstack_speed.py \
+            tests/test_gem_calendar_benchmark_members.py \
+            tests/test_gem_source_pipeline_additions.py \
+            tests/test_gem_portfolio_routes.py \
+            tests/test_gem_standalone.py

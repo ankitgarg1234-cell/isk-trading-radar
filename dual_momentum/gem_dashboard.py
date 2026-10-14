@@ -193,11 +193,16 @@ def _gem_only_neon_snapshot():
     if not url:
         return None, "GEM-only Neon read connection not configured"
     try:
-        with psycopg.connect(
-            url, connect_timeout=4,
-            options="-c default_transaction_read_only=on -c statement_timeout=4500",
-        ) as conn:
+        # Neon pooled connections reject arbitrary startup 'options'.
+        # Apply protections inside the transaction instead. PgBouncer in
+        # transaction-pooling mode can safely route the complete transaction;
+        # GEM's separate database role also has SELECT-only grants.
+        with psycopg.connect(url, connect_timeout=4) as conn:
             with conn.cursor() as cur:
+                # These must be the first commands in the transaction, before
+                # any SELECT and with no autocommit so SET LOCAL stays active.
+                cur.execute("SET TRANSACTION READ ONLY")
+                cur.execute("SET LOCAL statement_timeout = 4500")
                 cur.execute(
                     "SELECT experiment_id, frozen_commit, mode, execution_enabled, "
                     "receipt_count, signal_count FROM gem_status_v1 "
