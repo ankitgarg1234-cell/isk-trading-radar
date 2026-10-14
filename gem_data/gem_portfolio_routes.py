@@ -214,6 +214,14 @@ async function refresh(){
   if(robotResponse.ok && Array.isArray(robot.checks) && robot.checks.length){
    el("p","Robot last check: "+fmt(robot.checks.map(c=>c.observed_at).sort().at(-1))+
      " · "+robot.checks.length+" sources · DATA HOLD",queue,"muted");
+   const priceRecovery=robot.checks.find(c=>c.source==="prices")?.autonomous_recovery;
+   if(priceRecovery){
+    el("p","Autonomous price recovery: "+priceRecovery.state+
+      " · observed "+(priceRecovery.observed??0)+
+      " · attempts "+(priceRecovery.reserved??0)+
+      " · held for review "+(priceRecovery.held_for_source_review??"—")+
+      " · NOT independently certified",queue,"muted");
+   }
   }else el("p","Robot execution: not yet recorded or evidence access unavailable",queue,"muted");
  }catch(e){el("p","Robot execution: status unavailable",queue,"muted");}
 
