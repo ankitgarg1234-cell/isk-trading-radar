@@ -171,7 +171,7 @@ def read_release_ledger():
             cur.execute("SET LOCAL statement_timeout=10000")
             cur.execute("""
                 SELECT frozen_commit,mode,execution_enabled
-                FROM gem_experiment WHERE experiment_id=%s LIMIT 1
+                FROM gem_status_v1 WHERE experiment_id=%s LIMIT 1
             """,(EXPERIMENT,))
             row=cur.fetchone()
             if not row:
