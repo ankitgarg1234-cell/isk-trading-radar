@@ -8,6 +8,7 @@ NOT prove frozen adjusted-price parity, complete exchange sessions, or action QA
 from __future__ import annotations
 
 import base64
+import binascii
 from datetime import date, datetime, timezone
 from hashlib import sha256
 import json
@@ -123,7 +124,7 @@ def audit_receipt(receipt_id, expected_sha, metadata):
                 "findings":findings, "raw_receipt_integrity_pass":True,
                 "independent_price_parity_pass":False,
                 "approved_for_trading":False}
-    except (ReceiptAuditHold, ValueError, TypeError, UnicodeError, zlib.error) as exc:
+    except (ReceiptAuditHold, ValueError, TypeError, UnicodeError, zlib.error, binascii.Error) as exc:
         label = str(exc) if isinstance(exc, ReceiptAuditHold) else "INVALID_RAW_RECEIPT"
         return {"state":"BLOCKED", "ticker":metadata.get("ticker") if isinstance(metadata, dict) else None,
                 "bars_recomputed":0,"rejected_rows":None,
@@ -158,7 +159,7 @@ def audit_batch(*, max_receipts=25):
                 WHERE NOT EXISTS (
                     SELECT 1 FROM gem_source_probe p WHERE
                         p.experiment_id=%s AND p.probe_id=
-                            %s || md5(latest.receipt_id)
+                            %s || latest.receipt_id
                 )
                 ORDER BY latest.ticker LIMIT %s
             """, (EXPERIMENT, EXPERIMENT, PREFIX, max_receipts))
@@ -184,7 +185,7 @@ def audit_batch(*, max_receipts=25):
                           **result}
             audit_hash = sha256(json.dumps(audit_json, sort_keys=True).encode()).hexdigest()
             probe = {
-                "probe_id":PREFIX + __import__("hashlib").md5(receipt_id.encode()).hexdigest(),
+                "probe_id":PREFIX + receipt_id,
                 "source_type":"prices","state":result["state"],
                 "observed_at":now,"diagnostic_hash":audit_hash,
                 "sample_count":result["bars_recomputed"],
@@ -195,5 +196,4 @@ def audit_batch(*, max_receipts=25):
             outcome["checked"] += 1
             outcome["raw_integrity_pass"] += int(result["raw_receipt_integrity_pass"])
             outcome["requires_resolution"] += int(result["state"] == "BLOCKED")
-    outcome["remaining_estimate"] = max(0, 499-outcome["checked"]) if False else None
     return outcome
