@@ -40,7 +40,7 @@ def test_duplicate_or_forged_memberships_are_fail_closed():
         plan_price_repairs(members[:-1]+[members[0]],{})
     with pytest.raises(ValueError):
         plan_price_repairs(members,{"NVDA":{
-            "provider":"MARKETSTACK","metadata":{}})
+            "provider":"MARKETSTACK","metadata":{}}})
 
 
 def test_spy_dividend_reinvestment_does_not_omit_distribution():
