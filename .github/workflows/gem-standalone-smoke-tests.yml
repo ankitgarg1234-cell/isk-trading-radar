@@ -8,6 +8,8 @@ on:
       - "gem_data/gem_yfinance_gap_research.py"
       - "tests/test_gem_yfinance_gap_research.py"
       - "gem_data/gem_standalone.py"
+      - "gem_data/gem_price_gap_progress.py"
+      - "tests/test_gem_price_gap_progress.py"
       - "gem_data/gem_price_receipt_audit.py"
       - "tests/test_gem_price_receipt_audit.py"
       - "gem_data/gem_portfolio_routes.py"
@@ -36,4 +38,4 @@ jobs:
       - name: Validate isolated entrypoint and GEM routes without secrets
         run: |
           python -m compileall -q gem_data
-          python -m pytest -q tests/test_gem_marketstack_initial_backfill.py tests/test_gem_marketstack_speed.py tests/test_gem_research_robot.py tests/test_gem_price_receipt_audit.py tests/test_gem_yfinance_gap_research.py tests/test_gem_marketstack_probe.py tests/test_gem_standalone.py tests/test_gem_dashboard.py tests/test_gem_sec_inline_remediation.py tests/test_gem_sec_exception_queue.py tests/test_gem_sec_annual_source.py tests/test_gem_sec_reconciliation.py tests/test_gem_sec_gate_triage.py tests/test_gem_sec_reconciliation_routes.py tests/test_gem_sec_historical_submissions.py
+          python -m pytest -q tests/test_gem_marketstack_initial_backfill.py tests/test_gem_marketstack_speed.py tests/test_gem_research_robot.py tests/test_gem_price_receipt_audit.py tests/test_gem_price_gap_progress.py tests/test_gem_yfinance_gap_research.py tests/test_gem_marketstack_probe.py tests/test_gem_standalone.py tests/test_gem_dashboard.py tests/test_gem_sec_inline_remediation.py tests/test_gem_sec_exception_queue.py tests/test_gem_sec_annual_source.py tests/test_gem_sec_reconciliation.py tests/test_gem_sec_gate_triage.py tests/test_gem_sec_reconciliation_routes.py tests/test_gem_sec_historical_submissions.py
