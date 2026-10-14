@@ -152,7 +152,7 @@ def _store_candidate(writer,candidate,observed):
         "observed_at":observed,
         "source_uri":"https://finance.yahoo.com/quote/"+candidate["yahoo_query_symbol"]+"/history",
         "source_sha256":digest,
-        "coverage_status":"PERSONAL_RESEARCH_UNVERIFIED",
+        "coverage_status":"UNKNOWN",
         "metadata":{
             "marketstack_ticker":ticker,
             "yahoo_query_symbol":candidate["yahoo_query_symbol"],
