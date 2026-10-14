@@ -77,3 +77,22 @@ def test_public_probe_preserves_502_unobserved_competitors_and_never_ranks_trade
     assert report["final_ranking_authorized"] is False
     assert report["trading_authorized"] is False
     assert report["source_certified"] is False
+
+
+def test_corporate_actions_preserved_as_unverified_ex_date_events():
+    sessions=[x["session"] for x in published_schedule_2026()["sessions"]
+              if x["session"]<="2026-09-30"]
+    class Source(FakeBars):
+        columns=["Dividends","Stock Splits"]
+        def iterrows(self):
+            for stamp,row in self.bars:
+                d=stamp.strftime("%Y-%m-%d")
+                yield stamp,{**row,"Dividends":1.25 if d=="2026-09-30" else 0.0,
+                             "Stock Splits":0.0}
+    row=classify_yahoo_security("X000",Source(),signal_day="2026-09-30",
+                                required_sessions=sessions)
+    assert row["status"]=="OBSERVED_UNCERTIFIED"
+    assert row["action_fields_observed"] is True
+    assert row["action_events_uncertified"]==[
+        {"session":"2026-09-30","type":"DIVIDEND","value":1.25}]
+    assert row["certified"] is False
