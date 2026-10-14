@@ -12,6 +12,10 @@ import os
 import psycopg
 from gem_data.gem_public_ingest import EXPERIMENT, write_observation
 from gem_data.gem_source_health import read_source_integrity
+from gem_data.gem_autonomous_release import (evaluate_release, read_release_ledger,
+                                              append_release_diagnostic,
+                                              read_latest_release_diagnostic)
+from gem_data.gem_price_gap_progress import read_gap_progress
 
 KEYS = ("prices", "sec", "membership", "actions", "calendar", "benchmark")
 PREFIX = "gem-robot-check-"
@@ -59,6 +63,46 @@ def _recover_prices():
                 "observed": 0, "reserved": 0}
 
 
+def _recover_raw_receipts():
+    """Run another bounded integrity pass; receipt audit is not market QA."""
+    if os.getenv("GEM_PRICE_RECEIPT_AUDIT_ENABLED", "yes") != "yes":
+        return {"state":"DISABLED","audited":0}
+    try:
+        from gem_data.gem_price_receipt_audit import audit_batch, ReceiptAuditHold
+        result=audit_batch(max_receipts=5)
+        return {"state":"RAW_INTEGRITY_CHECK_ONLY","audited":result["checked"],
+                "raw_pass":result["raw_integrity_pass"],
+                "held":result["requires_resolution"]}
+    except ReceiptAuditHold:
+        return {"state":"CONFIGURATION_HOLD","audited":0}
+    except Exception as exc:
+        return {"state":"RAW_AUDIT_ERROR_"+type(exc).__name__,"audited":0}
+
+
+def _recover_sec_facts():
+    """Independent automated fact *candidates* only; original context QA separate."""
+    if os.getenv("GEM_SEC_FACT_AUDIT_ENABLED") != "yes":
+        return {"state":"DISABLED","audited":0}
+    try:
+        from gem_data.sec_fact_audit_worker import audit_batch, QAHold
+        result=audit_batch(max_pairs=2)
+        return {"state":"MACHINE_CANDIDATES_NOT_CERTIFIED","audited":result["audited"],
+                "remaining":result["remaining_after_estimate"]}
+    except QAHold:
+        return {"state":"CONFIGURATION_HOLD","audited":0}
+    except Exception as exc:
+        return {"state":"SEC_AUDIT_ERROR_"+type(exc).__name__,"audited":0}
+
+
+def _evaluate_and_record_release():
+    """Recompute a separate immutable release gate every unattended cycle."""
+    report=evaluate_release(read_source_integrity(), read_gap_progress(), read_release_ledger())
+    append_release_diagnostic(report)
+    return {"state":"EVALUATED","research_inputs_ready":report["research_inputs_ready"],
+            "production_trading_ready":False,
+            "blocked_gates":report["blocked_gates"]}
+
+
 def run_once():
     writer = os.getenv("GEM_INGEST_DATABASE_URL", "")
     if not writer.startswith("postgresql://gem_source_ingest_limited:"):
@@ -67,6 +111,14 @@ def run_once():
     # Perform one real, bounded recovery step per unattended cycle before
     # writing the diagnostics. Source approval remains exclusively external.
     price_recovery = _recover_prices()
+    raw_recovery = _recover_raw_receipts()
+    sec_recovery = _recover_sec_facts()
+    try:
+        release = _evaluate_and_record_release()
+    except Exception as exc:
+        release = {"state": "RELEASE_CHECK_UNAVAILABLE_" + type(exc).__name__,
+                   "research_inputs_ready": False,"production_trading_ready": False,
+                   "blocked_gates": ["INDEPENDENT_RELEASE_EVIDENCE_UNAVAILABLE"]}
     observed = datetime.now(timezone.utc)
     stamp = observed.strftime("%Y%m%dT%H%M%SZ")
     with psycopg.connect(writer, connect_timeout=6) as conn:
@@ -75,6 +127,9 @@ def run_once():
                        "observed_at":observed.isoformat(),"release":"DATA_HOLD"}
             if item["source"] == "prices":
                 payload["autonomous_recovery"] = price_recovery
+                payload["raw_receipt_recovery"] = raw_recovery
+            if item["source"] == "sec":
+                payload["sec_fact_recovery"] = sec_recovery
             digest = sha256(json.dumps(payload,sort_keys=True).encode()).hexdigest()
             probe = {"probe_id":f"{PREFIX}{stamp}-{item['source']}-{digest[:10]}",
                      "source_type":item["source"],"state":"PARTIAL",
@@ -84,7 +139,9 @@ def run_once():
             conn.commit()
     return {"checked":len(results),"blocked":sum(x["status"]=="BLOCKED_EVIDENCE" for x in results),
             "timestamp":observed.isoformat(),"release":"DATA_HOLD",
-            "price_recovery":price_recovery}
+            "price_recovery":price_recovery,
+            "raw_receipt_recovery":raw_recovery,"sec_fact_recovery":sec_recovery,
+            "release_readiness":release}
 
 def read_recent():
     readonly = os.getenv("GEM_READONLY_DATABASE_URL", "")
@@ -108,7 +165,14 @@ def read_recent():
                 WHERE experiment_id=%s AND probe_id LIKE %s
             """, (EXPERIMENT, "gem-price-raw-audit-v1-%"))
             price_audited, raw_pass, blocked = cur.fetchone()
+    try:
+        release_readiness=read_latest_release_diagnostic()
+    except Exception:
+        release_readiness={"schema":"gem-autonomous-production-gates-v1",
+                           "mode":"UNAVAILABLE","trading_enabled":False,
+                           "production_trading_ready":False,"gates":[]}
     return {"schema":"gem-robot-status-v1","release":"DATA_HOLD","trading_enabled":False,
+            "release_readiness":release_readiness,
             "price_raw_receipt_qa":{
                 "audited":int(price_audited),
                 "raw_integrity_pass":int(raw_pass),
