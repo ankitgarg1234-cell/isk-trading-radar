@@ -1,0 +1,2 @@
+# Optional PERSONAL RESEARCH ONLY. Deliberately not installed by GEM Render production.
+yfinance>=0.2.66,<1
