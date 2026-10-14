@@ -12,7 +12,6 @@ import sys
 TASKS = ("calendar", "benchmark", "prices", "sec", "membership", "actions")
 COMMANDS = {
     "calendar": [sys.executable, "-m", "scripts.gem_source_fastpath_ci"],
-    "benchmark": [sys.executable, "-m", "scripts.gem_source_fastpath_ci"],
 }
 def initialize(conn):
     conn.execute("""CREATE TABLE IF NOT EXISTS runs(
