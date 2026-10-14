@@ -12,6 +12,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from gem_data.gem_source_health import IntegrityUnavailable, read_source_integrity, unavailable_integrity
 from gem_data.gem_price_gap_progress import (GapProgressUnavailable, read_gap_progress,
                                          unavailable_gap_progress)
+from gem_data.gem_autonomous_release import (ReadinessHold,read_latest_release_diagnostic)
 from gem_data.gem_sec_exception_queue import (read_sec_exception_queue,
                                               SECExceptionQueueUnavailable)
 from gem_data.gem_positions_import import (
@@ -39,6 +40,18 @@ def source_integrity():
     except IntegrityUnavailable:
         return JSONResponse(unavailable_integrity(), status_code=503,
                             headers={"Cache-Control": "no-store"})
+
+
+@router.get("/api/gem-portfolio/autonomous-readiness")
+def autonomous_readiness():
+    try:
+        return JSONResponse(read_latest_release_diagnostic(),
+                            headers={"Cache-Control":"no-store"})
+    except ReadinessHold:
+        return JSONResponse({"schema":"gem-autonomous-production-gates-v1",
+                    "mode":"UNAVAILABLE","trading_enabled":False,
+                    "production_trading_ready":False,"gates":[]},
+                    status_code=503,headers={"Cache-Control":"no-store"})
 
 
 @router.get("/api/gem-portfolio/price-gaps")
@@ -142,6 +155,15 @@ You place every trade manually. This dashboard never sends broker orders.</div>
 <tr><td>Awaiting verified selection 4</td><td>HOLD</td><td>20%</td></tr>
 <tr><td>Awaiting verified selection 5</td><td>HOLD</td><td>20%</td></tr>
 </tbody></table></section>
+<section class="panel" id="autonomous-production-readiness" aria-label="Autonomous production readiness controller">
+<div class="sourceheader"><div><h2>Autonomous research and production readiness</h2>
+<p>Independent, recurring release-gate diagnostics. Collection success and a robot's own observations cannot approve source accuracy or enable brokerage.</p></div>
+<span class="status" id="release-state">Awaiting autonomous evaluation</span></div>
+<div class="secsummary" id="release-metrics"><div><strong>—</strong><small>Independent gate checks</small></div></div>
+<div id="release-timestamp" class="muted" style="margin-top:8px">No release-check snapshot yet.</div>
+<div id="release-gates" class="sourcegrid" style="margin-top:15px"></div>
+<p class="muted">The source-repair bots collect and machine-audit permitted evidence. External source reconciliation, independent review, prospective shadow validation and broker approval remain separate verifiable gates; failed gates never authorize an order.</p>
+</section>
 <section class="panel" id="price-gap-progress" aria-label="Live price gap remediation">
 <div class="sourceheader"><div><h2>Live price recovery · Marketstack evidence</h2>
 <p>Real-time counts from the isolated GEM Neon ledger, plus a separate personal-research Yahoo pilot. Raw receipt integrity is not equivalent to verified market prices.</p></div>
@@ -151,9 +173,9 @@ You place every trade manually. This dashboard never sends broker orders.</div>
 <h3 style="margin-top:18px">Vendor-rejected daily closes · June 2026</h3>
 <p class="muted">Each count is the number of Marketstack ticker histories with a rejected close on the specified session. It is not a count of approved replacements.</p>
 <table class="stocklist" aria-label="Marketstack invalid date evidence">
-<thead><tr><th>Session</th><th>Marketstack histories affected</th><th>Approved replacement bars</th></tr></thead>
-<tbody id="gapdays"><tr><td colspan="3">Reading date-specific evidence…</td></tr></tbody></table>
-<div class="warn"><strong>Yahoo pilot, not live data repair:</strong> Yahoo supplied 9/9 research-only bars for AAPL, MSFT and SPY across those dates. <a href="https://github.com/ankitgarg1234-cell/isk-trading-radar/actions/runs/38568599964" target="_blank" rel="noopener noreferrer">View the actual pilot run</a>. Those bars have <strong>not</strong> been imported into GEM or independently cleared for production. Yahoo's personal-use service is not a licensed unattended trading feed.</div>
+<thead><tr><th>Session</th><th>Marketstack histories affected</th><th>Yahoo provisional candidates</th><th>Approved replacement bars</th></tr></thead>
+<tbody id="gapdays"><tr><td colspan="4">Reading date-specific evidence…</td></tr></tbody></table>
+<div class="warn"><strong>Yahoo research is not certified price repair:</strong> The initial Yahoo pilot supplied 9/9 research-only bars for AAPL, MSFT and SPY. Automated provisional candidate counts now come from the private GEM ledger; neither source may be treated as independently verified solely from collection. <a href="https://github.com/ankitgarg1234-cell/isk-trading-radar/actions/runs/38568599964" target="_blank" rel="noopener noreferrer">View the actual pilot run</a>. Those bars have <strong>not</strong> been imported into GEM or independently cleared for production. Yahoo's personal-use service is not a licensed unattended trading feed.</div>
 <p class="muted" id="gapnext">Awaiting the next independent source reconciliation milestone…</p>
 </section>
 <section class="panel" id="research-progress" aria-label="Accelerated research progress">
@@ -219,6 +241,38 @@ You place every trade manually. This dashboard never sends broker orders.</div>
 const $=id=>document.getElementById(id);
 let draft=[];
 const fmt=x=>x?new Date(x).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short",timeZone:"UTC"})+" UTC":"Not yet recorded";
+function renderAutonomousReadiness(release){
+ const metrics=$("release-metrics"),cards=$("release-gates");
+ metrics.replaceChildren();cards.replaceChildren();
+ if(!release || release.schema!=="gem-autonomous-production-gates-v1" ||
+    !Array.isArray(release.gates) || release.gates.length===0){
+   $("release-state").textContent="NO VERIFIED RELEASE CHECK";
+   $("release-timestamp").textContent="Autonomous release evaluation not available; trading disabled.";
+   stat(metrics,null,"Validated release gate count unavailable");
+   return;
+ }
+ const passed=release.gates.filter(g=>g.passed===true).length;
+ $("release-state").textContent=release.production_trading_ready===true
+  ?"MANUAL REVIEW REQUIRED":"AUTONOMOUS DIAGNOSTICS · TRADING HOLD";
+ stat(metrics,passed+" / "+release.gates.length,"Release gates passed");
+ stat(metrics,release.gates.length-passed,"Evidence gates awaiting completion");
+ stat(metrics,release.research_inputs_ready===true?"YES":"NO","Research inputs independent QA-ready");
+ stat(metrics,"OFF","Broker execution");
+ $("release-timestamp").textContent="Last evaluated: "+fmt(release.checked_at)+
+  " · GEM frozen strategy · No source self-certification or automatic broker activation.";
+ release.gates.forEach(gate=>{
+   const card=el("article",null,cards,"source");
+   const header=el("div",null,card,"sourceheader");
+   el("h3",gate.key.replaceAll("_"," ").replace(/\\b\\w/g,c=>c.toUpperCase()),header);
+   el("span",gate.passed===true?"EVIDENCE PASS":"EVIDENCE HOLD",header,"status");
+   el("p",gate.evidence||"Evidence not verified",card,"milestone");
+   if(!gate.passed)el("p","Next: "+(gate.next_action||"Independent review required"),card,"muted");
+   el("p","Owner: "+(gate.owner||"UNASSIGNED").replaceAll("_"," "),card,"muted");
+ });
+}
+
+
+
 function el(tag,txt,parent,cls){const node=document.createElement(tag);if(txt!=null)node.textContent=txt;if(cls)node.className=cls;parent.appendChild(node);return node}
 function stat(parent,value,label){const div=el("div",null,parent);el("strong",value==null?"Unknown":String(value),div);el("small",label,div)}
 async function refreshGapProgress(){
@@ -242,23 +296,31 @@ async function refreshGapProgress(){
   stat(metrics,count.rejected_vendor_rows,"Rejected vendor rows (all dates)");
   stat(metrics,verified.independently_certified_price_histories,"Independently certified");
   stat(metrics,local.requests_reserved+" / "+local.cap,"Locally reserved Marketstack requests");
+  stat(metrics,yahoo.stored_personal_research_candidates??0,
+       "Yahoo research gap candidates (NOT price QA)");
+  stat(metrics,yahoo.research_symbols_observed??0,
+       "Yahoo personal research symbols");
+  stat(metrics,yahoo.targeted_gap_candidates_remaining??"Unknown",
+       "June research gaps without Yahoo candidates");
   stat(metrics,count.histories_with_at_least_127_bars,"Histories with ≥127 stored bars");
   result.missing_close_sessions.forEach(item=>{
    const row=el("tr",null,table);
    el("td",item.session,row);el("td",String(item.affected_marketstack_histories),row);
+   el("td",String(item.yahoo_personal_research_candidates_unapproved??0)+" · NOT APPROVED",row);
    el("td",String(item.replacement_bars_approved)+" · source HOLD",row);
   });
   $("gapreleasestate").textContent="RESEARCH ACTIVE · TRADING HOLD";
   stamp.textContent="Last raw-receipt audit: "+fmt(audit.last_recorded_at)+
    " · "+audit.vendor_or_length_holds+" receipts held for source correction or short history."+
-   " Yahoo status: "+yahoo.state.replaceAll("_"," ")+".";
+   " Yahoo status: "+yahoo.state.replaceAll("_"," ")+
+   " · worker "+(yahoo.worker_enabled?"configured":"not opted in")+".";
   $("gapnext").textContent="Next required evidence: "+verified.next_required_step+
    ". No broker integration or automated trade execution is enabled.";
  }catch(err){
   $("gapreleasestate").textContent="EVIDENCE UNAVAILABLE";
   stat(metrics,null,"Recovery counters unavailable");
   const row=el("tr",null,table);const cell=el("td","Date-specific source counts unavailable; no replacement is considered approved.",row);
-  cell.colSpan=3;
+  cell.colSpan=4;
   stamp.textContent="Restricted recovery data unavailable. Recheck or use Refresh evidence; no inferred source approval.";
   $("gapnext").textContent="Price correction not verified; trading remains disabled.";
  }
@@ -290,6 +352,7 @@ async function refresh(){
       priceQA.held_for_resolution+" held · INDEPENDENT PRICE PARITY STILL PENDING",
       queue,"muted");
    }
+   renderAutonomousReadiness(robot.release_readiness);
    const priceRecovery=robot.checks.find(c=>c.source==="prices")?.autonomous_recovery;
    if(priceRecovery){
     el("p","Autonomous price recovery: "+priceRecovery.state+
@@ -299,7 +362,7 @@ async function refresh(){
       " · NOT independently certified",queue,"muted");
    }
   }else el("p","Robot execution: not yet recorded or evidence access unavailable",queue,"muted");
- }catch(e){el("p","Robot execution: status unavailable",queue,"muted");}
+ }catch(e){renderAutonomousReadiness(null);el("p","Robot execution: status unavailable",queue,"muted");}
 
  const priority=["prices","sec","membership","actions","calendar","benchmark"];
  const pending=priority.map(k=>data.sources.find(s=>s.key===k)).filter(Boolean)
