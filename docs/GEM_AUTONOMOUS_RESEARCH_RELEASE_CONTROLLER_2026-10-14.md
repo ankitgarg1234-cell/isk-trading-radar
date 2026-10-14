@@ -52,3 +52,22 @@ GEM Render `/health` must continue to report `READ_ONLY` and `trading_enabled=fa
 Before a separate execution service can be designed/activated: verify original-source adjusted-price parity for all eligible competitors; resolve SEC fact ambiguity; obtain authorized member/economic action inputs; reconcile benchmark/calendar; certify source evidence by an independent identity with expiry and code/evidence SHA; freeze and approve a monthly rank; run a prospective month-end+20-session paper trial and failure drills; install broker-specific risk controls and obtain explicit user authorization.
 
 **Do not lower source quality gates to make a bot print GO.**
+
+
+## Python-verified machine stages and broker-independent data comparison
+
+The autonomous controller now explicitly lists ten **narrow Python machine checks** in the dashboard. Six can already PASS from source evidence: current ticker/CIK crosscheck, original Marketstack storage hashes/OHLC, original SEC ZIP member hashes, SEC corporate event discovery coverage, official NYSE schedule acquisition, and official SPY distribution schedule acquisition. These stages are materially different from independent source/adjustment certification and trade release; they must not be conflated.
+
+The optional `gem_data/gem_ibkr_gap_crosscheck.py` makes GET requests **only** to the documented IBKR Web API historical-data endpoint, not orders. It checks the June 9, 10 and 15 Yahoo candidate dates against genuine IBKR trades (price geometry and volume) and writes append-only `gem-ibkr-independent-price-check-*` machine comparison probes. Agreements, discrepancies, absence, and source-authentication failures remain independently visible and never modify Marketstack originals. At most two symbols per 15-minute bot cycle; requests are reserved atomically, at most one per symbol per UTC day and two attempts overall, to prevent an unauthorized/expired session from burning API quotas. IBKR's current API limits historical requests to 50/min (Sep 2026); this bot stays well under them.
+
+**Requires separate IBKR Web API credentials/entitlement on Render**. The user's IBKR connection inside ChatGPT does not expose its session to Render/Python. Keep this feature disabled unless the account holder has reviewed entitlements and configured the following encrypted Render environment variables:
+
+- `GEM_IBKR_HISTORICAL_READONLY_ENABLED=yes` (default absent/disabled)
+- `GEM_IBKR_READONLY_BEARER=<valid IBKR authorized SSO token>` (do not commit or log this)
+- `GEM_IBKR_CONID_MAP_JSON=<explicit operator-approved symbol-to-US-stock-contract-id mapping>`
+
+The fixed HTTPS endpoint is `https://api.ibkr.com/v1/api/iserver/marketdata/history`. The adapter rejects unexpected sources, extended-hours data, duplicate sessions, malformed OHLC/volume, missing histories, and USD-contract identity ambiguity. It does not establish that the IBKR account is entitled for automated non-display trading use, that Yahoo is licensed as a production feed, or that IBKR/Yahoo have frozen-vendor adjusted-close parity. All of those remain separate approval requirements.
+
+The verified connector-only pilot identified official IBKR US stock contracts AAPL `265598` and SPY `756733`, returning daily histories for June 9/10/15, 2026; the autonomous service does not inherit that account connection and no SSO token has been supplied to Render.
+
+The independent verification issue `#105` remains the authoritative tracking record. No evidence in this doc authorizes a real-money order.
