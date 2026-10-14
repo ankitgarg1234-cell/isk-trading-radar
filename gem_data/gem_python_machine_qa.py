@@ -31,7 +31,7 @@ def _stage(key,passed,passed_count,required_count,scope,next_step):
             "trading_authorized":False}
 
 
-def project_machine_qa(integrity,price,sec_audit,*,at=None):
+def project_machine_qa(integrity,price,sec_audit,*,at=None,ibkr_audit=None):
     """Recomputes narrow machine QA gates; no upgrade of source_approval."""
     at=at or datetime.now(timezone.utc)
     if at.tzinfo is None:
@@ -60,10 +60,18 @@ def project_machine_qa(integrity,price,sec_audit,*,at=None):
         raise MachineEvidenceUnavailable("Malformed machine QA counters")
     (histories,target,histories127,bad,audited,good,paired,sha_ok,
      complete,unresolved,yahoo_candidates,gaps)=quantities
+    ibkr_audit=ibkr_audit if ibkr_audit is not None else {
+        "compared":0,"agreed":0,"conflicts":0}
+    if (not isinstance(ibkr_audit,dict) or
+            any(type(ibkr_audit.get(k)) is not int or ibkr_audit[k]<0
+                for k in ("compared","agreed","conflicts"))):
+        raise MachineEvidenceUnavailable("Invalid IBKR reconciliation evidence")
     if (not 480<=target<=600 or target!=integrity.get("membership_security_lines")
             or histories>target or audited>histories or good>audited
             or sha_ok>paired or complete>paired
-            or complete+unresolved>paired or yahoo_candidates>gaps):
+            or complete+unresolved>paired or yahoo_candidates>gaps
+            or ibkr_audit["compared"]>yahoo_candidates
+            or ibkr_audit["agreed"]+ibkr_audit["conflicts"]>ibkr_audit["compared"]):
         raise MachineEvidenceUnavailable("Inconsistent evidence universe")
     by={x.get("key"):x for x in integrity.get("sources",[]) if isinstance(x,dict)}
     if set(by)!={"prices","sec","membership","actions","calendar","benchmark"}:
@@ -113,6 +121,11 @@ def project_machine_qa(integrity,price,sec_audit,*,at=None):
                yahoo_candidates,gaps,
                "Personal research candidate coverage only, never nominal/adjusted price certification",
                "Use entitled IBKR or another licensed source to corroborate candidate bars"),
+        _stage("ibkr_yahoo_historical_ohlcv_agreement",
+               gaps>0 and ibkr_audit["agreed"]==gaps and ibkr_audit["conflicts"]==0,
+               ibkr_audit["agreed"],gaps,
+               "Nominal OHLCV agreement only; adjustment parity and broker entitlement separate",
+               "Connect an entitled read-only IBKR Web API session; verify source provenance and conflicts"),
     ]
     return {"schema":"gem-python-machine-qa-v1",
             "checked_at":at.astimezone(timezone.utc).isoformat(),
