@@ -59,7 +59,7 @@ def test_missing_vendor_adjusted_close_is_not_silently_replaced():
         "data": [bar("2026-10-01", adj_close=None)],
     })) as client:
         with MarketstackEODProbe(key="dummy", client=client) as p:
-            with pytest.raises(MarketstackProbeError, match="adj_close"):
+            with pytest.raises(MarketstackProbeError, match="no valid vendor historical prices found"):
                 p.fetch("AAPL", date(2026, 10, 1), date(2026, 10, 2))
 
 
@@ -101,8 +101,31 @@ def test_invalid_ohlc_rejected():
         "data": [bar("2026-10-01", high=99)],
     })) as client:
         with MarketstackEODProbe(key="dummy", client=client) as p:
-            with pytest.raises(MarketstackProbeError, match="OHLC"):
+            with pytest.raises(MarketstackProbeError, match="no valid vendor historical prices found"):
                 p.fetch("AAPL", date(2026, 10, 1), date(2026, 10, 2))
+
+
+
+def test_individual_invalid_vendor_field_reasons_retained_when_other_bars_valid():
+    def respond(request):
+        return httpx.Response(200, json={
+            "pagination": {"total": 3, "count": 3, "offset": 0},
+            "data": [
+                bar("2026-10-01", adj_close=None),
+                bar("2026-10-02", high=99),
+                bar("2026-10-05"),
+            ],
+        })
+
+    with fake_transport(respond) as client:
+        with MarketstackEODProbe(key="dummy", client=client) as probe:
+            bars, receipt = probe.fetch("AAPL", date(2026, 10, 1), date(2026, 10, 5))
+            assert len(bars) == 1
+            assert len(receipt.rejected_reasons) == 2
+            rejected = dict(receipt.rejected_reasons)
+            assert "adj_close" in rejected["2026-10-01"]
+            assert "OHLC" in rejected["2026-10-02"]
+            assert receipt.status == "UNVERIFIED_VENDOR_OBSERVATION"
 
 
 def test_invalid_future_window_rejected_without_request():

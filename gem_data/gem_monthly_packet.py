@@ -54,9 +54,9 @@ def build_monthly_packet(bundle: dict) -> dict:
         if signal["data_status"] != "REVIEWED_COMPLETE":
             blockers.append({"scope": "RANKING_SOURCE_QA",
                              "reason": "One or more missing/uncertified monthly competitors"})
-        if len(signal["selected"]) != 5:
+        if len(signal["selected"]) > 5:
             blockers.append({"scope": "FIVE_STOCK_RULE",
-                             "reason": "Exactly five reviewed eligible stocks required"})
+                             "reason": "At most five reviewed eligible stocks permitted; unfilled slots remain cash"})
     if ledger["statement_status"] in ("STATEMENT_MISMATCH_HOLD", "STALE_MANUAL_STATEMENT"):
         blockers.append({"scope": "MANUAL_LEDGER",
                          "reason": "Imported brokerage statement differs from user-entered ledger"})

@@ -1,0 +1,3 @@
+# Operator-only dependency. Never installed by Render production requirements.txt.
+# Pin to documented accession-specific XBRL API; review upgrades separately.
+edgartools==5.62.0
