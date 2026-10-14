@@ -16,6 +16,9 @@ from gem_data.gem_autonomous_release import (evaluate_release, read_release_ledg
                                               append_release_diagnostic,
                                               read_latest_release_diagnostic)
 from gem_data.gem_price_gap_progress import read_gap_progress
+from gem_data.gem_python_machine_qa import (
+    project_machine_qa, read_sec_machine_audit, MachineEvidenceUnavailable,
+)
 
 KEYS = ("prices", "sec", "membership", "actions", "calendar", "benchmark")
 PREFIX = "gem-robot-check-"
@@ -96,10 +99,22 @@ def _recover_sec_facts():
 
 def _evaluate_and_record_release():
     """Recompute a separate immutable release gate every unattended cycle."""
-    report=evaluate_release(read_source_integrity(), read_gap_progress(), read_release_ledger())
+    sources=read_source_integrity()
+    price=read_gap_progress()
+    ledger=read_release_ledger()
+    try:
+        qa=project_machine_qa(sources,price,read_sec_machine_audit())
+    except MachineEvidenceUnavailable:
+        qa={"schema":"gem-python-machine-qa-v1","state":"EVIDENCE_UNAVAILABLE",
+            "machine_checks_passed":0,"machine_checks_total":0,
+            "independent_source_approval":False,"trading_enabled":False,
+            "checks":[]}
+    report=evaluate_release(sources,price,ledger,machine_qa=qa)
     append_release_diagnostic(report)
     return {"state":"EVALUATED","research_inputs_ready":report["research_inputs_ready"],
             "production_trading_ready":False,
+            "machine_passed":qa["machine_checks_passed"],
+            "machine_total":qa["machine_checks_total"],
             "blocked_gates":report["blocked_gates"]}
 
 
