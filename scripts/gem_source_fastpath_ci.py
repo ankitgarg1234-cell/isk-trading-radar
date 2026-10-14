@@ -13,6 +13,7 @@ import argparse
 from datetime import date, timedelta
 from hashlib import sha256
 import json
+import math
 import os
 from pathlib import Path
 import sys
@@ -62,6 +63,28 @@ def produce(*, outdir, fetch_spy=False, signal_day="2026-10-13", ticker_factory=
                               ticker_factory=ticker_factory)
         expected = [d for d in complete_days if d >= "2026-01-02"]
         data = provisional_spy_total_return(rows,expected_sessions=expected)
+        # Exact SPY 2026 quarterly ex-dates/amounts from an independently
+        # retrieved Tiingo fund distribution table (NOT Yahoo Finance).
+        expected_cash = {
+            "2026-03-20": 1.796999,
+            "2026-06-18": 1.903516,
+            "2026-09-18": 1.888834,
+        }
+        observed_cash = {r["session"]: r["dividend"] for r in rows
+                         if r["dividend"] > 0}
+        if (set(observed_cash) != set(expected_cash) or
+                any(abs(observed_cash[day]-amount)>0.002
+                    for day,amount in expected_cash.items())):
+            raise ValueError("SPY cash dividends differ from independent source")
+        first_adj=float(rows[0].get("vendor_adj_close") or 0)
+        last_adj=float(rows[-1].get("vendor_adj_close") or 0)
+        if (not math.isfinite(first_adj) or first_adj<=0 or
+                not math.isfinite(last_adj) or last_adj<=0):
+            raise ValueError("Yahoo dividend-adjusted close crosscheck absent")
+        vendor_total_return=last_adj/first_adj-1
+        discrepancy=abs(vendor_total_return-data["total_return"])
+        if discrepancy>0.003:
+            raise ValueError("SPY raw close + dividends differs from adjusted-close return")
         source_sha = sha256(json.dumps(
             rows,sort_keys=True,separators=(",",":"),allow_nan=False
         ).encode()).hexdigest()
@@ -70,6 +93,11 @@ def produce(*, outdir, fetch_spy=False, signal_day="2026-10-13", ticker_factory=
             "spy_sessions":len(rows),
             "spy_dividend_events":data["dividend_events"],
             "spy_total_return_provisional":data["total_return"],
+            "spy_adjusted_close_total_return":vendor_total_return,
+            "spy_absolute_return_discrepancy":discrepancy,
+            "spy_dividend_dates_amounts_crosscheck":"PASS",
+            "spy_independent_dividend_source":"https://app.tiingo.com/spy/dividends",
+            "spy_adjusted_close_internal_yahoo_crosscheck":"PASS",
             "spy_normalized_price_dividend_sha256":source_sha,
             "spy_source":"YFINANCE_HISTORICAL_CLOSE_AND_DIVIDENDS",
             "spy_original_http_response_sha256_verified":False,
