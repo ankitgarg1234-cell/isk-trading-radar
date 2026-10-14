@@ -65,7 +65,7 @@ def test_price_gate_uses_63_intervals_and_complete_calendar():
 
 def test_public_probe_preserves_502_unobserved_competitors_and_never_ranks_trades():
     class Frame(FakeBars):
-        columns=type("Columns",(),{"nlevels":1})()
+        columns=[]  # pandas-like iterable column index with implicit nlevels=1
     report=probe_universe(
         max_symbols=1,batch_size=1,raw_fetch=lambda _:manifest(),
         quote_fetch=lambda _:Frame())
