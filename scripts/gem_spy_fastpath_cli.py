@@ -45,7 +45,8 @@ def fetch_yfinance(start,end,*,ticker_factory=None):
         rows.append({"session":session.date().isoformat(),
                      "close":float(row["Close"]),
                      "dividend":float(row["Dividends"]),
-                     "stock_split":float(row.get("Stock Splits",0))})
+                     "stock_split":float(row.get("Stock Splits",0)),
+                     "vendor_adj_close":float(row.get("Adj Close",row["Close"]))})
     return rows
 
 
