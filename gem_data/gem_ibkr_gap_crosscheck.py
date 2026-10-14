@@ -93,6 +93,7 @@ def crosscheck_yahoo_ibkr(yahoo,ibkr,*,ticker):
             or yahoo.get("ticker")!=ticker or yahoo.get("session")!=ibkr.get("session")):
         raise IBKRGatewayHold("INCONSISTENT_HISTORICAL_IDENTITY")
     differences={}
+    matched_fields=[]
     for name in ("open","high","low","close","volume"):
         a=_finite(yahoo.get(name),name,zero=name=="volume")
         b=_finite(ibkr.get(name),name,zero=name=="volume")
@@ -101,11 +102,17 @@ def crosscheck_yahoo_ibkr(yahoo,ibkr,*,ticker):
                else max(.02,.0025*max(a,b)))
         if spread>limit:
             differences[name]={"relative_difference_pct":round(spread/max(a,b)*100,5)}
+        else:
+            matched_fields.append(name)
     return {
         "schema":"gem-ibkr-yahoo-gap-crosscheck-v1",
         "ticker":ticker,"session":ibkr["session"],
         "state":"PROVISIONAL_TWO_SOURCE_PRICE_MATCH" if not differences else "PROVIDER_DISAGREEMENT_HOLD",
         "discrepancies":differences,
+        "matched_ohlcv_fields":matched_fields,
+        "nominal_price_fields_agree":all(
+            name in matched_fields for name in ("open","high","low","close")),
+        "volume_agrees":"volume" in matched_fields,
         "independent_market_data_reference":True,
         "frozen_adjusted_close_verified":False,
         "original_marketstack_mutated":False,
