@@ -103,7 +103,7 @@ def evaluate_release(integrity, gap, ledger, *, at=None, machine_qa=None):
                     integrity.get("prices",{}).get("overall_fully_verified")==target)
     gates.append(_gate("complete_verified_price_universe",price_complete,
                        f"{certified}/{target} source-approved; {observed} vendor histories; "+
-                       f"{audit.get('raw_integrity_pass',0)} intact stored receipts",
+                       f"{audit.get('integrity_pass',0)} intact stored receipts",
                        "Run licensed independent OHLCV and split/dividend reconciliation; "
                        "resolve all competitor identity and point-in-time gaps",
                        "AUTO_DIAGNOSIS_EXTERNAL_PROVIDER_QA"))
