@@ -206,6 +206,31 @@ async def _marketstack_backfill_loop():
         await asyncio.sleep(delay)
 
 
+async def _price_receipt_audit_loop():
+    """Independently re-hash stored Marketstack bars, with explicit QA holds.
+
+    No vendor requests, broker credentials, signal release, or automated
+    source approval. This only completes the RAW-INTEGRITY stage.
+    """
+    from gem_data.gem_price_receipt_audit import audit_batch, ReceiptAuditHold
+    await asyncio.sleep(80)
+    while True:
+        delay = 1800
+        try:
+            report = await asyncio.to_thread(audit_batch, max_receipts=25)
+            _log.info(
+                "GEM Marketstack raw integrity QA: checked=%d raw_pass=%d blocked=%d parity_certified=0",
+                report["checked"], report["raw_integrity_pass"], report["requires_resolution"],
+            )
+            if report["checked"] > 0:
+                delay = 20
+        except ReceiptAuditHold as exc:
+            _log.warning("GEM Marketstack receipt integrity QA HOLD (%s)", type(exc).__name__)
+        except Exception as exc:
+            _log.warning("GEM Marketstack receipt integrity QA failed (%s)", type(exc).__name__)
+        await asyncio.sleep(delay)
+
+
 async def _research_robot_loop():
     """Continue evidence checks unattended; never block the dashboard."""
     from gem_data.gem_research_robot import run_once
@@ -228,6 +253,8 @@ async def _lifespan(app):
     tasks = []
     if os.getenv("GEM_RESEARCH_ROBOT_ENABLED", "yes") == "yes":
         tasks.append(asyncio.create_task(_research_robot_loop()))
+    if os.getenv("GEM_PRICE_RECEIPT_AUDIT_ENABLED", "yes") == "yes":
+        tasks.append(asyncio.create_task(_price_receipt_audit_loop()))
     if os.getenv("GEM_SEC_INLINE_REVIEW_ENABLED") == "yes":
         tasks.append(asyncio.create_task(_sec_inline_original_resolution_loop()))
     if os.getenv("GEM_SEC_RECONCILIATION_ENABLED") == "yes":
