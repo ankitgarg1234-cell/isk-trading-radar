@@ -79,6 +79,13 @@ def evaluate_release(integrity, gap, ledger, *, at=None):
                  "Strategy commit "+str(ledger["experiment_frozen_commit"])[:45],
                  "Restore immutable strategy version; do not change the frozen ranking",
                  "AUTOMATED_CONSISTENCY_CHECK")]
+    execution_disabled=(ledger["execution_enabled"] is False
+                        and ledger["mode"]=="SHADOW")
+    gates.append(_gate("research_account_execution_isolated",execution_disabled,
+                       f"Experiment mode {ledger['mode']}; DB execution_enabled={ledger['execution_enabled']}",
+                       "Restore isolated SHADOW-only experiment, revoke direct broker"
+                       " permissions and validate kill-switch before source research continues",
+                       "AUTOMATED_PAPER_ISOLATION_CHECK"))
     for key in SOURCE_KEYS:
         source=by[key]
         # The source inspector is NOT an approver. Two distinct attributes
