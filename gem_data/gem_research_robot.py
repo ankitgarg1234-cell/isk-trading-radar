@@ -128,6 +128,7 @@ def run_once():
             if item["source"] == "prices":
                 payload["autonomous_recovery"] = price_recovery
                 payload["raw_receipt_recovery"] = raw_recovery
+                payload["release_check_execution"] = release
             if item["source"] == "sec":
                 payload["sec_fact_recovery"] = sec_recovery
             digest = sha256(json.dumps(payload,sort_keys=True).encode()).hexdigest()
