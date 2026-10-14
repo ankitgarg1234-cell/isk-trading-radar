@@ -97,6 +97,29 @@ def _recover_sec_facts():
         return {"state":"SEC_AUDIT_ERROR_"+type(exc).__name__,"audited":0}
 
 
+def _reconcile_ibkr_gaps():
+    """Optional entitled IBKR historical Web API reconciliation, no orders."""
+    if os.getenv("GEM_IBKR_HISTORICAL_READONLY_ENABLED")!="yes":
+        return {"state":"READONLY_IBKR_SSO_NOT_CONFIGURED","requested_symbols":0,
+                "machine_agreements":0,"trading_authorized":False}
+    try:
+        from gem_data.gem_ibkr_gap_crosscheck import crosscheck_batch,IBKRGatewayHold
+        result=crosscheck_batch(max_symbols=2)
+        return {"state":"PROVISIONAL_INDEPENDENT_OHLC_CHECK_ONLY",
+                "requested_symbols":result["requested_symbols"],
+                "machine_agreements":result["machine_agreements"],
+                "price_conflicts":result["price_conflicts"],
+                "holds":result["holds"],"trading_authorized":False}
+    except IBKRGatewayHold:
+        return {"state":"IBKR_READONLY_ENTITLEMENT_OR_SESSION_HOLD",
+                "requested_symbols":0,"machine_agreements":0,
+                "trading_authorized":False}
+    except Exception as exc:
+        return {"state":"IBKR_READONLY_ERROR_"+type(exc).__name__,
+                "requested_symbols":0,"machine_agreements":0,
+                "trading_authorized":False}
+
+
 def _evaluate_and_record_release():
     """Recompute a separate immutable release gate every unattended cycle."""
     sources=read_source_integrity()
@@ -128,6 +151,7 @@ def run_once():
     price_recovery = _recover_prices()
     raw_recovery = _recover_raw_receipts()
     sec_recovery = _recover_sec_facts()
+    ibkr_recovery = _reconcile_ibkr_gaps()
     try:
         release = _evaluate_and_record_release()
     except Exception as exc:
@@ -143,6 +167,7 @@ def run_once():
             if item["source"] == "prices":
                 payload["autonomous_recovery"] = price_recovery
                 payload["raw_receipt_recovery"] = raw_recovery
+                payload["ibkr_readonly_gap_check"] = ibkr_recovery
                 payload["release_check_execution"] = release
             if item["source"] == "sec":
                 payload["sec_fact_recovery"] = sec_recovery
@@ -157,6 +182,7 @@ def run_once():
             "timestamp":observed.isoformat(),"release":"DATA_HOLD",
             "price_recovery":price_recovery,
             "raw_receipt_recovery":raw_recovery,"sec_fact_recovery":sec_recovery,
+            "ibkr_readonly_gap_check":ibkr_recovery,
             "release_readiness":release}
 
 def read_recent():
