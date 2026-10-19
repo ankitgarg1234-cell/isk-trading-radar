@@ -62,8 +62,12 @@ def validate_sec_user_agent(user_agent: str) -> str:
 class SecOriginalCollector:
     """Request-throttled read-only collector requiring a contact user agent."""
 
-    def __init__(self, user_agent: str, *, transport=None, timeout: float = 18.0):
+    def __init__(self, user_agent: str, *, transport=None, timeout: float = 18.0,
+                 max_bytes: int = SEC_MAX_BYTES):
         self.ua = validate_sec_user_agent(user_agent)
+        if type(max_bytes) is not int or not 1 <= max_bytes <= 24_000_000:
+            raise ValueError("SEC original document maximum exceeds 24 MB")
+        self.max_bytes = max_bytes
         self.client = httpx.Client(
             timeout=timeout, transport=transport,
             headers={"User-Agent": self.ua, "Accept": "application/json,text/html,*/*"},
@@ -94,7 +98,7 @@ class SecOriginalCollector:
                 total = 0
                 for part in response.iter_bytes():
                     total += len(part)
-                    if total > SEC_MAX_BYTES:
+                    if total > self.max_bytes:
                         raise SourceUnavailable("SEC original response exceeds bounded size")
                     chunks.append(part)
                 raw = b"".join(chunks)

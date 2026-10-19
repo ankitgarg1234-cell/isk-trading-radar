@@ -1,0 +1,572 @@
+"""Authenticated GEMv1 main portfolio and data-integrity dashboard.
+
+This page never publishes a ranked stock until approved source evidence exists.
+Holdings imports are review-only drafts; no broker, automatic order or
+unreviewed portfolio account mutations.
+"""
+from __future__ import annotations
+
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi.responses import HTMLResponse, JSONResponse
+
+from gem_data.gem_source_health import IntegrityUnavailable, read_source_integrity, unavailable_integrity
+from gem_data.gem_price_gap_progress import (GapProgressUnavailable, read_gap_progress,
+                                         unavailable_gap_progress)
+from gem_data.gem_autonomous_release import (ReadinessHold,read_latest_release_diagnostic)
+from gem_data.gem_sec_exception_queue import (read_sec_exception_queue,
+                                              SECExceptionQueueUnavailable)
+from gem_data.gem_positions_import import (
+    MAX_BYTES, PositionImportHold, parse_tabular_positions, parse_opted_in_image
+)
+
+router = APIRouter()
+
+
+@router.get("/api/gem-portfolio/robot")
+def research_robot_status():
+    from gem_data.gem_research_robot import read_recent
+    try:
+        return JSONResponse(read_recent(), headers={"Cache-Control": "no-store"})
+    except (RuntimeError, Exception):
+        return JSONResponse({"schema":"gem-robot-status-v1","release":"DATA_HOLD",
+            "trading_enabled":False,"checks":[],"status":"UNAVAILABLE"},
+            status_code=503,headers={"Cache-Control":"no-store"})
+
+
+@router.get("/api/gem-portfolio/integrity")
+def source_integrity():
+    try:
+        return JSONResponse(read_source_integrity(), headers={"Cache-Control": "no-store"})
+    except IntegrityUnavailable:
+        return JSONResponse(unavailable_integrity(), status_code=503,
+                            headers={"Cache-Control": "no-store"})
+
+
+@router.get("/api/gem-portfolio/autonomous-readiness")
+def autonomous_readiness():
+    try:
+        return JSONResponse(read_latest_release_diagnostic(),
+                            headers={"Cache-Control":"no-store"})
+    except ReadinessHold:
+        return JSONResponse({"schema":"gem-autonomous-production-gates-v1",
+                    "mode":"UNAVAILABLE","trading_enabled":False,
+                    "production_trading_ready":False,"gates":[]},
+                    status_code=503,headers={"Cache-Control":"no-store"})
+
+
+@router.get("/api/gem-portfolio/price-gaps")
+def price_gap_progress():
+    """Read-only stored history repair stages, not a source approval endpoint."""
+    try:
+        return JSONResponse(read_gap_progress(), headers={"Cache-Control":"no-store"})
+    except GapProgressUnavailable:
+        return JSONResponse(unavailable_gap_progress(), status_code=503,
+                            headers={"Cache-Control":"no-store"})
+
+
+@router.get("/api/gem-portfolio/sec-exceptions")
+def sec_exception_queue():
+    try:
+        return JSONResponse(read_sec_exception_queue(limit=250),
+                            headers={"Cache-Control":"no-store"})
+    except SECExceptionQueueUnavailable:
+        raise HTTPException(503,"SEC exception details temporarily unavailable") from None
+
+
+@router.post("/api/gem-portfolio/import")
+async def import_positions(file: UploadFile = File(...), image_consent: str = Form("no")):
+    try:
+        raw = await file.read(MAX_BYTES + 1)
+        name = file.filename or ""
+        if name.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
+            media_type = {"png": "image/png", "jpg": "image/jpeg",
+                          "jpeg": "image/jpeg", "webp": "image/webp"}[name.rsplit(".", 1)[-1].lower()]
+            report = parse_opted_in_image(raw, media_type,
+                                         explicit_consent=(image_consent == "yes"))
+        else:
+            report = parse_tabular_positions(name, raw)
+        return JSONResponse(report, headers={"Cache-Control": "no-store"})
+    except PositionImportHold as exc:
+        raise HTTPException(422, "Position import HOLD: " + str(exc)[:200]) from None
+    finally:
+        await file.close()
+
+
+_HTML = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GEMv1 | Monthly portfolio &amp; source integrity</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color-scheme:dark;background:#0c1320;color:#e8eef8}
+*{box-sizing:border-box} body{margin:0 auto;max-width:1250px;padding:28px 24px 75px;line-height:1.45}
+a{color:#a5ceff} header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+h1{font-size:29px;margin:5px 0 8px;font-weight:720}h2{font-size:19px;margin:0 0 11px}h3{font-size:15px;margin:0}
+p{margin:7px 0;color:#b9c5d5}small,.muted{font-size:12px;color:#9cabc0}
+.nav{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;padding-top:10px}
+.panel{background:#151e2d;border:1px solid #334157;border-radius:13px;padding:20px;margin-top:22px}
+.kpis,.sourcegrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.kpi{background:#1c2839;padding:15px;border-radius:10px}.kpi strong{font-size:25px;display:block;margin:4px 0}
+.tag{font-size:12px;border:1px solid #a07e32;border-radius:20px;padding:5px 10px;color:#f0cf7f;background:#332b1b}
+.status{font-size:11px;border-radius:5px;background:#493620;color:#ffd393;padding:4px 8px}
+.stocklist,.holdings{width:100%;border-collapse:collapse}.stocklist td,.stocklist th,
+.holdings td,.holdings th{border-bottom:1px solid #314057;padding:11px 6px;text-align:left}
+.stocklist td:last-child,.stocklist th:last-child{text-align:right}
+.source{background:#1b2636;border:1px solid #3b4b62;border-radius:11px;padding:16px}
+.sourceheader{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.flow{display:flex;gap:6px;margin:14px 0 10px}
+.step{min-width:0;flex:1;height:8px;border-radius:3px;background:#414c60}
+.step.partial{background:#ca9847}.step.pending{background:#465067}.step.verified,.step.complete{background:#2f9879}
+.flowtext{display:flex;justify-content:space-between;gap:5px;font-size:10px;color:#a8b8c9}
+dl{display:grid;grid-template-columns:auto 1fr;column-gap:12px;row-gap:5px;margin:15px 0 8px;font-size:12px}
+dt{color:#9bb0c6}dd{margin:0;overflow-wrap:anywhere}
+.milestone{font-size:13px;color:#d7e8f7;font-weight:600;margin:10px 0 1px}details{font-size:12px;color:#c0ccdb}summary{cursor:pointer;color:#b8d9ff}
+ul{padding-left:19px;margin:9px 0}li{margin:5px 0}
+progress{width:100%;height:15px;accent-color:#3e9e82}
+.secsummary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.secsummary strong{display:block;font-size:24px}
+.controls{display:flex;gap:11px;align-items:center;flex-wrap:wrap;margin:12px 0}
+button,.linkbutton{background:#29567c;color:#edf6ff;border:1px solid #4c779e;border-radius:7px;cursor:pointer;padding:10px 13px;font-size:13px}
+button:disabled{opacity:.5;cursor:not-allowed}input[type=file],input[type=number]{color:#e4edfa}
+input[type=number]{background:#202e42;border:1px solid #53647c;padding:6px;border-radius:5px;width:100px}
+.warn{background:#302716;border-left:3px solid #c99b43;padding:12px;color:#f0d5a2;font-size:13px;margin:13px 0}
+.draft{background:#152e29;border-left:3px solid #529b7d;padding:12px;margin:10px 0;color:#b9ebdc}
+#positions{overflow-x:auto}
+footer{padding-top:22px;color:#8ea1bb;font-size:12px}
+@media(max-width:950px){.sourcegrid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.kpis,.sourcegrid{grid-template-columns:1fr}.secsummary{grid-template-columns:repeat(2,1fr)}body{padding:20px 14px}}
+</style></head>
+<body>
+<header><div><div class="muted">S&amp;P 500 / Frozen growth_margin5</div>
+<h1>GEMv1 · Monthly portfolio</h1>
+<p>Monthly stock selections, manual trade review and independently tracked data quality.</p></div>
+<div class="nav"><a href="/gem-trial">Legacy diagnostics</a><a href="/gem-manual">Developer workbench</a></div></header>
+<div class="warn" id="live-verification-banner" aria-live="polite"><strong>Autonomous verification ACTIVE · Live trading HOLD:</strong> Python research checks are running under operator authorization; No verified five-stock recommendation is currently approved; broker execution remains blocked until the required data and execution tests actually pass. <span id="live-verification-summary">Loading the latest verified evidence…</span></div>
+<div class="kpis" style="margin-top:18px">
+<div class="kpi"><small>Next evaluation</small><strong>Month end</strong><small>After the official completed NYSE session</small></div>
+<div class="kpi"><small>Target portfolio</small><strong>5 stocks</strong><small>20% target allocation each</small></div>
+<div class="kpi"><small>Approved monthly signals</small><strong id="approved">—</strong><small>Only independently reviewed signals count</small></div>
+</div>
+<section class="panel"><h2>Monthly stock recommendations</h2>
+<p>Recommendations appear only when all potentially competing S&amp;P 500 securities have sufficiently verified inputs.</p>
+<table class="stocklist"><thead><tr><th>Stock</th><th>Data evidence</th><th>Target weight</th></tr></thead><tbody>
+<tr><td>Awaiting verified selection 1</td><td>HOLD</td><td>20%</td></tr>
+<tr><td>Awaiting verified selection 2</td><td>HOLD</td><td>20%</td></tr>
+<tr><td>Awaiting verified selection 3</td><td>HOLD</td><td>20%</td></tr>
+<tr><td>Awaiting verified selection 4</td><td>HOLD</td><td>20%</td></tr>
+<tr><td>Awaiting verified selection 5</td><td>HOLD</td><td>20%</td></tr>
+</tbody></table></section>
+<section class="panel" id="autonomous-production-readiness" aria-label="Autonomous production readiness controller">
+<div class="sourceheader"><div><h2>Autonomous research and production readiness</h2>
+<p>Independent, recurring release-gate diagnostics. Collection success and a robot's own observations cannot approve source accuracy or enable brokerage.</p></div>
+<span class="status" id="release-state">Awaiting autonomous evaluation</span></div>
+<div class="secsummary" id="release-metrics"><div><strong>—</strong><small>Independent gate checks</small></div></div>
+<div id="release-timestamp" class="muted" style="margin-top:8px">No release-check snapshot yet.</div>
+<div id="release-gates" class="sourcegrid" style="margin-top:15px"></div>
+<h3 style="margin-top:19px">Python checks — independent numerical and source-integrity evidence</h3>
+<p class="muted">These can pass automatically when their narrow checks succeed. A storage checksum PASS is not a production price-source approval.</p>
+<div class="secsummary" id="machine-qa-summary"></div>
+<div id="machine-qa-gates" class="sourcegrid" style="margin-top:12px"></div>
+<p class="muted">The source-repair bots collect and machine-audit permitted evidence. External source reconciliation, independent review, prospective shadow validation and broker approval remain separate verifiable gates; failed gates never authorize an order.</p>
+</section>
+<section class="panel" id="price-gap-progress" aria-label="Live price gap remediation">
+<div class="sourceheader"><div><h2>Live price recovery · Marketstack evidence</h2>
+<p>Real-time counts from the isolated GEM Neon ledger, plus a separate personal-research Yahoo pilot. Raw receipt integrity is not equivalent to verified market prices.</p></div>
+<span class="status" id="gapreleasestate">Loading source records</span></div>
+<div class="secsummary" id="gapmetrics"><div><strong>—</strong><small>Reading source records…</small></div></div>
+<p class="muted" id="gapupdated">Recovery check pending…</p>
+<h3 style="margin-top:18px">Vendor-rejected daily closes · June 2026</h3>
+<p class="muted">Each count is the number of Marketstack ticker histories with a rejected close on the specified session. It is not a count of approved replacements.</p>
+<table class="stocklist" aria-label="Marketstack invalid date evidence">
+<thead><tr><th>Session</th><th>Marketstack histories affected</th><th>Yahoo provisional candidates</th><th>Approved replacement bars</th></tr></thead>
+<tbody id="gapdays"><tr><td colspan="4">Reading date-specific evidence…</td></tr></tbody></table>
+<div class="warn"><strong>Yahoo research is not certified price repair:</strong> The initial Yahoo pilot supplied 9/9 research-only bars for AAPL, MSFT and SPY. Automated provisional candidate counts now come from the private GEM ledger; neither source may be treated as independently verified solely from collection. <a href="https://github.com/ankitgarg1234-cell/isk-trading-radar/actions/runs/38568599964" target="_blank" rel="noopener noreferrer">View the actual pilot run</a>. Those bars have <strong>not</strong> been imported into GEM or independently cleared for production. Yahoo's personal-use service is not a licensed unattended trading feed.</div>
+<p class="muted" id="gapnext">Awaiting the next independent source reconciliation milestone…</p>
+</section>
+<section class="panel" id="research-progress" aria-label="Accelerated research progress">
+<div class="sourceheader"><div><h2>Archived research snapshot · 14 October 2026</h2>
+<p>Timestamped isolated research diagnostics, separate from the live Neon source-certification inventory below. These figures are not trading eligibility or a new month-end signal.</p></div>
+<span class="status">ARCHIVED SNAPSHOT · NOT TRADING AUTHORIZATION</span></div>
+<div class="secsummary">
+<div class="kpi"><small>NYSE published schedule</small><strong>251 / 251</strong><small>Independent XNYS calendar match; actual completed sessions not certified</small></div>
+<div class="kpi"><small>SPY price / dividends</small><strong>196 days</strong><small>3 cash dividends cross-checked; provisional 14.77% total return, 2 Jan–13 Oct</small></div>
+<div class="kpi"><small>Current S&amp;P securities</small><strong>503</strong><small>500 issuers; two October replacements corrected for September research</small></div>
+<div class="kpi"><small>Alternative-source price observations</small><strong>500 / 503</strong><small>September month-end; WBD, FDXF and HONA require exception treatment</small></div>
+</div>
+<div class="flowtext" style="margin-top:18px"><span>September 30 retrospective screen · source observations only</span><span>Not independently certified</span></div>
+<div class="secsummary" style="margin-top:8px">
+<div class="kpi"><small>Price + liquidity + r63 candidates</small><strong>186</strong><small>Alternative price basis; not frozen-source parity</small></div>
+<div class="kpi"><small>SEC six-fact sets available by cutoff</small><strong>126</strong><small>Automated source candidates, not audited</small></div>
+<div class="kpi"><small>Provisional financial-gate survivors</small><strong>23</strong><small>Unresolved issuers can change this count</small></div>
+<div class="kpi"><small>Independently approved signals</small><strong>0</strong><small>No final Top 5 and no broker orders</small></div>
+</div>
+<div class="warn"><strong>Open exceptions:</strong> WBD's pre-delisting history remains unavailable in the two public fallback tests; 57 momentum-screened issuers have unresolved SEC mappings. Observed vendor events (993 dividends and 10 splits) are not a certified corporate-action ledger. Historical index membership and adjusted-price parity still need independent verification.</div>
+<p class="muted">Evidence: <a href="https://github.com/ankitgarg1234-cell/isk-trading-radar/pull/103" target="_blank" rel="noopener noreferrer">isolated research PR #103</a>. The live source cards below continue to read the GEM database. Research numbers above are a dated diagnostic snapshot and will not auto-update until a reviewed evidence-publishing pipeline is connected.</p>
+</section>
+<section class="panel" id="validation-queue"><div class="sourceheader"><div><h2>Automatic validation work queue</h2><p>Live priority ordering from source evidence. The dashboard advances its displayed task as blockers are cleared; it does not independently certify sources or launch paid provider calls.</p></div><span class="status" id="queue-state">Checking</span></div>
+<div id="queue-current" class="milestone">Loading next validation task…</div><div id="queue-list" class="muted" style="margin-top:9px"></div>
+<p class="muted">Evidence refreshes every five minutes while this page is open. Collection and SEC background workers are separately configured on Render; this page cannot enable them. Independent review and shadow validation remain release gates.</p></section>
+<section class="panel"><div class="sourceheader"><div><h2>Data integrity at a glance</h2>
+<p>Live evidence inventory from the isolated GEM database. Latest collection and audit times are shown separately.</p></div>
+<button id="refresh" type="button">Refresh evidence</button></div>
+<div class="muted" id="generated">Reading source records…</div>
+<div class="sourcegrid" id="sources"><article class="source" data-source="membership"><div class="sourceheader"><h3>S&P 500 membership</h3><span class="status">Loading</span></div><p class="muted">Checking last collection, coverage, audit and certification…</p><div class="flow"><span class="step pending"></span><span class="step pending"></span><span class="step pending"></span><span class="step pending"></span></div></article><article class="source" data-source="prices"><div class="sourceheader"><h3>Daily prices and liquidity</h3><span class="status">Loading</span></div><p class="muted">Checking last collection, coverage, audit and certification…</p><div class="flow"><span class="step pending"></span><span class="step pending"></span><span class="step pending"></span><span class="step pending"></span></div></article><article class="source" data-source="sec"><div class="sourceheader"><h3>SEC financial statements</h3><span class="status">Loading</span></div><p class="muted">Checking last collection, coverage, audit and certification…</p><div class="flow"><span class="step pending"></span><span class="step pending"></span><span class="step pending"></span><span class="step pending"></span></div></article><article class="source" data-source="actions"><div class="sourceheader"><h3>Corporate actions</h3><span class="status">Loading</span></div><p class="muted">Checking last collection, coverage, audit and certification…</p><div class="flow"><span class="step pending"></span><span class="step pending"></span><span class="step pending"></span><span class="step pending"></span></div></article><article class="source" data-source="calendar"><div class="sourceheader"><h3>NYSE trading calendar</h3><span class="status">Loading</span></div><p class="muted">Checking last collection, coverage, audit and certification…</p><div class="flow"><span class="step pending"></span><span class="step pending"></span><span class="step pending"></span><span class="step pending"></span></div></article><article class="source" data-source="benchmark"><div class="sourceheader"><h3>SPY benchmark</h3><span class="status">Loading</span></div><p class="muted">Checking last collection, coverage, audit and certification…</p><div class="flow"><span class="step pending"></span><span class="step pending"></span><span class="step pending"></span><span class="step pending"></span></div></article></div></section>
+<section class="panel"><h2>SEC fundamentals — per-company verification</h2>
+<p>Source receipts and machine-complete candidates are not equivalent to independently certified investment inputs.</p>
+<div class="secsummary" id="secstats"><div><strong>—</strong><small>Source pairs</small></div></div>
+<div style="margin-top:16px"><progress id="secprogress" max="500" value="0"></progress>
+<div class="muted" id="sectext">Waiting for SEC audit records</div>
+<div id="secreconciled" class="muted" style="margin-top:12px">Checking original-filing reconciliation separately…</div></div>
+<div class="warn">Incomplete/unknown companies do <strong>not</strong> automatically drop out of the investment universe. Their financials must be resolved, or they must be demonstrably unable to displace the top five.</div></section>
+<section class="panel"><div class="sourceheader">
+<div><h2>SEC financial exceptions · original filing review queue</h2>
+<p>Company-level reasons and review actions. Nothing here is certified or silently removed from the investment universe.</p>
+<p><a href="/gem-sec-filings">Browse the original SEC 10-Q / 10-K documents and extracted facts for every outstanding CIK</a></p>
+<p><a href="/gem-sec-reconciliation">View all issuer reconciliation outcomes and download the SEC exception report</a></p></div>
+<button type="button" id="loadsecqueue">Load exception list</button>
+</div><div id="secqueuestate" class="muted">Load to see remaining CIKs and what original SEC evidence is required.</div>
+<div id="secqueue"></div>
+</section>
+<section class="panel"><h2>Market-data provider coverage</h2>
+<p>Measured as verified 127-session price histories for the full current constituent list — not API requests or isolated sample tickers.</p>
+<div class="secsummary" id="pricestats"><div><strong>—</strong><small>Marketstack</small></div></div>
+<p class="muted" id="priceexplain"></p>
+<p class="muted">Fallback order: Marketstack → independently checked IBKR nominal OHLCV → adjustment reconciliation. Alternate data is not automatically accepted as equivalent to frozen adjusted prices.</p></section>
+<section class="panel"><h2>My holdings · manual management</h2>
+<p>Import a CSV/Excel holdings export, or an image if image recognition has been enabled. Review and edit the draft below. Nothing is saved to your account or broker by importing.</p>
+<div class="controls"><input type="file" id="holdingfile" accept=".csv,.xlsx,.png,.jpg,.jpeg,.webp" aria-label="Select holdings file">
+<button id="parse" type="button">Import &amp; review</button>
+<button id="export" type="button" disabled>Export reviewed draft</button></div>
+<label class="muted"><input type="checkbox" id="consent"> If importing an image, I consent to sending it to OpenAI for position extraction. Do not include account numbers or other personal identifiers.</label>
+<div id="importstate" class="muted" style="margin:11px 0">No positions imported. CSV/XLSX requires Ticker or Symbol and Shares or Quantity columns.</div>
+<div id="positions"></div>
+<p class="muted">Update a quantity or mark a holding closed in this <strong>draft</strong>; this is not a recorded sale. After you trade manually, the confirmed date, quantity, fill price and fees must be entered into the <a href="/gem-manual">manual reconciliation ledger</a>. Persistent brokerage-account synchronization is intentionally disabled.</p></section>
+<footer>GEMv1 isolated service · Research diagnostics and manual portfolio planning only · No brokerage API or automatic execution</footer>
+<script>
+const $=id=>document.getElementById(id);
+let draft=[];
+const fmt=x=>x?new Date(x).toLocaleString(undefined,{dateStyle:"medium",timeStyle:"short",timeZone:"UTC"})+" UTC":"Not yet recorded";
+function renderAutonomousReadiness(release){
+ const metrics=$("release-metrics"),cards=$("release-gates"),
+       mach=$("machine-qa-summary"),machCards=$("machine-qa-gates");
+ metrics.replaceChildren();cards.replaceChildren();mach.replaceChildren();machCards.replaceChildren();
+ if(!release || release.schema!=="gem-autonomous-production-gates-v1" ||
+    !Array.isArray(release.gates) || release.gates.length===0){
+   $("release-state").textContent="NO VERIFIED RELEASE CHECK";
+   $("live-verification-summary").textContent=" Verification evidence unavailable; broker trading disabled.";
+   $("release-timestamp").textContent="Autonomous release evaluation not available; trading disabled.";
+   stat(metrics,null,"Validated release gate count unavailable");
+   return;
+ }
+ const passed=release.gates.filter(g=>g.passed===true).length;
+ const machine=release.python_machine_qa;
+ const machineCount=(machine&&machine.schema==="gem-python-machine-qa-v1"
+  && Array.isArray(machine.checks))
+   ?machine.checks.filter(g=>g.passed===true).length:null;
+ $("live-verification-summary").textContent=
+   " Automated source tests "+(machineCount===null?"unavailable":machineCount+" / "+machine.checks.length+" passed")+
+   " · Production release checks "+passed+" / "+release.gates.length+" passed."+
+   " Blanket script approval is active; no broker orders can be sent.";
+ $("release-state").textContent=release.production_trading_ready===true
+  ?"MANUAL REVIEW REQUIRED":"AUTONOMOUS DIAGNOSTICS · TRADING HOLD";
+ stat(metrics,passed+" / "+release.gates.length,"Release gates passed");
+ stat(metrics,release.gates.length-passed,"Evidence gates awaiting completion");
+ stat(metrics,release.research_inputs_ready===true?"YES":"NO","Research inputs independent QA-ready");
+ stat(metrics,"OFF","Broker execution");
+ $("release-timestamp").textContent="Last evaluated: "+fmt(release.checked_at)+
+  " · GEM frozen strategy · No source self-certification or automatic broker activation.";
+ release.gates.forEach(gate=>{
+   const card=el("article",null,cards,"source");
+   const header=el("div",null,card,"sourceheader");
+   el("h3",gate.key.replaceAll("_"," ").replace(/\\b\\w/g,c=>c.toUpperCase()),header);
+   el("span",gate.passed===true?"EVIDENCE PASS":"EVIDENCE HOLD",header,"status");
+   el("p",gate.evidence||"Evidence not verified",card,"milestone");
+   if(!gate.passed)el("p","Next: "+(gate.next_action||"Independent review required"),card,"muted");
+   el("p","Owner: "+(gate.owner||"UNASSIGNED").replaceAll("_"," "),card,"muted");
+ });
+ if(machine && machine.schema==="gem-python-machine-qa-v1" &&
+    Array.isArray(machine.checks) && machine.checks.length>0){
+   stat(mach,machine.machine_checks_passed+" / "+machine.machine_checks_total,
+       "Python machine checks passed (not trading approvals)");
+   machine.checks.forEach(item=>{
+     const card=el("article",null,machCards,"source"),head=el("div",null,card,"sourceheader");
+     el("h3",item.key.replaceAll("_"," "),head);
+     el("span",item.passed===true?"MACHINE PASS":"MACHINE HOLD",head,"status");
+     el("p",item.observed+" / "+item.required+" — "+item.scope,card,"muted");
+     if(!item.passed)el("p","Next: "+item.next_action,card,"muted");
+   });
+ }else stat(mach,null,"Machine QA evidence unavailable; no automatic pass");
+}
+
+
+
+function el(tag,txt,parent,cls){const node=document.createElement(tag);if(txt!=null)node.textContent=txt;if(cls)node.className=cls;parent.appendChild(node);return node}
+function stat(parent,value,label){const div=el("div",null,parent);el("strong",value==null?"Unknown":String(value),div);el("small",label,div)}
+async function refreshGapProgress(){
+ const metrics=$("gapmetrics"),table=$("gapdays"),stamp=$("gapupdated");
+ metrics.replaceChildren();table.replaceChildren();
+ $("gapreleasestate").textContent="Checking evidence";
+ try{
+  const response=await fetch("/api/gem-portfolio/price-gaps",{cache:"no-store"});
+  const result=await response.json();
+  if(!response.ok || result.schema!=="gem-price-gap-progress-v1" ||
+     result.data_access!=="CONNECTED" || !Array.isArray(result.missing_close_sessions))
+     throw Error("Restricted price evidence unavailable");
+  const count=result.collection, audit=result.stored_receipt_audit, local=result.marketstack_local_budget;
+  const verified=result.verification, yahoo=result.yahoo_research;
+  if(!count || !audit || !verified || !local || !yahoo)
+     throw Error("Incomplete recovery counters");
+  stat(metrics,count.marketstack_histories_stored+" / "+count.security_lines_target,"Marketstack histories collected");
+  stat(metrics,audit.audited+" / "+count.marketstack_histories_stored,"Stored receipts audited");
+  stat(metrics,audit.integrity_pass,"Stored hashes/OHLC passed (not price QA)");
+  stat(metrics,count.histories_with_rejected_vendor_rows,"Histories with vendor rejects");
+  stat(metrics,count.rejected_vendor_rows,"Rejected vendor rows (all dates)");
+  stat(metrics,verified.independently_certified_price_histories,"Independently certified");
+  stat(metrics,local.requests_reserved+" / "+local.cap,"Locally reserved Marketstack requests");
+  stat(metrics,yahoo.stored_personal_research_candidates??0,
+       "Yahoo research gap candidates (NOT price QA)");
+  stat(metrics,yahoo.research_symbols_observed??0,
+       "Yahoo personal research symbols");
+  stat(metrics,yahoo.targeted_gap_candidates_remaining??"Unknown",
+       "June research gaps without Yahoo candidates");
+  stat(metrics,count.histories_with_at_least_127_bars,"Histories with ≥127 stored bars");
+  result.missing_close_sessions.forEach(item=>{
+   const row=el("tr",null,table);
+   el("td",item.session,row);el("td",String(item.affected_marketstack_histories),row);
+   el("td",String(item.yahoo_personal_research_candidates_unapproved??0)+" · NOT APPROVED",row);
+   el("td",String(item.replacement_bars_approved)+" · source HOLD",row);
+  });
+  $("gapreleasestate").textContent="RESEARCH ACTIVE · TRADING HOLD";
+  stamp.textContent="Last raw-receipt audit: "+fmt(audit.last_recorded_at)+
+   " · "+audit.vendor_or_length_holds+" receipts held for source correction or short history."+
+   " Yahoo status: "+yahoo.state.replaceAll("_"," ")+
+   " · worker "+(yahoo.worker_enabled?"configured":"not opted in")+".";
+  $("gapnext").textContent="Next required evidence: "+verified.next_required_step+
+   ". No broker integration or automated trade execution is enabled.";
+ }catch(err){
+  $("gapreleasestate").textContent="EVIDENCE UNAVAILABLE";
+  stat(metrics,null,"Recovery counters unavailable");
+  const row=el("tr",null,table);const cell=el("td","Date-specific source counts unavailable; no replacement is considered approved.",row);
+  cell.colSpan=4;
+  stamp.textContent="Restricted recovery data unavailable. Recheck or use Refresh evidence; no inferred source approval.";
+  $("gapnext").textContent="Price correction not verified; trading remains disabled.";
+ }
+}
+async function refresh(){
+ refreshGapProgress();
+ $("generated").textContent="Refreshing evidence…";
+ try{
+ const response=await fetch("/api/gem-portfolio/integrity",{cache:"no-store"});
+ const data=await response.json();
+ if(!data || !Array.isArray(data.sources) || data.sources.length!==6)
+   throw new Error("Six-source integrity response missing");
+ const accessible=response.ok&&data.data_access==="CONNECTED";
+ $("generated").textContent=accessible
+   ?"Snapshot: "+fmt(data.generated_at)+" · Read-only source evidence · Investment release: "+data.investment_release
+   :"SOURCE DATA UNAVAILABLE — all six sources shown as UNKNOWN; please retry. No trade approval inferred.";
+ $("approved").textContent=data.approved_monthly_signals==null?"Unknown":String(data.approved_monthly_signals);
+ const queue=$("queue-list");queue.replaceChildren();
+ try {
+  const robotResponse=await fetch("/api/gem-portfolio/robot",{cache:"no-store"});
+  const robot=await robotResponse.json();
+  if(robotResponse.ok && Array.isArray(robot.checks) && robot.checks.length){
+   el("p","Robot last check: "+fmt(robot.checks.map(c=>c.observed_at).sort().at(-1))+
+     " · "+robot.checks.length+" sources · PYTHON QA ACTIVE · TRADING HOLD",queue,"muted");
+   const priceQA=robot.price_raw_receipt_qa;
+   if(priceQA){
+    el("p","Stored price receipt audit: "+priceQA.audited+" checked · "+
+      priceQA.raw_integrity_pass+" byte-integrity pass · "+
+      priceQA.held_for_resolution+" held · INDEPENDENT PRICE PARITY STILL PENDING",
+      queue,"muted");
+   }
+   renderAutonomousReadiness(robot.release_readiness);
+   const priceRecovery=robot.checks.find(c=>c.source==="prices")?.autonomous_recovery;
+   if(priceRecovery){
+    el("p","Autonomous price recovery: "+priceRecovery.state+
+      " · observed "+(priceRecovery.observed??0)+
+      " · attempts "+(priceRecovery.reserved??0)+
+      " · held for review "+(priceRecovery.held_for_source_review??"—")+
+      " · NOT independently certified",queue,"muted");
+   }
+  }else el("p","Robot execution: not yet recorded or evidence access unavailable",queue,"muted");
+ }catch(e){renderAutonomousReadiness(null);el("p","Robot execution: status unavailable",queue,"muted");}
+
+ const priority=["prices","sec","membership","actions","calendar","benchmark"];
+ const pending=priority.map(k=>data.sources.find(s=>s.key===k)).filter(Boolean)
+   .filter(s=>s.source_approval!=="APPROVED"&&s.status!=="VERIFIED");
+ const current=pending[0];
+ $("queue-state").textContent=accessible?(current?"BLOCKED / IN PROGRESS":"AWAITING INDEPENDENT RELEASE"):"SOURCE DATA UNAVAILABLE";
+ $("queue-current").textContent=accessible
+   ?(current?"Next: "+current.title+" — "+(current.next_step||"Independent evidence review pending"):"All source cards need independent release review")
+   :"Cannot determine next task without database access";
+ pending.forEach((item,i)=>el("p",(i+1)+". "+item.title+" · "+(item.progress_tag||item.status)+" · "+(item.next_step||"QA pending"),queue,"muted"));
+ const box=$("sources");box.replaceChildren();
+ data.sources.forEach(s=>{
+  const card=el("article",null,box,"source"),head=el("div",null,card,"sourceheader");
+  el("h3",s.title,head);const progress=el("span",s.progress_tag||s.status,head,"muted");progress.title="Overall certification: "+s.status+"; release: "+s.source_approval;
+  el("p",s.requirement,card,"muted");
+  if(s.progress_summary)el("p",s.progress_summary,card,"milestone");
+  const flow=el("div",null,card,"flow"),labels=el("div",null,card,"flowtext");
+  s.stages.forEach(t=>{const bar=el("span",null,flow,"step "+t.state.toLowerCase());bar.title=t.name+": "+t.state;const mark=el("span",t.name,labels);mark.title=t.state;});
+  const dl=el("dl",null,card);
+  [["Last collected",s.last_refreshed],["Last checked",s.last_checked],[s.audit_label||"Last independent audit",s.last_audited]].forEach(pair=>{
+   el("dt",pair[0],dl);el("dd",fmt(pair[1]),dl)
+  });
+  if(s.next_step)el("p","Next: "+s.next_step,card,"muted");
+  const details=el("details",null,card);el("summary","Evidence and gaps",details);
+  const ul=el("ul",null,details);s.evidence.forEach(line=>el("li",line,ul));
+  if(s.key==="membership" && data.wikipedia && data.wikipedia.securities!=null){
+   el("li","Wikipedia: "+data.wikipedia.securities+" security lines / "+data.wikipedia.unique_ciks+" unique CIKs",ul);
+  }
+ });
+ const sec=$("secstats");sec.replaceChildren();
+ stat(sec,data.sec.source_pairs,"Company source pairs");
+ stat(sec,data.sec.machine_assessed,"Machine-assessed");
+ stat(sec,data.sec.machine_candidate_complete_not_certified,"Standardized six-fact candidates (not certified)");
+ stat(sec,data.sec.independently_certified,"Independently certified");
+ $("secprogress").max=Math.max(1,data.sec.source_pairs||1);$("secprogress").value=data.sec.machine_assessed||0;
+ $("sectext").textContent=data.data_access!=="CONNECTED"
+     ?"SEC coverage UNKNOWN until source database connection is restored"
+     :data.sec.machine_incomplete_or_unknown+" assessed incomplete/unknown · "
+     +data.sec.not_machine_assessed+" not assessed · "
+     +(data.sec.receipt_integrity_pass==null?"Receipt-audit details not readable with the restricted dashboard account":data.sec.receipt_integrity_pass+" independent receipt integrity passes")
+     +" · Last machine audit: "+fmt(data.sec.last_machine_audit)
+     +" · Top blockers: "+Object.entries(data.sec.exception_categories||{}).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,v])=>k+": "+v).join("; ");
+ // A second read-only SEC evidence view distinguishes machine candidates from
+ // original 10-Q candidates. Never silently promote either to certified.
+ try{
+  const reconResponse=await fetch("/api/gem-portfolio/sec-reconciliation",{cache:"no-store"});
+  if(!reconResponse.ok)throw Error("SEC reconciliation unavailable");
+  const recon=await reconResponse.json();
+  if(recon.schema!=="gem-sec-reconciliation-coverage-v1" ||
+     typeof recon.issuers_machine_assessed!=="number" ||
+     recon.issuers_machine_assessed!==data.sec.machine_assessed ||
+     recon.machine_candidate_complete_not_certified!==data.sec.machine_candidate_complete_not_certified)
+     throw Error("Machine audit and original-source reconciliation not synchronized");
+  stat(sec,recon.original_six_fact_candidates_recovered_not_certified,
+       "Extra original 10-Q six-fact candidates (not certified)");
+  stat(sec,recon.combined_machine_or_original_candidates_not_certified,
+       "Combined six-fact candidates (not certified)");
+  stat(sec,recon.still_no_six_fact_set,"Still missing comparable six-fact set");
+  $("secreconciled").textContent=
+     "Original filings classified: "+recon.original_review_reconciled+" / "+recon.machine_unresolved+
+     " exceptions; "+recon.original_review_pending+" awaiting reconciliation. "+
+     "Six-fact source candidate coverage: "+
+     recon.combined_machine_or_original_candidates_not_certified+" / "+recon.issuers_machine_assessed+
+     ". Independently certified: "+data.sec.independently_certified+
+     ". This is NOT a ranking release.";
+ }catch(reconErr){
+  $("secreconciled").textContent=
+     "Original filing reconciliation counts unavailable or out of sync; "+
+     "machine-only counts above are not source certification.";
+ }
+ const prices=$("pricestats");prices.replaceChildren();
+ stat(prices,data.prices.marketstack_fully_verified,"Marketstack verified");
+ stat(prices,data.prices.ibkr_fully_verified,"IBKR verified");
+ stat(prices,data.prices.overall_fully_verified,"Overall verified");
+ stat(prices,data.prices.security_lines_target,"Security lines targeted");
+ stat(prices,data.prices.marketstack_observed_not_certified,"Marketstack observed (QA pending)");
+ stat(prices,data.prices.marketstack_monthly_requests_reserved,"Monthly Marketstack requests reserved");
+ stat(prices,data.prices.marketstack_rejected_bars,"Marketstack invalid session rows");
+ $("priceexplain").textContent=data.prices.coverage_note+(data.prices.ibkr_diagnostic_sample==null?"":" IBKR diagnostic sample: "+data.prices.ibkr_diagnostic_sample+".");
+ }catch(err){
+  $("generated").textContent="SOURCE STATUS UNAVAILABLE — "+String(err.message)+"; all six categories remain UNKNOWN.";
+  $("approved").textContent="Unknown";
+  $("secreconciled").textContent="Original-filing reconciliation status unavailable.";
+  const fallback=$("sources");fallback.replaceChildren();
+  [["membership","S&P 500 membership"],["prices","Daily prices and liquidity"],
+   ["sec","SEC financial statements"],["actions","Corporate actions"],
+   ["calendar","NYSE trading calendar"],["benchmark","SPY benchmark"]].forEach(([key,title])=>{
+     const c=el("article",null,fallback,"source"),h=el("div",null,c,"sourceheader");
+     el("h3",title,h);el("span","UNAVAILABLE",h,"status");
+     el("p","Data source unavailable; no verified status or timestamp can be inferred.",c,"muted");
+     const stages=el("div",null,c,"flow");for(let i=0;i<4;i++)el("span",null,stages,"step pending");
+   });
+  const sec=$("secstats");sec.replaceChildren();stat(sec,null,"Source pairs");stat(sec,null,"Machine-assessed");stat(sec,null,"Certified");
+  const price=$("pricestats");price.replaceChildren();stat(price,null,"Marketstack");stat(price,null,"IBKR");stat(price,null,"Overall");
+  $("secprogress").value=0;
+  $("sectext").textContent="SEC status unavailable";
+  $("priceexplain").textContent="Price coverage unavailable";
+ }
+}
+function renderPositions(){
+ const root=$("positions");root.replaceChildren();
+ if(!draft.length)return;
+ const table=el("table",null,root,"holdings"),head=el("thead",null,table),hr=el("tr",null,head);
+ ["Ticker","Shares (editable)","Status","Action"].forEach(t=>el("th",t,hr));
+ const body=el("tbody",null,table);
+ draft.forEach((item,i)=>{
+ const tr=el("tr",null,body);el("td",item.ticker,tr);
+ const inputcell=el("td",null,tr),input=el("input",null,inputcell);
+ input.type="number";input.min="0";input.max="1000000000";input.step="any";input.value=item.shares;
+ input.addEventListener("change",()=>{const num=Number(input.value);
+ if(!Number.isFinite(num)||num<0||num>1000000000){input.value=item.shares;return}
+ item.shares=String(num);if(num>0)item.last_nonzero=String(num);renderPositions()});
+ el("td",Number(item.shares)===0?"Draft closed":"Draft open",tr);
+ const action=el("td",null,tr),button=el("button",Number(item.shares)===0?"Reopen draft":"Mark closed (draft)",action);
+ button.addEventListener("click",()=>{item.shares=Number(item.shares)===0?(item.last_nonzero||"0"):"0";renderPositions()});
+ });
+ $("export").disabled=false;
+}
+$("loadsecqueue").onclick=async()=>{
+ const root=$("secqueue");root.replaceChildren();
+ $("secqueuestate").textContent="Loading exception queue…";
+ try{
+  const response=await fetch("/api/gem-portfolio/sec-exceptions",{cache:"no-store"});
+  if(!response.ok)throw Error("SEC review evidence currently unavailable");
+  const data=await response.json();
+  if(data.schema!=="gem-sec-exception-review-v1")throw Error("Invalid source review response");
+  $("secqueuestate").textContent=data.unresolved+" unresolved / "+data.machine_assessed
+    +" machine-assessed; "+data.candidate_complete_not_certified+" candidate-complete (not certified)."
+    +" Original 10-Q review attempted for "+data.original_inline_scanned
+    +" issuers; "+data.original_inline_six_candidate_sets+" six-standard-fact candidate sets recovered (not certified).";
+  const details=el("details",null,root);
+  const summary=el("summary","Review "+data.review_queue_displayed+" CIK filing exceptions and actions",details);
+  const cat=el("p","Categories: "+Object.entries(data.categories).map(
+    ([name,count])=>name.replaceAll("_"," ").toLowerCase()+" "+count).join(" · "),details,"muted");
+  const table=el("table",null,details,"holdings"),head=el("thead",null,table),hr=el("tr",null,head);
+  ["CIK / SEC filing","Issue","Original filing recovery","Next source review"].forEach(t=>el("th",t,hr));
+  const body=el("tbody",null,table);
+  data.review_queue.forEach(item=>{
+   const row=el("tr",null,body),cell=el("td",null,row);
+   const link=el("a",item.cik,cell);
+   link.href="https://www.sec.gov/edgar/browse/?CIK="+encodeURIComponent(item.cik);
+   link.rel="noopener noreferrer";link.target="_blank";
+   el("td",item.blockers.join("; "),row);
+   el("td",(item.original_inline_review_status||"NOT_YET_SCANNED").replaceAll("_"," ").toLowerCase(),row);
+   el("td",item.actions.join("; ").replaceAll("_"," ").toLowerCase(),row);
+  });
+ }catch(err){$("secqueuestate").textContent=String(err.message)}
+};
+$("refresh").onclick=refresh;
+$("parse").onclick=async()=>{
+ const f=$("holdingfile").files[0];if(!f){$("importstate").textContent="Choose a file first";return}
+ const image=/\.(png|jpe?g|webp)$/i.test(f.name);
+ if(image&&!$("consent").checked){$("importstate").textContent="Image parsing requires explicit cloud-processing consent. Alternatively upload a CSV/XLSX.";return}
+ $("importstate").textContent="Parsing review-only draft…";
+ const body=new FormData();body.append("file",f);body.append("image_consent",image?"yes":"no");
+ try{
+ const res=await fetch("/api/gem-portfolio/import",{method:"POST",body});
+ const obj=await res.json();
+ if(!res.ok)throw Error(obj.detail||"File import failed");
+ draft=obj.holdings.map(item=>({...item,last_nonzero:item.shares}));renderPositions();
+ $("importstate").textContent=obj.positions+" positions imported to a draft. Verify tickers and quantities before use; nothing saved.";
+ }catch(err){$("importstate").textContent=String(err.message)}
+};
+$("export").onclick=()=>{
+ if(!draft.length)return;
+ const obj={schema:"gem-reviewed-holdings-draft-v1",review_required:true,
+             not_a_broker_order:true,server_saved:false,holdings:draft.map(item=>({ticker:item.ticker,shares:item.shares}))};
+ const a=document.createElement("a"),blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"});
+ const url=URL.createObjectURL(blob);a.href=url;a.download="gem-positions-reviewed-draft.json";a.click();URL.revokeObjectURL(url);
+};
+refresh();
+setInterval(refresh,300000);
+</script></body></html>"""
+
+
+@router.get("/gem-portfolio", response_class=HTMLResponse)
+def portfolio_dashboard():
+    return HTMLResponse(_HTML, headers={
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; connect-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'",
+    })
