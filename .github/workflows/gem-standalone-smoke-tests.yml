@@ -1,42 +1,16 @@
-name: GEM Standalone Render Smoke Tests
+name: Tier-1 V3 isolated Render smoke tests
 on:
   push:
     branches: [draft/gem-standalone-render-20261012]
     paths:
-      - "gem_data/gem_marketstack_backfill.py"
-      - "gem_data/gem_research_robot.py"
-      - "gem_data/gem_autonomous_release.py"
-      - "gem_data/gem_python_machine_qa.py"
-      - "gem_data/gem_ibkr_gap_crosscheck.py"
-      - "tests/test_gem_ibkr_gap_crosscheck.py"
-      - "tests/test_gem_python_machine_qa.py"
-      - "gem_data/gem_yahoo_auto_research.py"
-      - "gem_data/gem_price_gap_progress.py"
-      - "requirements.txt"
-      - "tests/test_gem_autonomous_release.py"
-      - "tests/test_gem_manual_workflow.py"
-      - "tests/test_gem_yahoo_auto_research.py"
-      - "gem_data/gem_yfinance_gap_research.py"
-      - "tests/test_gem_yfinance_gap_research.py"
+      - "tier1_v3/**"
+      - "tests/test_tier1_v3_dashboard.py"
       - "gem_data/gem_standalone.py"
-      - "gem_data/gem_price_gap_progress.py"
-      - "tests/test_gem_price_gap_progress.py"
-      - "gem_data/gem_price_receipt_audit.py"
-      - "tests/test_gem_price_receipt_audit.py"
-      - "gem_data/gem_portfolio_routes.py"
-      - "tests/test_gem_marketstack_speed.py"
-      - "tests/test_gem_research_robot.py"
-      - ".github/workflows/gem-standalone-smoke-tests.yml"
-  pull_request:
-    branches: [draft/gem-marketstack-eod-probe-20261012, dual-momentum-dashboard]
-    paths:
-      - "gem_data/gem_standalone.py"
-      - "tests/test_gem_standalone.py"
       - ".github/workflows/gem-standalone-smoke-tests.yml"
   workflow_dispatch:
 
 jobs:
-  isolated-app:
+  isolated-tier1-app:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -44,9 +18,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install dashboard dependencies
-        run: pip install -r requirements.txt pytest pandas
-      - name: Validate isolated entrypoint and GEM routes without secrets
-        run: |
-          python -m compileall -q gem_data
-          python -m pytest -q tests/test_gem_marketstack_initial_backfill.py tests/test_gem_marketstack_speed.py tests/test_gem_research_robot.py tests/test_gem_autonomous_release.py tests/test_gem_python_machine_qa.py tests/test_gem_ibkr_gap_crosscheck.py tests/test_gem_yahoo_auto_research.py tests/test_gem_price_receipt_audit.py tests/test_gem_price_gap_progress.py tests/test_gem_yfinance_gap_research.py tests/test_gem_marketstack_probe.py tests/test_gem_manual_workflow.py tests/test_gem_standalone.py tests/test_gem_dashboard.py tests/test_gem_sec_inline_remediation.py tests/test_gem_sec_exception_queue.py tests/test_gem_sec_annual_source.py tests/test_gem_sec_reconciliation.py tests/test_gem_sec_gate_triage.py tests/test_gem_sec_reconciliation_routes.py tests/test_gem_sec_historical_submissions.py
+      - name: Install test dependencies
+        run: pip install -r requirements.txt pytest
+      - name: Compile V3 and compatibility entry point
+        run: python -m compileall -q tier1_v3 gem_data/gem_standalone.py
+      - name: Test V3 isolation, PIT gates and drawdown arithmetic
+        run: python -m pytest -q tests/test_tier1_v3_dashboard.py
