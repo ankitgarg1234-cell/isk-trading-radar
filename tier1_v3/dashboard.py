@@ -348,7 +348,7 @@ async function postJson(url,obj){
   const res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(obj)});
   const body=await res.json(); if(!res.ok) throw Error(JSON.stringify(body)); return body;
 }
-function escapeText(x){return String(x).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"}[c]});}
+function escapeText(x){return String(x).replace(/[&<>"\x27]/g,function(c){if(c==="&")return "&amp;";if(c==="<")return "&lt;";if(c===">")return "&gt;";if(c===String.fromCharCode(34))return "&quot;";return "&#39;";});}
 async function runSnapshot(){
  const file=document.getElementById("snapshot").files[0]; if(!file){alert("Choose a JSON file.");return;}
  const area=document.getElementById("out");
