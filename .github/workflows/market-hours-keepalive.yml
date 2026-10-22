@@ -20,7 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Wake original radar and paper-trial service
+      - name: Monitor active original radar and optional dual-momentum service
+        env:
+          DUAL_MOMENTUM_KEEPALIVE_ENABLED: ${{ vars.DUAL_MOMENTUM_KEEPALIVE_ENABLED }}
         shell: bash
         run: |
           set -euo pipefail
@@ -29,11 +31,18 @@ jobs:
               --retry 3 --retry-delay 10 --retry-all-errors \
               --connect-timeout 20 --max-time 180 "${1}"
           }
-          # Two health checks in parallel, one GitHub runner.
-          # These are public wakeups; the logged-in app controls trial actions.
-          health https://isk-trading-radar.onrender.com/health &
-          original_pid=$!
-          health https://dual-momentum-radar.onrender.com/health &
-          paper_pid=$!
-          wait "$original_pid"
-          wait "$paper_pid"
+          # Only monitor explicitly active services. Dual Momentum was
+          # user-suspended in Render on 2026-10-18, so its deliberate HTTP 503
+          # must not fail the independent, still-running original radar.
+          # Re-enable the optional probe ONLY after resuming that service.
+          health https://isk-trading-radar.onrender.com/health > /dev/null
+          echo 'Original ISK radar: HEALTHY' >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${DUAL_MOMENTUM_KEEPALIVE_ENABLED}" = "yes" ]; then
+            echo 'Dual Momentum monitor: ENABLED; probing its health.' >> "$GITHUB_STEP_SUMMARY"
+            health https://dual-momentum-radar.onrender.com/health > /dev/null
+            echo 'Dual Momentum radar: HEALTHY' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Dual Momentum monitor: SKIPPED (Render service deliberately suspended on 2026-10-18).' >> "$GITHUB_STEP_SUMMARY"
+            echo 'To resume monitoring, first resume its Render service, then set Actions variable DUAL_MOMENTUM_KEEPALIVE_ENABLED=yes.' >> "$GITHUB_STEP_SUMMARY"
+          fi
